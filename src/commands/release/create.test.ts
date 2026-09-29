@@ -23,7 +23,7 @@ import {
 } from '../../utils/errors.js';
 import type * as bundleUploadModule from '../bundle/upload.js';
 import { uploadBundleFromOptions } from '../bundle/upload.js';
-import releaseCreateCommand from './create.js';
+import releaseCreateCommand, { resolveReleaseConsequence } from './create.js';
 
 vi.mock('@clack/prompts');
 vi.mock('../bundle/upload.js', async importOriginal => ({
@@ -80,7 +80,7 @@ describe('release create', () => {
     expect(confirm).toHaveBeenCalledWith({
       initialValue: false,
       message:
-        'This releases bundle #17 · 1.4.2 to staging at 100 percent. Continue?',
+        'This releases bundle #17 · 1.4.2 at 100 percent: reaches 120 devices in staging. Continue?',
     });
     const [createRequest] = readCreateRequests();
     const releaseBody = {
@@ -206,5 +206,26 @@ describe('release create', () => {
     ).rejects.toBeInstanceOf(InvalidParameterError);
 
     expect(harness.requests).toEqual([]);
+  });
+
+  it('should state the share of each channel at a partial rollout, with the mandatory flag', () => {
+    expect(
+      resolveReleaseConsequence(
+        READY_BUNDLE,
+        [
+          STAGING_CHANNEL_WITH_DEVICE_COUNTS,
+          {
+            ...PRODUCTION_CHANNEL,
+            activeDeviceCount: 10_000,
+            currentDeviceCount: 9000,
+            embeddedDeviceCount: 1000,
+          },
+        ],
+        5,
+        true,
+      ),
+    ).toBe(
+      'releases bundle #17 · 1.4.2 at 5 percent, mandatory: reaches about 6 of 120 devices in staging and about 500 of 10,000 devices in production',
+    );
   });
 });

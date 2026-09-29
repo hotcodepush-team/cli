@@ -51,7 +51,12 @@ export default defineCommand({
     const channels = await fetchChannels(hotCodePush, options);
     const rolloutPercentage = options.rolloutPercentage ?? 100;
     const isConfirmed = await confirmConsequence(
-      `releases bundle ${resolveBundleLabel(bundle)} to ${channels.map(({ name }) => name).join(', ')} at ${rolloutPercentage} percent${options.mandatory ? ', mandatory' : ''}`,
+      resolveReleaseConsequence(
+        bundle,
+        channels,
+        rolloutPercentage,
+        options.mandatory ?? false,
+      ),
       options,
     );
     if (!isConfirmed) {
@@ -123,6 +128,38 @@ export default defineCommand({
       ),
   }),
 });
+
+/**
+ * What the release does, with the audience: every channel's active devices, at the rollout percentage the share of them.
+ */
+export function resolveReleaseConsequence(
+  bundle: Bundle,
+  channels: ChannelWithDeviceCounts[],
+  rolloutPercentage: number,
+  isMandatory: boolean,
+): string {
+  const reaches = channels
+    .map(
+      ({ activeDeviceCount, name }) =>
+        `${resolveReachText(activeDeviceCount, rolloutPercentage)} in ${name}`,
+    )
+    .join(' and ');
+  return `releases bundle ${resolveBundleLabel(bundle)} at ${rolloutPercentage} percent${isMandatory ? ', mandatory' : ''}: reaches ${reaches}`;
+}
+
+function resolveReachText(
+  activeDeviceCount: number,
+  rolloutPercentage: number,
+): string {
+  const deviceText = `${activeDeviceCount.toLocaleString('en-US')} devices`;
+  if (rolloutPercentage === 100) {
+    return deviceText;
+  }
+  const reachedCount = Math.round(
+    (activeDeviceCount * rolloutPercentage) / 100,
+  );
+  return `about ${reachedCount.toLocaleString('en-US')} of ${deviceText}`;
+}
 
 /**
  * Every channel `--channel` names, or the project's one when none is named.
