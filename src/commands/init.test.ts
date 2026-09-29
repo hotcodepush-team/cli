@@ -18,9 +18,29 @@ import {
 } from '../utils/errors.js';
 import type * as packageManagerModule from '../utils/package-manager.js';
 import { runCommandLineVisibly } from '../utils/package-manager.js';
+import { readUserConfig, writeUserConfig } from '../utils/user-config.js';
 import { hasResourceReference } from '../utils/xcode-project.js';
 import initCommand from './init.js';
 
+// the in-place login must not touch the machine's keyring: a fake one keeps the token the flow stores
+const keyring = vi.hoisted(() => {
+  let storedToken: string | null = null;
+  return {
+    deletePassword: () => {
+      storedToken = null;
+      return true;
+    },
+    getPassword: () => storedToken,
+    setPassword: (token: string) => {
+      storedToken = token;
+    },
+  };
+});
+vi.mock('@napi-rs/keyring', () => ({
+  Entry: vi.fn(function () {
+    return keyring;
+  }),
+}));
 vi.mock('../utils/package-manager.js', async importOriginal => ({
   ...(await importOriginal<typeof packageManagerModule>()),
   runCommandLineVisibly: vi.fn(),
@@ -261,6 +281,68 @@ describe('init', () => {
     expect(
       harness.requests.filter(({ url }) => url.includes('/device')),
     ).toEqual([]);
+  });
+
+  it('should log in in place with the kept device code and keep --json stdout to the result', async () => {
+    const directoryPath = writeProject({
+      hookScript: 'npx hotcodepush bundle embed',
+      isPackageInstalled: true,
+      projectConfig: {
+        appId: DEMO_APP.id,
+        channelId: PRODUCTION_CHANNEL.id,
+        dir: 'www',
+      },
+    });
+    rmSync(join(directoryPath, 'ios'), { force: true, recursive: true });
+    vi.stubEnv('HOTCODEPUSH_TOKEN', '');
+    writeUserConfig({
+      ...readUserConfig(),
+      pendingDeviceCode: 'device-code-1',
+      pendingDeviceCodeExpiresAt: '2999-01-01T00:00:00.000Z',
+      pendingUserCode: 'KEPTCODE',
+      pendingVerificationUrl:
+        'https://console.example.com/device?user_code=KEPTCODE',
+    });
+    let hasToken = false;
+    harness.routes['POST /v1/auth/device/token'] = () => {
+      hasToken = true;
+      return Response.json({
+        access_token: 'session-token-2',
+        token_type: 'Bearer',
+      });
+    };
+    harness.routes['GET /v1/auth/get-session'] = () =>
+      hasToken
+        ? Response.json({
+            session: { id: 'session-2', userId: 'user-1' },
+            user: {
+              email: 'anna@example.com',
+              id: 'user-1',
+              name: 'Anna Example',
+            },
+          })
+        : Response.json(null);
+    harness.routes['GET /v1/organizations'] = () =>
+      Response.json([ACME_ORGANIZATION]);
+    harness.routes[`GET /v1/apps/${DEMO_APP.id}`] = () =>
+      Response.json(DEMO_APP);
+
+    await initCommand.action(
+      {
+        config: join(directoryPath, 'hotcodepush.json'),
+        json: true,
+        yes: true,
+      },
+      undefined,
+    );
+
+    const result = harness.readJson() as InitResult;
+    expect(result.steps[0]).toEqual({
+      message: 'logged in as Anna Example (anna@example.com)',
+      status: 'done',
+      step: 'sign-in',
+    });
+    expect(readUserConfig().pendingDeviceCode).toBeUndefined();
   });
 
   it('should stop at the hook with E_HOOK_OCCUPIED and the manual step when the script cannot be parsed', async () => {

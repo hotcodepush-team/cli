@@ -97,6 +97,7 @@ describe('login', () => {
     keyring.setPassword.mockReset();
     fetchMock.mockReset();
     vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
     writeUserConfig({ apiUrl: API_URL });
   });
 
@@ -125,8 +126,8 @@ describe('login', () => {
     expect(openBrowser).toHaveBeenCalledWith(
       DEVICE_AUTHORIZATION.verification_uri_complete,
     );
-    expect(console.log).toHaveBeenCalledWith(
-      'Open https://console.example.com/device?user_code=WDJBMJHT and approve the code WDJBMJHT.',
+    expect(process.stderr.write).toHaveBeenCalledWith(
+      'Open https://console.example.com/device?user_code=WDJBMJHT and approve the code WDJBMJHT.\nWaiting for the approval…\n',
     );
     expect(console.log).toHaveBeenCalledWith(
       'Logged in as Anna Example (anna@example.com).',
@@ -365,8 +366,8 @@ describe('login', () => {
 
       await loginCommand.action({}, undefined);
 
-      expect(console.log).toHaveBeenCalledWith(
-        `Open ${KEPT_VERIFICATION_URL} and approve the code KEPTCODE.`,
+      expect(process.stderr.write).toHaveBeenCalledWith(
+        `Open ${KEPT_VERIFICATION_URL} and approve the code KEPTCODE.\nWaiting for the approval…\n`,
       );
       expect(openBrowser).toHaveBeenCalledWith(KEPT_VERIFICATION_URL);
       expect(vi.mocked(setTimeout).mock.calls).toEqual([[5000], [5000]]);

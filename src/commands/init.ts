@@ -11,7 +11,6 @@ import {
   PROJECT_CONFIG_FILE_NAME,
 } from '../config/consts.js';
 import { createApiClient } from '../utils/api-client.js';
-import { createApiAuthClient, fetchSession } from '../utils/auth-client.js';
 import { fetchCredential } from '../utils/credential.js';
 import type { PackageJson } from '../utils/embed-hook.js';
 import {
@@ -66,7 +65,7 @@ import {
   hasResourceReference,
   resolveXcodeProjectFilePath,
 } from '../utils/xcode-project.js';
-import loginCommand from './login.js';
+import { logIn } from './login.js';
 import releaseCreateCommand from './release/create.js';
 
 interface InitOptions extends InteractivityOptions {
@@ -204,8 +203,7 @@ async function signIn(options: InitOptions): Promise<StepOutcome<HotCodePush>> {
       }
     }
   }
-  await loginCommand.action({ ...options, json: false }, undefined);
-  const { user } = await fetchSession(createApiAuthClient(readToken()));
+  const user = await logIn(options);
   return {
     message: `logged in as ${user.name} (${user.email})`,
     status: 'done',

@@ -8,6 +8,7 @@ import {
   resolveResponseData,
 } from '../utils/auth-client.js';
 import { openBrowser } from '../utils/browser.js';
+import type { InteractivityOptions } from '../utils/environment.js';
 import { isInteractive } from '../utils/environment.js';
 import { resolveApiError } from '../utils/error-mapping.js';
 import {
@@ -36,21 +37,17 @@ const DEVICE_CODE_GRANT_TYPE = 'urn:ietf:params:oauth:grant-type:device_code';
 // RFC 8628, section 3.5: every slow_down adds five seconds to the interval of this and every later request
 const SLOW_DOWN_INCREMENT_SECONDS = 5;
 
+export interface LoggedInUser {
+  email: string;
+  id: string;
+  name: string;
+}
+
 export default defineCommand({
   action: async options => {
-    const authClient = createApiAuthClient();
-    const sessionToken = await fetchSessionToken(
-      authClient,
-      isInteractive(options),
-    );
-    const { session, user } = await fetchSession(
-      createApiAuthClient(sessionToken),
-    );
-    writeToken(sessionToken);
-    deletePendingDeviceAuthorization();
-    writeUserConfig({ ...readUserConfig(), sessionId: session.id });
+    const user = await logIn(options);
     if (options.json) {
-      printJson({ user: { email: user.email, id: user.id, name: user.name } });
+      printJson({ user });
     } else {
       console.log(`Logged in as ${user.name} (${user.email}).`);
     }
@@ -59,6 +56,27 @@ export default defineCommand({
   examples: ['hotcodepush login', 'hotcodepush login --json'],
   options: defineCommandOptions({}),
 });
+
+/**
+ * The login flow as a command runs it in place: the session stored, the pending code cleared and the user returned;
+ * the page and the code a person must act on go to stderr, so the caller's stdout stays its own.
+ */
+export async function logIn(
+  options: InteractivityOptions,
+): Promise<LoggedInUser> {
+  const authClient = createApiAuthClient();
+  const sessionToken = await fetchSessionToken(
+    authClient,
+    isInteractive(options),
+  );
+  const { session, user } = await fetchSession(
+    createApiAuthClient(sessionToken),
+  );
+  writeToken(sessionToken);
+  deletePendingDeviceAuthorization();
+  writeUserConfig({ ...readUserConfig(), sessionId: session.id });
+  return { email: user.email, id: user.id, name: user.name };
+}
 
 /**
  * Polls at the interval until the person approves or denies the code, or the code expires.
@@ -176,10 +194,9 @@ async function fetchSessionTokenOnApproval(
     writePendingDeviceAuthorization(deviceAuthorization);
     throw new NotLoggedInError(deviceAuthorization);
   }
-  console.log(
-    `Open ${deviceAuthorization.verificationUrl} and approve the code ${deviceAuthorization.userCode}.`,
+  process.stderr.write(
+    `Open ${deviceAuthorization.verificationUrl} and approve the code ${deviceAuthorization.userCode}.\nWaiting for the approval…\n`,
   );
-  console.log('Waiting for the approval…');
   openBrowser(deviceAuthorization.verificationUrl);
   return fetchApprovedSessionToken(authClient, deviceAuthorization);
 }
