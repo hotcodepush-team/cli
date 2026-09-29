@@ -70,6 +70,7 @@ No releases yet: the version stays `0.0.0`, and release-please and npm provenanc
   zodline colours its help regardless, so `runCli` strips the codes from its output where colour is off.
 - **Commands call commands**: a command that needs what another does runs that command's action in place, never a copy of its logic.
 - **The token** is `readToken()`: `HOTCODEPUSH_TOKEN` when set, then the keyring, then the `config.json` fallback that any keyring failure latches for the rest of the process.
+- **A login that cannot wait** keeps its device code, expiry, user code and verification URL in `config.json`; the next `login` redeems the code first and, while it is pending, shows the same code again, so an agent sees one output until the person approves.
 
 ## Naming
 

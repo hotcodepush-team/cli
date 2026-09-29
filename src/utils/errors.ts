@@ -104,17 +104,6 @@ export class LoginExpiredError extends CliError {
   }
 }
 
-export class LoginPendingError extends CliError {
-  constructor() {
-    super({
-      code: 'E_LOGIN_PENDING',
-      exitCode: ExitCode.NotLoggedIn,
-      fix: 'approve the code the previous login printed, then run "hotcodepush login" again.',
-      message: 'the login still waits for its approval',
-    });
-  }
-}
-
 export class MissingParameterError extends CliError {
   constructor(flag: string) {
     super({

@@ -10,11 +10,9 @@ import {
 import { openBrowser } from '../utils/browser.js';
 import { isInteractive } from '../utils/environment.js';
 import { resolveApiError } from '../utils/error-mapping.js';
-import type { DeviceAuthorizationPrompt } from '../utils/errors.js';
 import {
   LoginDeniedError,
   LoginExpiredError,
-  LoginPendingError,
   NotLoggedInError,
 } from '../utils/errors.js';
 import { defineCommandOptions } from '../utils/global-options.js';
@@ -23,12 +21,15 @@ import { writeToken } from '../utils/token-store.js';
 import { readUserConfig, writeUserConfig } from '../utils/user-config.js';
 
 interface DeviceAuthorization {
-  device_code: string;
-  expires_in: number;
-  interval: number;
-  user_code: string;
-  verification_uri_complete: string;
+  deviceCode: string;
+  expiresAt: string;
+  intervalSeconds: number;
+  userCode: string;
+  verificationUrl: string;
 }
+
+// RFC 8628, section 3.2: without an interval from the server a client polls every five seconds, as for a kept code
+const DEFAULT_INTERVAL_SECONDS = 5;
 
 const DEVICE_CODE_GRANT_TYPE = 'urn:ietf:params:oauth:grant-type:device_code';
 
@@ -38,14 +39,15 @@ const SLOW_DOWN_INCREMENT_SECONDS = 5;
 export default defineCommand({
   action: async options => {
     const authClient = createApiAuthClient();
-    const isLoginInteractive = isInteractive(options);
-    const sessionToken =
-      (await redeemPendingDeviceCode(authClient, isLoginInteractive)) ??
-      (await fetchSessionTokenForNewDeviceCode(authClient, isLoginInteractive));
+    const sessionToken = await fetchSessionToken(
+      authClient,
+      isInteractive(options),
+    );
     const { session, user } = await fetchSession(
       createApiAuthClient(sessionToken),
     );
     writeToken(sessionToken);
+    deletePendingDeviceAuthorization();
     writeUserConfig({ ...readUserConfig(), sessionId: session.id });
     if (options.json) {
       printJson({ user: { email: user.email, id: user.id, name: user.name } });
@@ -59,16 +61,16 @@ export default defineCommand({
 });
 
 /**
- * Polls at the server's interval until the person approves or denies the code, or the code expires.
+ * Polls at the interval until the person approves or denies the code, or the code expires.
  */
 async function fetchApprovedSessionToken(
   authClient: AuthClient,
-  { device_code, interval }: DeviceAuthorization,
+  { deviceCode, intervalSeconds }: DeviceAuthorization,
 ): Promise<string> {
-  let intervalSeconds = interval;
+  let currentIntervalSeconds = intervalSeconds;
   for (;;) {
-    await setTimeout(intervalSeconds * 1000);
-    const { data, error } = await fetchDeviceToken(authClient, device_code);
+    await setTimeout(currentIntervalSeconds * 1000);
+    const { data, error } = await fetchDeviceToken(authClient, deviceCode);
     if (error === null) {
       return data.access_token;
     }
@@ -80,12 +82,33 @@ async function fetchApprovedSessionToken(
       case 'expired_token':
         throw new LoginExpiredError();
       case 'slow_down':
-        intervalSeconds += SLOW_DOWN_INCREMENT_SECONDS;
+        currentIntervalSeconds += SLOW_DOWN_INCREMENT_SECONDS;
         break;
       default:
         throw resolveApiError(error);
     }
   }
+}
+
+async function fetchDeviceAuthorization(
+  authClient: AuthClient,
+): Promise<DeviceAuthorization> {
+  const {
+    device_code,
+    expires_in,
+    interval,
+    user_code,
+    verification_uri_complete,
+  } = resolveResponseData(
+    await authClient.device.code({ client_id: CLI_CLIENT_ID }),
+  );
+  return {
+    deviceCode: device_code,
+    expiresAt: new Date(Date.now() + expires_in * 1000).toISOString(),
+    intervalSeconds: interval,
+    userCode: user_code,
+    verificationUrl: verification_uri_complete,
+  };
 }
 
 function fetchDeviceToken(authClient: AuthClient, deviceCode: string) {
@@ -97,96 +120,123 @@ function fetchDeviceToken(authClient: AuthClient, deviceCode: string) {
 }
 
 /**
- * A login that cannot wait for the approval keeps the code for the next one and exits with the page and the code;
- * an interactive one opens the page and polls.
+ * The code a non-interactive login kept comes first, with one token request: approved, it yields the session;
+ * still pending, it is shown again. A code denied, expired, unknown to the server or never kept gives way to a new one.
  */
-async function fetchSessionTokenForNewDeviceCode(
+async function fetchSessionToken(
   authClient: AuthClient,
   isLoginInteractive: boolean,
 ): Promise<string> {
-  const deviceAuthorization = resolveResponseData(
-    await authClient.device.code({ client_id: CLI_CLIENT_ID }),
-  );
-  const prompt = resolveDeviceAuthorizationPrompt(deviceAuthorization);
-  if (!isLoginInteractive) {
-    writePendingDeviceCode(deviceAuthorization);
-    throw new NotLoggedInError(prompt);
+  const pendingDeviceAuthorization = readPendingDeviceAuthorization();
+  if (
+    pendingDeviceAuthorization !== undefined &&
+    !isDeviceAuthorizationExpired(pendingDeviceAuthorization)
+  ) {
+    const { data, error } = await fetchDeviceToken(
+      authClient,
+      pendingDeviceAuthorization.deviceCode,
+    );
+    if (error === null) {
+      return data.access_token;
+    }
+    switch (error.error) {
+      case 'access_denied':
+      case 'expired_token':
+      case 'invalid_grant':
+        break;
+      case 'authorization_pending':
+      case 'slow_down':
+        return fetchSessionTokenOnApproval(
+          authClient,
+          pendingDeviceAuthorization,
+          isLoginInteractive,
+        );
+      default:
+        throw resolveApiError(error);
+    }
   }
-  console.log(
-    `Open ${prompt.verificationUrl} and approve the code ${prompt.userCode}.`,
+  deletePendingDeviceAuthorization();
+  return fetchSessionTokenOnApproval(
+    authClient,
+    await fetchDeviceAuthorization(authClient),
+    isLoginInteractive,
   );
-  console.log('Waiting for the approval…');
-  openBrowser(prompt.verificationUrl);
-  return fetchApprovedSessionToken(authClient, deviceAuthorization);
-}
-
-function deletePendingDeviceCode(): void {
-  const userConfig = readUserConfig();
-  delete userConfig.pendingDeviceCode;
-  delete userConfig.pendingDeviceCodeExpiresAt;
-  writeUserConfig(userConfig);
 }
 
 /**
- * One token request for the code a non-interactive login kept: the session token once the code is approved,
- * nothing once it is denied, expired or unknown, so a new code follows.
- * Still pending, a non-interactive login waits for it rather than replace the code the person was given;
- * an interactive one takes a new code, since the person at the terminal never saw the kept one.
+ * A login that cannot wait for the approval keeps the code for the next one and exits with the page and the code;
+ * an interactive one shows them, opens the page and polls.
  */
-async function redeemPendingDeviceCode(
+async function fetchSessionTokenOnApproval(
   authClient: AuthClient,
+  deviceAuthorization: DeviceAuthorization,
   isLoginInteractive: boolean,
-): Promise<string | undefined> {
-  const { pendingDeviceCode, pendingDeviceCodeExpiresAt } = readUserConfig();
-  if (pendingDeviceCode === undefined) {
-    return undefined;
+): Promise<string> {
+  if (!isLoginInteractive) {
+    writePendingDeviceAuthorization(deviceAuthorization);
+    throw new NotLoggedInError(deviceAuthorization);
   }
+  console.log(
+    `Open ${deviceAuthorization.verificationUrl} and approve the code ${deviceAuthorization.userCode}.`,
+  );
+  console.log('Waiting for the approval…');
+  openBrowser(deviceAuthorization.verificationUrl);
+  return fetchApprovedSessionToken(authClient, deviceAuthorization);
+}
+
+function deletePendingDeviceAuthorization(): void {
+  const userConfig = readUserConfig();
+  if (userConfig.pendingDeviceCode === undefined) {
+    return;
+  }
+  delete userConfig.pendingDeviceCode;
+  delete userConfig.pendingDeviceCodeExpiresAt;
+  delete userConfig.pendingUserCode;
+  delete userConfig.pendingVerificationUrl;
+  writeUserConfig(userConfig);
+}
+
+function isDeviceAuthorizationExpired({
+  expiresAt,
+}: DeviceAuthorization): boolean {
+  return new Date(expiresAt) <= new Date();
+}
+
+function readPendingDeviceAuthorization(): DeviceAuthorization | undefined {
+  const {
+    pendingDeviceCode,
+    pendingDeviceCodeExpiresAt,
+    pendingUserCode,
+    pendingVerificationUrl,
+  } = readUserConfig();
   if (
+    pendingDeviceCode === undefined ||
     pendingDeviceCodeExpiresAt === undefined ||
-    new Date(pendingDeviceCodeExpiresAt) <= new Date()
+    pendingUserCode === undefined ||
+    pendingVerificationUrl === undefined
   ) {
-    deletePendingDeviceCode();
     return undefined;
   }
-  const { data, error } = await fetchDeviceToken(authClient, pendingDeviceCode);
-  if (error === null) {
-    deletePendingDeviceCode();
-    return data.access_token;
-  }
-  switch (error.error) {
-    case 'access_denied':
-    case 'expired_token':
-    case 'invalid_grant':
-      deletePendingDeviceCode();
-      return undefined;
-    case 'authorization_pending':
-    case 'slow_down':
-      if (!isLoginInteractive) {
-        throw new LoginPendingError();
-      }
-      deletePendingDeviceCode();
-      return undefined;
-    default:
-      throw resolveApiError(error);
-  }
+  return {
+    deviceCode: pendingDeviceCode,
+    expiresAt: pendingDeviceCodeExpiresAt,
+    intervalSeconds: DEFAULT_INTERVAL_SECONDS,
+    userCode: pendingUserCode,
+    verificationUrl: pendingVerificationUrl,
+  };
 }
 
-function resolveDeviceAuthorizationPrompt({
-  user_code,
-  verification_uri_complete,
-}: DeviceAuthorization): DeviceAuthorizationPrompt {
-  return { userCode: user_code, verificationUrl: verification_uri_complete };
-}
-
-function writePendingDeviceCode({
-  device_code,
-  expires_in,
+function writePendingDeviceAuthorization({
+  deviceCode,
+  expiresAt,
+  userCode,
+  verificationUrl,
 }: DeviceAuthorization): void {
   writeUserConfig({
     ...readUserConfig(),
-    pendingDeviceCode: device_code,
-    pendingDeviceCodeExpiresAt: new Date(
-      Date.now() + expires_in * 1000,
-    ).toISOString(),
+    pendingDeviceCode: deviceCode,
+    pendingDeviceCodeExpiresAt: expiresAt,
+    pendingUserCode: userCode,
+    pendingVerificationUrl: verificationUrl,
   });
 }

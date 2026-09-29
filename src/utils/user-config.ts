@@ -15,7 +15,7 @@ import {
 
 /**
  * `config.json` in the user's config directory; the token is here only where no keyring backend works,
- * and the pending device code only between a non-interactive login and the next one.
+ * and the pending device authorization only between a non-interactive login and the next one.
  */
 export interface UserConfig {
   apiUrl?: string;
@@ -23,6 +23,8 @@ export interface UserConfig {
   latestKnownVersion?: string;
   pendingDeviceCode?: string;
   pendingDeviceCodeExpiresAt?: string;
+  pendingUserCode?: string;
+  pendingVerificationUrl?: string;
   sessionId?: string;
   telemetryNoticeShownAt?: string;
   token?: string;

@@ -6,11 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PACKAGE_JSON } from '../config/consts.js';
 import { openBrowser } from '../utils/browser.js';
 import { runCli } from '../utils/cli.js';
-import {
-  LoginDeniedError,
-  LoginExpiredError,
-  LoginPendingError,
-} from '../utils/errors.js';
+import { LoginDeniedError, LoginExpiredError } from '../utils/errors.js';
 import { readUserConfig, writeUserConfig } from '../utils/user-config.js';
 import loginCommand from './login.js';
 
@@ -237,6 +233,9 @@ describe('login', () => {
         apiUrl: API_URL,
         pendingDeviceCode: 'device-code-1',
         pendingDeviceCodeExpiresAt: '2026-09-29T10:30:00.000Z',
+        pendingUserCode: 'WDJBMJHT',
+        pendingVerificationUrl:
+          'https://console.example.com/device?user_code=WDJBMJHT',
       });
       expect(readRequests().map(request => request.url)).toEqual([
         `${API_URL}/v1/auth/device/code`,
@@ -285,18 +284,27 @@ describe('login', () => {
   });
 
   describe('when a non-interactive login kept a code', () => {
-    beforeEach(() => {
+    const KEPT_VERIFICATION_URL =
+      'https://console.example.com/device?user_code=KEPTCODE';
+
+    function writeKeptCode(expiresAt: Date): void {
       writeUserConfig({
         apiUrl: API_URL,
         pendingDeviceCode: 'device-code-0',
-        pendingDeviceCodeExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+        pendingDeviceCodeExpiresAt: expiresAt.toISOString(),
+        pendingUserCode: 'KEPTCODE',
+        pendingVerificationUrl: KEPT_VERIFICATION_URL,
       });
-      captureStdout();
+    }
+
+    beforeEach(() => {
+      writeKeptCode(new Date(Date.now() + 60_000));
     });
 
-    it.each(['access_denied', 'expired_token'])(
+    it.each(['access_denied', 'expired_token', 'invalid_grant'])(
       'should keep a new code instead when the kept one answers %s',
       async error => {
+        captureStdout();
         fetchMock
           .mockResolvedValueOnce(respondWithDeviceError(error))
           .mockResolvedValueOnce(Response.json(DEVICE_AUTHORIZATION));
@@ -308,16 +316,16 @@ describe('login', () => {
           `${API_URL}/v1/auth/device/token`,
           `${API_URL}/v1/auth/device/code`,
         ]);
-        expect(readUserConfig().pendingDeviceCode).toBe('device-code-1');
+        expect(readUserConfig()).toMatchObject({
+          pendingDeviceCode: 'device-code-1',
+          pendingUserCode: 'WDJBMJHT',
+        });
       },
     );
 
     it('should request a new code without asking about the kept one when it expired', async () => {
-      writeUserConfig({
-        apiUrl: API_URL,
-        pendingDeviceCode: 'device-code-0',
-        pendingDeviceCodeExpiresAt: new Date(Date.now() - 1).toISOString(),
-      });
+      captureStdout();
+      writeKeptCode(new Date(Date.now() - 1));
       fetchMock.mockResolvedValueOnce(Response.json(DEVICE_AUTHORIZATION));
 
       await runLogin(['--json']);
@@ -328,30 +336,47 @@ describe('login', () => {
       expect(readUserConfig().pendingDeviceCode).toBe('device-code-1');
     });
 
-    it('should throw E_LOGIN_PENDING and keep the code when it still waits for its approval', async () => {
+    it('should show the kept code again and exit 3 when it still waits for its approval', async () => {
+      const stdout = captureStdout();
       fetchMock.mockResolvedValueOnce(
         respondWithDeviceError('authorization_pending'),
       );
 
-      await expect(
-        loginCommand.action({ json: true }, undefined),
-      ).rejects.toThrow(LoginPendingError);
+      const exitCode = await runLogin(['--json']);
+
+      expect(exitCode).toBe(3);
+      expect(JSON.parse(stdout.read())).toEqual({
+        error: {
+          code: 'E_NOT_LOGGED_IN',
+          fix: `approve at ${KEPT_VERIFICATION_URL} with code KEPTCODE, then run "hotcodepush login" again.`,
+          message: 'you are not logged in',
+        },
+      });
       expect(fetchMock).toHaveBeenCalledOnce();
       expect(readUserConfig().pendingDeviceCode).toBe('device-code-0');
     });
 
-    it('should take a new code and poll it when interactive and the kept one still waits', async () => {
+    it('should show the kept code and poll it when interactive and it still waits', async () => {
       fetchMock
         .mockResolvedValueOnce(respondWithDeviceError('authorization_pending'))
-        .mockResolvedValueOnce(Response.json(DEVICE_AUTHORIZATION))
+        .mockResolvedValueOnce(respondWithDeviceError('authorization_pending'))
         .mockResolvedValueOnce(Response.json(TOKEN))
         .mockResolvedValueOnce(Response.json(SESSION));
 
       await loginCommand.action({}, undefined);
 
-      expect(openBrowser).toHaveBeenCalledWith(
-        DEVICE_AUTHORIZATION.verification_uri_complete,
+      expect(console.log).toHaveBeenCalledWith(
+        `Open ${KEPT_VERIFICATION_URL} and approve the code KEPTCODE.`,
       );
+      expect(openBrowser).toHaveBeenCalledWith(KEPT_VERIFICATION_URL);
+      expect(vi.mocked(setTimeout).mock.calls).toEqual([[5000], [5000]]);
+      const tokenRequests = readRequests().slice(0, 3);
+      for (const tokenRequest of tokenRequests) {
+        expect(tokenRequest.url).toBe(`${API_URL}/v1/auth/device/token`);
+        expect(await tokenRequest.json()).toMatchObject({
+          device_code: 'device-code-0',
+        });
+      }
       expect(readUserConfig()).toEqual({
         apiUrl: API_URL,
         sessionId: 'session-1',
