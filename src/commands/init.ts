@@ -20,6 +20,7 @@ import {
   wireEmbedHook,
 } from '../utils/embed-hook.js';
 import type { InteractivityOptions } from '../utils/environment.js';
+import { isInteractive } from '../utils/environment.js';
 import {
   ConfirmationRequiredError,
   InvalidParameterError,
@@ -88,6 +89,14 @@ interface ProjectFiles {
   xcodeProjectFilePath: string | undefined;
 }
 
+/**
+ * What the organization step settles: the organization, and the app when `hotcodepush.json` named it.
+ */
+interface Scope {
+  app: App | undefined;
+  organization: Organization;
+}
+
 const CREATE_CHOICE = 'create';
 
 const ID_SCHEMA = z.guid();
@@ -103,15 +112,14 @@ export default defineCommand({
     }
     const run = new InitRun();
     const hotCodePush = await run.run('sign-in', () => signIn(options));
-    const organization = await run.run('organization', () =>
-      resolveOrganization(requireValue(hotCodePush), options),
+    const scope = await run.run('organization', () =>
+      resolveOrganization(requireValue(hotCodePush), projectConfig, options),
     );
     const app = await run.run('app', () =>
       resolveApp(
         requireValue(hotCodePush),
-        requireValue(organization),
+        requireValue(scope),
         framework,
-        projectConfig,
         options,
       ),
     );
@@ -212,28 +220,44 @@ async function signIn(options: InitOptions): Promise<StepOutcome<HotCodePush>> {
 }
 
 /**
- * `--organization` used when it exists and created when not; without it the only one, a picker, or the missing flag.
+ * The organization of the app `hotcodepush.json` names, when it names one; otherwise `--organization`, used when it
+ * exists and created when not; without the flag a picker with "create a new one", or non-interactively the only one.
  */
 async function resolveOrganization(
   hotCodePush: HotCodePush,
+  projectConfig: ProjectConfig | undefined,
   options: InitOptions,
-): Promise<StepOutcome<Organization>> {
+): Promise<StepOutcome<Scope>> {
+  if (projectConfig?.appId !== undefined) {
+    const app = await hotCodePush.apps.get({ appId: projectConfig.appId });
+    const organization = await hotCodePush.organizations.get({
+      organizationId: app.organizationId,
+    });
+    return {
+      message: `used organization ${organization.name}, the one of ${PROJECT_CONFIG_FILE_NAME}'s app`,
+      status: 'done',
+      value: { app, organization },
+    };
+  }
   const organizations = await fetchOrganizations(hotCodePush);
   if (options.organization !== undefined) {
     const named = findNamed(organizations, options.organization);
     if (named !== undefined) {
-      return resolveUsed('organization', named);
+      return resolveUsedScope(named);
     }
     assertName('--organization', options.organization);
     await confirmCreation('organization', options.organization, options);
-    return resolveCreated(
-      'organization',
+    return resolveCreatedScope(
       await hotCodePush.organizations.create({ name: options.organization }),
     );
   }
   const [onlyOrganization] = organizations;
-  if (onlyOrganization !== undefined && organizations.length === 1) {
-    return resolveUsed('organization', onlyOrganization);
+  if (
+    !isInteractive(options) &&
+    onlyOrganization !== undefined &&
+    organizations.length === 1
+  ) {
+    return resolveUsedScope(onlyOrganization);
   }
   const choice = await promptCreateOrPick(
     'organization',
@@ -241,34 +265,32 @@ async function resolveOrganization(
     options,
   );
   if (choice !== CREATE_CHOICE) {
-    return resolveUsed('organization', requireById(organizations, choice));
+    return resolveUsedScope(requireById(organizations, choice));
   }
   const name = await promptText(
     '--organization',
     'What is the new organization called?',
     options,
   );
-  return resolveCreated(
-    'organization',
-    await hotCodePush.organizations.create({ name }),
-  );
+  return resolveCreatedScope(await hotCodePush.organizations.create({ name }));
 }
 
 /**
- * The app `hotcodepush.json` names; otherwise `--app`'s rule as for the organization, the creation carrying the framework.
+ * The app `hotcodepush.json` names, as the organization step read it; otherwise `--app`'s rule as for the organization,
+ * the creation carrying the framework.
  */
 async function resolveApp(
   hotCodePush: HotCodePush,
-  organization: Organization,
+  { app, organization }: Scope,
   framework: Framework,
-  projectConfig: ProjectConfig | undefined,
   options: InitOptions,
 ): Promise<StepOutcome<App>> {
-  if (projectConfig?.appId !== undefined) {
-    return resolveUsed(
-      'app',
-      await hotCodePush.apps.get({ appId: projectConfig.appId }),
-    );
+  if (app !== undefined) {
+    return {
+      message: `used app ${app.name}, as ${PROJECT_CONFIG_FILE_NAME} names it`,
+      status: 'done',
+      value: app,
+    };
   }
   const apps = await fetchApps(hotCodePush, organization.id);
   if (options.app !== undefined) {
@@ -288,7 +310,7 @@ async function resolveApp(
     );
   }
   const [onlyApp] = apps;
-  if (onlyApp !== undefined && apps.length === 1) {
+  if (!isInteractive(options) && onlyApp !== undefined && apps.length === 1) {
     return resolveUsed('app', onlyApp);
   }
   const choice = await promptCreateOrPick('app', apps, options);
@@ -677,6 +699,22 @@ function resolveBuildCommandLine(
         resolvePackageManager(directoryPath),
         'build',
       );
+}
+
+function resolveCreatedScope(organization: Organization): StepOutcome<Scope> {
+  return {
+    message: `created organization ${organization.name}`,
+    status: 'done',
+    value: { app: undefined, organization },
+  };
+}
+
+function resolveUsedScope(organization: Organization): StepOutcome<Scope> {
+  return {
+    message: `used organization ${organization.name}`,
+    status: 'done',
+    value: { app: undefined, organization },
+  };
 }
 
 function resolveCreated<TResource extends { name: string }>(

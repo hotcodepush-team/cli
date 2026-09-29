@@ -1,11 +1,15 @@
 import { existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
+import { confirm, select } from '@clack/prompts';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   readJsonFile,
   writeCapacitorProject,
 } from '../testing/capacitor-project.js';
-import { useCommandHarness } from '../testing/command-harness.js';
+import {
+  stubInteractiveTerminal,
+  useCommandHarness,
+} from '../testing/command-harness.js';
 import {
   ACME_ORGANIZATION,
   DEMO_APP,
@@ -41,6 +45,7 @@ vi.mock('@napi-rs/keyring', () => ({
     return keyring;
   }),
 }));
+vi.mock('@clack/prompts');
 vi.mock('../utils/package-manager.js', async importOriginal => ({
   ...(await importOriginal<typeof packageManagerModule>()),
   runCommandLineVisibly: vi.fn(),
@@ -79,6 +84,13 @@ describe('init', () => {
       });
     harness.routes['GET /v1/organizations'] = () =>
       Response.json(organizations);
+  }
+
+  function respondWithConfiguredApp(): void {
+    harness.routes[`GET /v1/apps/${DEMO_APP.id}`] = () =>
+      Response.json(DEMO_APP);
+    harness.routes[`GET /v1/organizations/${ACME_ORGANIZATION.id}`] = () =>
+      Response.json(ACME_ORGANIZATION);
   }
 
   function readStepStatuses(result: InitResult): Record<string, string> {
@@ -165,7 +177,7 @@ describe('init', () => {
     ]);
   }, 15_000);
 
-  it('should skip what a set-up project already has, naming the app hotcodepush.json names', async () => {
+  it('should skip what a set-up project already has, the app and its organization from hotcodepush.json, whatever --organization would need', async () => {
     const directoryPath = writeProject({
       hookScript: 'npx hotcodepush bundle embed',
       isPackageInstalled: true,
@@ -183,9 +195,8 @@ describe('init', () => {
       'project.pbxproj',
     );
     rmSync(join(directoryPath, 'ios'), { force: true, recursive: true });
-    respondWithSession([ACME_ORGANIZATION]);
-    harness.routes[`GET /v1/apps/${DEMO_APP.id}`] = () =>
-      Response.json(DEMO_APP);
+    respondWithSession([ACME_ORGANIZATION, GLOBEX_ORGANIZATION]);
+    respondWithConfiguredApp();
 
     await initCommand.action(
       { config: join(directoryPath, 'hotcodepush.json'), yes: true },
@@ -196,8 +207,8 @@ describe('init', () => {
     expect(runCommandLineVisibly).not.toHaveBeenCalled();
     expect(harness.readLines()).toEqual([
       '– sign-in        logged in as Anna Example (anna@example.com)',
-      '✓ organization   used organization Acme',
-      '✓ app            used app Demo',
+      "✓ organization   used organization Acme, the one of hotcodepush.json's app",
+      '✓ app            used app Demo, as hotcodepush.json names it',
       '– package        @hotcodepush/capacitor-live-updates already installed',
       '– configuration  hotcodepush.json already present',
       '– hook           capacitor:copy:after and the iOS resource reference already wired',
@@ -259,8 +270,7 @@ describe('init', () => {
     harness.routes['GET /v1/auth/get-session'] = () => Response.json(null);
     harness.routes['GET /v1/organizations'] = () =>
       Response.json([ACME_ORGANIZATION]);
-    harness.routes[`GET /v1/apps/${DEMO_APP.id}`] = () =>
-      Response.json(DEMO_APP);
+    respondWithConfiguredApp();
 
     await initCommand.action(
       {
@@ -324,8 +334,7 @@ describe('init', () => {
         : Response.json(null);
     harness.routes['GET /v1/organizations'] = () =>
       Response.json([ACME_ORGANIZATION]);
-    harness.routes[`GET /v1/apps/${DEMO_APP.id}`] = () =>
-      Response.json(DEMO_APP);
+    respondWithConfiguredApp();
 
     await initCommand.action(
       {
@@ -402,6 +411,38 @@ describe('init', () => {
     expect(result.steps[2]?.message).toBe(
       'not run: init stopped at organization',
     );
+  });
+
+  it('should offer the picker with a create choice interactively, even with one organization and one app', async () => {
+    stubInteractiveTerminal();
+    vi.mocked(select)
+      .mockResolvedValueOnce(ACME_ORGANIZATION.id)
+      .mockResolvedValueOnce(DEMO_APP.id);
+    vi.mocked(confirm).mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+    const directoryPath = writeProject({ isPackageInstalled: true });
+    respondWithSession([ACME_ORGANIZATION]);
+    harness.routes[`GET ${APPS_PATH}`] = () => Response.json([DEMO_APP]);
+
+    await initCommand.action({ ...withCwd(directoryPath) }, undefined);
+
+    expect(select).toHaveBeenNthCalledWith(1, {
+      message: 'Which organization?',
+      options: [
+        { label: 'Acme', value: ACME_ORGANIZATION.id },
+        { label: 'Create a new organization', value: 'create' },
+      ],
+    });
+    expect(select).toHaveBeenNthCalledWith(2, {
+      message: 'Which app?',
+      options: [
+        { label: 'Demo', value: DEMO_APP.id },
+        { label: 'Create a new app', value: 'create' },
+      ],
+    });
+    expect(harness.readLines().slice(1, 3)).toEqual([
+      '✓ organization   used organization Acme',
+      '✓ app            used app Demo',
+    ]);
   });
 
   it('should refuse a project without a supported framework before any step', async () => {
