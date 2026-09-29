@@ -40,7 +40,7 @@
     "typecheck": "tsc --noEmit --project tsconfig.json"
   },
   "dependencies": {
-    "@hotcodepush/protocol": "github:hotcodepush-team/protocol-js#dist",
+    "@hotcodepush/protocol": "https://pkg.pr.new/hotcodepush-team/protocol-js/@hotcodepush/protocol@c975468",
     "@napi-rs/keyring": "2.1.0",
     "zod": "4.6.5",
     "zodline": "0.3.1"
