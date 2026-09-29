@@ -1,10 +1,12 @@
+import type { Release } from '@hotcodepush/node';
 import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson } from '../../utils/output.js';
+import { printJson, resolveQuantityText } from '../../utils/output.js';
 import { confirmConsequence } from '../../utils/prompts.js';
 import {
   fetchReleaseInChannel,
+  fetchReleaseLog,
   releaseOptionShape,
 } from '../../utils/release-resolution.js';
 import { channelOptionShape } from '../../utils/resource-resolution.js';
@@ -16,8 +18,12 @@ export default defineCommand({
       hotCodePush,
       options,
     );
+    const targetRelease = resolveFallbackRelease(
+      await fetchReleaseLog(hotCodePush, channel),
+      release,
+    );
     const isConfirmed = await confirmConsequence(
-      `revokes release #${release.number} of ${channel.name} for good: devices on it move to the newest older release they qualify for or the embedded bundle`,
+      `revokes release #${release.number} of ${channel.name} for good: ${resolveQuantityText(release.deviceCount, 'device')} on it ${release.deviceCount === 1 ? 'moves' : 'move'} to ${targetRelease === undefined ? 'the embedded bundle' : `release #${targetRelease.number}`}`,
       options,
     );
     if (!isConfirmed) {
@@ -46,3 +52,18 @@ export default defineCommand({
     ...releaseOptionShape,
   }),
 });
+
+/**
+ * Where the devices go: the newest active release older than the revoked one, as the API moves them; none is the embedded bundle.
+ */
+function resolveFallbackRelease(
+  releases: Release[],
+  revokedRelease: Release,
+): Release | undefined {
+  return releases
+    .filter(
+      ({ number, state }) =>
+        state === 'active' && number < revokedRelease.number,
+    )
+    .sort((left, right) => right.number - left.number)[0];
+}

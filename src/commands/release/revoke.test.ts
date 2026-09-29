@@ -7,9 +7,13 @@ import {
 import {
   DEMO_APP,
   LIVE_RELEASE,
+  PREVIOUS_BUNDLE,
+  PREVIOUS_RELEASE,
+  READY_BUNDLE,
   STAGING_CHANNEL,
 } from '../../testing/fixtures.js';
 import {
+  CHANNEL_PATH,
   RELEASES_PATH,
   respondWithStagingReleases,
 } from '../../testing/release-routes.js';
@@ -33,7 +37,7 @@ describe('release revoke', () => {
       Response.json(REVOKED_RELEASE);
   }
 
-  it('should revoke the release named by number once confirmed, stating where its devices go', async () => {
+  it('should revoke the release named by number once confirmed, stating how many devices move and to which release', async () => {
     stubInteractiveTerminal();
     vi.mocked(confirm).mockResolvedValue(true);
     respondWithRevokedRelease();
@@ -52,7 +56,7 @@ describe('release revoke', () => {
     expect(confirm).toHaveBeenCalledWith({
       initialValue: false,
       message:
-        'This revokes release #43 of staging for good: devices on it move to the newest older release they qualify for or the embedded bundle. Continue?',
+        'This revokes release #43 of staging for good: 80 devices on it move to release #42. Continue?',
     });
     expect(readRevokeRequests()).toHaveLength(1);
     expect(harness.readLines()).toEqual([
@@ -88,6 +92,29 @@ describe('release revoke', () => {
       ),
     ).rejects.toBeInstanceOf(ConfirmationRequiredError);
 
+    expect(readRevokeRequests()).toEqual([]);
+  });
+
+  it('should say the devices move to the embedded bundle when no older active release exists', async () => {
+    stubInteractiveTerminal();
+    vi.mocked(confirm).mockResolvedValue(false);
+    respondWithRevokedRelease();
+    harness.routes[`GET ${CHANNEL_PATH}/releases`] = () =>
+      Response.json([
+        { ...LIVE_RELEASE, bundle: READY_BUNDLE },
+        { ...PREVIOUS_RELEASE, bundle: PREVIOUS_BUNDLE, state: 'revoked' },
+      ]);
+
+    await releaseRevokeCommand.action(
+      { app: DEMO_APP.id, channel: STAGING_CHANNEL.id, release: '43' },
+      undefined,
+    );
+
+    expect(confirm).toHaveBeenCalledWith({
+      initialValue: false,
+      message:
+        'This revokes release #43 of staging for good: 80 devices on it move to the embedded bundle. Continue?',
+    });
     expect(readRevokeRequests()).toEqual([]);
   });
 });
