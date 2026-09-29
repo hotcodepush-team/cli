@@ -14,9 +14,17 @@ npm install --save-dev https://pkg.pr.new/hotcodepush-team/cli/hotcodepush@<sha>
 
 ```sh
 npx hotcodepush --help
+npx hotcodepush login
+npx hotcodepush organization create --name Acme
+npx hotcodepush app create --name "My App" --framework capacitor
+npx hotcodepush channel create --app "My App" --name staging
+npx hotcodepush channel pause --app "My App" --channel staging
+npx hotcodepush channel list --app "My App" --json
 ```
 
 Every command prints its options and two examples with `--help`, and `--json` turns its output into JSON for scripts and agents.
+An organization, app or channel is named by id or by name, `--app "My App"`; `--app` and `--channel` default to the ids in the project's `hotcodepush.json`.
+A command that deletes, pauses, resumes or transfers asks once, `--yes` confirming in scripts.
 
 ## Documentation
 

@@ -2,7 +2,7 @@
 
 `hotcodepush`, the HotCodePush CLI: the npm package and the binary that set up, release and manage live updates from the terminal and CI.
 The repo is public and MIT; this is the skeleton, and the commands arrive issue by issue on top of it.
-Stack: TypeScript compiled by `tsc` into ESM in `dist/`, zodline and zod for the commands, `@napi-rs/keyring` for the token, ESLint, Prettier, Vitest, Node 24.
+Stack: TypeScript compiled by `tsc` into ESM in `dist/`, zodline and zod for the commands, `@hotcodepush/node` for the API, `@clack/prompts` for the prompts, `@napi-rs/keyring` for the token, ESLint, Prettier, Vitest, Node 24.
 
 The plan is the private `handbook` repo, checked out beside this one: `../handbook/docs/`.
 Its `cli.md` is the spec — every command, flag, file, error code and exit code — and `repositories.md` › _The CLI's structure_ the layout; both are binding, with `api.md` for the API the commands call.
@@ -16,14 +16,17 @@ src/
   commands/    a folder per noun and a file per verb, channel/create.ts; the standalone commands flat, login.ts
   utils/       the runner, command resolution and did-you-mean, the E_ catalog and its one mapping,
                the global options, environment detection, config.json, the token store,
-               the auth client, the browser opener, the JSON output
+               the auth client, the API client, hotcodepush.json, a resource by id or name,
+               the prompts and the confirmation, the pages of a list, the channel fields,
+               the browser opener, the JSON, tables and details output
   config/      consts: the API URL, the client id and header, the config file, the docs and issues URLs,
-               the keyring entry, package.json
+               the keyring entry, package.json, the project file
+  testing/     the command tests' harness, the API faked behind fetch, and their fixtures; never built
 dist/          the build output, never committed
 ```
 
 Tests live beside the code they test, `*.test.ts` next to the file.
-There is no `services/` and no `types/`: `@hotcodepush/node` is the API layer and the type source, and it joins as a pkg.pr.new dependency once its repo publishes a preview build.
+There is no `services/` and no `types/`: `@hotcodepush/node` is the API layer and the type source, pinned to one pkg.pr.new build by its commit hash.
 The one exception is Better Auth's `/v1/auth/*` slice, reached through `better-auth/client` in `utils/auth-client.ts`, as the handbook's architecture.md places it.
 
 ## Commands
