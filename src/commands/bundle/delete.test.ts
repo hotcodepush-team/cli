@@ -68,4 +68,21 @@ describe('bundle delete', () => {
       ),
     ).rejects.toMatchObject({ code: 'E_BUNDLE_IN_USE' });
   });
+
+  it('should print the id and label of the deleted bundle when --yes and --json are passed', async () => {
+    harness.routes[`GET ${BUNDLES_PATH}/${READY_BUNDLE.id}`] = () =>
+      Response.json(READY_BUNDLE);
+    harness.routes[`DELETE ${BUNDLES_PATH}/${READY_BUNDLE.id}`] = () =>
+      new Response(null, { status: 204 });
+
+    await bundleDeleteCommand.action(
+      { app: DEMO_APP.id, bundle: READY_BUNDLE.id, json: true, yes: true },
+      undefined,
+    );
+
+    expect(harness.readJson()).toEqual({
+      id: READY_BUNDLE.id,
+      name: '#17 · 1.4.2',
+    });
+  });
 });

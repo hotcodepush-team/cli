@@ -98,7 +98,7 @@ describe('channel delete', () => {
     ]);
   });
 
-  it('should print an empty object when --ignore-not-found and --json are passed and the API does not know the id', async () => {
+  it('should print the id given with a null name when --ignore-not-found and --json are passed and the API does not know the id', async () => {
     await channelDeleteCommand.action(
       {
         app: DEMO_APP.id,
@@ -110,6 +110,23 @@ describe('channel delete', () => {
       undefined,
     );
 
-    expect(harness.readJson()).toEqual({});
+    expect(harness.readJson()).toEqual({ id: STAGING_CHANNEL.id, name: null });
+  });
+
+  it('should print the id and name of the deleted channel when --yes and --json are passed', async () => {
+    respondWithChannels([STAGING_CHANNEL]);
+    harness.routes[
+      `DELETE /v1/apps/${DEMO_APP.id}/channels/${STAGING_CHANNEL.id}`
+    ] = () => new Response(null, { status: 204 });
+
+    await channelDeleteCommand.action(
+      { app: DEMO_APP.id, channel: 'staging', json: true, yes: true },
+      undefined,
+    );
+
+    expect(harness.readJson()).toEqual({
+      id: STAGING_CHANNEL.id,
+      name: 'staging',
+    });
   });
 });

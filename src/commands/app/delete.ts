@@ -27,7 +27,7 @@ export default defineCommand({
     }
     await hotCodePush.apps.delete({ appId });
     if (options.json) {
-      printJson({});
+      printJson({ id: appId, name: fetchedApp.name });
     } else {
       console.log(`Deleted app ${fetchedApp.name} (${appId}).`);
     }

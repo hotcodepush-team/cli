@@ -13,6 +13,8 @@ import {
   fetchChannel,
 } from '../../utils/resource-resolution.js';
 
+const ID_SCHEMA = z.guid();
+
 export default defineCommand({
   action: async options => {
     const hotCodePush = createApiClient();
@@ -23,7 +25,7 @@ export default defineCommand({
         throw error;
       }
       if (options.json) {
-        printJson({});
+        printJson(resolveAbsentChannel(options.channel));
       } else {
         console.log('The channel does not exist; nothing to delete.');
       }
@@ -63,7 +65,7 @@ async function deleteChannel(
     channelId: fetchedChannel.id,
   });
   if (options.json) {
-    printJson({});
+    printJson({ id: fetchedChannel.id, name: fetchedChannel.name });
   } else {
     console.log(
       `Deleted channel ${fetchedChannel.name} (${fetchedChannel.id}).`,
@@ -79,4 +81,16 @@ function isChannelGone(error: unknown): boolean {
     error instanceof UnknownNameError ||
     (error instanceof HotCodePushError && error.code === 'E_NOT_FOUND')
   );
+}
+
+/**
+ * What did not go, as it was named: an id or a name, the other side null.
+ */
+function resolveAbsentChannel(channel: string | undefined): {
+  id: string | null;
+  name: string | null;
+} {
+  return channel !== undefined && ID_SCHEMA.safeParse(channel).success
+    ? { id: channel, name: null }
+    : { id: null, name: channel ?? null };
 }

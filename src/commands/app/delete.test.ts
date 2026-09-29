@@ -45,7 +45,7 @@ describe('app delete', () => {
     expect(harness.readLines()).toEqual([`Deleted app Demo (${DEMO_APP.id}).`]);
   });
 
-  it('should delete without asking and print an empty object when --yes and --json are passed', async () => {
+  it('should delete without asking and print the id and name of what went when --yes and --json are passed', async () => {
     respondWithAppAndChannels();
 
     await appDeleteCommand.action(
@@ -55,7 +55,7 @@ describe('app delete', () => {
 
     expect(confirm).not.toHaveBeenCalled();
     expect(readDeleteRequests()).toHaveLength(1);
-    expect(harness.readJson()).toEqual({});
+    expect(harness.readJson()).toEqual({ id: DEMO_APP.id, name: 'Demo' });
   });
 
   it('should throw E_CONFIRMATION_REQUIRED and delete nothing when nobody can be asked', async () => {

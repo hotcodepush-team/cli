@@ -59,7 +59,7 @@ describe('organization delete', () => {
     expect(readDeleteRequests()).toEqual([]);
   });
 
-  it('should delete without asking and print an empty object when --yes and --json are passed', async () => {
+  it('should delete without asking and print the id and name of what went when --yes and --json are passed', async () => {
     respondWithOrganizationAndApps([]);
 
     await organizationDeleteCommand.action(
@@ -69,7 +69,10 @@ describe('organization delete', () => {
 
     expect(confirm).not.toHaveBeenCalled();
     expect(readDeleteRequests()).toHaveLength(1);
-    expect(harness.readJson()).toEqual({});
+    expect(harness.readJson()).toEqual({
+      id: ACME_ORGANIZATION.id,
+      name: 'Acme',
+    });
   });
 
   it('should throw E_CONFIRMATION_REQUIRED with the consequence and delete nothing when nobody can be asked', async () => {

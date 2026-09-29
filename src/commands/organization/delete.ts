@@ -25,7 +25,7 @@ export default defineCommand({
     }
     await hotCodePush.organizations.delete({ organizationId });
     if (options.json) {
-      printJson({});
+      printJson({ id: organizationId, name: fetchedOrganization.name });
     } else {
       console.log(
         `Deleted organization ${fetchedOrganization.name} (${organizationId}).`,
