@@ -6,7 +6,6 @@ import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
 import { resolveBundleLabel } from '../../utils/bundle-resolution.js';
 import type { InteractivityOptions } from '../../utils/environment.js';
-import { MissingParameterError } from '../../utils/errors.js';
 import {
   detectFramework,
   resolveInputDirectoryPath,
@@ -17,6 +16,7 @@ import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
 import { createReporter, resolveByteText } from '../../utils/progress.js';
 import { locateProjectConfig } from '../../utils/project-config.js';
+import { promptText } from '../../utils/prompts.js';
 import { fetchAppId } from '../../utils/resource-resolution.js';
 import type { Platform, UploadedBundle } from '../../utils/upload.js';
 import { uploadBundle } from '../../utils/upload.js';
@@ -28,11 +28,12 @@ export interface BundleUploadOptions
   config?: string;
   organization?: string;
   path?: string;
-  platform?: string;
+  platform?: Platform[];
 }
 
 const PLATFORMS: Platform[] = ['android', 'ios'];
 
+// `ios,android` as typed, validated in the schema so a wrong platform is answered under the flag's name
 const platformListSchema = z
   .string()
   .transform(value => value.split(',').map(platform => platform.trim()))
@@ -70,8 +71,7 @@ export const bundleUploadOptionShape = {
     .describe(
       "The web build to upload; hotcodepush.json's dir, otherwise Capacitor's webDir, by default.",
     ),
-  platform: z
-    .string()
+  platform: platformListSchema
     .optional()
     .describe('The platforms the bundle serves, ios,android by default.'),
 };
@@ -108,13 +108,10 @@ export async function uploadBundleFromOptions(
   );
   return uploadBundle(hotCodePush, {
     appId,
-    bundleVersion: resolveBundleVersion(options, directoryPath),
+    bundleVersion: await resolveBundleVersion(options, directoryPath),
     directoryPath: inputDirectoryPath,
     gitProvenance: await resolveGitProvenance(directoryPath, options),
-    platforms:
-      options.platform === undefined
-        ? PLATFORMS
-        : platformListSchema.parse(options.platform),
+    platforms: options.platform ?? PLATFORMS,
     reporter: createReporter(options),
   });
 }
@@ -145,12 +142,12 @@ export function printUploadedBundle(
 }
 
 /**
- * `--bundle-version`, otherwise the project's package.json version, the label a team already keeps.
+ * `--bundle-version`, otherwise the project's package.json version, the label a team already keeps; neither is asked for.
  */
-function resolveBundleVersion(
+async function resolveBundleVersion(
   options: BundleUploadOptions,
   directoryPath: string,
-): string {
+): Promise<string> {
   if (options.bundleVersion !== undefined) {
     return options.bundleVersion;
   }
@@ -163,5 +160,9 @@ function resolveBundleVersion(
       return version;
     }
   }
-  throw new MissingParameterError('--bundle-version');
+  return promptText(
+    '--bundle-version',
+    'Which version label does the bundle carry?',
+    options,
+  );
 }

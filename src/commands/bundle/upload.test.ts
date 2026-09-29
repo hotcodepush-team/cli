@@ -3,19 +3,28 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gunzipSync } from 'node:zlib';
+import { text } from '@clack/prompts';
 import { stringifyCanonicalJson } from '@hotcodepush/protocol';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { API_URL, useCommandHarness } from '../../testing/command-harness.js';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { PACKAGE_JSON } from '../../config/consts.js';
+import {
+  API_URL,
+  stubInteractiveTerminal,
+  useCommandHarness,
+} from '../../testing/command-harness.js';
 import {
   DEMO_APP,
   PREVIOUS_BUNDLE,
   READY_BUNDLE,
 } from '../../testing/fixtures.js';
+import { runCli } from '../../utils/cli.js';
 import {
   UnknownFrameworkError,
   UnsupportedFrameworkError,
 } from '../../utils/errors.js';
 import bundleUploadCommand from './upload.js';
+
+vi.mock('@clack/prompts');
 
 const BUNDLES_PATH = `/v1/apps/${DEMO_APP.id}/bundles`;
 
@@ -127,7 +136,7 @@ describe('bundle upload', () => {
       {
         config: join(projectDirectoryPath, 'hotcodepush.json'),
         noGit: true,
-        platform: 'ios',
+        platform: ['ios'],
       },
       undefined,
     );
@@ -223,6 +232,54 @@ describe('bundle upload', () => {
 
     expect(readRequest('PUT', `/deltas/${PREVIOUS_BUNDLE.id}`)).toBeUndefined();
     expect(readRequest('POST', '/complete')).toBeDefined();
+  });
+
+  it('should ask for the version label when package.json has none and someone can answer', async () => {
+    stubInteractiveTerminal();
+    vi.mocked(text).mockResolvedValue('2.0.0');
+    writeFileSync(
+      join(projectDirectoryPath, 'package.json'),
+      JSON.stringify({ dependencies: { '@capacitor/core': '8.0.0' } }),
+    );
+    respondWithUploadRoutes();
+
+    await bundleUploadCommand.action(
+      { config: join(projectDirectoryPath, 'hotcodepush.json'), noGit: true },
+      undefined,
+    );
+
+    expect(text).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: 'Which version label does the bundle carry?',
+      }),
+    );
+    expect(await readRequest('POST', '/bundles')?.json()).toMatchObject({
+      bundleVersion: '2.0.0',
+    });
+  });
+
+  it('should name --platform when a platform is not ios or android', async () => {
+    const stderrWrite = vi
+      .spyOn(process.stderr, 'write')
+      .mockImplementation(() => true);
+
+    const exitCode = await runCli(
+      { 'bundle upload': () => import('./upload.js') },
+      [
+        'bundle',
+        'upload',
+        '--platform',
+        'web',
+        '--config',
+        join(projectDirectoryPath, 'hotcodepush.json'),
+      ],
+      PACKAGE_JSON,
+    );
+
+    expect(exitCode).toBe(2);
+    expect(stderrWrite).toHaveBeenCalledWith(
+      expect.stringMatching(/^E_INVALID_PARAMETER --platform: /),
+    );
   });
 
   it('should refuse a React Native project until its packaging arrives', async () => {
