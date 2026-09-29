@@ -195,6 +195,29 @@ describe('doctor', () => {
     ]);
   });
 
+  it('should accept HOTCODEPUSH_TOKEN as an API token, the credential CI and agents hold', async () => {
+    const directoryPath = await writeSetUpProject();
+    respondWithSessionAndApp();
+    harness.routes['GET /v1/auth/get-session'] = () => Response.json(null);
+    harness.routes['GET /v1/organizations'] = () => Response.json([]);
+
+    await doctorCommand.action(
+      { config: join(directoryPath, 'hotcodepush.json'), json: true },
+      undefined,
+    );
+
+    const result = harness.readJson() as DoctorResult;
+    expect(result.status).toBe('clean');
+    expect(result.checks.slice(1, 3)).toEqual([
+      {
+        check: 'session',
+        message: 'authenticated with HOTCODEPUSH_TOKEN',
+        status: 'ok',
+      },
+      { check: 'app', message: 'app Demo, channel production', status: 'ok' },
+    ]);
+  });
+
   it('should skip the API checks without a session and fail on a missing configuration', async () => {
     vi.stubEnv('HOTCODEPUSH_TOKEN', '');
     const directoryPath = await writeSetUpProject();

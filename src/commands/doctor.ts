@@ -10,7 +10,7 @@ import {
   PROJECT_CONFIG_FILE_NAME,
 } from '../config/consts.js';
 import { createApiClient } from '../utils/api-client.js';
-import { createApiAuthClient, fetchSession } from '../utils/auth-client.js';
+import { fetchCredential } from '../utils/credential.js';
 import type { PackageJson } from '../utils/embed-hook.js';
 import { readPackageJson, resolveEmbedHookState } from '../utils/embed-hook.js';
 import { NotLoggedInError, ReportedFailureError } from '../utils/errors.js';
@@ -147,13 +147,12 @@ function checkConfiguration({
 }
 
 /**
- * The session, and with one the app and channel the configuration names as the API knows them.
+ * The credential — a session or `HOTCODEPUSH_TOKEN` — and with one the app and channel the configuration names as the API knows them.
  */
 async function checkSessionAndApp({
   projectConfig,
 }: Project): Promise<DoctorCheck[]> {
-  const token = readToken();
-  if (token === undefined) {
+  if (readToken() === undefined) {
     return [
       {
         check: 'session',
@@ -163,10 +162,10 @@ async function checkSessionAndApp({
     ];
   }
   try {
-    const { user } = await fetchSession(createApiAuthClient(token));
+    const credential = await fetchCredential();
     const sessionCheck: DoctorCheck = {
       check: 'session',
-      message: `logged in as ${user.name} (${user.email})`,
+      message: credential.description,
       status: 'ok',
     };
     return [sessionCheck, await checkApp(projectConfig)];
@@ -177,8 +176,8 @@ async function checkSessionAndApp({
     return [
       {
         check: 'session',
-        manualStep: 'run hotcodepush login',
-        message: 'the session has expired',
+        manualStep: 'run hotcodepush login, or set a valid HOTCODEPUSH_TOKEN',
+        message: 'the API does not accept the credential',
         status: 'failed',
       },
     ];

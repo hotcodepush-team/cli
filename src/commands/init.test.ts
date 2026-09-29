@@ -225,6 +225,44 @@ describe('init', () => {
     expect(existsSync(join(directoryPath, 'hotcodepush.json'))).toBe(false);
   });
 
+  it('should skip the sign-in under HOTCODEPUSH_TOKEN, an API token no session answers for, and never start a device login', async () => {
+    const directoryPath = writeProject({
+      hookScript: 'npx hotcodepush bundle embed',
+      isPackageInstalled: true,
+      projectConfig: {
+        appId: DEMO_APP.id,
+        channelId: PRODUCTION_CHANNEL.id,
+        dir: 'www',
+      },
+    });
+    rmSync(join(directoryPath, 'ios'), { force: true, recursive: true });
+    harness.routes['GET /v1/auth/get-session'] = () => Response.json(null);
+    harness.routes['GET /v1/organizations'] = () =>
+      Response.json([ACME_ORGANIZATION]);
+    harness.routes[`GET /v1/apps/${DEMO_APP.id}`] = () =>
+      Response.json(DEMO_APP);
+
+    await initCommand.action(
+      {
+        config: join(directoryPath, 'hotcodepush.json'),
+        json: true,
+        yes: true,
+      },
+      undefined,
+    );
+
+    const result = harness.readJson() as InitResult;
+    expect(result.status).toBe('complete');
+    expect(result.steps[0]).toEqual({
+      message: 'authenticated with HOTCODEPUSH_TOKEN',
+      status: 'skipped',
+      step: 'sign-in',
+    });
+    expect(
+      harness.requests.filter(({ url }) => url.includes('/device')),
+    ).toEqual([]);
+  });
+
   it('should stop at the hook with E_HOOK_OCCUPIED and the manual step when the script cannot be parsed', async () => {
     const directoryPath = writeProject({
       hookScript: 'a; b',

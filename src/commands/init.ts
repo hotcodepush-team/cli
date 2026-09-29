@@ -12,6 +12,7 @@ import {
 } from '../config/consts.js';
 import { createApiClient } from '../utils/api-client.js';
 import { createApiAuthClient, fetchSession } from '../utils/auth-client.js';
+import { fetchCredential } from '../utils/credential.js';
 import type { PackageJson } from '../utils/embed-hook.js';
 import {
   readPackageJson,
@@ -186,15 +187,14 @@ export default defineCommand({
 });
 
 /**
- * The session in place, or the `login` flow: non-interactively it leaves the device code for the next run.
+ * The credential in place — a session or `HOTCODEPUSH_TOKEN` — or the `login` flow: non-interactively it leaves the device code for the next run.
  */
 async function signIn(options: InitOptions): Promise<StepOutcome<HotCodePush>> {
-  const token = readToken();
-  if (token !== undefined) {
+  if (readToken() !== undefined) {
     try {
-      const { user } = await fetchSession(createApiAuthClient(token));
+      const credential = await fetchCredential();
       return {
-        message: `logged in as ${user.name} (${user.email})`,
+        message: credential.description,
         status: 'skipped',
         value: createApiClient(),
       };
