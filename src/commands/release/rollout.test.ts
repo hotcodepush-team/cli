@@ -1,4 +1,4 @@
-import { confirm } from '@clack/prompts';
+import { confirm, text } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
@@ -76,5 +76,46 @@ describe('release rollout', () => {
 
     expect(confirm).not.toHaveBeenCalled();
     expect(harness.readJson()).toEqual(ROLLED_OUT_RELEASE);
+  });
+
+  it('should ask for the percentage when the flag is missing and someone can answer', async () => {
+    stubInteractiveTerminal();
+    vi.mocked(text).mockResolvedValue('20');
+    vi.mocked(confirm).mockResolvedValue(true);
+    respondWithRolledOutRelease();
+
+    await releaseRolloutCommand.action(
+      { app: DEMO_APP.id, channel: STAGING_CHANNEL.id, release: '43' },
+      undefined,
+    );
+
+    expect(text).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: 'Which share of devices should the release reach, 0 to 100?',
+      }),
+    );
+    const updateRequest = harness.requests.find(
+      ({ method }) => method === 'PATCH',
+    );
+    expect(await updateRequest?.json()).toEqual({ rolloutPercentage: 20 });
+  });
+
+  it('should name the flag with E_MISSING_PARAMETER when it is missing and nobody can answer', async () => {
+    respondWithRolledOutRelease();
+
+    await expect(
+      releaseRolloutCommand.action(
+        {
+          app: DEMO_APP.id,
+          channel: STAGING_CHANNEL.id,
+          release: '43',
+          yes: true,
+        },
+        undefined,
+      ),
+    ).rejects.toMatchObject({
+      code: 'E_MISSING_PARAMETER',
+      message: '--rollout-percentage is missing',
+    });
   });
 });
