@@ -5,7 +5,7 @@ import type { CommandRegistry } from './command-registry.js';
 import { loadCommands, resolveInvocation } from './command-registry.js';
 import { isColorEnabled } from './environment.js';
 import { printError, resolveCliError } from './error-mapping.js';
-import { ExitCode } from './errors.js';
+import { ExitCode, ReportedFailureError } from './errors.js';
 
 export interface CliMeta {
   description: string;
@@ -36,10 +36,12 @@ export async function runCli(
     return ExitCode.Success;
   } catch (error) {
     const cliError = resolveCliError(error);
-    printError(cliError, {
-      isJson: argv.includes('--json'),
-      isVerbose: argv.includes('--verbose'),
-    });
+    if (!(cliError instanceof ReportedFailureError)) {
+      printError(cliError, {
+        isJson: argv.includes('--json'),
+        isVerbose: argv.includes('--verbose'),
+      });
+    }
     return cliError.exitCode;
   }
 }

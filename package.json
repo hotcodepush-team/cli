@@ -45,12 +45,14 @@
     "@hotcodepush/protocol": "https://pkg.pr.new/hotcodepush-team/protocol-js/@hotcodepush/protocol@207074c",
     "@napi-rs/keyring": "2.1.0",
     "better-auth": "1.7.6",
+    "xcode": "3.0.1",
     "zod": "4.6.5",
     "zodline": "0.3.1"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@types/node": "24.19.0",
+    "@types/xcode": "3.0.0",
     "eslint": "10.11.0",
     "eslint-import-resolver-typescript": "4.4.5",
     "eslint-plugin-import-x": "4.17.1",

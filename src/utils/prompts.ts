@@ -30,6 +30,20 @@ export async function confirmConsequence(
 }
 
 /**
+ * A yes-or-no question only a person answers — "publish a first release now?" — that is no when nobody is there.
+ */
+export async function promptYesNo(
+  message: string,
+  options: InteractivityOptions,
+): Promise<boolean> {
+  if (!isInteractive(options)) {
+    return false;
+  }
+  const answer = await confirm({ initialValue: true, message });
+  return answer === true;
+}
+
+/**
  * A required parameter the command line left out, picked from its choices;
  * without a person to ask or anything to pick, `E_MISSING_PARAMETER` naming the flag.
  */

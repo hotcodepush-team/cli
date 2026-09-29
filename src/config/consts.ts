@@ -1,11 +1,18 @@
 import { createRequire } from 'node:module';
 import type { CliMeta } from '../utils/cli.js';
 
+// The SDK is installed from the pkg.pr.new build of one commit until the package is published; a bump is one edit of the sha
+export const CAPACITOR_PACKAGE_NAME = '@hotcodepush/capacitor-live-updates';
+export const CAPACITOR_PACKAGE_SPEC =
+  'https://pkg.pr.new/hotcodepush-team/capacitor-live-updates/@hotcodepush/capacitor-live-updates@93a9cc2';
 export const CLI_CLIENT_ID = 'hotcodepush-cli';
 export const CLIENT_HEADER_NAME = 'X-HotCodePush-Client';
 export const CONFIG_DIRECTORY_NAME = 'hotcodepush';
 export const CONFIG_FILE_NAME = 'config.json';
 export const DEFAULT_API_URL = 'https://api.hotcodepush.com';
+export const DOCS_URL = 'https://hotcodepush.com/docs';
+export const EMBED_HOOK_COMMAND = 'npx hotcodepush bundle embed';
+export const EMBED_HOOK_NAME = 'capacitor:copy:after';
 export const ERRORS_DOCS_URL = 'https://hotcodepush.com/docs/cli/errors';
 export const ISSUES_URL = 'https://github.com/hotcodepush-team/cli/issues';
 export const KEYRING_ACCOUNT_NAME = 'token';

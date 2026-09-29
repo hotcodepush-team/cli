@@ -13,7 +13,7 @@ When code and plan disagree, stop and surface it; never improvise.
 ```
 src/
   index.ts     the registry: space-separated command names, each a lazy import
-  commands/    a folder per noun and a file per verb, channel/create.ts; the standalone commands flat, login.ts
+  commands/    a folder per noun and a file per verb, channel/create.ts; the standalone commands flat, login.ts, init.ts, doctor.ts, open.ts
   utils/       the runner, command resolution and did-you-mean, the E_ catalog and its one mapping,
                the global options, environment detection, config.json, the token store,
                the auth client, the API client, hotcodepush.json and its directory, a resource by id or name,
@@ -22,10 +22,13 @@ src/
                the framework and the web build's directory, the files of a build hashed, their gzip copies,
                the pack writer, the git provenance, the device hosts derived from the API URL,
                the upload flow, the store build's binary identity from the native projects, the resource file,
-               the progress lines, the browser opener, the JSON, tables and details output
+               the progress lines, the browser opener, the JSON, tables and details output,
+               init's step runner, the outcome rows init and doctor print, the package manager and its visible runs,
+               the embed hook in package.json, the resource reference in the Xcode project
   config/      consts: the API URL, the client id and header, the config file, the docs and issues URLs,
                the keyring entry, package.json, the project file
-  testing/     the command tests' harness, the API faked behind fetch, their fixtures and the release routes; never built
+  testing/     the command tests' harness, the API faked behind fetch, their fixtures, the release routes
+               and the Capacitor project a test writes, with the pbxproj of `cap add ios`; never built
 dist/          the build output, never committed
 ```
 
@@ -76,6 +79,10 @@ No releases yet: the version stays `0.0.0`, and release-please and npm provenanc
 - **Colour** only where `isColorEnabled(stream)` holds: a TTY, no `NO_COLOR`, no `TERM=dumb`.
   zodline colours its help regardless, so `runCli` strips the codes from its output where colour is off.
 - **Commands call commands**: a command that needs what another does runs that command's action in place, never a copy of its logic.
+- **A command that reports several outcomes** — `init`'s steps, `doctor`'s checks — prints them itself and ends with `ReportedFailureError` when one failed,
+  so the exit code is set without a second message; nothing else throws it.
+- **`init` and `bundle embed` edit only what they can recognise afterwards**: the hook script gains the embed command or is returned as the manual step,
+  the Xcode project gains one resource reference through the `xcode` package, and `init` names the files it will change and asks once before touching them.
 - **The token** is `readToken()`: `HOTCODEPUSH_TOKEN` when set, then the keyring, then the `config.json` fallback that any keyring failure latches for the rest of the process.
 - **An upload never holds a file in memory**: every file is hashed and gzip-compressed through streams into a temporary directory,
   put as a `Blob` opened from disk so the client can retry it, in parts above `SINGLE_UPLOAD_LIMIT_BYTES`, and the packs are written the same way.

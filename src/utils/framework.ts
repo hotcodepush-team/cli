@@ -126,7 +126,12 @@ function readCapacitorConfig(projectDirectoryPath: string): string | undefined {
   return undefined;
 }
 
-function readCapacitorWebDir(projectDirectoryPath: string): string | undefined {
+/**
+ * Capacitor's `webDir`, the web build the hook embeds.
+ */
+export function readCapacitorWebDir(
+  projectDirectoryPath: string,
+): string | undefined {
   return readConfigValue(
     readCapacitorConfig(projectDirectoryPath),
     /webDir['"]?\s*:\s*['"]([^'"]+)['"]/,

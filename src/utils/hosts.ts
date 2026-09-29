@@ -8,9 +8,12 @@ export interface DeviceHosts {
   updatesBaseUrl: string | undefined;
 }
 
+const LOCAL_CONSOLE_BASE_URL = 'http://localhost:4300';
+const PRODUCTION_CONSOLE_BASE_URL = 'https://console.hotcodepush.com';
 const PRODUCTION_FILES_BASE_URL = 'https://files.hotcodepush.com';
 const PRODUCTION_UPDATES_BASE_URL = 'https://updates.hotcodepush.com';
 const STAGING_API_URL = 'https://api.staging.hotcodepush.com';
+const STAGING_CONSOLE_BASE_URL = 'https://console.staging.hotcodepush.com';
 const STAGING_FILES_BASE_URL = 'https://files.staging.hotcodepush.com';
 const STAGING_UPDATES_BASE_URL = 'https://updates.staging.hotcodepush.com';
 
@@ -26,6 +29,22 @@ export function resolveDeviceHosts(apiUrl: string): DeviceHosts {
     updatesBaseUrl:
       process.env.HOTCODEPUSH_UPDATES_BASE_URL || derived.updatesBaseUrl,
   };
+}
+
+/**
+ * The console the CLI opens pages of, derived from the API URL the same way; the local console is the monorepo's dev port.
+ */
+export function resolveConsoleBaseUrl(apiUrl: string): string {
+  if (process.env.HOTCODEPUSH_CONSOLE_BASE_URL) {
+    return process.env.HOTCODEPUSH_CONSOLE_BASE_URL;
+  }
+  const trimmedApiUrl = apiUrl.replace(/\/+$/, '');
+  if (trimmedApiUrl === DEFAULT_API_URL) {
+    return PRODUCTION_CONSOLE_BASE_URL;
+  }
+  return trimmedApiUrl === STAGING_API_URL
+    ? STAGING_CONSOLE_BASE_URL
+    : LOCAL_CONSOLE_BASE_URL;
 }
 
 /**

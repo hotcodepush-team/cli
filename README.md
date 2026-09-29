@@ -13,6 +13,9 @@ npm install --save-dev https://pkg.pr.new/hotcodepush-team/cli/hotcodepush@<sha>
 ## Usage
 
 ```sh
+npx hotcodepush init
+npx hotcodepush doctor --json
+npx hotcodepush open
 npx hotcodepush --help
 npx hotcodepush login
 npx hotcodepush organization create --name Acme
@@ -30,6 +33,7 @@ npx hotcodepush release rollback
 npx hotcodepush release list --json
 ```
 
+`init` takes a Capacitor project from sign-in to the first release — the organization, the app, the SDK package from its pkg.pr.new build until it is published, `hotcodepush.json`, the `capacitor:copy:after` hook and the iOS resource reference — re-runnable at any step, each step `done`, `skipped` or `stopped` with the manual step; `doctor` is the read-only check of the same, and `open` opens the app's console page.
 Every command prints its options and two examples with `--help`, and `--json` turns its output into JSON for scripts and agents.
 An organization, app or channel is named by id or by name, `--app "My App"`; `--app` and `--channel` default to the ids in the project's `hotcodepush.json`.
 A command that changes what devices receive or cannot be undone — a release, a rollout, a pause, a revoke, a rollback, a delete — asks once with the consequence, `--yes` confirming in scripts.

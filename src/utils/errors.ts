@@ -87,6 +87,20 @@ export class BundleTooLargeError extends CliError {
   }
 }
 
+/**
+ * A command the CLI ran for the project — the package install, the build script — that exited with a failure.
+ */
+export class CommandFailedError extends CliError {
+  constructor(commandLine: string, exitCode: number | null) {
+    super({
+      code: 'E_COMMAND_FAILED',
+      exitCode: ExitCode.Error,
+      fix: 'run it by hand and read its output.',
+      message: `"${commandLine}" exited with ${exitCode ?? 'a signal'}`,
+    });
+  }
+}
+
 export class ConfirmationRequiredError extends CliError {
   constructor(consequence: string) {
     super({
@@ -94,6 +108,20 @@ export class ConfirmationRequiredError extends CliError {
       exitCode: ExitCode.ConfirmationRequired,
       fix: 'pass --yes to confirm.',
       message: `a confirmation is required: ${consequence}`,
+    });
+  }
+}
+
+/**
+ * The hook script the CLI would add its command to is one it cannot parse as a command chain.
+ */
+export class HookOccupiedError extends CliError {
+  constructor(hookName: string) {
+    super({
+      code: 'E_HOOK_OCCUPIED',
+      exitCode: ExitCode.Error,
+      fix: 'add "npx hotcodepush bundle embed" to it by hand.',
+      message: `${hookName} runs a script the CLI cannot parse`,
     });
   }
 }
@@ -171,6 +199,21 @@ export class NotLoggedInError extends CliError {
   }
 }
 
+/**
+ * The outcome a command printed itself — `init`'s steps, `doctor`'s checks — ended in a failure:
+ * only the exit code is left to set, and the entry point prints nothing more for it.
+ */
+export class ReportedFailureError extends CliError {
+  constructor(code: string) {
+    super({
+      code,
+      exitCode: ExitCode.Error,
+      fix: null,
+      message: 'reported above',
+    });
+  }
+}
+
 export class UnexpectedError extends CliError {
   constructor(cause: unknown) {
     super({
@@ -179,6 +222,21 @@ export class UnexpectedError extends CliError {
       exitCode: ExitCode.Error,
       fix: `run the command again with --verbose, and report it at ${ISSUES_URL} if it persists.`,
       message: cause instanceof Error ? cause.message : String(cause),
+    });
+  }
+}
+
+/**
+ * An Xcode project the CLI cannot edit: unparseable, or without the group the resource belongs in.
+ */
+export class XcodeProjectError extends CliError {
+  constructor(message: string, cause: unknown) {
+    super({
+      cause,
+      code: 'E_XCODE_PROJECT',
+      exitCode: ExitCode.Error,
+      fix: "add hotcodepush.json to the app target's Copy Bundle Resources in Xcode.",
+      message,
     });
   }
 }

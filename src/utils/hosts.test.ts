@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { resolveDeviceHosts, resolveFilesBaseUrl } from './hosts.js';
+import {
+  resolveConsoleBaseUrl,
+  resolveDeviceHosts,
+  resolveFilesBaseUrl,
+} from './hosts.js';
 
 describe('hosts', () => {
   afterEach(() => {
@@ -36,5 +40,21 @@ describe('hosts', () => {
       filesBaseUrl: 'http://10.0.2.2:8787/files',
       updatesBaseUrl: 'http://localhost:8787/updates',
     });
+  });
+
+  it('should derive the console from the API URL, the local console for the local stack, the variable winning', () => {
+    expect(resolveConsoleBaseUrl('https://api.hotcodepush.com')).toBe(
+      'https://console.hotcodepush.com',
+    );
+    expect(resolveConsoleBaseUrl('https://api.staging.hotcodepush.com/')).toBe(
+      'https://console.staging.hotcodepush.com',
+    );
+    expect(resolveConsoleBaseUrl('http://localhost:8787')).toBe(
+      'http://localhost:4300',
+    );
+    vi.stubEnv('HOTCODEPUSH_CONSOLE_BASE_URL', 'http://console.local');
+    expect(resolveConsoleBaseUrl('https://api.hotcodepush.com')).toBe(
+      'http://console.local',
+    );
   });
 });
