@@ -40,6 +40,8 @@
     "typecheck": "tsc --noEmit --project tsconfig.json"
   },
   "dependencies": {
+    "@clack/prompts": "1.8.1",
+    "@hotcodepush/node": "https://pkg.pr.new/hotcodepush-team/hotcodepush-node/@hotcodepush/node@cde1fc0",
     "@hotcodepush/protocol": "https://pkg.pr.new/hotcodepush-team/protocol-js/@hotcodepush/protocol@c975468",
     "@napi-rs/keyring": "2.1.0",
     "better-auth": "1.7.6",
