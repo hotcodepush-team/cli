@@ -20,7 +20,8 @@ src/
                a bundle by number or id, the prompts and the confirmation, the pages of a list, the channel fields,
                the framework and the web build's directory, the files of a build hashed, their gzip copies,
                the pack writer, the git provenance, the device hosts derived from the API URL,
-               the upload flow, the progress lines, the browser opener, the JSON, tables and details output
+               the upload flow, the store build's binary identity from the native projects, the resource file,
+               the progress lines, the browser opener, the JSON, tables and details output
   config/      consts: the API URL, the client id and header, the config file, the docs and issues URLs,
                the keyring entry, package.json, the project file
   testing/     the command tests' harness, the API faked behind fetch, and their fixtures; never built
@@ -78,6 +79,9 @@ No releases yet: the version stays `0.0.0`, and release-please and npm provenanc
 - **An upload never holds a file in memory**: every file is hashed and gzip-compressed through streams into a temporary directory,
   put as a `Blob` opened from disk so the client can retry it, in parts above `SINGLE_UPLOAD_LIMIT_BYTES`, and the packs are written the same way.
   Only the hashes the API answers as missing move; the delta pack against the previous bundle needs that bundle's manifest from the files host and is skipped, never failed, when it is unreachable.
+- **`bundle embed` never breaks a build**: the resource file is always written; the registration is skipped with one warning
+  without a token or when the API refuses locally, and fails loud only in CI, where `E_EMBED_CONFLICT` under an unbumped build number is a pipeline mistake.
+  The device hosts it writes derive from the API URL: none for production, the staging hosts for staging, `<apiUrl>/files` and `/updates` for any other, `HOTCODEPUSH_FILES_BASE_URL` and `HOTCODEPUSH_UPDATES_BASE_URL` overriding.
 - **A login that cannot wait** keeps its device code, expiry, user code and verification URL in `config.json`; the next `login` redeems the code first and, while it is pending, shows the same code again, so an agent sees one output until the person approves.
 
 ## Naming

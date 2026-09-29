@@ -2,6 +2,7 @@ import type {
   App,
   Bundle,
   Channel,
+  EmbeddedBundle,
   ChannelWithDeviceCounts,
   Organization,
 } from '@hotcodepush/node';
@@ -102,4 +103,16 @@ export const PREVIOUS_BUNDLE: Bundle = {
   id: '2f1e0d9c-8b7a-4695-a483-72615049382a',
   number: 16,
   updatedAt: '2026-09-04T08:05:00.000Z',
+};
+
+export const EMBEDDED_BUNDLE: EmbeddedBundle = {
+  appId: DEMO_APP.id,
+  binaryBuild: '1',
+  binaryVersion: '1.0',
+  bundleId: '4d3c2b1a-0f9e-4d8c-b7a6-59483726150e',
+  createdAt: '2026-09-06T08:00:00.000Z',
+  fingerprint: null,
+  id: '8e7d6c5b-4a39-4281-9f0e-1d2c3b4a5968',
+  platform: 'ios',
+  updatedAt: '2026-09-06T08:00:00.000Z',
 };
