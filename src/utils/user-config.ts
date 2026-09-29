@@ -1,26 +1,32 @@
-import { chmodSync } from 'node:fs';
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+} from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { read, userConfigDir, write } from 'rc9';
 import { CONFIG_DIRECTORY_NAME, CONFIG_FILE_NAME } from '../config/consts.js';
 
 /**
  * `config.json` in the user's config directory; the token is here only where no keyring backend works.
  */
-export type UserConfig = {
+export interface UserConfig {
   apiUrl?: string;
   lastUpdateCheckAt?: string;
   latestKnownVersion?: string;
   sessionId?: string;
   telemetryNoticeShownAt?: string;
   token?: string;
-};
+}
 
 export function readUserConfig(): UserConfig {
-  return read<UserConfig>({
-    dir: resolveConfigDirectoryPath(),
-    name: CONFIG_FILE_NAME,
-  });
+  const filePath = resolveConfigFilePath();
+  if (!existsSync(filePath)) {
+    return {};
+  }
+  return JSON.parse(readFileSync(filePath, 'utf8')) as UserConfig;
 }
 
 /**
@@ -30,13 +36,20 @@ export function resolveConfigDirectoryPath(): string {
   const baseDirectoryPath =
     process.platform === 'win32'
       ? (process.env.APPDATA ?? join(homedir(), 'AppData', 'Roaming'))
-      : userConfigDir();
+      : process.env.XDG_CONFIG_HOME || join(homedir(), '.config');
   return join(baseDirectoryPath, CONFIG_DIRECTORY_NAME);
 }
 
 export function writeUserConfig(userConfig: UserConfig): void {
-  const directoryPath = resolveConfigDirectoryPath();
-  write(userConfig, { dir: directoryPath, name: CONFIG_FILE_NAME });
-  // The file can hold the token, so only its owner may read it
-  chmodSync(join(directoryPath, CONFIG_FILE_NAME), 0o600);
+  const filePath = resolveConfigFilePath();
+  mkdirSync(resolveConfigDirectoryPath(), { recursive: true });
+  // The file can hold the token, so only its owner may read it: the mode covers a new file, chmod an existing one
+  writeFileSync(filePath, `${JSON.stringify(userConfig, null, 2)}\n`, {
+    mode: 0o600,
+  });
+  chmodSync(filePath, 0o600);
+}
+
+function resolveConfigFilePath(): string {
+  return join(resolveConfigDirectoryPath(), CONFIG_FILE_NAME);
 }

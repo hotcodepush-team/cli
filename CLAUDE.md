@@ -2,7 +2,7 @@
 
 `hotcodepush`, the HotCodePush CLI: the npm package and the binary that set up, release and manage live updates from the terminal and CI.
 The repo is public and MIT; this is the skeleton, and the commands arrive issue by issue on top of it.
-Stack: TypeScript compiled by `tsc` into ESM in `dist/`, zodline and zod for the commands, `rc9` for `config.json`, `@napi-rs/keyring` for the token, ESLint, Prettier, Vitest, Node 24.
+Stack: TypeScript compiled by `tsc` into ESM in `dist/`, zodline and zod for the commands, `@napi-rs/keyring` for the token, ESLint, Prettier, Vitest, Node 24.
 
 The plan is the private `handbook` repo, checked out beside this one: `../handbook/docs/`.
 Its `cli.md` is the spec — every command, flag, file, error code and exit code — and `repositories.md` › _The CLI's structure_ the layout; both are binding, with `api.md` for the API the commands call.
