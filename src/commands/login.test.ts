@@ -6,7 +6,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PACKAGE_JSON } from '../config/consts.js';
 import { openBrowser } from '../utils/browser.js';
 import { runCli } from '../utils/cli.js';
-import { LoginDeniedError, LoginExpiredError } from '../utils/errors.js';
+import {
+  LoginDeniedError,
+  LoginExpiredError,
+  LoginPendingError,
+} from '../utils/errors.js';
 import { readUserConfig, writeUserConfig } from '../utils/user-config.js';
 import loginCommand from './login.js';
 
@@ -51,10 +55,28 @@ const TOKEN = {
 const originalStdinIsTty = process.stdin.isTTY;
 const originalStdoutIsTty = process.stdout.isTTY;
 
+function captureStdout() {
+  const stdoutWrite = vi
+    .spyOn(process.stdout, 'write')
+    .mockImplementation(() => true);
+  return {
+    clear: () => stdoutWrite.mockClear(),
+    read: () => stdoutWrite.mock.calls.map(([chunk]) => String(chunk)).join(''),
+  };
+}
+
 function respondWithDeviceError(error: string): Response {
   return Response.json(
     { error, error_description: 'A device-flow error' },
     { status: 400 },
+  );
+}
+
+function runLogin(flags: string[]) {
+  return runCli(
+    { login: () => import('./login.js') },
+    ['login', ...flags],
+    PACKAGE_JSON,
   );
 }
 
@@ -75,6 +97,7 @@ describe('login', () => {
     vi.stubGlobal('fetch', fetchMock);
     process.stdin.isTTY = true;
     process.stdout.isTTY = true;
+    vi.useFakeTimers({ toFake: ['Date'] });
     keyring.setPassword.mockReset();
     fetchMock.mockReset();
     vi.spyOn(console, 'log').mockImplementation(() => undefined);
@@ -85,6 +108,7 @@ describe('login', () => {
     process.stdin.isTTY = originalStdinIsTty;
     process.stdout.isTTY = originalStdoutIsTty;
     vi.unstubAllGlobals();
+    vi.useRealTimers();
     rmSync(configHomePath, { force: true, recursive: true });
   });
 
@@ -193,45 +217,145 @@ describe('login', () => {
     });
   });
 
-  it('should print the URL and the code as JSON and exit 3 without polling when --json is passed', async () => {
-    const stdoutWrite = vi
-      .spyOn(process.stdout, 'write')
-      .mockImplementation(() => true);
-    fetchMock.mockResolvedValueOnce(Response.json(DEVICE_AUTHORIZATION));
+  describe('when it cannot wait for the approval', () => {
+    it('should keep the code and print the URL and the code as JSON, exiting 3 without polling', async () => {
+      vi.setSystemTime(new Date('2026-09-29T10:00:00.000Z'));
+      const stdout = captureStdout();
+      fetchMock.mockResolvedValueOnce(Response.json(DEVICE_AUTHORIZATION));
 
-    const exitCode = await runCli(
-      { login: () => import('./login.js') },
-      ['login', '--json'],
-      PACKAGE_JSON,
-    );
+      const exitCode = await runLogin(['--json']);
 
-    expect(exitCode).toBe(3);
-    expect(
-      JSON.parse(stdoutWrite.mock.calls.map(([chunk]) => chunk).join('')),
-    ).toEqual({
-      error: {
-        code: 'E_NOT_LOGGED_IN',
-        fix: 'open https://console.example.com/device?user_code=WDJBMJHT and approve the code WDJBMJHT.',
-        message: 'you are not logged in',
-      },
+      expect(exitCode).toBe(3);
+      expect(JSON.parse(stdout.read())).toEqual({
+        error: {
+          code: 'E_NOT_LOGGED_IN',
+          fix: 'approve at https://console.example.com/device?user_code=WDJBMJHT with code WDJBMJHT, then run "hotcodepush login" again.',
+          message: 'you are not logged in',
+        },
+      });
+      expect(readUserConfig()).toEqual({
+        apiUrl: API_URL,
+        pendingDeviceCode: 'device-code-1',
+        pendingDeviceCodeExpiresAt: '2026-09-29T10:30:00.000Z',
+      });
+      expect(readRequests().map(request => request.url)).toEqual([
+        `${API_URL}/v1/auth/device/code`,
+      ]);
+      expect(setTimeout).not.toHaveBeenCalled();
+      expect(openBrowser).not.toHaveBeenCalled();
     });
-    expect(fetchMock).toHaveBeenCalledOnce();
-    expect(setTimeout).not.toHaveBeenCalled();
-    expect(openBrowser).not.toHaveBeenCalled();
+
+    it('should exit 3 without polling when in CI', async () => {
+      vi.stubEnv('CI', 'true');
+      vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+      fetchMock.mockResolvedValueOnce(Response.json(DEVICE_AUTHORIZATION));
+
+      const exitCode = await runLogin([]);
+
+      expect(exitCode).toBe(3);
+      expect(fetchMock).toHaveBeenCalledOnce();
+    });
+
+    it('should log in with the kept code on the next login once it is approved', async () => {
+      const stdout = captureStdout();
+      fetchMock.mockResolvedValueOnce(Response.json(DEVICE_AUTHORIZATION));
+      await runLogin(['--json']);
+      fetchMock
+        .mockResolvedValueOnce(Response.json(TOKEN))
+        .mockResolvedValueOnce(Response.json(SESSION));
+      stdout.clear();
+
+      const exitCode = await runLogin(['--json']);
+
+      expect(exitCode).toBe(0);
+      expect(JSON.parse(stdout.read())).toEqual({ user: SESSION.user });
+      expect(keyring.setPassword).toHaveBeenCalledWith('session-token-1');
+      expect(readUserConfig()).toEqual({
+        apiUrl: API_URL,
+        sessionId: 'session-1',
+      });
+      const [, tokenRequest, sessionRequest] = readRequests();
+      expect(tokenRequest?.url).toBe(`${API_URL}/v1/auth/device/token`);
+      expect(await tokenRequest?.json()).toMatchObject({
+        device_code: 'device-code-1',
+      });
+      expect(sessionRequest?.url).toBe(`${API_URL}/v1/auth/get-session`);
+      expect(setTimeout).not.toHaveBeenCalled();
+    });
   });
 
-  it('should exit 3 without polling when in CI', async () => {
-    vi.stubEnv('CI', 'true');
-    vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
-    fetchMock.mockResolvedValueOnce(Response.json(DEVICE_AUTHORIZATION));
+  describe('when a non-interactive login kept a code', () => {
+    beforeEach(() => {
+      writeUserConfig({
+        apiUrl: API_URL,
+        pendingDeviceCode: 'device-code-0',
+        pendingDeviceCodeExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+      });
+      captureStdout();
+    });
 
-    const exitCode = await runCli(
-      { login: () => import('./login.js') },
-      ['login'],
-      PACKAGE_JSON,
+    it.each(['access_denied', 'expired_token'])(
+      'should keep a new code instead when the kept one answers %s',
+      async error => {
+        fetchMock
+          .mockResolvedValueOnce(respondWithDeviceError(error))
+          .mockResolvedValueOnce(Response.json(DEVICE_AUTHORIZATION));
+
+        const exitCode = await runLogin(['--json']);
+
+        expect(exitCode).toBe(3);
+        expect(readRequests().map(request => request.url)).toEqual([
+          `${API_URL}/v1/auth/device/token`,
+          `${API_URL}/v1/auth/device/code`,
+        ]);
+        expect(readUserConfig().pendingDeviceCode).toBe('device-code-1');
+      },
     );
 
-    expect(exitCode).toBe(3);
-    expect(fetchMock).toHaveBeenCalledOnce();
+    it('should request a new code without asking about the kept one when it expired', async () => {
+      writeUserConfig({
+        apiUrl: API_URL,
+        pendingDeviceCode: 'device-code-0',
+        pendingDeviceCodeExpiresAt: new Date(Date.now() - 1).toISOString(),
+      });
+      fetchMock.mockResolvedValueOnce(Response.json(DEVICE_AUTHORIZATION));
+
+      await runLogin(['--json']);
+
+      expect(readRequests().map(request => request.url)).toEqual([
+        `${API_URL}/v1/auth/device/code`,
+      ]);
+      expect(readUserConfig().pendingDeviceCode).toBe('device-code-1');
+    });
+
+    it('should throw E_LOGIN_PENDING and keep the code when it still waits for its approval', async () => {
+      fetchMock.mockResolvedValueOnce(
+        respondWithDeviceError('authorization_pending'),
+      );
+
+      await expect(
+        loginCommand.action({ json: true }, undefined),
+      ).rejects.toThrow(LoginPendingError);
+      expect(fetchMock).toHaveBeenCalledOnce();
+      expect(readUserConfig().pendingDeviceCode).toBe('device-code-0');
+    });
+
+    it('should take a new code and poll it when interactive and the kept one still waits', async () => {
+      fetchMock
+        .mockResolvedValueOnce(respondWithDeviceError('authorization_pending'))
+        .mockResolvedValueOnce(Response.json(DEVICE_AUTHORIZATION))
+        .mockResolvedValueOnce(Response.json(TOKEN))
+        .mockResolvedValueOnce(Response.json(SESSION));
+
+      await loginCommand.action({}, undefined);
+
+      expect(openBrowser).toHaveBeenCalledWith(
+        DEVICE_AUTHORIZATION.verification_uri_complete,
+      );
+      expect(readUserConfig()).toEqual({
+        apiUrl: API_URL,
+        sessionId: 'session-1',
+      });
+    });
   });
 });

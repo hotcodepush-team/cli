@@ -6,6 +6,7 @@ import {
   InvalidParameterError,
   LoginDeniedError,
   LoginExpiredError,
+  LoginPendingError,
   MissingParameterError,
   NoTtyError,
   NotLoggedInError,
@@ -37,6 +38,7 @@ describe('errors', () => {
     ],
     [new LoginDeniedError(), 'E_LOGIN_DENIED', 1],
     [new LoginExpiredError(), 'E_LOGIN_EXPIRED', 1],
+    [new LoginPendingError(), 'E_LOGIN_PENDING', 3],
     [new MissingParameterError('--channel'), 'E_MISSING_PARAMETER', 2],
     [new NoTtyError(), 'E_NO_TTY', 1],
     [new NotLoggedInError(), 'E_NOT_LOGGED_IN', 3],
@@ -69,7 +71,7 @@ describe('errors', () => {
     });
 
     expect(error.fix).toBe(
-      'open https://console.example.com/device?user_code=WDJBMJHT and approve the code WDJBMJHT.',
+      'approve at https://console.example.com/device?user_code=WDJBMJHT with code WDJBMJHT, then run "hotcodepush login" again.',
     );
   });
 

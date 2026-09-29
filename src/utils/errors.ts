@@ -104,6 +104,17 @@ export class LoginExpiredError extends CliError {
   }
 }
 
+export class LoginPendingError extends CliError {
+  constructor() {
+    super({
+      code: 'E_LOGIN_PENDING',
+      exitCode: ExitCode.NotLoggedIn,
+      fix: 'approve the code the previous login printed, then run "hotcodepush login" again.',
+      message: 'the login still waits for its approval',
+    });
+  }
+}
+
 export class MissingParameterError extends CliError {
   constructor(flag: string) {
     super({
@@ -136,7 +147,7 @@ export class NotLoggedInError extends CliError {
       code: 'E_NOT_LOGGED_IN',
       exitCode: ExitCode.NotLoggedIn,
       fix: deviceAuthorizationPrompt
-        ? `open ${deviceAuthorizationPrompt.verificationUrl} and approve the code ${deviceAuthorizationPrompt.userCode}.`
+        ? `approve at ${deviceAuthorizationPrompt.verificationUrl} with code ${deviceAuthorizationPrompt.userCode}, then run "hotcodepush login" again.`
         : 'run "hotcodepush login", or set HOTCODEPUSH_TOKEN.',
       message: 'you are not logged in',
     });

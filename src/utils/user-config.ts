@@ -14,12 +14,15 @@ import {
 } from '../config/consts.js';
 
 /**
- * `config.json` in the user's config directory; the token is here only where no keyring backend works.
+ * `config.json` in the user's config directory; the token is here only where no keyring backend works,
+ * and the pending device code only between a non-interactive login and the next one.
  */
 export interface UserConfig {
   apiUrl?: string;
   lastUpdateCheckAt?: string;
   latestKnownVersion?: string;
+  pendingDeviceCode?: string;
+  pendingDeviceCodeExpiresAt?: string;
   sessionId?: string;
   telemetryNoticeShownAt?: string;
   token?: string;

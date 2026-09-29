@@ -15,13 +15,16 @@ src/
   index.ts     the registry: space-separated command names, each a lazy import
   commands/    a folder per noun and a file per verb, channel/create.ts; the standalone commands flat, login.ts
   utils/       the runner, command resolution and did-you-mean, the E_ catalog and its one mapping,
-               the global options, environment detection, config.json, the token store
-  config/      consts: the API URL, the config file, the docs and issues URLs, the keyring entry
+               the global options, environment detection, config.json, the token store,
+               the auth client, the browser opener, the JSON output
+  config/      consts: the API URL, the client id and header, the config file, the docs and issues URLs,
+               the keyring entry, package.json
 dist/          the build output, never committed
 ```
 
 Tests live beside the code they test, `*.test.ts` next to the file.
 There is no `services/` and no `types/`: `@hotcodepush/node` is the API layer and the type source, and it joins as a pkg.pr.new dependency once its repo publishes a preview build.
+The one exception is Better Auth's `/v1/auth/*` slice, reached through `better-auth/client` in `utils/auth-client.ts`, as the handbook's architecture.md places it.
 
 ## Commands
 
