@@ -112,16 +112,22 @@ export default defineCommand({
     }
     const run = new InitRun();
     const hotCodePush = await run.run('sign-in', () => signIn(options));
-    const scope = await run.run('organization', () =>
-      resolveOrganization(requireValue(hotCodePush), projectConfig, options),
+    const scope = await run.run(
+      'organization',
+      () =>
+        resolveOrganization(requireValue(hotCodePush), projectConfig, options),
+      { dependsOn: ['sign-in'] },
     );
-    const app = await run.run('app', () =>
-      resolveApp(
-        requireValue(hotCodePush),
-        requireValue(scope),
-        framework,
-        options,
-      ),
+    const app = await run.run(
+      'app',
+      () =>
+        resolveApp(
+          requireValue(hotCodePush),
+          requireValue(scope),
+          framework,
+          options,
+        ),
+      { dependsOn: ['organization'] },
     );
     const projectFiles = resolveProjectFiles(
       directoryPath,
@@ -130,8 +136,10 @@ export default defineCommand({
     );
     const editBlocker = await resolveEditBlocker(projectFiles, options);
     await run.run('package', () => installPackage(projectFiles, editBlocker));
-    await run.run('configuration', () =>
-      writeConfiguration(projectFiles, requireValue(app), editBlocker),
+    await run.run(
+      'configuration',
+      () => writeConfiguration(projectFiles, requireValue(app), editBlocker),
+      { dependsOn: ['app'] },
     );
     await run.run('hook', () => wireHook(projectFiles, editBlocker, options));
     await run.run('signing-key', () =>
@@ -148,8 +156,11 @@ export default defineCommand({
     const isBuilt = await run.run('build', () =>
       buildProject(projectFiles, isReleaseWanted),
     );
-    await run.run('release', () =>
-      releaseFirst(projectFiles, isReleaseWanted, isBuilt === true, options),
+    await run.run(
+      'release',
+      () =>
+        releaseFirst(projectFiles, isReleaseWanted, isBuilt === true, options),
+      { dependsOn: ['configuration', 'build'] },
     );
     const status = run.stoppedCode === undefined ? 'complete' : 'incomplete';
     if (options.json) {
@@ -358,13 +369,14 @@ async function resolveEditBlocker(
     return undefined;
   }
   const consequence = `changes ${filePaths.join(', ')}`;
+  const manualStep = `run init --yes to change ${filePaths.join(', ')}`;
   try {
     return (await confirmConsequence(consequence, options))
       ? undefined
-      : new ConfirmationRequiredError(consequence);
+      : new ConfirmationRequiredError(consequence, manualStep);
   } catch (error) {
     if (error instanceof ConfirmationRequiredError) {
-      return error;
+      return new ConfirmationRequiredError(consequence, manualStep);
     }
     throw error;
   }
@@ -453,8 +465,9 @@ function writeConfiguration(
   const dir = projectConfig?.dir ?? readCapacitorWebDir(directoryPath);
   if (dir === undefined) {
     throw new InvalidParameterError(
-      `capacitor.config names no webDir; set dir in ${PROJECT_CONFIG_FILE_NAME} to the web build directory`,
+      'capacitor.config names no webDir',
       undefined,
+      `set dir in ${PROJECT_CONFIG_FILE_NAME} to the web build directory.`,
     );
   }
   const filePath = join(directoryPath, PROJECT_CONFIG_FILE_NAME);

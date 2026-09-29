@@ -21,12 +21,20 @@ export interface StepOutcome<TValue> {
 }
 
 /**
- * The steps of one `init` run in order: a step runs unless an earlier one stopped, and a CLI error inside a step
- * stops it with the error's code and fix as the manual step, so the run reports instead of throwing.
+ * What a step needs from the ones before it: a step whose need stopped, or waits itself, is skipped and says so.
+ */
+export interface RunStepOptions {
+  dependsOn?: string[];
+}
+
+/**
+ * The steps of one `init` run in order: a step runs unless one it depends on did not, and a CLI error inside a step
+ * stops it with the error's code and fix as the manual step, so the run reports instead of throwing and the
+ * independent steps still run.
  */
 export class InitRun {
   readonly steps: InitStep[] = [];
-  private stoppedStep: string | undefined;
+  private readonly unmetSteps = new Set<string>();
 
   get stoppedCode(): string | undefined {
     return this.steps.find(({ status }) => status === 'stopped')?.code;
@@ -35,13 +43,16 @@ export class InitRun {
   async run<TValue>(
     step: string,
     perform: () => Promise<StepOutcome<TValue>>,
+    { dependsOn = [] }: RunStepOptions = {},
   ): Promise<TValue | undefined> {
-    if (this.stoppedStep !== undefined) {
+    const unmetStep = dependsOn.find(name => this.unmetSteps.has(name));
+    if (unmetStep !== undefined) {
       this.steps.push({
-        message: `not run: init stopped at ${this.stoppedStep}`,
+        message: `waits on the ${unmetStep} step`,
         status: 'skipped',
         step,
       });
+      this.unmetSteps.add(step);
       return undefined;
     }
     try {
@@ -59,7 +70,7 @@ export class InitRun {
         status: 'stopped',
         step,
       });
-      this.stoppedStep = step;
+      this.unmetSteps.add(step);
       return undefined;
     }
   }

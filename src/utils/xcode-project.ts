@@ -67,6 +67,7 @@ export async function addResourceReference(
     throw new XcodeProjectError(
       `${projectFilePath} has no ${APP_GROUP_NAME} group to add ${RESOURCE_FILE_NAME} to`,
       undefined,
+      projectFilePath,
     );
   }
   // the package's addResourceFile expects Cordova's Resources group, so the reference, the build file and the phase entry are added one by one
@@ -160,6 +161,7 @@ function parseProject(projectFilePath: string): XcodeProject {
     throw new XcodeProjectError(
       `${projectFilePath} could not be parsed`,
       error,
+      projectFilePath,
     );
   }
 }

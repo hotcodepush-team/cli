@@ -238,7 +238,8 @@ describe('init', () => {
     );
     expect(configurationStep).toEqual({
       code: 'E_CONFIRMATION_REQUIRED',
-      manualStep: 'pass --yes to confirm.',
+      manualStep:
+        'run init --yes to change package.json, hotcodepush.json, ios/App/App.xcodeproj/project.pbxproj',
       message:
         'a confirmation is required: changes package.json, hotcodepush.json, ios/App/App.xcodeproj/project.pbxproj',
       status: 'stopped',
@@ -246,12 +247,12 @@ describe('init', () => {
     });
     expect(readStepStatuses(result)).toMatchObject({
       configuration: 'stopped',
-      hook: 'skipped',
+      hook: 'stopped',
       package: 'skipped',
       release: 'skipped',
     });
-    expect(result.steps.find(({ step }) => step === 'hook')?.message).toBe(
-      'not run: init stopped at configuration',
+    expect(result.steps.find(({ step }) => step === 'release')?.message).toBe(
+      'waits on the configuration step',
     );
     expect(existsSync(join(directoryPath, 'hotcodepush.json'))).toBe(false);
   });
@@ -372,10 +373,16 @@ describe('init', () => {
     const result = harness.readJson() as InitResult;
     expect(result.steps.find(({ step }) => step === 'hook')).toEqual({
       code: 'E_HOOK_OCCUPIED',
-      manualStep: 'add "npx hotcodepush bundle embed" to it by hand.',
+      manualStep:
+        'append " && npx hotcodepush bundle embed" to the capacitor:copy:after script in package.json.',
       message: 'capacitor:copy:after runs a script the CLI cannot parse',
       status: 'stopped',
       step: 'hook',
+    });
+    expect(readStepStatuses(result)).toMatchObject({
+      'build': 'skipped',
+      'release': 'skipped',
+      'signing-key': 'skipped',
     });
     expect(readJsonFile(join(directoryPath, 'hotcodepush.json'))).toEqual({
       appId: DEMO_APP.id,
@@ -384,7 +391,7 @@ describe('init', () => {
     });
   });
 
-  it('should stop at the organization with E_MISSING_PARAMETER when the user belongs to several and none is named', async () => {
+  it('should stop at the organization when the user belongs to several and none is named, and still run the independent steps', async () => {
     const directoryPath = writeProject();
     respondWithSession([ACME_ORGANIZATION, GLOBEX_ORGANIZATION]);
 
@@ -400,17 +407,17 @@ describe('init', () => {
       'app': 'skipped',
       'build': 'skipped',
       'configuration': 'skipped',
-      'hook': 'skipped',
+      'hook': 'done',
       'organization': 'stopped',
-      'package': 'skipped',
+      'package': 'done',
       'release': 'skipped',
       'sign-in': 'skipped',
       'signing-key': 'skipped',
     });
     expect(result.steps[1]?.code).toBe('E_MISSING_PARAMETER');
-    expect(result.steps[2]?.message).toBe(
-      'not run: init stopped at organization',
-    );
+    expect(result.steps[2]?.message).toBe('waits on the organization step');
+    expect(result.steps[4]?.message).toBe('waits on the app step');
+    expect(result.steps[8]?.message).toBe('waits on the configuration step');
   });
 
   it('should offer the picker with a create choice interactively, even with one organization and one app', async () => {

@@ -102,11 +102,11 @@ export class CommandFailedError extends CliError {
 }
 
 export class ConfirmationRequiredError extends CliError {
-  constructor(consequence: string) {
+  constructor(consequence: string, fix = 'pass --yes to confirm.') {
     super({
       code: 'E_CONFIRMATION_REQUIRED',
       exitCode: ExitCode.ConfirmationRequired,
-      fix: 'pass --yes to confirm.',
+      fix,
       message: `a confirmation is required: ${consequence}`,
     });
   }
@@ -120,19 +120,23 @@ export class HookOccupiedError extends CliError {
     super({
       code: 'E_HOOK_OCCUPIED',
       exitCode: ExitCode.Error,
-      fix: 'add "npx hotcodepush bundle embed" to it by hand.',
+      fix: `append " && npx hotcodepush bundle embed" to the ${hookName} script in package.json.`,
       message: `${hookName} runs a script the CLI cannot parse`,
     });
   }
 }
 
 export class InvalidParameterError extends CliError {
-  constructor(message: string, cause: unknown) {
+  constructor(
+    message: string,
+    cause: unknown,
+    fix = 'run the command with --help to see its options.',
+  ) {
     super({
       cause,
       code: 'E_INVALID_PARAMETER',
       exitCode: ExitCode.MissingOrInvalidParameter,
-      fix: 'run the command with --help to see its options.',
+      fix,
       message,
     });
   }
@@ -161,11 +165,14 @@ export class LoginExpiredError extends CliError {
 }
 
 export class MissingParameterError extends CliError {
-  constructor(flag: string) {
+  constructor(
+    flag: string,
+    fix = `pass ${flag}, or run the command interactively to be asked for it.`,
+  ) {
     super({
       code: 'E_MISSING_PARAMETER',
       exitCode: ExitCode.MissingOrInvalidParameter,
-      fix: `pass ${flag}, or run the command interactively to be asked for it.`,
+      fix,
       message: `${flag} is missing`,
     });
   }
@@ -230,12 +237,12 @@ export class UnexpectedError extends CliError {
  * An Xcode project the CLI cannot edit: unparseable, or without the group the resource belongs in.
  */
 export class XcodeProjectError extends CliError {
-  constructor(message: string, cause: unknown) {
+  constructor(message: string, cause: unknown, projectFilePath: string) {
     super({
       cause,
       code: 'E_XCODE_PROJECT',
       exitCode: ExitCode.Error,
-      fix: "add hotcodepush.json to the app target's Copy Bundle Resources in Xcode.",
+      fix: `add hotcodepush.json to the app target's Copy Bundle Resources in ${projectFilePath}.`,
       message,
     });
   }
