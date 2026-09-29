@@ -1,5 +1,8 @@
 import { confirm } from '@clack/prompts';
-import { computeSha256Hex } from '@hotcodepush/protocol';
+import {
+  computeSha256Hex,
+  stringifyCanonicalJson,
+} from '@hotcodepush/protocol';
 import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
@@ -80,14 +83,17 @@ describe('release create', () => {
         'This releases bundle #17 · 1.4.2 to staging at 100 percent. Continue?',
     });
     const [createRequest] = readCreateRequests();
-    expect(await createRequest?.json()).toEqual({
+    const releaseBody = {
       bundleId: READY_BUNDLE.id,
       isMandatory: false,
       notes: null,
       rolloutPercentage: 100,
-    });
+    };
+    expect(await createRequest?.json()).toEqual(releaseBody);
     expect(createRequest?.headers.get('Idempotency-Key')).toBe(
-      computeSha256Hex(`${READY_BUNDLE.manifestSha256}:${STAGING_CHANNEL.id}`),
+      computeSha256Hex(
+        `${READY_BUNDLE.manifestSha256}:${STAGING_CHANNEL.id}:${stringifyCanonicalJson(releaseBody)}`,
+      ),
     );
     expect(
       harness.requests.filter(({ url }) =>

@@ -1,10 +1,14 @@
 import type {
   Bundle,
   ChannelWithDeviceCounts,
+  CreateReleaseOptions,
   HotCodePush,
   Release,
 } from '@hotcodepush/node';
-import { computeSha256Hex } from '@hotcodepush/protocol';
+import {
+  computeSha256Hex,
+  stringifyCanonicalJson,
+} from '@hotcodepush/protocol';
 import { z } from 'zod';
 import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
@@ -27,6 +31,11 @@ import {
   uploadBundleFromOptions,
 } from '../bundle/upload.js';
 
+type ReleaseBody = Pick<
+  CreateReleaseOptions,
+  'bundleId' | 'isMandatory' | 'notes' | 'rolloutPercentage'
+>;
+
 interface ReleaseCreateOptions extends BundleUploadOptions {
   bundle?: string;
   channel?: string[];
@@ -48,16 +57,19 @@ export default defineCommand({
     if (!isConfirmed) {
       return;
     }
+    const releaseBody: ReleaseBody = {
+      bundleId: bundle.id,
+      isMandatory: options.mandatory ?? false,
+      notes: options.notes ?? null,
+      rolloutPercentage,
+    };
     const releases: Release[] = [];
     for (const channel of channels) {
       const createdRelease = await hotCodePush.apps.channels.releases.create({
+        ...releaseBody,
         appId: bundle.appId,
-        bundleId: bundle.id,
         channelId: channel.id,
-        idempotencyKey: resolveIdempotencyKey(bundle, channel),
-        isMandatory: options.mandatory ?? false,
-        notes: options.notes ?? null,
-        rolloutPercentage,
+        idempotencyKey: resolveIdempotencyKey(bundle, channel, releaseBody),
       });
       const liveRelease = await waitUntilLive(hotCodePush, createdRelease);
       releases.push(liveRelease);
@@ -156,13 +168,15 @@ async function resolveBundleToRelease(
 }
 
 /**
- * The key a pipeline that retries after a timeout sends again, so the same bundle to the same channel is the same release.
+ * The key a pipeline that retries after a timeout sends again: the same bundle to the same channel with the same
+ * body is the same release, and a deliberate second release with other flags is a new one.
  */
 function resolveIdempotencyKey(
   bundle: Bundle,
   channel: ChannelWithDeviceCounts,
+  releaseBody: ReleaseBody,
 ): string {
   return computeSha256Hex(
-    `${bundle.manifestSha256 ?? bundle.id}:${channel.id}`,
+    `${bundle.manifestSha256 ?? bundle.id}:${channel.id}:${stringifyCanonicalJson(releaseBody)}`,
   );
 }
