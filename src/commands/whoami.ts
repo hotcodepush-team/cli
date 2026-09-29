@@ -1,30 +1,18 @@
 import { defineCommand } from 'zodline';
-import type { AuthClient } from '../utils/auth-client.js';
-import {
-  createApiAuthClient,
-  fetchSession,
-  resolveResponseData,
-} from '../utils/auth-client.js';
-import { NotLoggedInError } from '../utils/errors.js';
+import { createApiClient } from '../utils/api-client.js';
+import { createApiAuthClient, fetchSession } from '../utils/auth-client.js';
 import { defineCommandOptions } from '../utils/global-options.js';
 import { printJson } from '../utils/output.js';
+import { fetchOrganizations } from '../utils/resource-resolution.js';
 import { readToken } from '../utils/token-store.js';
-
-interface Organization {
-  id: string;
-  name: string;
-  role: string;
-}
 
 export default defineCommand({
   action: async options => {
-    const token = readToken();
-    if (token === undefined) {
-      throw new NotLoggedInError();
-    }
-    const authClient = createApiAuthClient(token);
-    const { user } = await fetchSession(authClient);
-    const organizations = await fetchOrganizations(authClient);
+    const hotCodePush = createApiClient();
+    const { user } = await fetchSession(createApiAuthClient(readToken()));
+    const organizations = (await fetchOrganizations(hotCodePush)).map(
+      ({ id, name, role }) => ({ id, name, role }),
+    );
     if (options.json) {
       printJson({
         organizations,
@@ -46,24 +34,3 @@ export default defineCommand({
   examples: ['hotcodepush whoami', 'hotcodepush whoami --json'],
   options: defineCommandOptions({}),
 });
-
-/**
- * The organization plugin lists the organizations without the caller's role, so each role is one more request.
- */
-async function fetchOrganizations(
-  authClient: AuthClient,
-): Promise<Organization[]> {
-  const organizations = resolveResponseData(
-    await authClient.organization.list(),
-  );
-  return Promise.all(
-    organizations.map(async ({ id, name }) => {
-      const { role } = resolveResponseData(
-        await authClient.organization.getActiveMemberRole({
-          query: { organizationId: id },
-        }),
-      );
-      return { id, name, role };
-    }),
-  );
-}
