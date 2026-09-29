@@ -1,25 +1,30 @@
+import type { HotCodePush } from '@hotcodepush/node';
 import { z } from 'zod';
 import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
+import type { InteractivityOptions } from '../../utils/environment.js';
+import { isInteractive } from '../../utils/environment.js';
 import { MissingParameterError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printDetails, printJson } from '../../utils/output.js';
+import { fetchAllPages } from '../../utils/pagination.js';
 import { readProjectConfig } from '../../utils/project-config.js';
+import { promptSelect } from '../../utils/prompts.js';
 import { fetchAppId } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
   action: async options => {
-    if (options.embeddedBundle === undefined) {
-      throw new MissingParameterError('--embedded-bundle');
-    }
     const hotCodePush = createApiClient();
+    const appId = await fetchAppId(
+      hotCodePush,
+      options,
+      readProjectConfig(options.config),
+    );
     const fetchedEmbeddedBundle = await hotCodePush.apps.embeddedBundles.get({
-      appId: await fetchAppId(
-        hotCodePush,
-        options,
-        readProjectConfig(options.config),
-      ),
-      embeddedBundleId: options.embeddedBundle,
+      appId,
+      embeddedBundleId:
+        options.embeddedBundle ??
+        (await promptEmbeddedBundleId(hotCodePush, appId, options)),
       relations: ['bundle'],
     });
     if (options.json) {
@@ -53,3 +58,28 @@ export default defineCommand({
       .describe('The embedded bundle, by id.'),
   }),
 });
+
+/**
+ * The store build picked from the app's embedded bundles when interactive; otherwise the flag is missing.
+ */
+async function promptEmbeddedBundleId(
+  hotCodePush: HotCodePush,
+  appId: string,
+  options: InteractivityOptions,
+): Promise<string> {
+  if (!isInteractive(options)) {
+    throw new MissingParameterError('--embedded-bundle');
+  }
+  const embeddedBundles = await fetchAllPages(page =>
+    hotCodePush.apps.embeddedBundles.list({ appId, ...page }),
+  );
+  return promptSelect(
+    '--embedded-bundle',
+    'Which store build?',
+    embeddedBundles.map(({ binaryBuild, binaryVersion, id, platform }) => ({
+      label: `${platform} ${binaryVersion} (${binaryBuild})`,
+      value: id,
+    })),
+    options,
+  );
+}
