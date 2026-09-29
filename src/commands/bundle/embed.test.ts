@@ -169,6 +169,23 @@ describe('bundle embed', () => {
     ]);
   });
 
+  it('should do nothing when the hook runs for the web platform', async () => {
+    vi.stubEnv('CAPACITOR_PLATFORM_NAME', 'web');
+
+    await bundleEmbedCommand.action(
+      { config: join(projectDirectoryPath, 'hotcodepush.json') },
+      undefined,
+    );
+
+    expect(harness.requests).toEqual([]);
+    expect(harness.readLines()).toEqual([]);
+    expect(
+      existsSync(
+        join(projectDirectoryPath, 'ios', 'App', 'App', 'hotcodepush.json'),
+      ),
+    ).toBe(false);
+  });
+
   it('should take the platform from CAPACITOR_PLATFORM_NAME and the identity from the Gradle file, printing JSON', async () => {
     vi.stubEnv('CAPACITOR_PLATFORM_NAME', 'android');
     harness.routes[`POST ${EMBEDDED_BUNDLES_PATH}`] = () =>

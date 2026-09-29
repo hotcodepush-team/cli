@@ -53,6 +53,9 @@ export default defineCommand({
       options.config,
     );
     const completeProjectConfig = assertProjectConfig(projectConfig);
+    if (options.platform === undefined && isWebHookRun()) {
+      return;
+    }
     const platform =
       options.platform ?? (await resolvePlatformFromEnvironment(options));
     const nativeProjectPath =
@@ -289,6 +292,18 @@ function resolveBinaryIdentity(
     binaryBuild: options.binaryBuild ?? readIdentity.binaryBuild,
     binaryVersion: options.binaryVersion ?? readIdentity.binaryVersion,
   };
+}
+
+/**
+ * Capacitor runs the copy hook for `web` too, where no native project takes a resource file: nothing to do, and no failure.
+ */
+function isWebHookRun(): boolean {
+  const platformName = process.env.CAPACITOR_PLATFORM_NAME;
+  return (
+    platformName !== undefined &&
+    platformName !== '' &&
+    !PLATFORMS.includes(platformName as Platform)
+  );
 }
 
 /**
