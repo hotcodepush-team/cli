@@ -4,10 +4,10 @@ The HotCodePush CLI: set up, release and manage live updates for Capacitor, Cord
 
 ## Installation
 
-The CLI is not on npm yet; install it from GitHub as a dev dependency:
+The CLI is not on npm yet; install the preview build of a commit on `main` as a dev dependency, `<sha>` being the commit's short hash:
 
 ```sh
-npm install --save-dev github:hotcodepush-team/cli#dist
+npm install --save-dev https://pkg.pr.new/hotcodepush-team/cli/hotcodepush@<sha>
 ```
 
 ## Usage

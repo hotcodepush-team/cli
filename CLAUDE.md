@@ -17,11 +17,11 @@ src/
   utils/       the runner, command resolution and did-you-mean, the E_ catalog and its one mapping,
                the global options, environment detection, config.json, the token store
   config/      consts: the API URL, the config file, the docs and issues URLs, the keyring entry
-dist/          the build output, committed only on the dist branch
+dist/          the build output, never committed
 ```
 
 Tests live beside the code they test, `*.test.ts` next to the file.
-There is no `services/` and no `types/`: `@hotcodepush/node` is the API layer and the type source, and it joins as a git dependency once its repo is public.
+There is no `services/` and no `types/`: `@hotcodepush/node` is the API layer and the type source, and it joins as a pkg.pr.new dependency once its repo publishes a preview build.
 
 ## Commands
 
@@ -35,9 +35,8 @@ There is no `services/` and no `types/`: `@hotcodepush/node` is the API layer an
 
 Run `npm run fmt` before every commit; lint, typecheck, test and build must pass, as `ci.yml` checks on every push and pull request.
 `node dist/index.js --help` runs the build locally.
-Every push to `main` appends a commit to the `dist` branch holding `main`'s tree plus `dist/`, and consumers install that branch: `npm install --save-dev github:hotcodepush-team/cli#dist`.
-The `dist` branch only ever grows; nobody commits to it by hand or force-pushes it.
-No releases yet: the version stays `0.0.0`, and release-please, npm provenance and pkg.pr.new arrive with the publish decision.
+`ci.yml`'s `preview` job publishes every push to `main` and every pull request to pkg.pr.new, and consumers pin one build by its short commit hash: `npm install --save-dev https://pkg.pr.new/hotcodepush-team/cli/hotcodepush@<sha>`.
+No releases yet: the version stays `0.0.0`, and release-please and npm provenance arrive with the publish decision.
 
 ## Adding a command
 

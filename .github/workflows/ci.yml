@@ -23,3 +23,17 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+
+  preview:
+    name: Publish a preview to pkg.pr.new
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm exec -- pkg-pr-new publish --commentWithSha
