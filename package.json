@@ -1,0 +1,60 @@
+{
+  "name": "hotcodepush",
+  "description": "The HotCodePush CLI: set up, release and manage live updates from the terminal and CI",
+  "version": "0.0.0",
+  "private": false,
+  "license": "MIT",
+  "homepage": "https://hotcodepush.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hotcodepush-team/cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hotcodepush-team/cli/issues"
+  },
+  "keywords": [
+    "capacitor",
+    "cli",
+    "cordova",
+    "expo",
+    "hotcodepush",
+    "live-updates",
+    "ota-updates",
+    "react-native"
+  ],
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "bin": {
+    "hotcodepush": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc --project tsconfig.build.json",
+    "fmt": "prettier --write .",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit --project tsconfig.json"
+  },
+  "dependencies": {
+    "@hotcodepush/protocol": "github:hotcodepush-team/protocol-js#dist",
+    "@napi-rs/keyring": "2.1.0",
+    "rc9": "3.1.0",
+    "zod": "4.6.5",
+    "zodline": "0.3.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "24.19.0",
+    "eslint": "10.11.0",
+    "eslint-import-resolver-typescript": "4.4.5",
+    "eslint-plugin-import-x": "4.17.1",
+    "prettier": "3.9.8",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.70.0",
+    "vitest": "5.0.1"
+  }
+}
