@@ -1,4 +1,4 @@
-interface InteractivityOptions {
+export interface InteractivityOptions {
   json?: boolean;
   yes?: boolean;
 }

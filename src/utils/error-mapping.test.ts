@@ -1,3 +1,4 @@
+import { HotCodePushError } from '@hotcodepush/node';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { ZodlineError } from 'zodline';
@@ -75,6 +76,25 @@ describe('error mapping', () => {
       const error = new MissingParameterError('--channel');
 
       expect(resolveCliError(error)).toBe(error);
+    });
+
+    it("should pass the typed client's error through as the API answered it", () => {
+      const cliError = resolveCliError(
+        new HotCodePushError(
+          {
+            code: 'E_UNAUTHENTICATED',
+            message: 'The bearer token is missing, invalid or expired.',
+          },
+          401,
+        ),
+      );
+
+      expect(cliError).toBeInstanceOf(ApiError);
+      expect(cliError.code).toBe('E_UNAUTHENTICATED');
+      expect(cliError.message).toBe(
+        'The bearer token is missing, invalid or expired.',
+      );
+      expect(cliError.exitCode).toBe(3);
     });
 
     it('should map a zod validation error to E_INVALID_PARAMETER naming the flag', () => {

@@ -1,4 +1,5 @@
 import { inspect, stripVTControlCharacters, styleText } from 'node:util';
+import { HotCodePushError } from '@hotcodepush/node';
 import { ZodError } from 'zod';
 import { ZodlineError } from 'zodline';
 import { ERRORS_DOCS_URL } from '../config/consts.js';
@@ -104,12 +105,15 @@ export function resolveApiError({
 }
 
 /**
- * Maps anything a command line can throw to the CLI's catalog: its own errors as they are,
- * zod and zodline's parameter errors to `E_INVALID_PARAMETER`, everything else to `E_UNEXPECTED`.
+ * Maps anything a command line can throw to the CLI's catalog: its own errors as they are, the typed client's
+ * as the API answered them, zod and zodline's parameter errors to `E_INVALID_PARAMETER`, everything else to `E_UNEXPECTED`.
  */
 export function resolveCliError(error: unknown): CliError {
   if (error instanceof CliError) {
     return error;
+  }
+  if (error instanceof HotCodePushError) {
+    return new ApiError(error.code, error.message, error.status);
   }
   if (error instanceof ZodError) {
     return new InvalidParameterError(resolveZodErrorMessage(error), error);

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { CliError } from './errors.js';
 import {
+  AmbiguousNameError,
   ApiError,
   ConfirmationRequiredError,
   InvalidParameterError,
@@ -11,10 +12,12 @@ import {
   NotLoggedInError,
   UnexpectedError,
   UnknownCommandError,
+  UnknownNameError,
 } from './errors.js';
 
 describe('errors', () => {
   it.each<[CliError, string, number]>([
+    [new AmbiguousNameError('organization', 'Acme'), 'E_INVALID_PARAMETER', 2],
     [
       new ApiError('E_FORBIDDEN', 'Your role is too low.', 403),
       'E_FORBIDDEN',
@@ -46,6 +49,7 @@ describe('errors', () => {
       'E_UNKNOWN_COMMAND',
       1,
     ],
+    [new UnknownNameError('channel', 'staging'), 'E_INVALID_PARAMETER', 2],
   ])('should carry the code and exit code of %o', (error, code, exitCode) => {
     expect(error.code).toBe(code);
     expect(error.exitCode).toBe(exitCode);
@@ -91,6 +95,24 @@ describe('errors', () => {
     const error = new UnknownCommandError('deploy', undefined);
 
     expect(error.fix).toBe('run "hotcodepush --help" to list the commands.');
+  });
+
+  it('should name the flag and the list command when no resource carries a name', () => {
+    const error = new UnknownNameError('channel', 'staging');
+
+    expect(error.message).toBe('--channel: no channel is named "staging"');
+    expect(error.fix).toBe('run "hotcodepush channel list" to see the names.');
+  });
+
+  it('should ask for the id when several resources carry a name', () => {
+    const error = new AmbiguousNameError('organization', 'Acme');
+
+    expect(error.message).toBe(
+      '--organization: several organizations are named "Acme"',
+    );
+    expect(error.fix).toBe(
+      'pass the id instead, as "hotcodepush organization list" prints it.',
+    );
   });
 
   it('should keep the cause of an unexpected error', () => {
