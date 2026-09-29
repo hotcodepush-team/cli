@@ -114,16 +114,21 @@ describe('bundle embed', () => {
       }
       return Response.json(EMBEDDED_BUNDLE, { status: 201 });
     };
-    harness.routes[`PUT /v1/apps/${DEMO_APP.id}/files/${INDEX_SHA256}`] = () =>
-      Response.json(
-        {
-          appId: DEMO_APP.id,
-          createdAt: EMBEDDED_BUNDLE.createdAt,
-          sha256: INDEX_SHA256,
-          sizeBytes: 31,
-        },
-        { status: 201 },
-      );
+    let uploadedByteCount = 0;
+    harness.routes[`PUT /v1/apps/${DEMO_APP.id}/files/${INDEX_SHA256}`] =
+      async request => {
+        // the gzip stream differs by platform, so the count printed is read back from the upload
+        uploadedByteCount = (await request.arrayBuffer()).byteLength;
+        return Response.json(
+          {
+            appId: DEMO_APP.id,
+            createdAt: EMBEDDED_BUNDLE.createdAt,
+            sha256: INDEX_SHA256,
+            sizeBytes: 31,
+          },
+          { status: 201 },
+        );
+      };
 
     await bundleEmbedCommand.action(
       {
@@ -160,7 +165,7 @@ describe('bundle embed', () => {
     });
     expect(harness.readLines()).toEqual([
       `Wrote ${join(projectDirectoryPath, 'ios', 'App', 'App', 'hotcodepush.json')} for ios.`,
-      'Registered the embedded bundle of ios 1.0 (1): 1 files uploaded, 29 B.',
+      `Registered the embedded bundle of ios 1.0 (1): 1 files uploaded, ${uploadedByteCount} B.`,
     ]);
   });
 

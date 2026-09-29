@@ -9,7 +9,10 @@ import { writeUserConfig } from '../utils/user-config.js';
  * What the fake API answers per route, keyed by method and path, `GET /v1/organizations`,
  * or with the query where it matters, `GET /v1/organizations?limit=2`; any other request is the API's 404.
  */
-export type Routes = Record<string, (request: Request) => Response>;
+export type Routes = Record<
+  string,
+  (request: Request) => Promise<Response> | Response
+>;
 
 export interface CommandHarness {
   readJson: () => unknown;
@@ -94,7 +97,10 @@ export function useCommandHarness(): CommandHarness {
   return harness;
 }
 
-function respondFromRoutes(routes: Routes, request: Request): Response {
+function respondFromRoutes(
+  routes: Routes,
+  request: Request,
+): Promise<Response> | Response {
   const url = new URL(request.url);
   const respond =
     routes[`${request.method} ${url.pathname}${url.search}`] ??
