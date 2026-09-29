@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { join, relative, resolve } from 'node:path';
 import type { App, HotCodePush, Organization } from '@hotcodepush/node';
 import { z } from 'zod';
 import { defineCommand } from 'zodline';
@@ -80,10 +80,20 @@ interface InitOptions extends InteractivityOptions {
 }
 
 /**
+ * The native projects the hook step wires and the reason it cannot when neither was found or named.
+ */
+interface NativeProjects {
+  android: string;
+  ios: string;
+  missingError: MissingParameterError | undefined;
+}
+
+/**
  * What the run knows about the project once the app is settled: the files the remaining steps edit.
  */
 interface ProjectFiles {
   directoryPath: string;
+  nativeProjects: NativeProjects;
   packageJson: PackageJson;
   projectConfig: ProjectConfig | undefined;
   xcodeProjectFilePath: string | undefined;
@@ -129,7 +139,7 @@ export default defineCommand({
         ),
       { dependsOn: ['organization'] },
     );
-    const projectFiles = resolveProjectFiles(
+    const projectFiles = await resolveProjectFiles(
       directoryPath,
       projectConfig,
       options,
@@ -339,20 +349,61 @@ async function resolveApp(
   );
 }
 
-function resolveProjectFiles(
+async function resolveProjectFiles(
   directoryPath: string,
   projectConfig: ProjectConfig | undefined,
   options: InitOptions,
-): ProjectFiles {
-  const iosProjectPath =
-    options.iosPath === undefined
-      ? resolveNativeProjectPaths(directoryPath).ios
-      : join(directoryPath, options.iosPath);
+): Promise<ProjectFiles> {
+  const nativeProjects = await resolveNativeProjects(directoryPath, options);
   return {
     directoryPath,
+    nativeProjects,
     packageJson: readPackageJson(directoryPath),
     projectConfig,
-    xcodeProjectFilePath: resolveXcodeProjectFilePath(iosProjectPath),
+    xcodeProjectFilePath: resolveXcodeProjectFilePath(nativeProjects.ios),
+  };
+}
+
+/**
+ * `--ios-path` and `--android-path`, typed against the working directory, over `capacitor.config`'s paths and `ios/`, `android/`;
+ * neither found is asked for, and non-interactively the hook step's stop.
+ */
+async function resolveNativeProjects(
+  directoryPath: string,
+  options: InitOptions,
+): Promise<NativeProjects> {
+  const defaultPaths = resolveNativeProjectPaths(directoryPath);
+  const android =
+    options.androidPath === undefined
+      ? defaultPaths.android
+      : resolve(options.androidPath);
+  const ios =
+    options.iosPath === undefined ? defaultPaths.ios : resolve(options.iosPath);
+  if (existsSync(android) || existsSync(ios)) {
+    return { android, ios, missingError: undefined };
+  }
+  if (!isInteractive(options)) {
+    return {
+      android,
+      ios,
+      missingError: new MissingParameterError(
+        '--ios-path',
+        `run "npx cap add ios" and "npx cap add android", or pass --ios-path and --android-path; neither ${relative(directoryPath, ios)} nor ${relative(directoryPath, android)} exists.`,
+      ),
+    };
+  }
+  return {
+    android: resolve(
+      await promptText(
+        '--android-path',
+        'Where is the Android project?',
+        options,
+      ),
+    ),
+    ios: resolve(
+      await promptText('--ios-path', 'Where is the iOS project?', options),
+    ),
+    missingError: undefined,
   };
 }
 
@@ -495,10 +546,13 @@ function writeConfiguration(
  * The embed command in the `capacitor:copy:after` script and the resource reference in the iOS project, each left alone when present.
  */
 async function wireHook(
-  { directoryPath, xcodeProjectFilePath }: ProjectFiles,
+  { directoryPath, nativeProjects, xcodeProjectFilePath }: ProjectFiles,
   editBlocker: ConfirmationRequiredError | undefined,
   options: InitOptions,
 ): Promise<StepOutcome<undefined>> {
+  if (nativeProjects.missingError !== undefined) {
+    throw nativeProjects.missingError;
+  }
   const isHookWired =
     resolveEmbedHookState(readPackageJson(directoryPath)) === 'wired';
   const isReferencePresent =

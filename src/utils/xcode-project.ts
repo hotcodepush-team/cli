@@ -3,7 +3,11 @@ import { join } from 'node:path';
 import type { PBXFile, PBXNativeTarget, XcodeProject } from 'xcode';
 import { project as parseXcodeProject } from 'xcode';
 import type { InteractivityOptions } from './environment.js';
-import { MissingParameterError, XcodeProjectError } from './errors.js';
+import {
+  InvalidParameterError,
+  MissingParameterError,
+  XcodeProjectError,
+} from './errors.js';
 import { promptSelect } from './prompts.js';
 
 interface AppTarget {
@@ -111,18 +115,21 @@ async function resolveAppTarget(
   options: XcodeTargetOptions,
 ): Promise<AppTarget> {
   const appTargets = resolveAppTargets(project);
-  const [onlyTarget] = appTargets;
-  if (onlyTarget !== undefined && appTargets.length === 1) {
-    return onlyTarget;
-  }
   if (options.xcodeTarget !== undefined) {
     const namedTarget = appTargets.find(
       ({ name }) => name === options.xcodeTarget,
     );
     if (namedTarget === undefined) {
-      throw new MissingParameterError('--xcode-target');
+      throw new InvalidParameterError(
+        `--xcode-target: no app target is named ${options.xcodeTarget}; the targets are ${appTargets.map(({ name }) => name).join(', ')}`,
+        undefined,
+      );
     }
     return namedTarget;
+  }
+  const [onlyTarget] = appTargets;
+  if (onlyTarget !== undefined && appTargets.length === 1) {
+    return onlyTarget;
   }
   const targetKey = await promptSelect(
     '--xcode-target',

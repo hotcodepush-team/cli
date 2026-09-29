@@ -64,6 +64,16 @@ describe('xcode-project', () => {
     );
   });
 
+  it('should refuse an --xcode-target that names no app target, listing the targets', async () => {
+    await expect(
+      addResourceReference(projectFilePath, { xcodeTarget: 'Widget' }),
+    ).rejects.toMatchObject({
+      code: 'E_INVALID_PARAMETER',
+      message:
+        '--xcode-target: no app target is named Widget; the targets are App',
+    });
+  });
+
   it('should answer E_XCODE_PROJECT with the manual step when the project cannot be parsed', () => {
     writeFileSync(projectFilePath, 'not a project');
 

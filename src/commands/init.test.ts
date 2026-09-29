@@ -1,4 +1,4 @@
-import { existsSync, rmSync } from 'node:fs';
+import { existsSync, renameSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { confirm, select } from '@clack/prompts';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -450,6 +450,67 @@ describe('init', () => {
       '✓ organization   used organization Acme',
       '✓ app            used app Demo',
     ]);
+  });
+
+  it('should take the native projects from --ios-path and --android-path, typed against the working directory', async () => {
+    const directoryPath = writeProject({ isPackageInstalled: true });
+    renameSync(join(directoryPath, 'ios'), join(directoryPath, 'native-ios'));
+    renameSync(
+      join(directoryPath, 'android'),
+      join(directoryPath, 'native-android'),
+    );
+    respondWithSession([ACME_ORGANIZATION]);
+    harness.routes[`GET ${APPS_PATH}`] = () => Response.json([DEMO_APP]);
+
+    await initCommand.action(
+      {
+        androidPath: 'native-android',
+        iosPath: 'native-ios',
+        json: true,
+        yes: true,
+        ...withCwd(directoryPath),
+      },
+      undefined,
+    );
+
+    const result = harness.readJson() as InitResult;
+    expect(result.status).toBe('complete');
+    expect(
+      hasResourceReference(
+        join(
+          directoryPath,
+          'native-ios',
+          'App',
+          'App.xcodeproj',
+          'project.pbxproj',
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  it('should stop the hook with the manual step when neither native project exists and nobody can be asked', async () => {
+    const directoryPath = writeProject({ isPackageInstalled: true });
+    rmSync(join(directoryPath, 'ios'), { force: true, recursive: true });
+    rmSync(join(directoryPath, 'android'), { force: true, recursive: true });
+    respondWithSession([ACME_ORGANIZATION]);
+    harness.routes[`GET ${APPS_PATH}`] = () => Response.json([DEMO_APP]);
+
+    await expect(
+      initCommand.action(
+        { json: true, yes: true, ...withCwd(directoryPath) },
+        undefined,
+      ),
+    ).rejects.toBeInstanceOf(ReportedFailureError);
+
+    const result = harness.readJson() as InitResult;
+    expect(result.steps.find(({ step }) => step === 'hook')).toEqual({
+      code: 'E_MISSING_PARAMETER',
+      manualStep:
+        'run "npx cap add ios" and "npx cap add android", or pass --ios-path and --android-path; neither ios nor android exists.',
+      message: '--ios-path is missing',
+      status: 'stopped',
+      step: 'hook',
+    });
   });
 
   it('should refuse a project without a supported framework before any step', async () => {
