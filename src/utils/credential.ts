@@ -1,54 +1,32 @@
 import { HotCodePushError } from '@hotcodepush/node';
+import type { User } from '@hotcodepush/node';
 import { createApiClient } from './api-client.js';
-import { createApiAuthClient, fetchSession } from './auth-client.js';
-import { NotLoggedInError } from './errors.js';
-import { readToken } from './token-store.js';
-
-/**
- * What the CLI acts with, as the API confirmed it: a session names its user, an API token only itself.
- */
-export interface Credential {
-  description: string;
-  kind: 'session' | 'token';
-}
 
 const UNAUTHENTICATED_STATUS = 401;
 
 /**
- * The credential checked against the API: the session of the stored token, or `HOTCODEPUSH_TOKEN`, an API token
- * no session answers for, validated through a request every credential can make. Neither is not logged in.
+ * The user behind the credential as `GET /v1/users/me` answers it, `credential` telling a session from an API token;
+ * a bearer the API refuses is its own E_UNAUTHENTICATED, passed through as every API error is.
  */
-export async function fetchCredential(): Promise<Credential> {
-  const token = readToken();
-  if (token === undefined) {
-    throw new NotLoggedInError();
-  }
-  try {
-    const { user } = await fetchSession(createApiAuthClient(token));
-    return {
-      description: `logged in as ${user.name} (${user.email})`,
-      kind: 'session',
-    };
-  } catch (error) {
-    if (!(error instanceof NotLoggedInError)) {
-      throw error;
-    }
-  }
-  try {
-    await createApiClient().organizations.list({ limit: 1 });
-  } catch (error) {
-    if (
-      error instanceof HotCodePushError &&
-      error.status === UNAUTHENTICATED_STATUS
-    ) {
-      throw new NotLoggedInError();
-    }
-    throw error;
-  }
-  return {
-    description: process.env.HOTCODEPUSH_TOKEN
-      ? 'authenticated with HOTCODEPUSH_TOKEN'
-      : 'authenticated with an API token',
-    kind: 'token',
-  };
+export async function fetchCurrentUser(): Promise<User> {
+  return createApiClient().users.get({ userId: 'me' });
+}
+
+/**
+ * Whether the API refused the bearer, the case a command treats as not logged in rather than as a failure.
+ */
+export function isUnauthenticatedError(error: unknown): boolean {
+  return (
+    error instanceof HotCodePushError && error.status === UNAUTHENTICATED_STATUS
+  );
+}
+
+/**
+ * The credential in one sentence: `logged in as Anna (anna@example.com)`, or the token variable when that is what authenticates.
+ */
+export function resolveCredentialText(user: User): string {
+  const who = `${user.name} (${user.email})`;
+  return user.credential === 'token'
+    ? `authenticated with HOTCODEPUSH_TOKEN as ${who}`
+    : `logged in as ${who}`;
 }

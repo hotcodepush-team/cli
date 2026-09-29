@@ -10,7 +10,11 @@ import {
   PROJECT_CONFIG_FILE_NAME,
 } from '../config/consts.js';
 import { createApiClient } from '../utils/api-client.js';
-import { fetchCredential } from '../utils/credential.js';
+import {
+  fetchCurrentUser,
+  isUnauthenticatedError,
+  resolveCredentialText,
+} from '../utils/credential.js';
 import type { PackageJson } from '../utils/embed-hook.js';
 import { readPackageJson, resolveEmbedHookState } from '../utils/embed-hook.js';
 import { NotLoggedInError, ReportedFailureError } from '../utils/errors.js';
@@ -162,15 +166,17 @@ async function checkSessionAndApp({
     ];
   }
   try {
-    const credential = await fetchCredential();
     const sessionCheck: DoctorCheck = {
       check: 'session',
-      message: credential.description,
+      message: resolveCredentialText(await fetchCurrentUser()),
       status: 'ok',
     };
     return [sessionCheck, await checkApp(projectConfig)];
   } catch (error) {
-    if (!(error instanceof NotLoggedInError)) {
+    if (
+      !isUnauthenticatedError(error) &&
+      !(error instanceof NotLoggedInError)
+    ) {
       throw error;
     }
     return [

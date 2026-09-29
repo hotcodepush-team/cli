@@ -4,10 +4,14 @@ import {
   respondWithApiError,
   useCommandHarness,
 } from '../testing/command-harness.js';
-import { ACME_ORGANIZATION, GLOBEX_ORGANIZATION } from '../testing/fixtures.js';
+import {
+  ACME_ORGANIZATION,
+  GLOBEX_ORGANIZATION,
+  RUNNER_USER,
+} from '../testing/fixtures.js';
 import { runCli } from '../utils/cli.js';
 import { NotLoggedInError } from '../utils/errors.js';
-import whoamiCommand, { fetchUser } from './whoami.js';
+import whoamiCommand from './whoami.js';
 
 vi.mock('@napi-rs/keyring', () => ({
   Entry: vi.fn(function () {
@@ -19,15 +23,7 @@ describe('whoami', () => {
   const harness = useCommandHarness();
 
   function respondWithSessionAndOrganizations(organizations: object[]): void {
-    harness.routes['GET /v1/auth/get-session'] = () =>
-      Response.json({
-        session: { id: 'session-1', userId: 'user-1' },
-        user: {
-          email: 'anna@example.com',
-          id: 'user-1',
-          name: 'Anna Example',
-        },
-      });
+    harness.routes['GET /v1/users/me'] = () => Response.json(RUNNER_USER);
     harness.routes['GET /v1/organizations?limit=100&offset=0'] = () =>
       Response.json(organizations);
   }
@@ -64,9 +60,21 @@ describe('whoami', () => {
         { id: ACME_ORGANIZATION.id, name: 'Acme', role: 'owner' },
         { id: GLOBEX_ORGANIZATION.id, name: 'Globex', role: 'admin' },
       ],
-      user: { email: 'anna@example.com', id: 'user-1', name: 'Anna Example' },
+      user: RUNNER_USER,
     });
     expect(harness.readLines()).toEqual([]);
+  });
+
+  it('should print the user HOTCODEPUSH_TOKEN stands for, as the API names the credential', async () => {
+    respondWithSessionAndOrganizations([ACME_ORGANIZATION]);
+    harness.routes['GET /v1/users/me'] = () =>
+      Response.json({ ...RUNNER_USER, credential: 'token' });
+
+    await whoamiCommand.action({}, undefined);
+
+    expect(harness.readLines()[0]).toBe(
+      'Authenticated with HOTCODEPUSH_TOKEN as Anna Example (anna@example.com).',
+    );
   });
 
   it('should say so when the user belongs to no organization', async () => {
@@ -91,7 +99,7 @@ describe('whoami', () => {
       .spyOn(process.stderr, 'write')
       .mockImplementation(() => true);
     respondWithSessionAndOrganizations([]);
-    harness.routes['GET /v1/auth/get-session'] = () =>
+    harness.routes['GET /v1/users/me'] = () =>
       respondWithApiError(
         401,
         'E_UNAUTHENTICATED',
@@ -108,15 +116,5 @@ describe('whoami', () => {
     expect(stderrWrite).toHaveBeenCalledWith(
       'E_UNAUTHENTICATED The bearer token is missing, invalid or expired; sign in again or create a new token. https://hotcodepush.com/docs/cli/errors#E_UNAUTHENTICATED\n',
     );
-  });
-
-  it('should read the user from the client once it carries users.get, the route an API token needs', async () => {
-    const user = { email: 'anna@example.com', id: 'user-1', name: 'Anna' };
-    const users = { get: vi.fn().mockResolvedValue(user) };
-
-    expect(await fetchUser({ users } as never)).toEqual(user);
-
-    expect(users.get).toHaveBeenCalledWith('me');
-    expect(harness.requests).toEqual([]);
   });
 });

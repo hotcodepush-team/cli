@@ -3,7 +3,11 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { writeCapacitorProject } from '../testing/capacitor-project.js';
 import { useCommandHarness } from '../testing/command-harness.js';
-import { DEMO_APP, PRODUCTION_CHANNEL } from '../testing/fixtures.js';
+import {
+  DEMO_APP,
+  PRODUCTION_CHANNEL,
+  RUNNER_USER,
+} from '../testing/fixtures.js';
 import { ReportedFailureError } from '../utils/errors.js';
 import { addResourceReference } from '../utils/xcode-project.js';
 import doctorCommand from './doctor.js';
@@ -94,11 +98,7 @@ describe('doctor', () => {
   }
 
   function respondWithSessionAndApp(): void {
-    harness.routes['GET /v1/auth/get-session'] = () =>
-      Response.json({
-        session: { id: 'session-1', userId: 'user-1' },
-        user: { email: 'anna@example.com', id: 'user-1', name: 'Anna Example' },
-      });
+    harness.routes['GET /v1/users/me'] = () => Response.json(RUNNER_USER);
     harness.routes[`GET /v1/apps/${DEMO_APP.id}`] = () =>
       Response.json(DEMO_APP);
     harness.routes[
@@ -198,8 +198,8 @@ describe('doctor', () => {
   it('should accept HOTCODEPUSH_TOKEN as an API token, the credential CI and agents hold', async () => {
     const directoryPath = await writeSetUpProject();
     respondWithSessionAndApp();
-    harness.routes['GET /v1/auth/get-session'] = () => Response.json(null);
-    harness.routes['GET /v1/organizations'] = () => Response.json([]);
+    harness.routes['GET /v1/users/me'] = () =>
+      Response.json({ ...RUNNER_USER, credential: 'token' });
 
     await doctorCommand.action(
       { config: join(directoryPath, 'hotcodepush.json'), json: true },
@@ -211,7 +211,8 @@ describe('doctor', () => {
     expect(result.checks.slice(1, 3)).toEqual([
       {
         check: 'session',
-        message: 'authenticated with HOTCODEPUSH_TOKEN',
+        message:
+          'authenticated with HOTCODEPUSH_TOKEN as Anna Example (anna@example.com)',
         status: 'ok',
       },
       { check: 'app', message: 'app Demo, channel production', status: 'ok' },

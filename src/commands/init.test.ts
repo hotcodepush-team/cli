@@ -15,6 +15,7 @@ import {
   DEMO_APP,
   GLOBEX_ORGANIZATION,
   PRODUCTION_CHANNEL,
+  RUNNER_USER,
 } from '../testing/fixtures.js';
 import {
   ReportedFailureError,
@@ -77,11 +78,7 @@ describe('init', () => {
   }
 
   function respondWithSession(organizations: object[]): void {
-    harness.routes['GET /v1/auth/get-session'] = () =>
-      Response.json({
-        session: { id: 'session-1', userId: 'user-1' },
-        user: { email: 'anna@example.com', id: 'user-1', name: 'Anna Example' },
-      });
+    harness.routes['GET /v1/users/me'] = () => Response.json(RUNNER_USER);
     harness.routes['GET /v1/organizations'] = () =>
       Response.json(organizations);
   }
@@ -268,9 +265,8 @@ describe('init', () => {
       },
     });
     rmSync(join(directoryPath, 'ios'), { force: true, recursive: true });
-    harness.routes['GET /v1/auth/get-session'] = () => Response.json(null);
-    harness.routes['GET /v1/organizations'] = () =>
-      Response.json([ACME_ORGANIZATION]);
+    harness.routes['GET /v1/users/me'] = () =>
+      Response.json({ ...RUNNER_USER, credential: 'token' });
     respondWithConfiguredApp();
 
     await initCommand.action(
@@ -285,7 +281,8 @@ describe('init', () => {
     const result = harness.readJson() as InitResult;
     expect(result.status).toBe('complete');
     expect(result.steps[0]).toEqual({
-      message: 'authenticated with HOTCODEPUSH_TOKEN',
+      message:
+        'authenticated with HOTCODEPUSH_TOKEN as Anna Example (anna@example.com)',
       status: 'skipped',
       step: 'sign-in',
     });

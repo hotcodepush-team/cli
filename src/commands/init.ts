@@ -11,7 +11,11 @@ import {
   PROJECT_CONFIG_FILE_NAME,
 } from '../config/consts.js';
 import { createApiClient } from '../utils/api-client.js';
-import { fetchCredential } from '../utils/credential.js';
+import {
+  fetchCurrentUser,
+  isUnauthenticatedError,
+  resolveCredentialText,
+} from '../utils/credential.js';
 import type { PackageJson } from '../utils/embed-hook.js';
 import {
   readPackageJson,
@@ -220,14 +224,16 @@ export default defineCommand({
 async function signIn(options: InitOptions): Promise<StepOutcome<HotCodePush>> {
   if (readToken() !== undefined) {
     try {
-      const credential = await fetchCredential();
       return {
-        message: credential.description,
+        message: resolveCredentialText(await fetchCurrentUser()),
         status: 'skipped',
         value: createApiClient(),
       };
     } catch (error) {
-      if (!(error instanceof NotLoggedInError)) {
+      if (
+        !isUnauthenticatedError(error) &&
+        !(error instanceof NotLoggedInError)
+      ) {
         throw error;
       }
     }

@@ -6,6 +6,7 @@ import type {
   ChannelWithDeviceCounts,
   Organization,
   Release,
+  User,
 } from '@hotcodepush/node';
 
 export const ACME_ORGANIZATION: Organization = {
@@ -153,4 +154,13 @@ export const PREVIOUS_RELEASE: Release = {
   number: 42,
   purgedAt: '2026-09-06T08:00:06.000Z',
   updatedAt: '2026-09-06T08:00:06.000Z',
+};
+
+export const RUNNER_USER: User = {
+  createdAt: '2026-09-01T08:00:00.000Z',
+  credential: 'session',
+  email: 'anna@example.com',
+  emailVerified: true,
+  id: 'user-1',
+  name: 'Anna Example',
 };
