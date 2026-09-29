@@ -42,6 +42,7 @@
   "dependencies": {
     "@hotcodepush/protocol": "https://pkg.pr.new/hotcodepush-team/protocol-js/@hotcodepush/protocol@c975468",
     "@napi-rs/keyring": "2.1.0",
+    "better-auth": "1.7.6",
     "zod": "4.6.5",
     "zodline": "0.3.1"
   },
