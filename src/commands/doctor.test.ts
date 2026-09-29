@@ -8,6 +8,13 @@ import { ReportedFailureError } from '../utils/errors.js';
 import { addResourceReference } from '../utils/xcode-project.js';
 import doctorCommand from './doctor.js';
 
+// the no-session case must not find a token in the machine's keyring
+vi.mock('@napi-rs/keyring', () => ({
+  Entry: vi.fn(function () {
+    return { getPassword: () => null };
+  }),
+}));
+
 interface DoctorResult {
   checks: {
     check: string;

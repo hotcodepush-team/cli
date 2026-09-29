@@ -18,6 +18,13 @@ import {
 import { DEMO_APP, EMBEDDED_BUNDLE } from '../../testing/fixtures.js';
 import bundleEmbedCommand from './embed.js';
 
+// the not-logged-in case must not find a token in the machine's keyring
+vi.mock('@napi-rs/keyring', () => ({
+  Entry: vi.fn(function () {
+    return { getPassword: () => null };
+  }),
+}));
+
 const EMBEDDED_BUNDLES_PATH = `/v1/apps/${DEMO_APP.id}/embedded-bundles`;
 const INDEX_HTML = '<h1>v1</h1>';
 const INDEX_SHA256 = createHash('sha256').update(INDEX_HTML).digest('hex');
