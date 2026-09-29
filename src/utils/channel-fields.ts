@@ -1,5 +1,6 @@
 import type { CreateChannelOptions } from '@hotcodepush/node';
 import { z } from 'zod';
+import { booleanFlagSchema } from './boolean-flag.js';
 import { InvalidParameterError } from './errors.js';
 
 type ChannelFields = Omit<
@@ -24,14 +25,11 @@ const MILLISECONDS_PER_DURATION_UNIT = {
   h: 60 * 60 * 1000,
 } as const;
 
-// A flag without a value arrives as true and `--protected false` as a string, so both forms set the field
-const booleanFieldSchema = z.union([z.boolean(), z.stringbool()]);
-
 /**
  * The writable fields `channel create` and `channel update` share, named after the API's fields.
  */
 export const channelFieldsShape = {
-  discoverable: booleanFieldSchema
+  discoverable: booleanFlagSchema
     .optional()
     .describe(
       "Whether the app's setChannel finds the channel by its name; pass false to clear it.",
@@ -64,7 +62,7 @@ export const channelFieldsShape = {
     .number()
     .optional()
     .describe('The failure percentage at which auto-pause acts.'),
-  protected: booleanFieldSchema
+  protected: booleanFlagSchema
     .optional()
     .describe(
       'Whether only Owners and Admins change what the channel serves; pass false to clear it.',

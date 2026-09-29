@@ -17,14 +17,15 @@ src/
   utils/       the runner, command resolution and did-you-mean, the E_ catalog and its one mapping,
                the global options, environment detection, config.json, the token store,
                the auth client, the API client, hotcodepush.json and its directory, a resource by id or name,
-               a bundle by number or id, the prompts and the confirmation, the pages of a list, the channel fields,
+               a bundle by number or id, a release by number or id in its channel with the wait until it is live,
+               the released line, the prompts and the confirmation, the pages of a list, the boolean flag, the channel fields,
                the framework and the web build's directory, the files of a build hashed, their gzip copies,
                the pack writer, the git provenance, the device hosts derived from the API URL,
                the upload flow, the store build's binary identity from the native projects, the resource file,
                the progress lines, the browser opener, the JSON, tables and details output
   config/      consts: the API URL, the client id and header, the config file, the docs and issues URLs,
                the keyring entry, package.json, the project file
-  testing/     the command tests' harness, the API faked behind fetch, and their fixtures; never built
+  testing/     the command tests' harness, the API faked behind fetch, their fixtures and the release routes; never built
 dist/          the build output, never committed
 ```
 

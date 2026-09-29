@@ -31,6 +31,15 @@ const commandRegistry: CommandRegistry = {
   'organization get': () => import('./commands/organization/get.js'),
   'organization list': () => import('./commands/organization/list.js'),
   'organization update': () => import('./commands/organization/update.js'),
+  'release create': () => import('./commands/release/create.js'),
+  'release get': () => import('./commands/release/get.js'),
+  'release list': () => import('./commands/release/list.js'),
+  'release pause': () => import('./commands/release/pause.js'),
+  'release resume': () => import('./commands/release/resume.js'),
+  'release revoke': () => import('./commands/release/revoke.js'),
+  'release rollback': () => import('./commands/release/rollback.js'),
+  'release rollout': () => import('./commands/release/rollout.js'),
+  'release update': () => import('./commands/release/update.js'),
   'whoami': () => import('./commands/whoami.js'),
 };
 

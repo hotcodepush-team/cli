@@ -71,7 +71,10 @@ export function fetchBundles(
 /**
  * The bundle as a person names it: the number with its prefix and the version label, `#42 · 1.4.2`.
  */
-export function resolveBundleLabel({ bundleVersion, number }: Bundle): string {
+export function resolveBundleLabel({
+  bundleVersion,
+  number,
+}: Pick<Bundle, 'bundleVersion' | 'number'>): string {
   return `#${number} · ${bundleVersion}`;
 }
 

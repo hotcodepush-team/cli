@@ -5,6 +5,7 @@ import type {
   EmbeddedBundle,
   ChannelWithDeviceCounts,
   Organization,
+  Release,
 } from '@hotcodepush/node';
 
 export const ACME_ORGANIZATION: Organization = {
@@ -115,4 +116,41 @@ export const EMBEDDED_BUNDLE: EmbeddedBundle = {
   id: '8e7d6c5b-4a39-4281-9f0e-1d2c3b4a5968',
   platform: 'ios',
   updatedAt: '2026-09-06T08:00:00.000Z',
+};
+
+export const LIVE_RELEASE: Release = {
+  appId: DEMO_APP.id,
+  bundleId: READY_BUNDLE.id,
+  channelId: STAGING_CHANNEL.id,
+  conditions: [],
+  createdAt: '2026-09-07T08:00:00.000Z',
+  createdFromReleaseId: null,
+  deviceCount: 80,
+  failureAction: null,
+  failureMinSample: null,
+  failureThresholdPercent: null,
+  id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
+  isMandatory: false,
+  liveAt: '2026-09-07T08:00:05.000Z',
+  notes: 'cart fix',
+  number: 43,
+  pausedAt: null,
+  purgedAt: '2026-09-07T08:00:06.000Z',
+  rolledBackFromReleaseId: null,
+  rolloutPercentage: 100,
+  state: 'active',
+  updatedAt: '2026-09-07T08:00:06.000Z',
+};
+
+export const PREVIOUS_RELEASE: Release = {
+  ...LIVE_RELEASE,
+  bundleId: PREVIOUS_BUNDLE.id,
+  createdAt: '2026-09-06T08:00:00.000Z',
+  deviceCount: 20,
+  id: 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e',
+  liveAt: '2026-09-06T08:00:05.000Z',
+  notes: null,
+  number: 42,
+  purgedAt: '2026-09-06T08:00:06.000Z',
+  updatedAt: '2026-09-06T08:00:06.000Z',
 };

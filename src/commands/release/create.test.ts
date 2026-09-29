@@ -1,0 +1,204 @@
+import { confirm } from '@clack/prompts';
+import { computeSha256Hex } from '@hotcodepush/protocol';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  stubInteractiveTerminal,
+  useCommandHarness,
+} from '../../testing/command-harness.js';
+import {
+  DEMO_APP,
+  LIVE_RELEASE,
+  PRODUCTION_CHANNEL,
+  READY_BUNDLE,
+  STAGING_CHANNEL,
+  STAGING_CHANNEL_WITH_DEVICE_COUNTS,
+} from '../../testing/fixtures.js';
+import { CHANNEL_PATH, RELEASES_PATH } from '../../testing/release-routes.js';
+import {
+  ConfirmationRequiredError,
+  InvalidParameterError,
+} from '../../utils/errors.js';
+import type * as bundleUploadModule from '../bundle/upload.js';
+import { uploadBundleFromOptions } from '../bundle/upload.js';
+import releaseCreateCommand from './create.js';
+
+vi.mock('@clack/prompts');
+vi.mock('../bundle/upload.js', async importOriginal => ({
+  ...(await importOriginal<typeof bundleUploadModule>()),
+  uploadBundleFromOptions: vi.fn(),
+}));
+
+const BUNDLES_PATH = `/v1/apps/${DEMO_APP.id}/bundles`;
+
+const PRODUCTION_CHANNEL_PATH = `/v1/apps/${DEMO_APP.id}/channels/${PRODUCTION_CHANNEL.id}`;
+
+const PRODUCTION_RELEASE = {
+  ...LIVE_RELEASE,
+  channelId: PRODUCTION_CHANNEL.id,
+  id: 'c3d4e5f6-a7b8-4c9d-8e1f-2a3b4c5d6e7f',
+  number: 7,
+};
+
+describe('release create', () => {
+  const harness = useCommandHarness();
+
+  function readCreateRequests(): Request[] {
+    return harness.requests.filter(
+      ({ method, url }) => method === 'POST' && url.endsWith('/releases'),
+    );
+  }
+
+  function respondWithStagingChannel(): void {
+    harness.routes[`GET ${CHANNEL_PATH}`] = () =>
+      Response.json(STAGING_CHANNEL_WITH_DEVICE_COUNTS);
+  }
+
+  it('should release the bundle named by number to the project channel once confirmed, and wait until it is live', async () => {
+    stubInteractiveTerminal();
+    vi.mocked(confirm).mockResolvedValue(true);
+    respondWithStagingChannel();
+    harness.routes[`GET ${BUNDLES_PATH}`] = () => Response.json([READY_BUNDLE]);
+    harness.routes[`POST ${CHANNEL_PATH}/releases`] = () =>
+      Response.json({ ...LIVE_RELEASE, liveAt: null }, { status: 201 });
+    harness.routes[`GET ${RELEASES_PATH}/${LIVE_RELEASE.id}`] = () =>
+      Response.json(LIVE_RELEASE);
+
+    await releaseCreateCommand.action(
+      {
+        bundle: '17',
+        config: harness.writeProjectConfig({
+          appId: DEMO_APP.id,
+          channelId: STAGING_CHANNEL.id,
+        }),
+      },
+      undefined,
+    );
+
+    expect(confirm).toHaveBeenCalledWith({
+      initialValue: false,
+      message:
+        'This releases bundle #17 · 1.4.2 to staging at 100 percent. Continue?',
+    });
+    const [createRequest] = readCreateRequests();
+    expect(await createRequest?.json()).toEqual({
+      bundleId: READY_BUNDLE.id,
+      isMandatory: false,
+      notes: null,
+      rolloutPercentage: 100,
+    });
+    expect(createRequest?.headers.get('Idempotency-Key')).toBe(
+      computeSha256Hex(`${READY_BUNDLE.manifestSha256}:${STAGING_CHANNEL.id}`),
+    );
+    expect(
+      harness.requests.filter(({ url }) =>
+        url.endsWith(`${RELEASES_PATH}/${LIVE_RELEASE.id}`),
+      ),
+    ).toHaveLength(1);
+    expect(harness.readLines()).toEqual([
+      `Released bundle #17 · 1.4.2 to staging as release #43 at 100 percent, live since ${LIVE_RELEASE.liveAt}.`,
+    ]);
+  });
+
+  it('should upload the web build first without --bundle, and print the release as JSON when --yes and --json are passed', async () => {
+    vi.mocked(uploadBundleFromOptions).mockResolvedValue({
+      bundle: READY_BUNDLE,
+      deltaBaseBundleId: null,
+      uploadedBytes: 0,
+      uploadedFileCount: 0,
+    });
+    respondWithStagingChannel();
+    harness.routes[`POST ${CHANNEL_PATH}/releases`] = () =>
+      Response.json(LIVE_RELEASE, { status: 201 });
+
+    await releaseCreateCommand.action(
+      {
+        app: DEMO_APP.id,
+        channel: [STAGING_CHANNEL.id],
+        json: true,
+        mandatory: true,
+        notes: 'cart fix',
+        path: 'dist',
+        rolloutPercentage: 10,
+        yes: true,
+      },
+      undefined,
+    );
+
+    expect(uploadBundleFromOptions).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ path: 'dist' }),
+    );
+    expect(confirm).not.toHaveBeenCalled();
+    const [createRequest] = readCreateRequests();
+    expect(await createRequest?.json()).toEqual({
+      bundleId: READY_BUNDLE.id,
+      isMandatory: true,
+      notes: 'cart fix',
+      rolloutPercentage: 10,
+    });
+    expect(harness.readJson()).toEqual(LIVE_RELEASE);
+  });
+
+  it('should release to every channel named, one release each', async () => {
+    respondWithStagingChannel();
+    harness.routes[`GET ${PRODUCTION_CHANNEL_PATH}`] = () =>
+      Response.json({
+        ...PRODUCTION_CHANNEL,
+        activeDeviceCount: 1000,
+        currentDeviceCount: 900,
+        embeddedDeviceCount: 100,
+      });
+    harness.routes[`GET ${BUNDLES_PATH}/${READY_BUNDLE.id}`] = () =>
+      Response.json(READY_BUNDLE);
+    harness.routes[`POST ${CHANNEL_PATH}/releases`] = () =>
+      Response.json(LIVE_RELEASE, { status: 201 });
+    harness.routes[`POST ${PRODUCTION_CHANNEL_PATH}/releases`] = () =>
+      Response.json(PRODUCTION_RELEASE, { status: 201 });
+
+    await releaseCreateCommand.action(
+      {
+        app: DEMO_APP.id,
+        bundle: READY_BUNDLE.id,
+        channel: [STAGING_CHANNEL.id, PRODUCTION_CHANNEL.id],
+        yes: true,
+      },
+      undefined,
+    );
+
+    expect(readCreateRequests()).toHaveLength(2);
+    expect(harness.readLines()).toEqual([
+      `Released bundle #17 · 1.4.2 to staging as release #43 at 100 percent, live since ${LIVE_RELEASE.liveAt}.`,
+      `Released bundle #17 · 1.4.2 to production as release #7 at 100 percent, live since ${LIVE_RELEASE.liveAt}.`,
+    ]);
+  });
+
+  it('should stop with E_CONFIRMATION_REQUIRED when nobody can confirm', async () => {
+    respondWithStagingChannel();
+    harness.routes[`GET ${BUNDLES_PATH}/${READY_BUNDLE.id}`] = () =>
+      Response.json(READY_BUNDLE);
+
+    await expect(
+      releaseCreateCommand.action(
+        {
+          app: DEMO_APP.id,
+          bundle: READY_BUNDLE.id,
+          channel: [STAGING_CHANNEL.id],
+        },
+        undefined,
+      ),
+    ).rejects.toBeInstanceOf(ConfirmationRequiredError);
+
+    expect(readCreateRequests()).toEqual([]);
+  });
+
+  it('should refuse --bundle together with --path', async () => {
+    await expect(
+      releaseCreateCommand.action(
+        { app: DEMO_APP.id, bundle: '17', path: 'dist', yes: true },
+        undefined,
+      ),
+    ).rejects.toBeInstanceOf(InvalidParameterError);
+
+    expect(harness.requests).toEqual([]);
+  });
+});
