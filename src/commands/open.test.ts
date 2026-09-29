@@ -1,6 +1,11 @@
+import { select } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
-import { useCommandHarness } from '../testing/command-harness.js';
 import {
+  stubInteractiveTerminal,
+  useCommandHarness,
+} from '../testing/command-harness.js';
+import {
+  ACME_ORGANIZATION,
   DEMO_APP,
   STAGING_CHANNEL,
   STAGING_CHANNEL_WITH_DEVICE_COUNTS,
@@ -9,6 +14,7 @@ import { openBrowser } from '../utils/browser.js';
 import { MissingParameterError } from '../utils/errors.js';
 import openCommand from './open.js';
 
+vi.mock('@clack/prompts');
 vi.mock('../utils/browser.js');
 
 describe('open', () => {
@@ -41,11 +47,31 @@ describe('open', () => {
     expect(harness.readJson()).toEqual({ url });
   });
 
-  it('should ask for --app when no hotcodepush.json names the app', async () => {
+  it('should name --app when no hotcodepush.json names the app and nobody can pick', async () => {
     vi.spyOn(process, 'cwd').mockReturnValue('/');
 
     await expect(openCommand.action({}, undefined)).rejects.toBeInstanceOf(
       MissingParameterError,
+    );
+  });
+
+  it('should offer the app picker when no hotcodepush.json names the app and someone can pick', async () => {
+    stubInteractiveTerminal();
+    vi.spyOn(process, 'cwd').mockReturnValue('/');
+    vi.mocked(select).mockResolvedValue(DEMO_APP.id);
+    harness.routes['GET /v1/organizations'] = () =>
+      Response.json([ACME_ORGANIZATION]);
+    harness.routes[`GET /v1/organizations/${ACME_ORGANIZATION.id}/apps`] = () =>
+      Response.json([DEMO_APP]);
+
+    await openCommand.action({}, undefined);
+
+    expect(select).toHaveBeenCalledWith({
+      message: 'Which app?',
+      options: [{ label: 'Demo', value: DEMO_APP.id }],
+    });
+    expect(openBrowser).toHaveBeenCalledWith(
+      `http://localhost:4300/apps/${DEMO_APP.id}`,
     );
   });
 });

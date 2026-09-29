@@ -1,7 +1,6 @@
 import { defineCommand } from 'zodline';
 import { createApiClient } from '../utils/api-client.js';
 import { openBrowser } from '../utils/browser.js';
-import { MissingParameterError } from '../utils/errors.js';
 import { defineCommandOptions } from '../utils/global-options.js';
 import { resolveConsoleBaseUrl } from '../utils/hosts.js';
 import { printJson } from '../utils/output.js';
@@ -30,7 +29,7 @@ export default defineCommand({
 });
 
 /**
- * The page's URL: the app's from the ids at hand, the channel's through the API when `--channel` names one.
+ * The page's URL: the app's from the id at hand, otherwise as `fetchAppId` resolves or asks for it; the channel's through the API.
  */
 async function resolveConsolePageUrl(options: {
   app?: string;
@@ -45,11 +44,8 @@ async function resolveConsolePageUrl(options: {
   }
   const projectConfig = readProjectConfig(options.config);
   const appId =
-    options.app === undefined
-      ? projectConfig?.appId
+    options.app === undefined && projectConfig?.appId !== undefined
+      ? projectConfig.appId
       : await fetchAppId(createApiClient(), options, projectConfig);
-  if (appId === undefined) {
-    throw new MissingParameterError('--app');
-  }
   return `${consoleBaseUrl}/apps/${appId}`;
 }
