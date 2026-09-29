@@ -16,9 +16,11 @@ src/
   commands/    a folder per noun and a file per verb, channel/create.ts; the standalone commands flat, login.ts
   utils/       the runner, command resolution and did-you-mean, the E_ catalog and its one mapping,
                the global options, environment detection, config.json, the token store,
-               the auth client, the API client, hotcodepush.json, a resource by id or name,
-               the prompts and the confirmation, the pages of a list, the channel fields,
-               the browser opener, the JSON, tables and details output
+               the auth client, the API client, hotcodepush.json and its directory, a resource by id or name,
+               a bundle by number or id, the prompts and the confirmation, the pages of a list, the channel fields,
+               the framework and the web build's directory, the files of a build hashed, their gzip copies,
+               the pack writer, the git provenance, the device hosts derived from the API URL,
+               the upload flow, the progress lines, the browser opener, the JSON, tables and details output
   config/      consts: the API URL, the client id and header, the config file, the docs and issues URLs,
                the keyring entry, package.json, the project file
   testing/     the command tests' harness, the API faked behind fetch, and their fixtures; never built
@@ -73,6 +75,9 @@ No releases yet: the version stays `0.0.0`, and release-please and npm provenanc
   zodline colours its help regardless, so `runCli` strips the codes from its output where colour is off.
 - **Commands call commands**: a command that needs what another does runs that command's action in place, never a copy of its logic.
 - **The token** is `readToken()`: `HOTCODEPUSH_TOKEN` when set, then the keyring, then the `config.json` fallback that any keyring failure latches for the rest of the process.
+- **An upload never holds a file in memory**: every file is hashed and gzip-compressed through streams into a temporary directory,
+  put as a `Blob` opened from disk so the client can retry it, in parts above `SINGLE_UPLOAD_LIMIT_BYTES`, and the packs are written the same way.
+  Only the hashes the API answers as missing move; the delta pack against the previous bundle needs that bundle's manifest from the files host and is skipped, never failed, when it is unreachable.
 - **A login that cannot wait** keeps its device code, expiry, user code and verification URL in `config.json`; the next `login` redeems the code first and, while it is pending, shows the same code again, so an agent sees one output until the person approves.
 
 ## Naming

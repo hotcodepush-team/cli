@@ -1,5 +1,6 @@
 import type {
   App,
+  Bundle,
   Channel,
   ChannelWithDeviceCounts,
   Organization,
@@ -68,4 +69,37 @@ export const STAGING_CHANNEL_WITH_DEVICE_COUNTS: ChannelWithDeviceCounts = {
   activeDeviceCount: 120,
   currentDeviceCount: 100,
   embeddedDeviceCount: 20,
+};
+
+export const READY_BUNDLE: Bundle = {
+  appId: DEMO_APP.id,
+  bundleVersion: '1.4.2',
+  createdAt: '2026-09-05T08:00:00.000Z',
+  expiresAt: null,
+  fingerprint: null,
+  framework: 'capacitor',
+  gitMessage: 'fix: cart crash',
+  gitRef: 'main',
+  gitRemote: 'github.com/acme/shop',
+  gitSha: 'ab12c3f4ab12c3f4ab12c3f4ab12c3f4ab12c3f4',
+  id: 'c56a4180-65aa-42ec-a945-5fd21dec0538',
+  isGitDirty: false,
+  manifestSha256:
+    '9c1f2e3d4c5b6a798877665544332211aabbccddeeff00112233445566778899',
+  number: 17,
+  platforms: ['android', 'ios'],
+  signature: null,
+  sizeBytes: 812331,
+  state: 'ready',
+  unusedSince: '2026-09-05T08:05:00.000Z',
+  updatedAt: '2026-09-05T08:05:00.000Z',
+};
+
+export const PREVIOUS_BUNDLE: Bundle = {
+  ...READY_BUNDLE,
+  bundleVersion: '1.4.1',
+  createdAt: '2026-09-04T08:00:00.000Z',
+  id: '2f1e0d9c-8b7a-4695-a483-72615049382a',
+  number: 16,
+  updatedAt: '2026-09-04T08:05:00.000Z',
 };

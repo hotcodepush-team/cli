@@ -9,6 +9,15 @@ import { InvalidParameterError } from './errors.js';
 export interface ProjectConfig {
   appId?: string;
   channelId?: string;
+  dir?: string;
+}
+
+/**
+ * The project's configuration with the directory it lies in, the project root every path is relative to.
+ */
+export interface ProjectConfigLocation {
+  directoryPath: string;
+  projectConfig: ProjectConfig | undefined;
 }
 
 /**
@@ -18,6 +27,15 @@ export interface ProjectConfig {
 export function readProjectConfig(
   configPath: string | undefined,
 ): ProjectConfig | undefined {
+  return locateProjectConfig(configPath).projectConfig;
+}
+
+/**
+ * The configuration and its directory; without a file the working directory is the project root.
+ */
+export function locateProjectConfig(
+  configPath: string | undefined,
+): ProjectConfigLocation {
   if (configPath !== undefined && !existsSync(configPath)) {
     throw new InvalidParameterError(
       `--config: there is no file at ${configPath}`,
@@ -29,9 +47,12 @@ export function readProjectConfig(
       ? findProjectConfigFilePath(process.cwd())
       : resolve(configPath);
   if (filePath === undefined) {
-    return undefined;
+    return { directoryPath: process.cwd(), projectConfig: undefined };
   }
-  return JSON.parse(readFileSync(filePath, 'utf8')) as ProjectConfig;
+  return {
+    directoryPath: dirname(filePath),
+    projectConfig: JSON.parse(readFileSync(filePath, 'utf8')) as ProjectConfig,
+  };
 }
 
 function findProjectConfigFilePath(directoryPath: string): string | undefined {

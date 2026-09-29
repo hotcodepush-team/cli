@@ -73,6 +73,20 @@ export class ApiError extends CliError {
   }
 }
 
+/**
+ * The one public size limit, checked before a byte is sent so the API's own refusal is never reached with a wasted upload.
+ */
+export class BundleTooLargeError extends CliError {
+  constructor(what: string, limitBytes: number) {
+    super({
+      code: 'E_BUNDLE_TOO_LARGE',
+      exitCode: ExitCode.Error,
+      fix: 'a file or a bundle is at most 512 MB; move large media out of the web build.',
+      message: `${what} is above the limit of ${limitBytes} bytes`,
+    });
+  }
+}
+
 export class ConfirmationRequiredError extends CliError {
   constructor(consequence: string) {
     super({
@@ -165,6 +179,31 @@ export class UnexpectedError extends CliError {
       exitCode: ExitCode.Error,
       fix: `run the command again with --verbose, and report it at ${ISSUES_URL} if it persists.`,
       message: cause instanceof Error ? cause.message : String(cause),
+    });
+  }
+}
+
+export class UnknownFrameworkError extends CliError {
+  constructor() {
+    super({
+      code: 'E_UNKNOWN_FRAMEWORK',
+      exitCode: ExitCode.Error,
+      fix: 'run it in a project with @capacitor/core, react-native, expo or cordova among its dependencies.',
+      message: 'no supported framework was found in package.json',
+    });
+  }
+}
+
+/**
+ * A framework the CLI knows but does not package yet; its packaging arrives with its SDK.
+ */
+export class UnsupportedFrameworkError extends CliError {
+  constructor(framework: string) {
+    super({
+      code: 'E_UNSUPPORTED_FRAMEWORK',
+      exitCode: ExitCode.Error,
+      fix: 'Capacitor is packaged today; the other frameworks arrive with their SDKs.',
+      message: `${framework} projects are not packaged yet`,
     });
   }
 }
