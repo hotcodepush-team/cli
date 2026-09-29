@@ -21,14 +21,17 @@ export function deleteToken(): void {
 }
 
 /**
- * The token: `HOTCODEPUSH_TOKEN` when set, otherwise the keyring's, otherwise the fallback in `config.json`.
+ * The token: `HOTCODEPUSH_TOKEN` when set, otherwise the stored one.
  */
 export function readToken(): string | undefined {
-  return (
-    process.env.HOTCODEPUSH_TOKEN ||
-    readKeyringToken() ||
-    readUserConfig().token
-  );
+  return process.env.HOTCODEPUSH_TOKEN || readStoredToken();
+}
+
+/**
+ * The session token `login` stored, the keyring's or the fallback in `config.json`, whatever the environment carries.
+ */
+export function readStoredToken(): string | undefined {
+  return readKeyringToken() || readUserConfig().token;
 }
 
 export function writeToken(token: string): void {

@@ -20,6 +20,11 @@ vi.mock('@napi-rs/keyring', () => ({
 
 const API_URL = 'https://api.example.com';
 
+const SESSION = {
+  session: { id: 'session-1', userId: 'user-1' },
+  user: { email: 'anna@example.com', id: 'user-1', name: 'Anna Example' },
+};
+
 describe('logout', () => {
   let configHomePath: string;
   const fetchMock = vi.fn<typeof fetch>();
@@ -47,12 +52,15 @@ describe('logout', () => {
     rmSync(configHomePath, { force: true, recursive: true });
   });
 
-  it('should revoke the session and clear the keyring and config.json', async () => {
-    fetchMock.mockResolvedValueOnce(Response.json({ status: true }));
+  it('should revoke the session and clear the keyring and config.json, naming who was logged out', async () => {
+    fetchMock
+      .mockResolvedValueOnce(Response.json(SESSION))
+      .mockResolvedValueOnce(Response.json({ status: true }));
 
     await logoutCommand.action({}, undefined);
 
-    const [revokeRequest] = readRequests();
+    const [sessionRequest, revokeRequest] = readRequests();
+    expect(sessionRequest?.url).toBe(`${API_URL}/v1/auth/get-session`);
     expect(revokeRequest?.url).toBe(`${API_URL}/v1/auth/revoke-session`);
     expect(revokeRequest?.headers.get('Authorization')).toBe(
       'Bearer session-token-1',
@@ -60,22 +68,24 @@ describe('logout', () => {
     expect(await revokeRequest?.json()).toEqual({ token: 'session-token-1' });
     expect(keyring.deletePassword).toHaveBeenCalled();
     expect(readUserConfig()).toEqual({ apiUrl: API_URL });
-    expect(console.log).toHaveBeenCalledWith('Logged out.');
+    expect(console.log).toHaveBeenCalledWith('Logged out Anna Example.');
   });
 
   it('should revoke the token without its signature when the bearer is signed', async () => {
     keyring.getPassword.mockReturnValue('session-token-1.c2lnbmF0dXJl');
-    fetchMock.mockResolvedValueOnce(Response.json({ status: true }));
+    fetchMock
+      .mockResolvedValueOnce(Response.json(SESSION))
+      .mockResolvedValueOnce(Response.json({ status: true }));
 
     await logoutCommand.action({}, undefined);
 
-    expect(await readRequests()[0]?.json()).toEqual({
+    expect(await readRequests()[1]?.json()).toEqual({
       token: 'session-token-1',
     });
   });
 
   it('should clear both stores when the session already ended', async () => {
-    fetchMock.mockResolvedValueOnce(
+    const unauthenticated = () =>
       Response.json(
         {
           code: 'E_UNAUTHENTICATED',
@@ -83,22 +93,31 @@ describe('logout', () => {
           message: 'The bearer token is missing, invalid or expired.',
         },
         { status: 401 },
-      ),
-    );
+      );
+    fetchMock
+      .mockResolvedValueOnce(unauthenticated())
+      .mockResolvedValueOnce(unauthenticated());
 
     await logoutCommand.action({}, undefined);
 
     expect(keyring.deletePassword).toHaveBeenCalled();
     expect(readUserConfig()).toEqual({ apiUrl: API_URL });
+    expect(console.log).toHaveBeenCalledWith('Logged out.');
   });
 
   it('should keep both stores when the revocation fails', async () => {
-    fetchMock.mockResolvedValueOnce(
-      Response.json(
-        { code: 'E_INTERNAL', details: null, message: 'Something went wrong.' },
-        { status: 500 },
-      ),
-    );
+    fetchMock
+      .mockResolvedValueOnce(Response.json(SESSION))
+      .mockResolvedValueOnce(
+        Response.json(
+          {
+            code: 'E_INTERNAL',
+            details: null,
+            message: 'Something went wrong.',
+          },
+          { status: 500 },
+        ),
+      );
 
     await expect(logoutCommand.action({}, undefined)).rejects.toMatchObject({
       code: 'E_INTERNAL',
@@ -110,16 +129,52 @@ describe('logout', () => {
     });
   });
 
-  it('should print an empty object when --json is passed', async () => {
+  it('should print the id and the name of the ended session when --json is passed', async () => {
     const stdoutWrite = vi
       .spyOn(process.stdout, 'write')
       .mockImplementation(() => true);
-    fetchMock.mockResolvedValueOnce(Response.json({ status: true }));
+    fetchMock
+      .mockResolvedValueOnce(Response.json(SESSION))
+      .mockResolvedValueOnce(Response.json({ status: true }));
 
     await logoutCommand.action({ json: true }, undefined);
 
-    expect(stdoutWrite).toHaveBeenCalledWith('{}\n');
+    expect(stdoutWrite).toHaveBeenCalledWith(
+      '{\n  "id": "session-1",\n  "name": "Anna Example"\n}\n',
+    );
     expect(console.log).not.toHaveBeenCalled();
+  });
+
+  it('should revoke the stored session, not HOTCODEPUSH_TOKEN, and say the variable still authenticates', async () => {
+    vi.stubEnv('HOTCODEPUSH_TOKEN', 'hcp_api_token');
+    fetchMock
+      .mockResolvedValueOnce(Response.json(SESSION))
+      .mockResolvedValueOnce(Response.json({ status: true }));
+
+    await logoutCommand.action({}, undefined);
+
+    const [, revokeRequest] = readRequests();
+    expect(revokeRequest?.headers.get('Authorization')).toBe(
+      'Bearer session-token-1',
+    );
+    expect(await revokeRequest?.json()).toEqual({ token: 'session-token-1' });
+    expect(keyring.deletePassword).toHaveBeenCalled();
+    expect(console.log).toHaveBeenCalledWith(
+      'Logged out Anna Example. HOTCODEPUSH_TOKEN still authenticates.',
+    );
+  });
+
+  it('should end nothing when only HOTCODEPUSH_TOKEN is set, and say so', async () => {
+    vi.stubEnv('HOTCODEPUSH_TOKEN', 'hcp_api_token');
+    keyring.getPassword.mockReturnValue(null);
+
+    await logoutCommand.action({}, undefined);
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(keyring.deletePassword).not.toHaveBeenCalled();
+    expect(console.log).toHaveBeenCalledWith(
+      'No stored session to end. HOTCODEPUSH_TOKEN still authenticates.',
+    );
   });
 
   it('should throw E_NOT_LOGGED_IN when no token is stored', async () => {
