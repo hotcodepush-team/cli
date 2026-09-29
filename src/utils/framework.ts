@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import type { InteractivityOptions } from './environment.js';
 import {
   MissingParameterError,
@@ -56,23 +56,23 @@ export function detectFramework(projectDirectoryPath: string): Framework {
 }
 
 /**
- * The web build to package: `--path`, otherwise `hotcodepush.json`'s `dir`, otherwise Capacitor's `webDir`,
- * otherwise asked for when interactive.
+ * The web build to package: `--path` as typed, against the working directory; otherwise `hotcodepush.json`'s `dir`
+ * or Capacitor's `webDir`, both relative to the project root; otherwise asked for when interactive.
  */
 export async function resolveInputDirectoryPath(
   options: InputDirectoryOptions,
   projectConfig: ProjectConfig | undefined,
   projectDirectoryPath: string,
 ): Promise<string> {
+  if (options.path !== undefined) {
+    return resolve(options.path);
+  }
   const configuredPath =
-    options.path ??
-    projectConfig?.dir ??
-    readCapacitorWebDir(projectDirectoryPath);
+    projectConfig?.dir ?? readCapacitorWebDir(projectDirectoryPath);
   if (configuredPath !== undefined) {
     return join(projectDirectoryPath, configuredPath);
   }
-  return join(
-    projectDirectoryPath,
+  return resolve(
     await promptText('--path', 'Where is the web build?', options),
   );
 }
