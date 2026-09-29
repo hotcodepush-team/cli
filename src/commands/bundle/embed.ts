@@ -1,4 +1,4 @@
-import { join } from 'node:path';
+import { resolve } from 'node:path';
 import type { EmbeddedBundle, HotCodePush } from '@hotcodepush/node';
 import { HotCodePushError } from '@hotcodepush/node';
 import { z } from 'zod';
@@ -82,7 +82,7 @@ export default defineCommand({
     const resourceFilePath =
       options.out === undefined
         ? resolveResourceFilePath(platform, nativeProjectPath)
-        : join(process.cwd(), options.out);
+        : resolve(options.out);
     writeResourceFile(
       resourceFilePath,
       buildResourceFile({

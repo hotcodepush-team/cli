@@ -232,6 +232,27 @@ describe('bundle embed', () => {
     });
   });
 
+  it('should write to an absolute --out as given, the path a native build passes in', async () => {
+    const outDirectoryPath = mkdtempSync(join(tmpdir(), 'hotcodepush-out-'));
+    const outFilePath = join(outDirectoryPath, 'hotcodepush.json');
+    harness.routes[`POST ${EMBEDDED_BUNDLES_PATH}`] = () =>
+      Response.json(EMBEDDED_BUNDLE, { status: 201 });
+
+    await bundleEmbedCommand.action(
+      {
+        config: join(projectDirectoryPath, 'hotcodepush.json'),
+        json: true,
+        out: outFilePath,
+        platform: 'ios',
+      },
+      undefined,
+    );
+
+    expect(existsSync(outFilePath)).toBe(true);
+    expect(harness.readJson()).toMatchObject({ resourceFilePath: outFilePath });
+    rmSync(outDirectoryPath, { force: true, recursive: true });
+  });
+
   it('should still write the resource file and warn when not logged in', async () => {
     vi.stubEnv('HOTCODEPUSH_TOKEN', undefined);
     vi.stubEnv(
