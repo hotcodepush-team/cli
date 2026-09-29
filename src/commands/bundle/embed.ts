@@ -211,13 +211,14 @@ async function registerEmbeddedBundle(
       reporter,
     );
   } catch (error) {
-    if (process.env.CI || !(error instanceof HotCodePushError)) {
+    // a build never breaks locally: a refused, conflicting or unreachable registration is one warning; CI fails with it
+    if (process.env.CI) {
       throw error;
     }
     return {
       ...NO_UPLOAD,
       embeddedBundle: null,
-      skippedReason: `the embedded bundle was not registered: ${error.code} ${error.message}`,
+      skippedReason: `the embedded bundle was not registered: ${resolveFailureText(error)}`,
     };
   }
 }
@@ -323,4 +324,11 @@ function resolvePlatformFromEnvironment(options: {
     PLATFORMS.map(platform => ({ label: platform, value: platform })),
     options,
   );
+}
+
+function resolveFailureText(error: unknown): string {
+  if (error instanceof HotCodePushError) {
+    return `${error.code} ${error.message}`;
+  }
+  return error instanceof Error ? error.message : String(error);
 }

@@ -278,6 +278,38 @@ describe('bundle embed', () => {
     );
   });
 
+  it('should still write the resource file and warn when the API is unreachable, and fail only in CI', async () => {
+    harness.routes[`POST ${EMBEDDED_BUNDLES_PATH}`] = () => {
+      throw new TypeError('fetch failed');
+    };
+
+    await bundleEmbedCommand.action(
+      {
+        config: join(projectDirectoryPath, 'hotcodepush.json'),
+        platform: 'ios',
+      },
+      undefined,
+    );
+
+    expect(readResourceFile('ios/App/App/hotcodepush.json')).toMatchObject({
+      embeddedBundleId: null,
+    });
+    expect(stderrWrite).toHaveBeenCalledWith(
+      'Warning: the embedded bundle was not registered: fetch failed\n',
+    );
+
+    vi.stubEnv('CI', 'true');
+    await expect(
+      bundleEmbedCommand.action(
+        {
+          config: join(projectDirectoryPath, 'hotcodepush.json'),
+          platform: 'ios',
+        },
+        undefined,
+      ),
+    ).rejects.toThrow('fetch failed');
+  });
+
   it('should warn and skip a conflicting registration locally, and fail with it in CI', async () => {
     harness.routes[`POST ${EMBEDDED_BUNDLES_PATH}`] = () =>
       respondWithApiError(
