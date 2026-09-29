@@ -1,15 +1,16 @@
 #!/usr/bin/env node
-import { createRequire } from 'node:module';
-import type { CliMeta } from './utils/cli.js';
+import { PACKAGE_JSON } from './config/consts.js';
 import { runCli } from './utils/cli.js';
 import type { CommandRegistry } from './utils/command-registry.js';
 
-const packageJson: CliMeta = createRequire(import.meta.url)('../package.json');
-
-const commandRegistry: CommandRegistry = {};
+const commandRegistry: CommandRegistry = {
+  login: () => import('./commands/login.js'),
+  logout: () => import('./commands/logout.js'),
+  whoami: () => import('./commands/whoami.js'),
+};
 
 process.exitCode = await runCli(
   commandRegistry,
   process.argv.slice(2),
-  packageJson,
+  PACKAGE_JSON,
 );

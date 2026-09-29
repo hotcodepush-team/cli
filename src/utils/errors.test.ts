@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { CliError } from './errors.js';
 import {
+  ApiError,
   ConfirmationRequiredError,
   InvalidParameterError,
+  LoginDeniedError,
+  LoginExpiredError,
   MissingParameterError,
   NoTtyError,
   NotLoggedInError,
@@ -13,6 +16,16 @@ import {
 describe('errors', () => {
   it.each<[CliError, string, number]>([
     [
+      new ApiError('E_FORBIDDEN', 'Your role is too low.', 403),
+      'E_FORBIDDEN',
+      1,
+    ],
+    [
+      new ApiError('E_UNAUTHENTICATED', 'Sign in again.', 401),
+      'E_UNAUTHENTICATED',
+      3,
+    ],
+    [
       new ConfirmationRequiredError('reaches 10 devices in production'),
       'E_CONFIRMATION_REQUIRED',
       4,
@@ -22,6 +35,8 @@ describe('errors', () => {
       'E_INVALID_PARAMETER',
       2,
     ],
+    [new LoginDeniedError(), 'E_LOGIN_DENIED', 1],
+    [new LoginExpiredError(), 'E_LOGIN_EXPIRED', 1],
     [new MissingParameterError('--channel'), 'E_MISSING_PARAMETER', 2],
     [new NoTtyError(), 'E_NO_TTY', 1],
     [new NotLoggedInError(), 'E_NOT_LOGGED_IN', 3],
@@ -45,6 +60,17 @@ describe('errors', () => {
       'a confirmation is required: reaches 10 devices in production',
     );
     expect(error.fix).toBe('pass --yes to confirm.');
+  });
+
+  it('should carry the page and the code when a login cannot wait for the approval', () => {
+    const error = new NotLoggedInError({
+      userCode: 'WDJBMJHT',
+      verificationUrl: 'https://console.example.com/device?user_code=WDJBMJHT',
+    });
+
+    expect(error.fix).toBe(
+      'open https://console.example.com/device?user_code=WDJBMJHT and approve the code WDJBMJHT.',
+    );
   });
 
   it('should name the flag when a parameter is missing', () => {

@@ -5,9 +5,14 @@ import {
   buildErrorJson,
   buildErrorLine,
   printError,
+  resolveApiError,
   resolveCliError,
 } from './error-mapping.js';
-import { MissingParameterError, UnknownCommandError } from './errors.js';
+import {
+  ApiError,
+  MissingParameterError,
+  UnknownCommandError,
+} from './errors.js';
 
 function captureOutput() {
   const stderrWrite = vi
@@ -25,6 +30,46 @@ function captureOutput() {
 }
 
 describe('error mapping', () => {
+  describe('resolveApiError', () => {
+    it("should pass the API's code and message through as received", () => {
+      const cliError = resolveApiError({
+        code: 'E_RATE_LIMITED',
+        message: 'Too many attempts; wait 60 seconds and try again.',
+        status: 429,
+        statusText: 'Too Many Requests',
+      });
+
+      expect(cliError).toBeInstanceOf(ApiError);
+      expect(cliError.code).toBe('E_RATE_LIMITED');
+      expect(cliError.message).toBe(
+        'Too many attempts; wait 60 seconds and try again.',
+      );
+      expect(cliError.fix).toBeNull();
+    });
+
+    it("should pass the device flow's error and description through as received", () => {
+      const cliError = resolveApiError({
+        error: 'invalid_grant',
+        error_description: 'Invalid device code',
+        status: 400,
+        statusText: 'Bad Request',
+      });
+
+      expect(cliError.code).toBe('invalid_grant');
+      expect(cliError.message).toBe('Invalid device code');
+    });
+
+    it('should map a response without a code to E_UNEXPECTED', () => {
+      const cliError = resolveApiError({
+        status: 502,
+        statusText: 'Bad Gateway',
+      });
+
+      expect(cliError.code).toBe('E_UNEXPECTED');
+      expect(cliError.message).toBe('the API answered 502 Bad Gateway');
+    });
+  });
+
   describe('resolveCliError', () => {
     it('should keep an error of the catalog as it is', () => {
       const error = new MissingParameterError('--channel');
@@ -89,6 +134,21 @@ describe('error mapping', () => {
 
       expect(line).toBe(
         'E_UNKNOWN_COMMAND "relese create" is not a command — did you mean "release create"? https://hotcodepush.com/docs/cli/errors#E_UNKNOWN_COMMAND',
+      );
+    });
+
+    it('should leave the fix out when the error carries none', () => {
+      const line = buildErrorLine(
+        new ApiError(
+          'E_UNAUTHENTICATED',
+          'The bearer token is missing, invalid or expired; sign in again or create a new token.',
+          401,
+        ),
+        { isColorEnabled: false },
+      );
+
+      expect(line).toBe(
+        'E_UNAUTHENTICATED The bearer token is missing, invalid or expired; sign in again or create a new token. https://hotcodepush.com/docs/cli/errors#E_UNAUTHENTICATED',
       );
     });
 

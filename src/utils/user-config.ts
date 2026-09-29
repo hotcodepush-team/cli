@@ -7,7 +7,11 @@ import {
 } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { CONFIG_DIRECTORY_NAME, CONFIG_FILE_NAME } from '../config/consts.js';
+import {
+  CONFIG_DIRECTORY_NAME,
+  CONFIG_FILE_NAME,
+  DEFAULT_API_URL,
+} from '../config/consts.js';
 
 /**
  * `config.json` in the user's config directory; the token is here only where no keyring backend works.
@@ -19,6 +23,10 @@ export interface UserConfig {
   sessionId?: string;
   telemetryNoticeShownAt?: string;
   token?: string;
+}
+
+export function readApiUrl(): string {
+  return readUserConfig().apiUrl ?? DEFAULT_API_URL;
 }
 
 export function readUserConfig(): UserConfig {

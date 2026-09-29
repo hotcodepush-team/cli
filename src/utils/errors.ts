@@ -14,8 +14,16 @@ interface CliErrorOptions {
   cause?: unknown;
   code: string;
   exitCode: ExitCode;
-  fix: string;
+  fix: string | null;
   message: string;
+}
+
+/**
+ * Where a person approves a login: the page with the code filled in, and the code to compare it with.
+ */
+export interface DeviceAuthorizationPrompt {
+  userCode: string;
+  verificationUrl: string;
 }
 
 /**
@@ -25,7 +33,7 @@ interface CliErrorOptions {
 export class CliError extends Error {
   readonly code: string;
   readonly exitCode: ExitCode;
-  readonly fix: string;
+  readonly fix: string | null;
 
   constructor({ cause, code, exitCode, fix, message }: CliErrorOptions) {
     super(message, { cause });
@@ -33,6 +41,21 @@ export class CliError extends Error {
     this.exitCode = exitCode;
     this.fix = fix;
     this.name = new.target.name;
+  }
+}
+
+/**
+ * An error the API answered with, its code and message passed through as received and never re-mapped.
+ * The API's message carries its own fix, so it has none; a 401 means the token no longer counts, exit code 3.
+ */
+export class ApiError extends CliError {
+  constructor(code: string, message: string, status: number) {
+    super({
+      code,
+      exitCode: status === 401 ? ExitCode.NotLoggedIn : ExitCode.Error,
+      fix: null,
+      message,
+    });
   }
 }
 
@@ -59,6 +82,28 @@ export class InvalidParameterError extends CliError {
   }
 }
 
+export class LoginDeniedError extends CliError {
+  constructor() {
+    super({
+      code: 'E_LOGIN_DENIED',
+      exitCode: ExitCode.Error,
+      fix: 'run "hotcodepush login" again to approve it.',
+      message: 'the login was denied in the browser',
+    });
+  }
+}
+
+export class LoginExpiredError extends CliError {
+  constructor() {
+    super({
+      code: 'E_LOGIN_EXPIRED',
+      exitCode: ExitCode.Error,
+      fix: 'run "hotcodepush login" again and approve the code before it expires.',
+      message: 'the login code expired before it was approved',
+    });
+  }
+}
+
 export class MissingParameterError extends CliError {
   constructor(flag: string) {
     super({
@@ -81,12 +126,18 @@ export class NoTtyError extends CliError {
   }
 }
 
+/**
+ * Without a prompt the fix names `login`; with one, from a login that cannot wait for the approval,
+ * it carries the page and the code for an agent to relay.
+ */
 export class NotLoggedInError extends CliError {
-  constructor() {
+  constructor(deviceAuthorizationPrompt?: DeviceAuthorizationPrompt) {
     super({
       code: 'E_NOT_LOGGED_IN',
       exitCode: ExitCode.NotLoggedIn,
-      fix: 'run "hotcodepush login", or set HOTCODEPUSH_TOKEN.',
+      fix: deviceAuthorizationPrompt
+        ? `open ${deviceAuthorizationPrompt.verificationUrl} and approve the code ${deviceAuthorizationPrompt.userCode}.`
+        : 'run "hotcodepush login", or set HOTCODEPUSH_TOKEN.',
       message: 'you are not logged in',
     });
   }

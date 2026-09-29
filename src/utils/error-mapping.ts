@@ -3,7 +3,26 @@ import { ZodError } from 'zod';
 import { ZodlineError } from 'zodline';
 import { ERRORS_DOCS_URL } from '../config/consts.js';
 import { isColorEnabled } from './environment.js';
-import { CliError, InvalidParameterError, UnexpectedError } from './errors.js';
+import {
+  ApiError,
+  CliError,
+  InvalidParameterError,
+  UnexpectedError,
+} from './errors.js';
+import { printJson } from './output.js';
+
+/**
+ * An error response as Better Auth's client hands it over: the API's catalog answers `{ code, message }`,
+ * the device flow's endpoints RFC 8628's `{ error, error_description }`.
+ */
+export interface ApiErrorResponse {
+  code?: string;
+  error?: string;
+  error_description?: string;
+  message?: string;
+  status: number;
+  statusText: string;
+}
 
 /**
  * The `--json` shape of an error, printed on stdout with nothing else, so an agent parses one stream.
@@ -11,7 +30,7 @@ import { CliError, InvalidParameterError, UnexpectedError } from './errors.js';
 export interface ErrorJson {
   error: {
     code: string;
-    fix: string;
+    fix: string | null;
     message: string;
   };
 }
@@ -31,6 +50,7 @@ export function buildErrorJson({ code, fix, message }: CliError): ErrorJson {
 
 /**
  * One line: the code in front, what happened, what to do, and the code's page behind it.
+ * An API error's message says what to do itself, so its line has no fix.
  */
 export function buildErrorLine(
   { code, fix, message }: CliError,
@@ -39,7 +59,8 @@ export function buildErrorLine(
   const styledCode = options.isColorEnabled
     ? styleText(['bold', 'red'], code, { validateStream: false })
     : code;
-  return `${styledCode} ${message} — ${fix} ${ERRORS_DOCS_URL}#${code}`;
+  const fixSegment = fix === null ? '' : ` — ${fix}`;
+  return `${styledCode} ${message}${fixSegment} ${ERRORS_DOCS_URL}#${code}`;
 }
 
 export function printError(
@@ -50,14 +71,36 @@ export function printError(
     process.stderr.write(`${inspect(cliError)}\n`);
   }
   if (isJson) {
-    process.stdout.write(
-      `${JSON.stringify(buildErrorJson(cliError), null, 2)}\n`,
-    );
+    printJson(buildErrorJson(cliError));
   } else {
     process.stderr.write(
       `${buildErrorLine(cliError, { isColorEnabled: isColorEnabled(process.stderr) })}\n`,
     );
   }
+}
+
+/**
+ * The API's error as received; a response without a code, a proxy's HTML page, is no error of the API's catalog.
+ */
+export function resolveApiError({
+  code,
+  error,
+  error_description,
+  message,
+  status,
+  statusText,
+}: ApiErrorResponse): CliError {
+  const receivedCode = code ?? error;
+  if (receivedCode === undefined) {
+    return new UnexpectedError(
+      new Error(`the API answered ${status} ${statusText}`),
+    );
+  }
+  return new ApiError(
+    receivedCode,
+    message ?? error_description ?? statusText,
+    status,
+  );
 }
 
 /**
