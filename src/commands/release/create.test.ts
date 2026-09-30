@@ -21,19 +21,38 @@ import {
   ConfirmationRequiredError,
   InvalidParameterError,
 } from '../../utils/errors.js';
+import { createReporter } from '../../utils/progress.js';
+import type { UploadBundleOptions } from '../../utils/upload.js';
+import { uploadBundle } from '../../utils/upload.js';
 import type * as bundleUploadModule from '../bundle/upload.js';
-import { uploadBundleFromOptions } from '../bundle/upload.js';
+import { resolveUploadBundleOptions } from '../bundle/upload.js';
 import releaseCreateCommand, { resolveReleaseConsequence } from './create.js';
 
 vi.mock('@clack/prompts');
 vi.mock('../bundle/upload.js', async importOriginal => ({
   ...(await importOriginal<typeof bundleUploadModule>()),
-  uploadBundleFromOptions: vi.fn(),
+  resolveUploadBundleOptions: vi.fn(),
 }));
+vi.mock('../../utils/upload.js');
 
 const BUNDLES_PATH = `/v1/apps/${DEMO_APP.id}/bundles`;
 
 const PRODUCTION_CHANNEL_PATH = `/v1/apps/${DEMO_APP.id}/channels/${PRODUCTION_CHANNEL.id}`;
+
+const UPLOAD_BUNDLE_OPTIONS: UploadBundleOptions = {
+  appId: DEMO_APP.id,
+  bundleVersion: '1.4.2',
+  directoryPath: '/projects/demo/dist',
+  gitProvenance: {
+    gitMessage: null,
+    gitRef: null,
+    gitRemote: null,
+    gitSha: null,
+    isGitDirty: null,
+  },
+  platforms: ['android', 'ios'],
+  reporter: createReporter({ json: true }),
+};
 
 const PRODUCTION_RELEASE = {
   ...LIVE_RELEASE,
@@ -54,6 +73,18 @@ describe('release create', () => {
   function respondWithStagingChannel(): void {
     harness.routes[`GET ${CHANNEL_PATH}`] = () =>
       Response.json(STAGING_CHANNEL_WITH_DEVICE_COUNTS);
+  }
+
+  function stubWebBuildUpload(): void {
+    vi.mocked(resolveUploadBundleOptions).mockResolvedValue(
+      UPLOAD_BUNDLE_OPTIONS,
+    );
+    vi.mocked(uploadBundle).mockResolvedValue({
+      bundle: READY_BUNDLE,
+      deltaBaseBundleId: null,
+      uploadedBytes: 0,
+      uploadedFileCount: 0,
+    });
   }
 
   it('should release the bundle named by number to the project channel once confirmed, and wait until it is live', async () => {
@@ -106,12 +137,7 @@ describe('release create', () => {
   });
 
   it('should upload the web build first without --bundle, and print the release as JSON when --yes and --json are passed', async () => {
-    vi.mocked(uploadBundleFromOptions).mockResolvedValue({
-      bundle: READY_BUNDLE,
-      deltaBaseBundleId: null,
-      uploadedBytes: 0,
-      uploadedFileCount: 0,
-    });
+    stubWebBuildUpload();
     respondWithStagingChannel();
     harness.routes[`POST ${CHANNEL_PATH}/releases`] = () =>
       Response.json(LIVE_RELEASE, { status: 201 });
@@ -130,9 +156,13 @@ describe('release create', () => {
       undefined,
     );
 
-    expect(uploadBundleFromOptions).toHaveBeenCalledWith(
+    expect(resolveUploadBundleOptions).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ path: 'dist' }),
+    );
+    expect(uploadBundle).toHaveBeenCalledWith(
+      expect.anything(),
+      UPLOAD_BUNDLE_OPTIONS,
     );
     expect(confirm).not.toHaveBeenCalled();
     const [createRequest] = readCreateRequests();
@@ -197,6 +227,47 @@ describe('release create', () => {
     expect(readCreateRequests()).toEqual([]);
   });
 
+  describe('when the web build is still to upload', () => {
+    const OPTIONS = {
+      app: DEMO_APP.id,
+      channel: [STAGING_CHANNEL.id],
+      path: 'dist',
+    };
+
+    it('should stop with E_CONFIRMATION_REQUIRED before uploading anything when nobody can confirm', async () => {
+      stubWebBuildUpload();
+      respondWithStagingChannel();
+
+      await expect(
+        releaseCreateCommand.action(OPTIONS, undefined),
+      ).rejects.toThrow(
+        new ConfirmationRequiredError(
+          'uploads the web build as 1.4.2 and releases it at 100 percent: reaches 120 devices in staging',
+        ),
+      );
+
+      expect(uploadBundle).not.toHaveBeenCalled();
+      expect(readCreateRequests()).toEqual([]);
+    });
+
+    it('should ask before uploading, and upload nothing when the answer is no', async () => {
+      stubInteractiveTerminal();
+      vi.mocked(confirm).mockResolvedValue(false);
+      stubWebBuildUpload();
+      respondWithStagingChannel();
+
+      await releaseCreateCommand.action(OPTIONS, undefined);
+
+      expect(confirm).toHaveBeenCalledWith({
+        initialValue: false,
+        message:
+          'This uploads the web build as 1.4.2 and releases it at 100 percent: reaches 120 devices in staging. Continue?',
+      });
+      expect(uploadBundle).not.toHaveBeenCalled();
+      expect(readCreateRequests()).toEqual([]);
+    });
+  });
+
   it('should refuse --bundle together with --path', async () => {
     await expect(
       releaseCreateCommand.action(
@@ -211,7 +282,7 @@ describe('release create', () => {
   it('should state the share of each channel at a partial rollout, with the mandatory flag', () => {
     expect(
       resolveReleaseConsequence(
-        READY_BUNDLE,
+        { bundle: READY_BUNDLE },
         [
           STAGING_CHANNEL_WITH_DEVICE_COUNTS,
           {

@@ -25,11 +25,19 @@ import { confirmConsequence } from '../../utils/prompts.js';
 import { printReleasedLine } from '../../utils/release-output.js';
 import { waitUntilLive } from '../../utils/release-resolution.js';
 import { fetchAppId, fetchChannel } from '../../utils/resource-resolution.js';
+import type { UploadBundleOptions } from '../../utils/upload.js';
+import { uploadBundle } from '../../utils/upload.js';
 import type { BundleUploadOptions } from '../bundle/upload.js';
 import {
   bundleUploadOptionShape,
-  uploadBundleFromOptions,
+  resolveUploadBundleOptions,
 } from '../bundle/upload.js';
+
+/**
+ * What a release is made of: the bundle `--bundle` names, or the web build to upload once the release is confirmed.
+ */
+export type BundleSource =
+  { bundle: Bundle } | { uploadBundleOptions: UploadBundleOptions };
 
 type ReleaseBody = Pick<
   CreateReleaseOptions,
@@ -84,24 +92,30 @@ export default defineCommand({
   }),
   action: async options => {
     const hotCodePush = createApiClient();
-    const bundle = await resolveBundleToRelease(hotCodePush, options);
+    const bundleSource = await resolveBundleSource(hotCodePush, options);
     const channels = await fetchChannels(hotCodePush, options);
+    const isMandatory = options.mandatory ?? false;
     const rolloutPercentage = options.rolloutPercentage ?? 100;
     const isConfirmed = await confirmConsequence(
       resolveReleaseConsequence(
-        bundle,
+        bundleSource,
         channels,
         rolloutPercentage,
-        options.mandatory ?? false,
+        isMandatory,
       ),
       options,
     );
     if (!isConfirmed) {
       return;
     }
+    const bundle =
+      'bundle' in bundleSource
+        ? bundleSource.bundle
+        : (await uploadBundle(hotCodePush, bundleSource.uploadBundleOptions))
+            .bundle;
     const releaseBody: ReleaseBody = {
       bundleId: bundle.id,
-      isMandatory: options.mandatory ?? false,
+      isMandatory,
       notes: options.notes ?? null,
       rolloutPercentage,
     };
@@ -131,20 +145,25 @@ export default defineCommand({
 
 /**
  * What the release does, with the audience: every channel's active devices, at the rollout percentage the share of them.
+ * A web build still to upload has no number yet, so it is named by the version label it will carry.
  */
 export function resolveReleaseConsequence(
-  bundle: Bundle,
+  bundleSource: BundleSource,
   channels: ChannelWithDeviceCounts[],
   rolloutPercentage: number,
   isMandatory: boolean,
 ): string {
+  const releaseText =
+    'bundle' in bundleSource
+      ? `releases bundle ${resolveBundleLabel(bundleSource.bundle)}`
+      : `uploads the web build as ${bundleSource.uploadBundleOptions.bundleVersion} and releases it`;
   const reaches = channels
     .map(
       ({ activeDeviceCount, name }) =>
         `${resolveReachText(activeDeviceCount, rolloutPercentage)} in ${name}`,
     )
     .join(' and ');
-  return `releases bundle ${resolveBundleLabel(bundle)} at ${rolloutPercentage} percent${isMandatory ? ', mandatory' : ''}: reaches ${reaches}`;
+  return `${releaseText} at ${rolloutPercentage} percent${isMandatory ? ', mandatory' : ''}: reaches ${reaches}`;
 }
 
 function resolveReachText(
@@ -180,15 +199,20 @@ async function fetchChannels(
 }
 
 /**
- * `--bundle` names an uploaded bundle; otherwise the web build under `--path` is uploaded first, `bundle upload`'s way.
+ * `--bundle` names an uploaded bundle; otherwise the web build under `--path` is resolved for `bundle upload`'s upload,
+ * which runs only once the release is confirmed.
  */
-async function resolveBundleToRelease(
+async function resolveBundleSource(
   hotCodePush: HotCodePush,
   options: ReleaseCreateOptions,
-): Promise<Bundle> {
+): Promise<BundleSource> {
   if (options.bundle === undefined) {
-    const { bundle } = await uploadBundleFromOptions(hotCodePush, options);
-    return bundle;
+    return {
+      uploadBundleOptions: await resolveUploadBundleOptions(
+        hotCodePush,
+        options,
+      ),
+    };
   }
   if (options.path !== undefined) {
     throw new InvalidParameterError(
@@ -201,7 +225,7 @@ async function resolveBundleToRelease(
     options,
     readProjectConfig(options.config),
   );
-  return fetchBundle(hotCodePush, appId, options);
+  return { bundle: await fetchBundle(hotCodePush, appId, options) };
 }
 
 /**

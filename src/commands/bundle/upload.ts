@@ -18,7 +18,11 @@ import { createReporter, resolveByteText } from '../../utils/progress.js';
 import { locateProjectConfig } from '../../utils/project-config.js';
 import { promptText } from '../../utils/prompts.js';
 import { fetchAppId } from '../../utils/resource-resolution.js';
-import type { Platform, UploadedBundle } from '../../utils/upload.js';
+import type {
+  Platform,
+  UploadBundleOptions,
+  UploadedBundle,
+} from '../../utils/upload.js';
 import { uploadBundle } from '../../utils/upload.js';
 
 export interface BundleUploadOptions
@@ -86,35 +90,13 @@ export default defineCommand({
   options: defineCommandOptions(bundleUploadOptionShape),
   action: async options => {
     const hotCodePush = createApiClient();
-    const uploadedBundle = await uploadBundleFromOptions(hotCodePush, options);
+    const uploadedBundle = await uploadBundle(
+      hotCodePush,
+      await resolveUploadBundleOptions(hotCodePush, options),
+    );
     printUploadedBundle(uploadedBundle, options.json);
   },
 });
-
-/**
- * The upload as the command runs it, from the project's configuration and the flags; `release create --path` runs it in place.
- */
-export async function uploadBundleFromOptions(
-  hotCodePush: HotCodePush,
-  options: BundleUploadOptions,
-): Promise<UploadedBundle> {
-  const { directoryPath, projectConfig } = locateProjectConfig(options.config);
-  detectFramework(directoryPath);
-  const appId = await fetchAppId(hotCodePush, options, projectConfig);
-  const inputDirectoryPath = await resolveInputDirectoryPath(
-    options,
-    projectConfig,
-    directoryPath,
-  );
-  return uploadBundle(hotCodePush, {
-    appId,
-    bundleVersion: await resolveBundleVersion(options, directoryPath),
-    directoryPath: inputDirectoryPath,
-    gitProvenance: await resolveGitProvenance(directoryPath, options),
-    platforms: options.platform ?? PLATFORMS,
-    reporter: createReporter(options),
-  });
-}
 
 export function printUploadedBundle(
   {
@@ -139,6 +121,32 @@ export function printUploadedBundle(
   console.log(
     `Uploaded bundle ${resolveBundleLabel(bundle)} (${bundle.id}): ${uploadedFileCount} files moved, ${resolveByteText(uploadedBytes)}${deltaText}.`,
   );
+}
+
+/**
+ * What the upload needs, from the project's configuration and the flags, asked for where missing; nothing moves yet,
+ * so `release create --path` resolves it before it confirms and uploads only once confirmed.
+ */
+export async function resolveUploadBundleOptions(
+  hotCodePush: HotCodePush,
+  options: BundleUploadOptions,
+): Promise<UploadBundleOptions> {
+  const { directoryPath, projectConfig } = locateProjectConfig(options.config);
+  detectFramework(directoryPath);
+  const appId = await fetchAppId(hotCodePush, options, projectConfig);
+  const inputDirectoryPath = await resolveInputDirectoryPath(
+    options,
+    projectConfig,
+    directoryPath,
+  );
+  return {
+    appId,
+    bundleVersion: await resolveBundleVersion(options, directoryPath),
+    directoryPath: inputDirectoryPath,
+    gitProvenance: await resolveGitProvenance(directoryPath, options),
+    platforms: options.platform ?? PLATFORMS,
+    reporter: createReporter(options),
+  };
 }
 
 /**
