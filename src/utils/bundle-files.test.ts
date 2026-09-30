@@ -1,5 +1,11 @@
 import { createHash } from 'node:crypto';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -46,6 +52,54 @@ describe('bundle files', () => {
         sizeBytes: 11,
       },
     ]);
+  });
+
+  describe('when the build holds links', () => {
+    let inputPath = '';
+
+    beforeEach(() => {
+      inputPath = join(directoryPath, 'dist');
+      mkdirSync(inputPath);
+      writeFileSync(join(inputPath, 'index.html'), '<h1>v1</h1>');
+    });
+
+    async function collectPaths(): Promise<string[]> {
+      return (await collectBundleFiles(inputPath)).map(({ path }) => path);
+    }
+
+    it("should collect a linked file and every linked directory's files under the link's path", async () => {
+      mkdirSync(join(directoryPath, 'shared'));
+      writeFileSync(join(directoryPath, 'shared', 'logo.svg'), '<svg/>');
+      writeFileSync(join(directoryPath, 'asset.js'), 'console.log(1)');
+      symlinkSync(join(directoryPath, 'asset.js'), join(inputPath, 'asset.js'));
+      symlinkSync(join(directoryPath, 'shared'), join(inputPath, 'images'));
+      symlinkSync(join(directoryPath, 'shared'), join(inputPath, 'icons'));
+
+      const collectedFiles = await collectBundleFiles(inputPath);
+
+      expect(
+        collectedFiles.map(({ path, sizeBytes }) => ({ path, sizeBytes })),
+      ).toEqual([
+        { path: 'asset.js', sizeBytes: 14 },
+        { path: 'icons/logo.svg', sizeBytes: 6 },
+        { path: 'images/logo.svg', sizeBytes: 6 },
+        { path: 'index.html', sizeBytes: 11 },
+      ]);
+    });
+
+    it('should end a link back into a directory it walks instead of looping', async () => {
+      mkdirSync(join(inputPath, 'assets'));
+      writeFileSync(join(inputPath, 'assets', 'app.js'), 'console.log(1)');
+      symlinkSync(inputPath, join(inputPath, 'assets', 'root'));
+
+      expect(await collectPaths()).toEqual(['assets/app.js', 'index.html']);
+    });
+
+    it('should skip a link that points nowhere', async () => {
+      symlinkSync(join(directoryPath, 'missing.js'), join(inputPath, 'app.js'));
+
+      expect(await collectPaths()).toEqual(['index.html']);
+    });
   });
 
   it('should refuse a path that is no directory', async () => {
