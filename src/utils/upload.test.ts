@@ -6,10 +6,15 @@ import { HotCodePush, HotCodePushError } from '@hotcodepush/node';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   API_URL,
+  respondWithApiError,
   TOKEN,
   useCommandHarness,
 } from '../../test/command-harness.js';
-import { DEMO_APP } from '../../test/fixtures.js';
+import {
+  DEMO_APP,
+  PREVIOUS_BUNDLE,
+  READY_BUNDLE,
+} from '../../test/fixtures.js';
 import { BundleTooLargeError } from './errors.js';
 import {
   assertWithinBundleBytesLimit,
@@ -17,10 +22,43 @@ import {
   PART_SIZE_BYTES,
   resolveMissingSha256s,
   SINGLE_UPLOAD_LIMIT_BYTES,
+  uploadDeltaPack,
   uploadMissingFiles,
+  uploadPack,
 } from './upload.js';
 
 const SHA256 = 'a'.repeat(64);
+
+const BUNDLE_PATH = `/v1/apps/${DEMO_APP.id}/bundles/${READY_BUNDLE.id}`;
+
+const PART_COUNT = Math.ceil((SINGLE_UPLOAD_LIMIT_BYTES + 1) / PART_SIZE_BYTES);
+
+const PACK_UPLOADS = [
+  {
+    kind: 'pack',
+    path: `${BUNDLE_PATH}/pack`,
+    upload: (hotCodePush: HotCodePush, packFilePath: string) =>
+      uploadPack(
+        hotCodePush,
+        { appId: DEMO_APP.id, bundleId: READY_BUNDLE.id },
+        packFilePath,
+      ),
+  },
+  {
+    kind: 'delta pack',
+    path: `${BUNDLE_PATH}/deltas/${PREVIOUS_BUNDLE.id}`,
+    upload: (hotCodePush: HotCodePush, deltaPackFilePath: string) =>
+      uploadDeltaPack(
+        hotCodePush,
+        {
+          appId: DEMO_APP.id,
+          baseBundleId: PREVIOUS_BUNDLE.id,
+          bundleId: READY_BUNDLE.id,
+        },
+        deltaPackFilePath,
+      ),
+  },
+];
 
 describe('upload', () => {
   const harness = useCommandHarness();
@@ -33,6 +71,18 @@ describe('upload', () => {
   afterEach(() => {
     rmSync(directoryPath, { force: true, recursive: true });
   });
+
+  function readRequestLines(): string[] {
+    return harness.requests.map(
+      ({ method, url }) => `${method} ${new URL(url).pathname}`,
+    );
+  }
+
+  function writePackFile(sizeBytes: number): string {
+    const packFilePath = join(directoryPath, 'pack');
+    writeFileSync(packFilePath, Buffer.alloc(sizeBytes));
+    return packFilePath;
+  }
 
   it('should upload a large file in parts of one size and complete the multipart upload', async () => {
     const sizeBytes = SINGLE_UPLOAD_LIMIT_BYTES + 1;
@@ -94,6 +144,83 @@ describe('upload', () => {
       uploadedFileCount: 1,
     });
   });
+
+  it.each(PACK_UPLOADS)(
+    'should upload the $kind in one request when it is at the single-upload limit',
+    async ({ path, upload }) => {
+      harness.routes[`PUT ${path}`] = () =>
+        Response.json({ sizeBytes: SINGLE_UPLOAD_LIMIT_BYTES });
+
+      await upload(
+        new HotCodePush({ baseUrl: API_URL, token: TOKEN }),
+        writePackFile(SINGLE_UPLOAD_LIMIT_BYTES),
+      );
+
+      expect(readRequestLines()).toEqual([`PUT ${path}`]);
+      expect(Number(harness.requests[0]?.headers.get('content-length'))).toBe(
+        SINGLE_UPLOAD_LIMIT_BYTES,
+      );
+    },
+  );
+
+  it.each(PACK_UPLOADS)(
+    'should upload the $kind in parts and complete the multipart upload when it is above the single-upload limit',
+    async ({ path, upload }) => {
+      harness.routes[`POST ${path}/uploads`] = () =>
+        Response.json({ uploadId: 'upload-1' }, { status: 201 });
+      for (let partNumber = 1; partNumber <= PART_COUNT; partNumber += 1) {
+        harness.routes[`PUT ${path}/uploads/upload-1/parts/${partNumber}`] =
+          () => Response.json({ etag: `etag-${partNumber}`, partNumber });
+      }
+      harness.routes[`POST ${path}/uploads/upload-1/complete`] = () =>
+        Response.json({ sizeBytes: SINGLE_UPLOAD_LIMIT_BYTES + 1 });
+
+      await upload(
+        new HotCodePush({ baseUrl: API_URL, token: TOKEN }),
+        writePackFile(SINGLE_UPLOAD_LIMIT_BYTES + 1),
+      );
+
+      expect(readRequestLines()).toEqual([
+        `POST ${path}/uploads`,
+        ...Array.from(
+          { length: PART_COUNT },
+          (_, index) => `PUT ${path}/uploads/upload-1/parts/${index + 1}`,
+        ),
+        `POST ${path}/uploads/upload-1/complete`,
+      ]);
+      const completeRequest = harness.requests.at(-1);
+      expect(await completeRequest?.json()).toEqual({
+        parts: Array.from({ length: PART_COUNT }, (_, index) => ({
+          etag: `etag-${index + 1}`,
+          partNumber: index + 1,
+        })),
+      });
+    },
+  );
+
+  it.each(PACK_UPLOADS)(
+    'should delete the multipart upload of the $kind when a part fails',
+    async ({ path, upload }) => {
+      harness.routes[`POST ${path}/uploads`] = () =>
+        Response.json({ uploadId: 'upload-1' }, { status: 201 });
+      harness.routes[`PUT ${path}/uploads/upload-1/parts/1`] = () =>
+        respondWithApiError(409, 'E_UPLOAD_INCOMPLETE', 'The part is refused.');
+      harness.routes[`DELETE ${path}/uploads/upload-1`] = () =>
+        new Response(null, { status: 204 });
+
+      await expect(
+        upload(
+          new HotCodePush({ baseUrl: API_URL, token: TOKEN }),
+          writePackFile(SINGLE_UPLOAD_LIMIT_BYTES + 1),
+        ),
+      ).rejects.toMatchObject({ code: 'E_UPLOAD_INCOMPLETE' });
+      expect(readRequestLines()).toEqual([
+        `POST ${path}/uploads`,
+        `PUT ${path}/uploads/upload-1/parts/1`,
+        `DELETE ${path}/uploads/upload-1`,
+      ]);
+    },
+  );
 
   it('should refuse a file or a bundle above the one public size limit before any request', () => {
     const file = {

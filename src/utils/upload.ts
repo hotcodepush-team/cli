@@ -1,6 +1,6 @@
 import { openAsBlob } from 'node:fs';
 import { join } from 'node:path';
-import type { Bundle, HotCodePush } from '@hotcodepush/node';
+import type { Bundle, HotCodePush, UploadedPart } from '@hotcodepush/node';
 import { HotCodePushError } from '@hotcodepush/node';
 import {
   BundleManifestSchema,
@@ -19,6 +19,26 @@ import { resolveByteText } from './progress.js';
 import { readApiUrl } from './user-config.js';
 
 export type Platform = 'android' | 'ios';
+
+/**
+ * The multipart upload the files, the pack and the delta pack share, each addressed by its own path parameters.
+ */
+interface MultipartUploadsResource<TPathParameters> {
+  complete(
+    options: TPathParameters & { parts: UploadedPart[]; uploadId: string },
+  ): Promise<unknown>;
+  create(options: TPathParameters): Promise<{ uploadId: string }>;
+  delete(options: TPathParameters & { uploadId: string }): Promise<void>;
+  parts: {
+    upload(
+      options: TPathParameters & {
+        body: Blob;
+        partNumber: number;
+        uploadId: string;
+      },
+    ): Promise<UploadedPart>;
+  };
+}
 
 export interface UploadBundleOptions {
   appId: string;
@@ -44,7 +64,7 @@ export interface UploadedFiles {
 /** The one public size limit, in decimal bytes as the limits are. */
 export const BUNDLE_BYTES_LIMIT = 512_000_000;
 
-/** A file's gzip bytes go up in one request below this, in parts above it, well under a Worker's request-body cap. */
+/** A file's gzip bytes, the pack and the delta pack go up in one request below this, in parts above it, well under a Worker's request-body cap. */
 export const SINGLE_UPLOAD_LIMIT_BYTES = 64 * 1024 * 1024;
 
 /** Every part but the last is at least five mebibytes and all are one size, the bucket's rule. */
@@ -122,12 +142,12 @@ export async function uploadBundle(
       packFilePath,
     );
     reporter.report('Uploading the full pack…');
-    await hotCodePush.apps.bundles.pack.upload({
-      appId,
-      body: await openAsBlob(packFilePath),
-      bundleId: createdBundle.id,
-    });
-    const deltaBaseBundleId = await uploadDeltaPack(
+    await uploadPack(
+      hotCodePush,
+      { appId, bundleId: createdBundle.id },
+      packFilePath,
+    );
+    const deltaBaseBundleId = await uploadDeltaPackAgainstPreviousBundle(
       hotCodePush,
       appId,
       createdBundle.id,
@@ -168,6 +188,52 @@ export async function uploadMissingFiles(
     uploadedBytes += compressedFile.sizeBytes;
   }
   return { uploadedBytes, uploadedFileCount: missingSha256s.length };
+}
+
+/**
+ * A delta pack from disk, in one request or in parts by size.
+ */
+export async function uploadDeltaPack(
+  hotCodePush: HotCodePush,
+  pathParameters: { appId: string; baseBundleId: string; bundleId: string },
+  deltaPackFilePath: string,
+): Promise<void> {
+  const blob = await openAsBlob(deltaPackFilePath);
+  if (blob.size <= SINGLE_UPLOAD_LIMIT_BYTES) {
+    await hotCodePush.apps.bundles.deltas.upload({
+      ...pathParameters,
+      body: blob,
+    });
+    return;
+  }
+  await uploadBlobInParts(
+    hotCodePush.apps.bundles.deltas.uploads,
+    pathParameters,
+    blob,
+  );
+}
+
+/**
+ * The full pack from disk, in one request or in parts by size.
+ */
+export async function uploadPack(
+  hotCodePush: HotCodePush,
+  pathParameters: { appId: string; bundleId: string },
+  packFilePath: string,
+): Promise<void> {
+  const blob = await openAsBlob(packFilePath);
+  if (blob.size <= SINGLE_UPLOAD_LIMIT_BYTES) {
+    await hotCodePush.apps.bundles.pack.upload({
+      ...pathParameters,
+      body: blob,
+    });
+    return;
+  }
+  await uploadBlobInParts(
+    hotCodePush.apps.bundles.pack.uploads,
+    pathParameters,
+    blob,
+  );
 }
 
 /**
@@ -229,7 +295,7 @@ async function fetchManifestSha256s(
   }
 }
 
-async function uploadDeltaPack(
+async function uploadDeltaPackAgainstPreviousBundle(
   hotCodePush: HotCodePush,
   appId: string,
   bundleId: string,
@@ -263,54 +329,59 @@ async function uploadDeltaPack(
   reporter.report(
     `Uploading the delta pack against #${previousBundle.number}, ${changedFiles.length} changed files…`,
   );
-  await hotCodePush.apps.bundles.deltas.upload({
-    appId,
-    baseBundleId: previousBundle.id,
-    body: await openAsBlob(deltaFilePath),
-    bundleId,
-  });
+  await uploadDeltaPack(
+    hotCodePush,
+    { appId, baseBundleId: previousBundle.id, bundleId },
+    deltaFilePath,
+  );
   return previousBundle.id;
 }
 
 async function uploadFile(
   hotCodePush: HotCodePush,
   appId: string,
-  { compressedFilePath, sha256, sizeBytes }: CompressedFile,
+  { compressedFilePath, sha256 }: CompressedFile,
 ): Promise<void> {
   const blob = await openAsBlob(compressedFilePath);
-  if (sizeBytes <= SINGLE_UPLOAD_LIMIT_BYTES) {
+  if (blob.size <= SINGLE_UPLOAD_LIMIT_BYTES) {
     await hotCodePush.apps.files.upload({ appId, body: blob, sha256 });
     return;
   }
-  const { uploadId } = await hotCodePush.apps.files.uploads.create({
-    appId,
-    sha256,
-  });
+  await uploadBlobInParts(
+    hotCodePush.apps.files.uploads,
+    { appId, sha256 },
+    blob,
+  );
+}
+
+/**
+ * A body above the single-upload limit in parts of one size, then completed; a failed part deletes the upload.
+ */
+async function uploadBlobInParts<TPathParameters extends object>(
+  uploads: MultipartUploadsResource<TPathParameters>,
+  pathParameters: TPathParameters,
+  blob: Blob,
+): Promise<void> {
+  const { uploadId } = await uploads.create(pathParameters);
   try {
-    const parts: { etag: string; partNumber: number }[] = [];
+    const parts: UploadedPart[] = [];
     for (
       let start = 0, partNumber = 1;
-      start < sizeBytes;
+      start < blob.size;
       start += PART_SIZE_BYTES, partNumber += 1
     ) {
-      const uploadedPart = await hotCodePush.apps.files.uploads.parts.upload({
-        appId,
-        body: blob.slice(start, Math.min(start + PART_SIZE_BYTES, sizeBytes)),
+      const uploadedPart = await uploads.parts.upload({
+        ...pathParameters,
+        body: blob.slice(start, start + PART_SIZE_BYTES),
         partNumber,
-        sha256,
         uploadId,
       });
       parts.push(uploadedPart);
     }
-    await hotCodePush.apps.files.uploads.complete({
-      appId,
-      parts,
-      sha256,
-      uploadId,
-    });
+    await uploads.complete({ ...pathParameters, parts, uploadId });
   } catch (error) {
-    await hotCodePush.apps.files.uploads
-      .delete({ appId, sha256, uploadId })
+    await uploads
+      .delete({ ...pathParameters, uploadId })
       .catch(() => undefined);
     throw error;
   }
