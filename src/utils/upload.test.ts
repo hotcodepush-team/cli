@@ -1,8 +1,12 @@
-import { randomBytes } from 'node:crypto';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { HotCodePush, HotCodePushError } from '@hotcodepush/node';
+import {
+  HotCodePush,
+  HotCodePushError,
+  PART_SIZE_BYTES,
+  SINGLE_UPLOAD_LIMIT_BYTES,
+} from '@hotcodepush/node';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   API_URL,
@@ -19,9 +23,7 @@ import { BundleTooLargeError } from './errors.js';
 import {
   assertWithinBundleBytesLimit,
   BUNDLE_BYTES_LIMIT,
-  PART_SIZE_BYTES,
   resolveMissingSha256s,
-  SINGLE_UPLOAD_LIMIT_BYTES,
   uploadDeltaPack,
   uploadMissingFiles,
   uploadPack,
@@ -33,7 +35,30 @@ const BUNDLE_PATH = `/v1/apps/${DEMO_APP.id}/bundles/${READY_BUNDLE.id}`;
 
 const PART_COUNT = Math.ceil((SINGLE_UPLOAD_LIMIT_BYTES + 1) / PART_SIZE_BYTES);
 
-const PACK_UPLOADS = [
+// every kind the CLI uploads, each through its one call of the client, which picks one request or parts by size
+const UPLOADS = [
+  {
+    kind: 'file',
+    path: `/v1/apps/${DEMO_APP.id}/files/${SHA256}`,
+    upload: async (hotCodePush: HotCodePush, filePath: string) => {
+      await uploadMissingFiles(
+        hotCodePush,
+        DEMO_APP.id,
+        [SHA256],
+        new Map([
+          [
+            SHA256,
+            {
+              compressedFilePath: filePath,
+              sha256: SHA256,
+              sizeBytes: statSync(filePath).size,
+            },
+          ],
+        ]),
+        { report: () => undefined },
+      );
+    },
+  },
   {
     kind: 'pack',
     path: `${BUNDLE_PATH}/pack`,
@@ -78,74 +103,13 @@ describe('upload', () => {
     );
   }
 
-  function writePackFile(sizeBytes: number): string {
-    const packFilePath = join(directoryPath, 'pack');
-    writeFileSync(packFilePath, Buffer.alloc(sizeBytes));
-    return packFilePath;
+  function writeUploadFile(sizeBytes: number): string {
+    const filePath = join(directoryPath, 'upload');
+    writeFileSync(filePath, Buffer.alloc(sizeBytes));
+    return filePath;
   }
 
-  it('should upload a large file in parts of one size and complete the multipart upload', async () => {
-    const sizeBytes = SINGLE_UPLOAD_LIMIT_BYTES + 1;
-    const compressedFilePath = join(directoryPath, `${SHA256}.gz`);
-    writeFileSync(compressedFilePath, randomBytes(sizeBytes));
-    const filePath = `/v1/apps/${DEMO_APP.id}/files/${SHA256}`;
-    harness.routes[`POST ${filePath}/uploads`] = () =>
-      Response.json({ uploadId: 'upload-1' }, { status: 201 });
-    harness.routes[`PUT ${filePath}/uploads/upload-1/parts/1`] = () =>
-      Response.json({ etag: 'etag-1', partNumber: 1 });
-    harness.routes[`PUT ${filePath}/uploads/upload-1/parts/7`] = () =>
-      Response.json({ etag: 'etag-7', partNumber: 7 });
-    for (let partNumber = 2; partNumber <= 6; partNumber += 1) {
-      harness.routes[`PUT ${filePath}/uploads/upload-1/parts/${partNumber}`] =
-        () => Response.json({ etag: `etag-${partNumber}`, partNumber });
-    }
-    harness.routes[`POST ${filePath}/uploads/upload-1/complete`] = () =>
-      Response.json(
-        {
-          appId: DEMO_APP.id,
-          createdAt: '2026-09-29T12:00:00.000Z',
-          sha256: SHA256,
-          sizeBytes,
-        },
-        { status: 201 },
-      );
-
-    const uploadedFiles = await uploadMissingFiles(
-      new HotCodePush({ baseUrl: API_URL, token: TOKEN }),
-      DEMO_APP.id,
-      [SHA256],
-      new Map([[SHA256, { compressedFilePath, sha256: SHA256, sizeBytes }]]),
-      { report: () => undefined },
-    );
-
-    const partRequests = harness.requests.filter(({ url }) =>
-      url.includes('/parts/'),
-    );
-    expect(partRequests).toHaveLength(7);
-    expect(
-      partRequests
-        .slice(0, 6)
-        .map(request => Number(request.headers.get('content-length'))),
-    ).toEqual(Array.from({ length: 6 }, () => PART_SIZE_BYTES));
-    expect(Number(partRequests[6]?.headers.get('content-length'))).toBe(
-      sizeBytes - 6 * PART_SIZE_BYTES,
-    );
-    const completeRequest = harness.requests.find(({ url }) =>
-      url.endsWith('/complete'),
-    );
-    expect(await completeRequest?.json()).toEqual({
-      parts: Array.from({ length: 7 }, (_, index) => ({
-        etag: `etag-${index + 1}`,
-        partNumber: index + 1,
-      })),
-    });
-    expect(uploadedFiles).toEqual({
-      uploadedBytes: sizeBytes,
-      uploadedFileCount: 1,
-    });
-  });
-
-  it.each(PACK_UPLOADS)(
+  it.each(UPLOADS)(
     'should upload the $kind in one request when it is at the single-upload limit',
     async ({ path, upload }) => {
       harness.routes[`PUT ${path}`] = () =>
@@ -153,7 +117,7 @@ describe('upload', () => {
 
       await upload(
         new HotCodePush({ baseUrl: API_URL, token: TOKEN }),
-        writePackFile(SINGLE_UPLOAD_LIMIT_BYTES),
+        writeUploadFile(SINGLE_UPLOAD_LIMIT_BYTES),
       );
 
       expect(readRequestLines()).toEqual([`PUT ${path}`]);
@@ -163,7 +127,7 @@ describe('upload', () => {
     },
   );
 
-  it.each(PACK_UPLOADS)(
+  it.each(UPLOADS)(
     'should upload the $kind in parts and complete the multipart upload when it is above the single-upload limit',
     async ({ path, upload }) => {
       harness.routes[`POST ${path}/uploads`] = () =>
@@ -177,7 +141,7 @@ describe('upload', () => {
 
       await upload(
         new HotCodePush({ baseUrl: API_URL, token: TOKEN }),
-        writePackFile(SINGLE_UPLOAD_LIMIT_BYTES + 1),
+        writeUploadFile(SINGLE_UPLOAD_LIMIT_BYTES + 1),
       );
 
       expect(readRequestLines()).toEqual([
@@ -187,6 +151,14 @@ describe('upload', () => {
           (_, index) => `PUT ${path}/uploads/upload-1/parts/${index + 1}`,
         ),
         `POST ${path}/uploads/upload-1/complete`,
+      ]);
+      expect(
+        harness.requests
+          .filter(({ url }) => url.includes('/parts/'))
+          .map(request => Number(request.headers.get('content-length'))),
+      ).toEqual([
+        ...Array.from({ length: PART_COUNT - 1 }, () => PART_SIZE_BYTES),
+        SINGLE_UPLOAD_LIMIT_BYTES + 1 - (PART_COUNT - 1) * PART_SIZE_BYTES,
       ]);
       const completeRequest = harness.requests.at(-1);
       expect(await completeRequest?.json()).toEqual({
@@ -198,7 +170,7 @@ describe('upload', () => {
     },
   );
 
-  it.each(PACK_UPLOADS)(
+  it.each(UPLOADS)(
     'should delete the multipart upload of the $kind when a part fails',
     async ({ path, upload }) => {
       harness.routes[`POST ${path}/uploads`] = () =>
@@ -211,7 +183,7 @@ describe('upload', () => {
       await expect(
         upload(
           new HotCodePush({ baseUrl: API_URL, token: TOKEN }),
-          writePackFile(SINGLE_UPLOAD_LIMIT_BYTES + 1),
+          writeUploadFile(SINGLE_UPLOAD_LIMIT_BYTES + 1),
         ),
       ).rejects.toMatchObject({ code: 'E_UPLOAD_INCOMPLETE' });
       expect(readRequestLines()).toEqual([
