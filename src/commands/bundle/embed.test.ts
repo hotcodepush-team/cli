@@ -14,8 +14,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   respondWithApiError,
   useCommandHarness,
-} from '../../testing/command-harness.js';
-import { DEMO_APP, EMBEDDED_BUNDLE } from '../../testing/fixtures.js';
+} from '../../../test/command-harness.js';
+import { DEMO_APP, EMBEDDED_BUNDLE } from '../../../test/fixtures.js';
 import bundleEmbedCommand from './embed.js';
 
 // the not-logged-in case must not find a token in the machine's keyring

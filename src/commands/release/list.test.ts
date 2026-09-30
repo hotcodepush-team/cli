@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { useCommandHarness } from '../../testing/command-harness.js';
-import { DEMO_APP, STAGING_CHANNEL } from '../../testing/fixtures.js';
+import { useCommandHarness } from '../../../test/command-harness.js';
+import { DEMO_APP, STAGING_CHANNEL } from '../../../test/fixtures.js';
 import {
   CHANNEL_PATH,
   RELEASE_LOG,
   respondWithStagingReleases,
-} from '../../testing/release-routes.js';
+} from '../../../test/release-routes.js';
 import releaseListCommand from './list.js';
 
 describe('release list', () => {

@@ -4,8 +4,8 @@ import {
   respondWithApiError,
   stubInteractiveTerminal,
   useCommandHarness,
-} from '../../testing/command-harness.js';
-import { DEMO_APP, READY_BUNDLE } from '../../testing/fixtures.js';
+} from '../../../test/command-harness.js';
+import { DEMO_APP, READY_BUNDLE } from '../../../test/fixtures.js';
 import { ConfirmationRequiredError } from '../../utils/errors.js';
 import bundleDeleteCommand from './delete.js';
 

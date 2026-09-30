@@ -3,8 +3,8 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
   useCommandHarness,
-} from '../../testing/command-harness.js';
-import { ACME_ORGANIZATION, DEMO_APP } from '../../testing/fixtures.js';
+} from '../../../test/command-harness.js';
+import { ACME_ORGANIZATION, DEMO_APP } from '../../../test/fixtures.js';
 import { ConfirmationRequiredError } from '../../utils/errors.js';
 import organizationDeleteCommand from './delete.js';
 

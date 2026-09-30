@@ -16,7 +16,7 @@ export default defineConfig(
       'import-x/no-extraneous-dependencies': [
         'error',
         {
-          devDependencies: ['**/*.test.ts', '**/*.config.*', 'src/testing/**'],
+          devDependencies: ['**/*.test.ts', '**/*.config.*', 'test/**'],
         },
       ],
       'import-x/order': ['error', { alphabetize: { order: 'asc' } }],

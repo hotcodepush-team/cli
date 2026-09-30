@@ -3,13 +3,13 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
   useCommandHarness,
-} from '../testing/command-harness.js';
+} from '../../test/command-harness.js';
 import {
   ACME_ORGANIZATION,
   DEMO_APP,
   STAGING_CHANNEL,
   STAGING_CHANNEL_WITH_DEVICE_COUNTS,
-} from '../testing/fixtures.js';
+} from '../../test/fixtures.js';
 import { openBrowser } from '../utils/browser.js';
 import { MissingParameterError } from '../utils/errors.js';
 import openCommand from './open.js';

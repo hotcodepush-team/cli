@@ -1,13 +1,13 @@
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { writeCapacitorProject } from '../testing/capacitor-project.js';
-import { useCommandHarness } from '../testing/command-harness.js';
+import { writeCapacitorProject } from '../../test/capacitor-project.js';
+import { useCommandHarness } from '../../test/command-harness.js';
 import {
   DEMO_APP,
   PRODUCTION_CHANNEL,
   RUNNER_USER,
-} from '../testing/fixtures.js';
+} from '../../test/fixtures.js';
 import { ReportedFailureError } from '../utils/errors.js';
 import { addResourceReference } from '../utils/xcode-project.js';
 import doctorCommand from './doctor.js';

@@ -3,12 +3,12 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
   useCommandHarness,
-} from '../../testing/command-harness.js';
+} from '../../../test/command-harness.js';
 import {
   DEMO_APP,
   EMBEDDED_BUNDLE,
   READY_BUNDLE,
-} from '../../testing/fixtures.js';
+} from '../../../test/fixtures.js';
 import { MissingParameterError } from '../../utils/errors.js';
 import embeddedBundleGetCommand from './get.js';
 

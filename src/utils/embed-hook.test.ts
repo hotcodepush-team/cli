@@ -1,7 +1,7 @@
 import { readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { writeCapacitorProject } from '../testing/capacitor-project.js';
+import { writeCapacitorProject } from '../../test/capacitor-project.js';
 import {
   resolveEmbedHookState,
   stringifyLikeSource,

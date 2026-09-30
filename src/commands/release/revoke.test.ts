@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
   useCommandHarness,
-} from '../../testing/command-harness.js';
+} from '../../../test/command-harness.js';
 import {
   DEMO_APP,
   LIVE_RELEASE,
@@ -11,12 +11,12 @@ import {
   PREVIOUS_RELEASE,
   READY_BUNDLE,
   STAGING_CHANNEL,
-} from '../../testing/fixtures.js';
+} from '../../../test/fixtures.js';
 import {
   CHANNEL_PATH,
   RELEASES_PATH,
   respondWithStagingReleases,
-} from '../../testing/release-routes.js';
+} from '../../../test/release-routes.js';
 import { ConfirmationRequiredError } from '../../utils/errors.js';
 import releaseRevokeCommand from './revoke.js';
 

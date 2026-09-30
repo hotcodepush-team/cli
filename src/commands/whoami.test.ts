@@ -1,14 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
-import { PACKAGE_JSON } from '../config/consts.js';
 import {
   respondWithApiError,
   useCommandHarness,
-} from '../testing/command-harness.js';
+} from '../../test/command-harness.js';
 import {
   ACME_ORGANIZATION,
   GLOBEX_ORGANIZATION,
   RUNNER_USER,
-} from '../testing/fixtures.js';
+} from '../../test/fixtures.js';
+import { PACKAGE_JSON } from '../config/consts.js';
 import { runCli } from '../utils/cli.js';
 import { NotLoggedInError } from '../utils/errors.js';
 import whoamiCommand from './whoami.js';

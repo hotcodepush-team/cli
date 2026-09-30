@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { useCommandHarness } from '../../testing/command-harness.js';
-import { DEMO_APP, READY_BUNDLE } from '../../testing/fixtures.js';
+import { useCommandHarness } from '../../../test/command-harness.js';
+import { DEMO_APP, READY_BUNDLE } from '../../../test/fixtures.js';
 import { InvalidParameterError } from '../../utils/errors.js';
 import bundleGetCommand from './get.js';
 

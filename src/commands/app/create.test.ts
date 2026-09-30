@@ -3,12 +3,12 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
   useCommandHarness,
-} from '../../testing/command-harness.js';
+} from '../../../test/command-harness.js';
 import {
   ACME_ORGANIZATION,
   DEMO_APP,
   GLOBEX_ORGANIZATION,
-} from '../../testing/fixtures.js';
+} from '../../../test/fixtures.js';
 import { MissingParameterError } from '../../utils/errors.js';
 import appCreateCommand from './create.js';
 

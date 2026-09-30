@@ -2,8 +2,8 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, vi } from 'vitest';
-import type { ProjectConfig } from '../utils/project-config.js';
-import { writeUserConfig } from '../utils/user-config.js';
+import type { ProjectConfig } from '../src/utils/project-config.js';
+import { writeUserConfig } from '../src/utils/user-config.js';
 
 /**
  * What the fake API answers per route, keyed by method and path, `GET /v1/organizations`,

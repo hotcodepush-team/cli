@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   respondWithApiError,
   useCommandHarness,
-} from '../testing/command-harness.js';
-import { RUNNER_USER } from '../testing/fixtures.js';
+} from '../../test/command-harness.js';
+import { RUNNER_USER } from '../../test/fixtures.js';
 import {
   fetchCurrentUser,
   isUnauthenticatedError,

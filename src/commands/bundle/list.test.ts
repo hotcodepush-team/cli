@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { useCommandHarness } from '../../testing/command-harness.js';
+import { useCommandHarness } from '../../../test/command-harness.js';
 import {
   DEMO_APP,
   PREVIOUS_BUNDLE,
   READY_BUNDLE,
-} from '../../testing/fixtures.js';
+} from '../../../test/fixtures.js';
 import bundleListCommand from './list.js';
 
 describe('bundle list', () => {

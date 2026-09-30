@@ -27,7 +27,7 @@ src/
                the embed hook in package.json, the resource reference in the Xcode project
   config/      consts: the API URL, the client id and header, the config file, the docs and issues URLs,
                the keyring entry, package.json, the project file
-  testing/     the command tests' harness, the API faked behind fetch, their fixtures, the release routes
+test/          the command tests' harness, the API faked behind fetch, their fixtures, the release routes
                and the Capacitor project a test writes, with the pbxproj of `cap add ios`; never built
 dist/          the build output, never committed
 ```

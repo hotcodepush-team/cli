@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { useCommandHarness } from '../../testing/command-harness.js';
-import { ACME_ORGANIZATION, DEMO_APP } from '../../testing/fixtures.js';
+import { useCommandHarness } from '../../../test/command-harness.js';
+import { ACME_ORGANIZATION, DEMO_APP } from '../../../test/fixtures.js';
 import appListCommand from './list.js';
 
 describe('app list', () => {

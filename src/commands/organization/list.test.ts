@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { useCommandHarness } from '../../testing/command-harness.js';
+import { useCommandHarness } from '../../../test/command-harness.js';
 import {
   ACME_ORGANIZATION,
   GLOBEX_ORGANIZATION,
-} from '../../testing/fixtures.js';
+} from '../../../test/fixtures.js';
 import organizationListCommand from './list.js';
 
 describe('organization list', () => {

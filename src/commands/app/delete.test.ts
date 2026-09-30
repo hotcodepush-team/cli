@@ -3,12 +3,12 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
   useCommandHarness,
-} from '../../testing/command-harness.js';
+} from '../../../test/command-harness.js';
 import {
   DEMO_APP,
   PRODUCTION_CHANNEL,
   STAGING_CHANNEL,
-} from '../../testing/fixtures.js';
+} from '../../../test/fixtures.js';
 import { ConfirmationRequiredError } from '../../utils/errors.js';
 import appDeleteCommand from './delete.js';
 

@@ -9,7 +9,7 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { PBXPROJ_FIXTURE_PATH } from '../testing/capacitor-project.js';
+import { PBXPROJ_FIXTURE_PATH } from '../../test/capacitor-project.js';
 import { XcodeProjectError } from './errors.js';
 import {
   addResourceReference,

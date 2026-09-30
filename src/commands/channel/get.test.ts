@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { useCommandHarness } from '../../testing/command-harness.js';
+import { useCommandHarness } from '../../../test/command-harness.js';
 import {
   DEMO_APP,
   PRODUCTION_CHANNEL,
   STAGING_CHANNEL,
   STAGING_CHANNEL_WITH_DEVICE_COUNTS,
-} from '../../testing/fixtures.js';
+} from '../../../test/fixtures.js';
 import { MissingParameterError } from '../../utils/errors.js';
 import channelGetCommand from './get.js';
 

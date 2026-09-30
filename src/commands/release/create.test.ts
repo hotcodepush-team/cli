@@ -7,7 +7,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
   useCommandHarness,
-} from '../../testing/command-harness.js';
+} from '../../../test/command-harness.js';
 import {
   DEMO_APP,
   LIVE_RELEASE,
@@ -15,8 +15,8 @@ import {
   READY_BUNDLE,
   STAGING_CHANNEL,
   STAGING_CHANNEL_WITH_DEVICE_COUNTS,
-} from '../../testing/fixtures.js';
-import { CHANNEL_PATH, RELEASES_PATH } from '../../testing/release-routes.js';
+} from '../../../test/fixtures.js';
+import { CHANNEL_PATH, RELEASES_PATH } from '../../../test/release-routes.js';
 import {
   ConfirmationRequiredError,
   InvalidParameterError,

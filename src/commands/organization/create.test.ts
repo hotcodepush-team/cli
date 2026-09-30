@@ -1,12 +1,12 @@
 import { text } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
-import { PACKAGE_JSON } from '../../config/consts.js';
 import {
   respondWithApiError,
   stubInteractiveTerminal,
   useCommandHarness,
-} from '../../testing/command-harness.js';
-import { ACME_ORGANIZATION } from '../../testing/fixtures.js';
+} from '../../../test/command-harness.js';
+import { ACME_ORGANIZATION } from '../../../test/fixtures.js';
+import { PACKAGE_JSON } from '../../config/consts.js';
 import { runCli } from '../../utils/cli.js';
 import { MissingParameterError } from '../../utils/errors.js';
 import organizationCreateCommand from './create.js';

@@ -1,17 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { useCommandHarness } from '../../testing/command-harness.js';
+import { useCommandHarness } from '../../../test/command-harness.js';
 import {
   DEMO_APP,
   LIVE_RELEASE,
   PRODUCTION_CHANNEL,
   READY_BUNDLE,
   STAGING_CHANNEL,
-} from '../../testing/fixtures.js';
+} from '../../../test/fixtures.js';
 import {
   LIVE_RELEASE_WITH_RELATIONS,
   RELEASES_PATH,
   respondWithStagingReleases,
-} from '../../testing/release-routes.js';
+} from '../../../test/release-routes.js';
 import { InvalidParameterError } from '../../utils/errors.js';
 import releaseGetCommand from './get.js';
 

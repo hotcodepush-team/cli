@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { useCommandHarness } from '../../testing/command-harness.js';
-import { ACME_ORGANIZATION } from '../../testing/fixtures.js';
+import { useCommandHarness } from '../../../test/command-harness.js';
+import { ACME_ORGANIZATION } from '../../../test/fixtures.js';
 import { MissingParameterError } from '../../utils/errors.js';
 import organizationUpdateCommand from './update.js';
 

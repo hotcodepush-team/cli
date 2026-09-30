@@ -3,11 +3,11 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
   useCommandHarness,
-} from '../../testing/command-harness.js';
+} from '../../../test/command-harness.js';
 import {
   ACME_ORGANIZATION,
   GLOBEX_ORGANIZATION,
-} from '../../testing/fixtures.js';
+} from '../../../test/fixtures.js';
 import { MissingParameterError, UnknownNameError } from '../../utils/errors.js';
 import organizationGetCommand from './get.js';
 

@@ -1,16 +1,16 @@
 import { text } from '@clack/prompts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { PACKAGE_JSON } from '../../config/consts.js';
 import {
   respondWithApiError,
   stubInteractiveTerminal,
   useCommandHarness,
-} from '../../testing/command-harness.js';
+} from '../../../test/command-harness.js';
 import {
   DEMO_APP,
   PRODUCTION_CHANNEL,
   STAGING_CHANNEL,
-} from '../../testing/fixtures.js';
+} from '../../../test/fixtures.js';
+import { PACKAGE_JSON } from '../../config/consts.js';
 import { runCli } from '../../utils/cli.js';
 import { InvalidParameterError } from '../../utils/errors.js';
 import channelCreateCommand from './create.js';

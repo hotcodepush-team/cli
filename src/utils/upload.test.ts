@@ -8,8 +8,8 @@ import {
   API_URL,
   TOKEN,
   useCommandHarness,
-} from '../testing/command-harness.js';
-import { DEMO_APP } from '../testing/fixtures.js';
+} from '../../test/command-harness.js';
+import { DEMO_APP } from '../../test/fixtures.js';
 import { BundleTooLargeError } from './errors.js';
 import {
   assertWithinBundleBytesLimit,

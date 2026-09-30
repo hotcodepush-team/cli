@@ -6,17 +6,17 @@ import { gunzipSync } from 'node:zlib';
 import { text } from '@clack/prompts';
 import { stringifyCanonicalJson } from '@hotcodepush/protocol';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { PACKAGE_JSON } from '../../config/consts.js';
 import {
   API_URL,
   stubInteractiveTerminal,
   useCommandHarness,
-} from '../../testing/command-harness.js';
+} from '../../../test/command-harness.js';
 import {
   DEMO_APP,
   PREVIOUS_BUNDLE,
   READY_BUNDLE,
-} from '../../testing/fixtures.js';
+} from '../../../test/fixtures.js';
+import { PACKAGE_JSON } from '../../config/consts.js';
 import { runCli } from '../../utils/cli.js';
 import {
   UnknownFrameworkError,
