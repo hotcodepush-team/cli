@@ -79,16 +79,28 @@ export async function logIn(
 }
 
 /**
- * Polls at the interval until the person approves or denies the code, or the code expires.
+ * Polls at the interval until the person approves or denies the code, or the code expires by the server's word or its own
+ * `expires_in`. A request that got no answer or a transient status is polled again like a pending code, since the person
+ * may be approving in the browser meanwhile.
  */
 async function fetchApprovedSessionToken(
   authClient: AuthClient,
-  { deviceCode, intervalSeconds }: DeviceAuthorization,
+  deviceAuthorization: DeviceAuthorization,
 ): Promise<string> {
-  let currentIntervalSeconds = intervalSeconds;
+  let currentIntervalSeconds = deviceAuthorization.intervalSeconds;
   for (;;) {
     await setTimeout(currentIntervalSeconds * 1000);
-    const { data, error } = await fetchDeviceToken(authClient, deviceCode);
+    if (isDeviceAuthorizationExpired(deviceAuthorization)) {
+      throw new LoginExpiredError();
+    }
+    const response = await fetchDeviceToken(
+      authClient,
+      deviceAuthorization.deviceCode,
+    ).catch(() => undefined);
+    if (response === undefined) {
+      continue;
+    }
+    const { data, error } = response;
     if (error === null) {
       return data.access_token;
     }
@@ -103,7 +115,9 @@ async function fetchApprovedSessionToken(
         currentIntervalSeconds += SLOW_DOWN_INCREMENT_SECONDS;
         break;
       default:
-        throw resolveApiError(error);
+        if (!isTransientStatus(error.status)) {
+          throw resolveApiError(error);
+        }
     }
   }
 }
@@ -182,16 +196,16 @@ async function fetchSessionToken(
 }
 
 /**
- * A login that cannot wait for the approval keeps the code for the next one and exits with the page and the code;
- * an interactive one shows them, opens the page and polls.
+ * The code is kept for the next login, so one that ends before the approval — killed, or unable to wait — is redeemed by it.
+ * A login that cannot wait exits with the page and the code; an interactive one shows them, opens the page and polls.
  */
 async function fetchSessionTokenOnApproval(
   authClient: AuthClient,
   deviceAuthorization: DeviceAuthorization,
   isLoginInteractive: boolean,
 ): Promise<string> {
+  writePendingDeviceAuthorization(deviceAuthorization);
   if (!isLoginInteractive) {
-    writePendingDeviceAuthorization(deviceAuthorization);
     throw new NotLoggedInError(deviceAuthorization);
   }
   process.stderr.write(
@@ -217,6 +231,13 @@ function isDeviceAuthorizationExpired({
   expiresAt,
 }: DeviceAuthorization): boolean {
   return new Date(expiresAt) <= new Date();
+}
+
+/**
+ * A status the request may not meet on the next poll, as the Node client retries: a timeout, the rate limit or a server error.
+ */
+function isTransientStatus(status: number): boolean {
+  return status === 408 || status === 429 || status >= 500;
 }
 
 function readPendingDeviceAuthorization(): DeviceAuthorization | undefined {

@@ -203,6 +203,73 @@ describe('login', () => {
     expect(keyring.setPassword).not.toHaveBeenCalled();
   });
 
+  it('should poll again after a dropped connection, a server error and the rate limit', async () => {
+    fetchMock
+      .mockResolvedValueOnce(Response.json(DEVICE_AUTHORIZATION))
+      .mockRejectedValueOnce(new TypeError('fetch failed'))
+      .mockResolvedValueOnce(new Response('Bad Gateway', { status: 502 }))
+      .mockResolvedValueOnce(
+        Response.json(
+          { code: 'E_RATE_LIMITED', message: 'Too many requests.' },
+          { status: 429 },
+        ),
+      )
+      .mockResolvedValueOnce(Response.json(TOKEN))
+      .mockResolvedValueOnce(Response.json(SESSION));
+
+    await loginCommand.action({}, undefined);
+
+    expect(vi.mocked(setTimeout).mock.calls).toEqual([
+      [5000],
+      [5000],
+      [5000],
+      [5000],
+    ]);
+    expect(keyring.setPassword).toHaveBeenCalledWith('session-token-1');
+  });
+
+  it("should throw E_LOGIN_EXPIRED at the code's own expiry without asking again", async () => {
+    vi.mocked(setTimeout).mockImplementation(async delay => {
+      vi.setSystemTime(Date.now() + (delay ?? 0));
+    });
+    fetchMock
+      .mockResolvedValueOnce(
+        Response.json({ ...DEVICE_AUTHORIZATION, expires_in: 12 }),
+      )
+      .mockResolvedValueOnce(respondWithDeviceError('authorization_pending'))
+      .mockResolvedValueOnce(new Response('Bad Gateway', { status: 502 }));
+
+    await expect(loginCommand.action({}, undefined)).rejects.toThrow(
+      LoginExpiredError,
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(keyring.setPassword).not.toHaveBeenCalled();
+  });
+
+  it('should keep the code while it polls, so a login killed before the approval is redeemed by the next', async () => {
+    let keptUserConfig: unknown;
+    fetchMock
+      .mockResolvedValueOnce(Response.json(DEVICE_AUTHORIZATION))
+      .mockImplementationOnce(async () => {
+        keptUserConfig = readUserConfig();
+        return respondWithDeviceError('authorization_pending');
+      })
+      .mockResolvedValueOnce(Response.json(TOKEN))
+      .mockResolvedValueOnce(Response.json(SESSION));
+
+    await loginCommand.action({}, undefined);
+
+    expect(keptUserConfig).toMatchObject({
+      pendingDeviceCode: 'device-code-1',
+      pendingUserCode: 'WDJBMJHT',
+      pendingVerificationUrl: DEVICE_AUTHORIZATION.verification_uri_complete,
+    });
+    expect(readUserConfig()).toEqual({
+      apiUrl: API_URL,
+      sessionId: 'session-1',
+    });
+  });
+
   it("should pass any other answer of the device flow through as the API's error", async () => {
     fetchMock
       .mockResolvedValueOnce(Response.json(DEVICE_AUTHORIZATION))
