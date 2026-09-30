@@ -9,6 +9,12 @@ import {
 } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
+  description: 'Resume a paused channel: it serves its releases again.',
+  examples: [
+    'hotcodepush channel resume --channel production',
+    'hotcodepush channel resume --channel production --yes --json',
+  ],
+  options: defineCommandOptions(channelOptionShape),
   action: async options => {
     const hotCodePush = createApiClient();
     const fetchedChannel = await fetchChannel(hotCodePush, options);
@@ -31,10 +37,4 @@ export default defineCommand({
       );
     }
   },
-  description: 'Resume a paused channel: it serves its releases again.',
-  examples: [
-    'hotcodepush channel resume --channel production',
-    'hotcodepush channel resume --channel production --yes --json',
-  ],
-  options: defineCommandOptions(channelOptionShape),
 });

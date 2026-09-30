@@ -11,6 +11,12 @@ import { readProjectConfig } from '../../utils/project-config.js';
 import { fetchAppId } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
+  description: 'Print a bundle, by its number or id.',
+  examples: [
+    'hotcodepush bundle get --bundle 17',
+    'hotcodepush bundle get --bundle 17 --json',
+  ],
+  options: defineCommandOptions(bundleOptionShape),
   action: async options => {
     const hotCodePush = createApiClient();
     const appId = await fetchAppId(
@@ -36,10 +42,4 @@ export default defineCommand({
       ['Created', fetchedBundle.createdAt],
     ]);
   },
-  description: 'Print a bundle, by its number or id.',
-  examples: [
-    'hotcodepush bundle get --bundle 17',
-    'hotcodepush bundle get --bundle 17 --json',
-  ],
-  options: defineCommandOptions(bundleOptionShape),
 });

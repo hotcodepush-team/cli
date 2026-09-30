@@ -16,21 +16,6 @@ import {
 const ID_SCHEMA = z.guid();
 
 export default defineCommand({
-  action: async options => {
-    const hotCodePush = createApiClient();
-    try {
-      await deleteChannel(hotCodePush, options);
-    } catch (error) {
-      if (!options.ignoreNotFound || !isChannelGone(error)) {
-        throw error;
-      }
-      if (options.json) {
-        printJson(resolveAbsentChannel(options.channel));
-      } else {
-        console.log('The channel does not exist; nothing to delete.');
-      }
-    }
-  },
   description:
     'Delete a channel and its releases; devices on it keep what they have.',
   examples: [
@@ -46,6 +31,21 @@ export default defineCommand({
         'Succeed when the channel does not exist, for re-run pipelines.',
       ),
   }),
+  action: async options => {
+    const hotCodePush = createApiClient();
+    try {
+      await deleteChannel(hotCodePush, options);
+    } catch (error) {
+      if (!options.ignoreNotFound || !isChannelGone(error)) {
+        throw error;
+      }
+      if (options.json) {
+        printJson(resolveAbsentChannel(options.channel));
+      } else {
+        console.log('The channel does not exist; nothing to delete.');
+      }
+    }
+  },
 });
 
 async function deleteChannel(

@@ -6,6 +6,12 @@ import { readProjectConfig } from '../../utils/project-config.js';
 import { fetchAppId } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
+  description: "Print an app, hotcodepush.json's by default.",
+  examples: [
+    'hotcodepush app get',
+    'hotcodepush app get --app "My App" --organization Acme --json',
+  ],
+  options: defineCommandOptions({}),
   action: async options => {
     const hotCodePush = createApiClient();
     const fetchedApp = await hotCodePush.apps.get({
@@ -29,10 +35,4 @@ export default defineCommand({
       ['Created', fetchedApp.createdAt],
     ]);
   },
-  description: "Print an app, hotcodepush.json's by default.",
-  examples: [
-    'hotcodepush app get',
-    'hotcodepush app get --app "My App" --organization Acme --json',
-  ],
-  options: defineCommandOptions({}),
 });

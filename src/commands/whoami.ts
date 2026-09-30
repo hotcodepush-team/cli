@@ -9,6 +9,10 @@ import { printJson } from '../utils/output.js';
 import { fetchOrganizations } from '../utils/resource-resolution.js';
 
 export default defineCommand({
+  description:
+    'Print the user you are logged in as, or the one HOTCODEPUSH_TOKEN stands for, and their organizations.',
+  examples: ['hotcodepush whoami', 'hotcodepush whoami --json'],
+  options: defineCommandOptions({}),
   action: async options => {
     const user = await fetchCurrentUser();
     const organizations = (await fetchOrganizations(createApiClient())).map(
@@ -31,8 +35,4 @@ export default defineCommand({
       console.log(`  ${name} (${role})`);
     }
   },
-  description:
-    'Print the user you are logged in as, or the one HOTCODEPUSH_TOKEN stands for, and their organizations.',
-  examples: ['hotcodepush whoami', 'hotcodepush whoami --json'],
-  options: defineCommandOptions({}),
 });

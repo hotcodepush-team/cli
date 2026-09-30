@@ -5,6 +5,12 @@ import { printJson, printTable, resolveDate } from '../../utils/output.js';
 import { paginationShape, resolveNextOffset } from '../../utils/pagination.js';
 
 export default defineCommand({
+  description: 'List your organizations with your role in each, newest first.',
+  examples: [
+    'hotcodepush organization list',
+    'hotcodepush organization list --limit 10 --offset 10 --json',
+  ],
+  options: defineCommandOptions(paginationShape),
   action: async options => {
     const hotCodePush = createApiClient();
     const listedOrganizations = await hotCodePush.organizations.list({
@@ -28,10 +34,4 @@ export default defineCommand({
       ]),
     });
   },
-  description: 'List your organizations with your role in each, newest first.',
-  examples: [
-    'hotcodepush organization list',
-    'hotcodepush organization list --limit 10 --offset 10 --json',
-  ],
-  options: defineCommandOptions(paginationShape),
 });

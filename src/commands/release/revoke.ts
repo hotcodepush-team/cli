@@ -12,6 +12,16 @@ import {
 import { channelOptionShape } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
+  description:
+    'Revoke a release for good: devices on it move to the newest older release they qualify for or the embedded bundle.',
+  examples: [
+    'hotcodepush release revoke --release 43',
+    'hotcodepush release revoke --channel staging --release 43 --yes --json',
+  ],
+  options: defineCommandOptions({
+    ...channelOptionShape,
+    ...releaseOptionShape,
+  }),
   action: async options => {
     const hotCodePush = createApiClient();
     const { channel, release } = await fetchReleaseInChannel(
@@ -41,16 +51,6 @@ export default defineCommand({
       );
     }
   },
-  description:
-    'Revoke a release for good: devices on it move to the newest older release they qualify for or the embedded bundle.',
-  examples: [
-    'hotcodepush release revoke --release 43',
-    'hotcodepush release revoke --channel staging --release 43 --yes --json',
-  ],
-  options: defineCommandOptions({
-    ...channelOptionShape,
-    ...releaseOptionShape,
-  }),
 });
 
 /**

@@ -13,6 +13,10 @@ import {
 import { readApiUrl } from '../utils/user-config.js';
 
 export default defineCommand({
+  description:
+    "Open the app's console page in the browser, or the channel's, from hotcodepush.json.",
+  examples: ['hotcodepush open', 'hotcodepush open --channel staging'],
+  options: defineCommandOptions(channelOptionShape),
   action: async options => {
     const url = await resolveConsolePageUrl(options);
     if (options.json) {
@@ -22,10 +26,6 @@ export default defineCommand({
     }
     openBrowser(url);
   },
-  description:
-    "Open the app's console page in the browser, or the channel's, from hotcodepush.json.",
-  examples: ['hotcodepush open', 'hotcodepush open --channel staging'],
-  options: defineCommandOptions(channelOptionShape),
 });
 
 /**

@@ -11,6 +11,16 @@ import {
 import { channelOptionShape } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
+  description:
+    'Print a release with its rollout, its state and its counters: attempted, installed and failed by reason.',
+  examples: [
+    'hotcodepush release get --release 43',
+    'hotcodepush release get --channel staging --release 43 --json',
+  ],
+  options: defineCommandOptions({
+    ...channelOptionShape,
+    ...releaseOptionShape,
+  }),
   action: async options => {
     const { channel, release } = await fetchReleaseInChannel(
       createApiClient(),
@@ -36,16 +46,6 @@ export default defineCommand({
       ['Created', release.createdAt],
     ]);
   },
-  description:
-    'Print a release with its rollout, its state and its counters: attempted, installed and failed by reason.',
-  examples: [
-    'hotcodepush release get --release 43',
-    'hotcodepush release get --channel staging --release 43 --json',
-  ],
-  options: defineCommandOptions({
-    ...channelOptionShape,
-    ...releaseOptionShape,
-  }),
 });
 
 function resolveCounterDetails({

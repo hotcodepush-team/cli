@@ -61,6 +61,10 @@ const PROBE_TIMEOUT_MS = 5000;
 const SYNC_STEP = 'run npx cap sync, which runs the embed hook';
 
 export default defineCommand({
+  description:
+    'Check the project: its configuration, the hook wiring, the resource files, the hosts and the versions a bug report needs.',
+  examples: ['hotcodepush doctor', 'hotcodepush doctor --json'],
+  options: defineCommandOptions({}),
   action: async options => {
     const { directoryPath, projectConfig } = locateProjectConfig(
       options.config,
@@ -106,10 +110,6 @@ export default defineCommand({
       throw new ReportedFailureError('E_DOCTOR_FAILED');
     }
   },
-  description:
-    'Check the project: its configuration, the hook wiring, the resource files, the hosts and the versions a bug report needs.',
-  examples: ['hotcodepush doctor', 'hotcodepush doctor --json'],
-  options: defineCommandOptions({}),
 });
 
 function checkConfiguration({

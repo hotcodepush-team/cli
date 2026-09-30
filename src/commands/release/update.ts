@@ -18,6 +18,22 @@ interface ReleaseChanges {
 }
 
 export default defineCommand({
+  description:
+    'Edit a published release in place: flip the mandatory flag or rewrite the notes.',
+  examples: [
+    'hotcodepush release update --release 43 --mandatory',
+    'hotcodepush release update --channel staging --release 43 --mandatory false --notes "cart fix" --yes',
+  ],
+  options: defineCommandOptions({
+    ...channelOptionShape,
+    ...releaseOptionShape,
+    mandatory: booleanFlagSchema
+      .optional()
+      .describe(
+        'Whether devices install the release at once and restart; pass false to clear it.',
+      ),
+    notes: z.string().optional().describe('The new release notes.'),
+  }),
   action: async options => {
     const hotCodePush = createApiClient();
     const changes = resolveChangeTexts(options);
@@ -49,22 +65,6 @@ export default defineCommand({
       );
     }
   },
-  description:
-    'Edit a published release in place: flip the mandatory flag or rewrite the notes.',
-  examples: [
-    'hotcodepush release update --release 43 --mandatory',
-    'hotcodepush release update --channel staging --release 43 --mandatory false --notes "cart fix" --yes',
-  ],
-  options: defineCommandOptions({
-    ...channelOptionShape,
-    ...releaseOptionShape,
-    mandatory: booleanFlagSchema
-      .optional()
-      .describe(
-        'Whether devices install the release at once and restart; pass false to clear it.',
-      ),
-    notes: z.string().optional().describe('The new release notes.'),
-  }),
 });
 
 function resolveChangeTexts({ mandatory, notes }: ReleaseChanges): string[] {

@@ -10,6 +10,16 @@ import {
 import { channelOptionShape } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
+  description:
+    'Pause a release: devices on it keep it, and nobody new gets it until it is resumed.',
+  examples: [
+    'hotcodepush release pause --release 43',
+    'hotcodepush release pause --channel staging --release 43 --yes --json',
+  ],
+  options: defineCommandOptions({
+    ...channelOptionShape,
+    ...releaseOptionShape,
+  }),
   action: async options => {
     const hotCodePush = createApiClient();
     const { channel, release } = await fetchReleaseInChannel(
@@ -35,14 +45,4 @@ export default defineCommand({
       );
     }
   },
-  description:
-    'Pause a release: devices on it keep it, and nobody new gets it until it is resumed.',
-  examples: [
-    'hotcodepush release pause --release 43',
-    'hotcodepush release pause --channel staging --release 43 --yes --json',
-  ],
-  options: defineCommandOptions({
-    ...channelOptionShape,
-    ...releaseOptionShape,
-  }),
 });

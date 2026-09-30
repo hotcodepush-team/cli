@@ -12,6 +12,13 @@ import { confirmConsequence } from '../../utils/prompts.js';
 import { fetchAppId } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
+  description:
+    'Delete a bundle now; one a release serves or a store build embeds is refused.',
+  examples: [
+    'hotcodepush bundle delete --bundle 17',
+    'hotcodepush bundle delete --bundle 17 --yes --json',
+  ],
+  options: defineCommandOptions(bundleOptionShape),
   action: async options => {
     const hotCodePush = createApiClient();
     const appId = await fetchAppId(
@@ -42,11 +49,4 @@ export default defineCommand({
       );
     }
   },
-  description:
-    'Delete a bundle now; one a release serves or a store build embeds is refused.',
-  examples: [
-    'hotcodepush bundle delete --bundle 17',
-    'hotcodepush bundle delete --bundle 17 --yes --json',
-  ],
-  options: defineCommandOptions(bundleOptionShape),
 });

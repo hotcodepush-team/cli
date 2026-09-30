@@ -6,6 +6,12 @@ import { paginationShape, resolveNextOffset } from '../../utils/pagination.js';
 import { fetchOrganizationId } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
+  description: "List an organization's apps, newest first.",
+  examples: [
+    'hotcodepush app list',
+    'hotcodepush app list --organization Acme --json',
+  ],
+  options: defineCommandOptions(paginationShape),
   action: async options => {
     const hotCodePush = createApiClient();
     const listedApps = await hotCodePush.organizations.apps.list({
@@ -30,10 +36,4 @@ export default defineCommand({
       ]),
     });
   },
-  description: "List an organization's apps, newest first.",
-  examples: [
-    'hotcodepush app list',
-    'hotcodepush app list --organization Acme --json',
-  ],
-  options: defineCommandOptions(paginationShape),
 });

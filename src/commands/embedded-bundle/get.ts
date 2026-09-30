@@ -13,6 +13,17 @@ import { promptSelect } from '../../utils/prompts.js';
 import { fetchAppId } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
+  description: 'Print a registered store build with the bundle it embeds.',
+  examples: [
+    'hotcodepush embedded-bundle get --embedded-bundle 6ba7b810-9dad-41d1-80b4-00c04fd430c8',
+    'hotcodepush embedded-bundle get --embedded-bundle 6ba7b810-9dad-41d1-80b4-00c04fd430c8 --json',
+  ],
+  options: defineCommandOptions({
+    embeddedBundle: z
+      .string()
+      .optional()
+      .describe('The embedded bundle, by id.'),
+  }),
   action: async options => {
     const hotCodePush = createApiClient();
     const appId = await fetchAppId(
@@ -46,17 +57,6 @@ export default defineCommand({
       ['Created', fetchedEmbeddedBundle.createdAt],
     ]);
   },
-  description: 'Print a registered store build with the bundle it embeds.',
-  examples: [
-    'hotcodepush embedded-bundle get --embedded-bundle 6ba7b810-9dad-41d1-80b4-00c04fd430c8',
-    'hotcodepush embedded-bundle get --embedded-bundle 6ba7b810-9dad-41d1-80b4-00c04fd430c8 --json',
-  ],
-  options: defineCommandOptions({
-    embeddedBundle: z
-      .string()
-      .optional()
-      .describe('The embedded bundle, by id.'),
-  }),
 });
 
 /**

@@ -98,6 +98,7 @@ No releases yet: the version stays `0.0.0`, and release-please and npm provenanc
 - Prefixes from the monorepo's vocabulary: `fetch` HTTP, `resolve` derivations without I/O, `build` functions that assemble a document without sending it; `read`, `write` and `delete` for the files and the keyring.
 - Result variables carry the past participle of their operation, `loadedCommands`.
 - Alphabetical ordering within a scope.
+  The object passed to `defineCommand` is the one exception, read in the order `description`, `examples`, `args`, `options`, `action`: what the command is, how it is called, what it does.
 - One thing per function, its name saying which; never a function that both decides something and phrases the message about it.
 - Booleans carry `is` or `has`; a state with a moment is a timestamp such as `pausedAt`, never a boolean.
 - Error codes are `E_` plus SCREAMING_SNAKE.

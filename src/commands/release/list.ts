@@ -10,6 +10,13 @@ import {
 } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
+  description:
+    "List a channel's releases, newest first, with the devices on each.",
+  examples: [
+    'hotcodepush release list',
+    'hotcodepush release list --channel staging --json',
+  ],
+  options: defineCommandOptions({ ...channelOptionShape, ...paginationShape }),
   action: async options => {
     const hotCodePush = createApiClient();
     const fetchedChannel = await fetchChannel(hotCodePush, options);
@@ -50,11 +57,4 @@ export default defineCommand({
       ]),
     });
   },
-  description:
-    "List a channel's releases, newest first, with the devices on each.",
-  examples: [
-    'hotcodepush release list',
-    'hotcodepush release list --channel staging --json',
-  ],
-  options: defineCommandOptions({ ...channelOptionShape, ...paginationShape }),
 });

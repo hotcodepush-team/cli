@@ -8,6 +8,17 @@ import { promptText } from '../../utils/prompts.js';
 import { fetchAppId } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
+  description: "Rename an app, hotcodepush.json's by default.",
+  examples: [
+    'hotcodepush app update --name "My New App"',
+    'hotcodepush app update --app "My App" --name "My New App" --json',
+  ],
+  options: defineCommandOptions({
+    name: z
+      .string()
+      .optional()
+      .describe("The app's new name, unique in the organization."),
+  }),
   action: async options => {
     const hotCodePush = createApiClient();
     const appId = await fetchAppId(
@@ -25,15 +36,4 @@ export default defineCommand({
       console.log(`Updated app ${updatedApp.name} (${updatedApp.id}).`);
     }
   },
-  description: "Rename an app, hotcodepush.json's by default.",
-  examples: [
-    'hotcodepush app update --name "My New App"',
-    'hotcodepush app update --app "My App" --name "My New App" --json',
-  ],
-  options: defineCommandOptions({
-    name: z
-      .string()
-      .optional()
-      .describe("The app's new name, unique in the organization."),
-  }),
 });

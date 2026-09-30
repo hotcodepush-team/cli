@@ -48,6 +48,50 @@ const PLATFORMS = ['android', 'ios'] as const;
 const NO_UPLOAD: UploadedFiles = { uploadedBytes: 0, uploadedFileCount: 0 };
 
 export default defineCommand({
+  description:
+    "The build step the native hook calls: writes the resource file the SDK reads and registers the store build's embedded bundle.",
+  examples: [
+    'hotcodepush bundle embed --platform ios',
+    'hotcodepush bundle embed --platform android --binary-version 2.4.1 --binary-build 57 --force',
+  ],
+  options: defineCommandOptions({
+    binaryBuild: z
+      .string()
+      .optional()
+      .describe(
+        "The store build's build number; read from the native project by default.",
+      ),
+    binaryVersion: z
+      .string()
+      .optional()
+      .describe(
+        "The store build's version; read from the native project by default.",
+      ),
+    force: z
+      .boolean()
+      .optional()
+      .describe(
+        'Replace a registration whose fingerprint conflicts, for the deliberate pre-ship rebuild.',
+      ),
+    out: z
+      .string()
+      .optional()
+      .describe(
+        "Where to write the resource file; the platform's native project by default.",
+      ),
+    path: z
+      .string()
+      .optional()
+      .describe(
+        "The embedded assets to hash; hotcodepush.json's dir by default.",
+      ),
+    platform: z
+      .enum(PLATFORMS)
+      .optional()
+      .describe(
+        "The platform being built; CAPACITOR_PLATFORM_NAME's when the hook runs.",
+      ),
+  }),
   action: async options => {
     const { directoryPath, projectConfig } = locateProjectConfig(
       options.config,
@@ -113,50 +157,6 @@ export default defineCommand({
       );
     }
   },
-  description:
-    "The build step the native hook calls: writes the resource file the SDK reads and registers the store build's embedded bundle.",
-  examples: [
-    'hotcodepush bundle embed --platform ios',
-    'hotcodepush bundle embed --platform android --binary-version 2.4.1 --binary-build 57 --force',
-  ],
-  options: defineCommandOptions({
-    binaryBuild: z
-      .string()
-      .optional()
-      .describe(
-        "The store build's build number; read from the native project by default.",
-      ),
-    binaryVersion: z
-      .string()
-      .optional()
-      .describe(
-        "The store build's version; read from the native project by default.",
-      ),
-    force: z
-      .boolean()
-      .optional()
-      .describe(
-        'Replace a registration whose fingerprint conflicts, for the deliberate pre-ship rebuild.',
-      ),
-    out: z
-      .string()
-      .optional()
-      .describe(
-        "Where to write the resource file; the platform's native project by default.",
-      ),
-    path: z
-      .string()
-      .optional()
-      .describe(
-        "The embedded assets to hash; hotcodepush.json's dir by default.",
-      ),
-    platform: z
-      .enum(PLATFORMS)
-      .optional()
-      .describe(
-        "The platform being built; CAPACITOR_PLATFORM_NAME's when the hook runs.",
-      ),
-  }),
 });
 
 function assertProjectConfig(

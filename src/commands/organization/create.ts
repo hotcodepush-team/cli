@@ -6,6 +6,14 @@ import { printJson } from '../../utils/output.js';
 import { promptText } from '../../utils/prompts.js';
 
 export default defineCommand({
+  description: 'Create an organization with you as its Owner.',
+  examples: [
+    'hotcodepush organization create --name Acme',
+    'hotcodepush organization create --name Acme --json',
+  ],
+  options: defineCommandOptions({
+    name: z.string().optional().describe("The organization's name."),
+  }),
   action: async options => {
     const hotCodePush = createApiClient();
     const name =
@@ -22,12 +30,4 @@ export default defineCommand({
       );
     }
   },
-  description: 'Create an organization with you as its Owner.',
-  examples: [
-    'hotcodepush organization create --name Acme',
-    'hotcodepush organization create --name Acme --json',
-  ],
-  options: defineCommandOptions({
-    name: z.string().optional().describe("The organization's name."),
-  }),
 });

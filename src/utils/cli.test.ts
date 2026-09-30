@@ -20,7 +20,6 @@ function createCommandTree() {
   const commandRegistry: CommandRegistry = {
     'channel create': vi.fn(async () => ({
       default: defineCommand({
-        action: channelCreateAction,
         description: 'Create a channel.',
         examples: [
           'hotcodepush channel create --name beta',
@@ -30,39 +29,40 @@ function createCommandTree() {
           name: z.string().optional().describe('The channel name.'),
           rolloutPercentage: z.coerce.number().max(100).optional(),
         }),
+        action: channelCreateAction,
       }),
     })),
     'channel list': vi.fn(async () => ({
       default: defineCommand({
-        action: () => undefined,
         description: 'List the channels.',
         examples: [
           'hotcodepush channel list',
           'hotcodepush channel list --json',
         ],
         options: defineCommandOptions({}),
+        action: () => undefined,
       }),
     })),
     'fingerprint diff': vi.fn(async () => ({
       default: defineCommand({
-        action: fingerprintDiffAction,
-        args: z.array(z.string()),
         description: 'Compare two fingerprints.',
         examples: [
           'hotcodepush fingerprint diff a1 b2',
           'hotcodepush fingerprint diff a1 b2 --json',
         ],
+        args: z.array(z.string()),
         options: defineCommandOptions({}),
+        action: fingerprintDiffAction,
       }),
     })),
     'login': vi.fn(async () => ({
       default: defineCommand({
-        action: () => {
-          throw new MissingParameterError('--token');
-        },
         description: 'Log in.',
         examples: ['hotcodepush login', 'hotcodepush login --json'],
         options: defineCommandOptions({}),
+        action: () => {
+          throw new MissingParameterError('--token');
+        },
       }),
     })),
   };

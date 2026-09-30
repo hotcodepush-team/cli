@@ -77,11 +77,6 @@ export const bundleUploadOptionShape = {
 };
 
 export default defineCommand({
-  action: async options => {
-    const hotCodePush = createApiClient();
-    const uploadedBundle = await uploadBundleFromOptions(hotCodePush, options);
-    printUploadedBundle(uploadedBundle, options.json);
-  },
   description:
     'Upload a web build as a bundle: only the files the app lacks move, then the packs; nothing is released.',
   examples: [
@@ -89,6 +84,11 @@ export default defineCommand({
     'hotcodepush bundle upload --path dist --bundle-version 1.4.2 --platform ios --json',
   ],
   options: defineCommandOptions(bundleUploadOptionShape),
+  action: async options => {
+    const hotCodePush = createApiClient();
+    const uploadedBundle = await uploadBundleFromOptions(hotCodePush, options);
+    printUploadedBundle(uploadedBundle, options.json);
+  },
 });
 
 /**

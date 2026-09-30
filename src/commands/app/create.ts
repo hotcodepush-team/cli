@@ -15,6 +15,21 @@ const FRAMEWORKS = [
 ] as const satisfies App['framework'][];
 
 export default defineCommand({
+  description: 'Create an app with its default channel, production.',
+  examples: [
+    'hotcodepush app create --name "My App" --framework capacitor',
+    'hotcodepush app create --organization Acme --name "My App" --framework expo --json',
+  ],
+  options: defineCommandOptions({
+    framework: z
+      .enum(FRAMEWORKS)
+      .optional()
+      .describe('The framework: capacitor, cordova, expo or react-native.'),
+    name: z
+      .string()
+      .optional()
+      .describe("The app's name, unique in the organization."),
+  }),
   action: async options => {
     const hotCodePush = createApiClient();
     const organizationId = await fetchOrganizationId(hotCodePush, options);
@@ -40,19 +55,4 @@ export default defineCommand({
       console.log(`Created app ${createdApp.name} (${createdApp.id}).`);
     }
   },
-  description: 'Create an app with its default channel, production.',
-  examples: [
-    'hotcodepush app create --name "My App" --framework capacitor',
-    'hotcodepush app create --organization Acme --name "My App" --framework expo --json',
-  ],
-  options: defineCommandOptions({
-    framework: z
-      .enum(FRAMEWORKS)
-      .optional()
-      .describe('The framework: capacitor, cordova, expo or react-native.'),
-    name: z
-      .string()
-      .optional()
-      .describe("The app's name, unique in the organization."),
-  }),
 });

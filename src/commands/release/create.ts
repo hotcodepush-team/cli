@@ -45,6 +45,43 @@ interface ReleaseCreateOptions extends BundleUploadOptions {
 }
 
 export default defineCommand({
+  description:
+    'Release a bundle to a channel, uploading the web build first unless --bundle names one, and wait until it is live.',
+  examples: [
+    'hotcodepush release create --path dist',
+    'hotcodepush release create --bundle 17 --channel staging --rollout-percentage 10 --notes "cart fix" --yes',
+  ],
+  options: defineCommandOptions({
+    ...bundleUploadOptionShape,
+    bundle: z
+      .string()
+      .optional()
+      .describe(
+        'A bundle already uploaded, by number or id; without it the web build is uploaded first.',
+      ),
+    channel: z
+      .array(z.string())
+      .optional()
+      .describe(
+        "The channel, by id or name, repeatable; hotcodepush.json's channelId by default.",
+      ),
+    mandatory: booleanFlagSchema
+      .optional()
+      .describe('Devices install the release at once and restart.'),
+    notes: z
+      .string()
+      .optional()
+      .describe('The release notes; they ride the public index.'),
+    rolloutPercentage: z.coerce
+      .number()
+      .int()
+      .min(0)
+      .max(100)
+      .optional()
+      .describe(
+        'The share of devices the release reaches, 0 to 100; 100 by default.',
+      ),
+  }),
   action: async options => {
     const hotCodePush = createApiClient();
     const bundle = await resolveBundleToRelease(hotCodePush, options);
@@ -90,43 +127,6 @@ export default defineCommand({
       printJson(releases.length === 1 ? releases[0] : releases);
     }
   },
-  description:
-    'Release a bundle to a channel, uploading the web build first unless --bundle names one, and wait until it is live.',
-  examples: [
-    'hotcodepush release create --path dist',
-    'hotcodepush release create --bundle 17 --channel staging --rollout-percentage 10 --notes "cart fix" --yes',
-  ],
-  options: defineCommandOptions({
-    ...bundleUploadOptionShape,
-    bundle: z
-      .string()
-      .optional()
-      .describe(
-        'A bundle already uploaded, by number or id; without it the web build is uploaded first.',
-      ),
-    channel: z
-      .array(z.string())
-      .optional()
-      .describe(
-        "The channel, by id or name, repeatable; hotcodepush.json's channelId by default.",
-      ),
-    mandatory: booleanFlagSchema
-      .optional()
-      .describe('Devices install the release at once and restart.'),
-    notes: z
-      .string()
-      .optional()
-      .describe('The release notes; they ride the public index.'),
-    rolloutPercentage: z.coerce
-      .number()
-      .int()
-      .min(0)
-      .max(100)
-      .optional()
-      .describe(
-        'The share of devices the release reaches, 0 to 100; 100 by default.',
-      ),
-  }),
 });
 
 /**

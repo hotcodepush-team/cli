@@ -116,6 +116,33 @@ const CREATE_CHOICE = 'create';
 const ID_SCHEMA = z.guid();
 
 export default defineCommand({
+  description:
+    'Set a Capacitor project up from sign-in to the first release, re-runnable at any step.',
+  examples: ['hotcodepush init', 'hotcodepush init --yes --json'],
+  options: defineCommandOptions({
+    androidPath: z
+      .string()
+      .optional()
+      .describe(
+        "The Android project, when it is not capacitor.config's android.path or android/.",
+      ),
+    framework: z
+      .enum(['capacitor', 'cordova', 'expo', 'react-native'])
+      .optional()
+      .describe('The framework, over the one detected from package.json.'),
+    iosPath: z
+      .string()
+      .optional()
+      .describe(
+        "The iOS project, when it is not capacitor.config's ios.path or ios/.",
+      ),
+    xcodeTarget: z
+      .string()
+      .optional()
+      .describe(
+        'The app target to add the resource to, when the iOS project has several.',
+      ),
+  }),
   action: async options => {
     const { directoryPath, projectConfig } = locateProjectConfig(
       options.config,
@@ -189,33 +216,6 @@ export default defineCommand({
       throw new ReportedFailureError(run.stoppedCode);
     }
   },
-  description:
-    'Set a Capacitor project up from sign-in to the first release, re-runnable at any step.',
-  examples: ['hotcodepush init', 'hotcodepush init --yes --json'],
-  options: defineCommandOptions({
-    androidPath: z
-      .string()
-      .optional()
-      .describe(
-        "The Android project, when it is not capacitor.config's android.path or android/.",
-      ),
-    framework: z
-      .enum(['capacitor', 'cordova', 'expo', 'react-native'])
-      .optional()
-      .describe('The framework, over the one detected from package.json.'),
-    iosPath: z
-      .string()
-      .optional()
-      .describe(
-        "The iOS project, when it is not capacitor.config's ios.path or ios/.",
-      ),
-    xcodeTarget: z
-      .string()
-      .optional()
-      .describe(
-        'The app target to add the resource to, when the iOS project has several.',
-      ),
-  }),
 });
 
 /**

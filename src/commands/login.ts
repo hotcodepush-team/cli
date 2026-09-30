@@ -44,6 +44,9 @@ export interface LoggedInUser {
 }
 
 export default defineCommand({
+  description: 'Log in by approving a one-time code in the browser.',
+  examples: ['hotcodepush login', 'hotcodepush login --json'],
+  options: defineCommandOptions({}),
   action: async options => {
     const user = await logIn(options);
     if (options.json) {
@@ -52,9 +55,6 @@ export default defineCommand({
       console.log(`Logged in as ${user.name} (${user.email}).`);
     }
   },
-  description: 'Log in by approving a one-time code in the browser.',
-  examples: ['hotcodepush login', 'hotcodepush login --json'],
-  options: defineCommandOptions({}),
 });
 
 /**

@@ -19,6 +19,21 @@ import {
 } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
+  description:
+    "Release the channel's previous bundle again, or the one of --to-release, as a new release.",
+  examples: [
+    'hotcodepush release rollback',
+    'hotcodepush release rollback --channel staging --to-release 41 --yes',
+  ],
+  options: defineCommandOptions({
+    ...channelOptionShape,
+    toRelease: z
+      .string()
+      .optional()
+      .describe(
+        "The release whose bundle comes back, by number or id; the channel's previous one by default.",
+      ),
+  }),
   action: async options => {
     const hotCodePush = createApiClient();
     const fetchedChannel = await fetchChannel(hotCodePush, options);
@@ -47,21 +62,6 @@ export default defineCommand({
       printReleasedLine(liveRelease, fetchedChannel.name, bundleLabel);
     }
   },
-  description:
-    "Release the channel's previous bundle again, or the one of --to-release, as a new release.",
-  examples: [
-    'hotcodepush release rollback',
-    'hotcodepush release rollback --channel staging --to-release 41 --yes',
-  ],
-  options: defineCommandOptions({
-    ...channelOptionShape,
-    toRelease: z
-      .string()
-      .optional()
-      .describe(
-        "The release whose bundle comes back, by number or id; the channel's previous one by default.",
-      ),
-  }),
 });
 
 /**

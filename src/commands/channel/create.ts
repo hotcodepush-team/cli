@@ -18,6 +18,27 @@ import {
 } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
+  description:
+    'Create a channel in an app, with an expiry for a preview channel and its auto-pause policy.',
+  examples: [
+    'hotcodepush channel create --name staging --protected',
+    'hotcodepush channel create --name pr-42 --expires-in 14d --if-not-exists --json',
+  ],
+  options: defineCommandOptions({
+    ...channelFieldsShape,
+    ifNotExists: z
+      .boolean()
+      .optional()
+      .describe(
+        'Return the channel of that name when it exists instead of failing, for re-run pipelines.',
+      ),
+    name: z
+      .string()
+      .optional()
+      .describe(
+        'The name: letters, digits, - and _, one to 64 characters, unique in the app.',
+      ),
+  }),
   action: async options => {
     const hotCodePush = createApiClient();
     const appId = await fetchAppId(
@@ -50,27 +71,6 @@ export default defineCommand({
       );
     }
   },
-  description:
-    'Create a channel in an app, with an expiry for a preview channel and its auto-pause policy.',
-  examples: [
-    'hotcodepush channel create --name staging --protected',
-    'hotcodepush channel create --name pr-42 --expires-in 14d --if-not-exists --json',
-  ],
-  options: defineCommandOptions({
-    ...channelFieldsShape,
-    ifNotExists: z
-      .boolean()
-      .optional()
-      .describe(
-        'Return the channel of that name when it exists instead of failing, for re-run pipelines.',
-      ),
-    name: z
-      .string()
-      .optional()
-      .describe(
-        'The name: letters, digits, - and _, one to 64 characters, unique in the app.',
-      ),
-  }),
 });
 
 function isChannelNameTaken(error: unknown): boolean {

@@ -10,6 +10,13 @@ import {
 const DEFAULT_POLICY_TEXT = 'the default';
 
 export default defineCommand({
+  description:
+    "Print a channel with its device counts, hotcodepush.json's by default.",
+  examples: [
+    'hotcodepush channel get',
+    'hotcodepush channel get --channel staging --json',
+  ],
+  options: defineCommandOptions(channelOptionShape),
   action: async options => {
     const fetchedChannel = await fetchChannel(createApiClient(), options);
     if (options.json) {
@@ -45,11 +52,4 @@ export default defineCommand({
       ['Created', fetchedChannel.createdAt],
     ]);
   },
-  description:
-    "Print a channel with its device counts, hotcodepush.json's by default.",
-  examples: [
-    'hotcodepush channel get',
-    'hotcodepush channel get --channel staging --json',
-  ],
-  options: defineCommandOptions(channelOptionShape),
 });

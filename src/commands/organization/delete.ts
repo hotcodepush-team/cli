@@ -9,6 +9,13 @@ import {
 } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
+  description:
+    'Delete an organization with everything in it; support can restore it for seven days.',
+  examples: [
+    'hotcodepush organization delete --organization Acme',
+    'hotcodepush organization delete --organization Acme --yes --json',
+  ],
+  options: defineCommandOptions({}),
   action: async options => {
     const hotCodePush = createApiClient();
     const organizationId = await fetchOrganizationId(hotCodePush, options);
@@ -32,13 +39,6 @@ export default defineCommand({
       );
     }
   },
-  description:
-    'Delete an organization with everything in it; support can restore it for seven days.',
-  examples: [
-    'hotcodepush organization delete --organization Acme',
-    'hotcodepush organization delete --organization Acme --yes --json',
-  ],
-  options: defineCommandOptions({}),
 });
 
 function resolveDeletionConsequence(

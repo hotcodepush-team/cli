@@ -5,6 +5,12 @@ import { printDetails, printJson } from '../../utils/output.js';
 import { fetchOrganizationId } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
+  description: 'Print an organization with its plan and region.',
+  examples: [
+    'hotcodepush organization get --organization Acme',
+    'hotcodepush organization get --json',
+  ],
+  options: defineCommandOptions({}),
   action: async options => {
     const hotCodePush = createApiClient();
     const fetchedOrganization = await hotCodePush.organizations.get({
@@ -22,10 +28,4 @@ export default defineCommand({
       ['Created', fetchedOrganization.createdAt],
     ]);
   },
-  description: 'Print an organization with its plan and region.',
-  examples: [
-    'hotcodepush organization get --organization Acme',
-    'hotcodepush organization get --json',
-  ],
-  options: defineCommandOptions({}),
 });

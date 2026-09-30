@@ -9,6 +9,18 @@ import { readProjectConfig } from '../../utils/project-config.js';
 import { fetchAppId } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
+  description: "List an app's bundles, newest first.",
+  examples: [
+    'hotcodepush bundle list',
+    'hotcodepush bundle list --bundle-version 1.4.2 --json',
+  ],
+  options: defineCommandOptions({
+    ...paginationShape,
+    bundleVersion: z
+      .string()
+      .optional()
+      .describe('Only the bundles carrying this version label.'),
+  }),
   action: async options => {
     const hotCodePush = createApiClient();
     const listedBundles = await hotCodePush.apps.bundles.list({
@@ -42,16 +54,4 @@ export default defineCommand({
       ),
     });
   },
-  description: "List an app's bundles, newest first.",
-  examples: [
-    'hotcodepush bundle list',
-    'hotcodepush bundle list --bundle-version 1.4.2 --json',
-  ],
-  options: defineCommandOptions({
-    ...paginationShape,
-    bundleVersion: z
-      .string()
-      .optional()
-      .describe('Only the bundles carrying this version label.'),
-  }),
 });

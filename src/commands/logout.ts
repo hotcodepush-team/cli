@@ -19,6 +19,10 @@ interface EndedSession {
 const UNAUTHORIZED_STATUS = 401;
 
 export default defineCommand({
+  description:
+    'End the stored session and remove its token; HOTCODEPUSH_TOKEN, when set, stays what it is.',
+  examples: ['hotcodepush logout', 'hotcodepush logout --json'],
+  options: defineCommandOptions({}),
   action: async options => {
     const storedToken = readStoredToken();
     if (storedToken === undefined) {
@@ -47,10 +51,6 @@ export default defineCommand({
       options.json,
     );
   },
-  description:
-    'End the stored session and remove its token; HOTCODEPUSH_TOKEN, when set, stays what it is.',
-  examples: ['hotcodepush logout', 'hotcodepush logout --json'],
-  options: defineCommandOptions({}),
 });
 
 function deleteSessionId(): string | undefined {

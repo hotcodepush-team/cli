@@ -14,6 +14,21 @@ import { channelOptionShape } from '../../utils/resource-resolution.js';
 const rolloutPercentageSchema = z.coerce.number().int().min(0).max(100);
 
 export default defineCommand({
+  description:
+    "Set a release's rollout percentage in either direction; a device that has the release keeps it.",
+  examples: [
+    'hotcodepush release rollout --release 43 --rollout-percentage 50',
+    'hotcodepush release rollout --channel staging --release 43 --rollout-percentage 0 --yes',
+  ],
+  options: defineCommandOptions({
+    ...channelOptionShape,
+    ...releaseOptionShape,
+    rolloutPercentage: rolloutPercentageSchema
+      .optional()
+      .describe(
+        'The share of devices the release reaches from now on, 0 to 100.',
+      ),
+  }),
   action: async options => {
     const hotCodePush = createApiClient();
     const rolloutPercentage =
@@ -42,21 +57,6 @@ export default defineCommand({
       );
     }
   },
-  description:
-    "Set a release's rollout percentage in either direction; a device that has the release keeps it.",
-  examples: [
-    'hotcodepush release rollout --release 43 --rollout-percentage 50',
-    'hotcodepush release rollout --channel staging --release 43 --rollout-percentage 0 --yes',
-  ],
-  options: defineCommandOptions({
-    ...channelOptionShape,
-    ...releaseOptionShape,
-    rolloutPercentage: rolloutPercentageSchema
-      .optional()
-      .describe(
-        'The share of devices the release reaches from now on, 0 to 100.',
-      ),
-  }),
 });
 
 /**

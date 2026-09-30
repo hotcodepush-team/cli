@@ -7,6 +7,13 @@ import { readProjectConfig } from '../../utils/project-config.js';
 import { fetchAppId } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
+  description:
+    'List the store builds registered by the embed step, with their binary identity.',
+  examples: [
+    'hotcodepush embedded-bundle list',
+    'hotcodepush embedded-bundle list --app "My App" --json',
+  ],
+  options: defineCommandOptions(paginationShape),
   action: async options => {
     const hotCodePush = createApiClient();
     const listedEmbeddedBundles = await hotCodePush.apps.embeddedBundles.list({
@@ -46,11 +53,4 @@ export default defineCommand({
       ),
     });
   },
-  description:
-    'List the store builds registered by the embed step, with their binary identity.',
-  examples: [
-    'hotcodepush embedded-bundle list',
-    'hotcodepush embedded-bundle list --app "My App" --json',
-  ],
-  options: defineCommandOptions(paginationShape),
 });

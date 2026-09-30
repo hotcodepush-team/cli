@@ -7,6 +7,14 @@ import { promptText } from '../../utils/prompts.js';
 import { fetchOrganizationId } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
+  description: 'Rename an organization.',
+  examples: [
+    'hotcodepush organization update --organization Acme --name "Acme Inc"',
+    'hotcodepush organization update --name "Acme Inc" --json',
+  ],
+  options: defineCommandOptions({
+    name: z.string().optional().describe("The organization's new name."),
+  }),
   action: async options => {
     const hotCodePush = createApiClient();
     const organizationId = await fetchOrganizationId(hotCodePush, options);
@@ -29,12 +37,4 @@ export default defineCommand({
       );
     }
   },
-  description: 'Rename an organization.',
-  examples: [
-    'hotcodepush organization update --organization Acme --name "Acme Inc"',
-    'hotcodepush organization update --name "Acme Inc" --json',
-  ],
-  options: defineCommandOptions({
-    name: z.string().optional().describe("The organization's new name."),
-  }),
 });

@@ -18,6 +18,13 @@ interface TargetOrganizationOptions extends InteractivityOptions {
 }
 
 export default defineCommand({
+  description:
+    'Move an app to the organization --organization names, one you are an Admin of.',
+  examples: [
+    'hotcodepush app transfer --organization Globex',
+    'hotcodepush app transfer --app "My App" --organization Globex --yes --json',
+  ],
+  options: defineCommandOptions({}),
   action: async options => {
     const hotCodePush = createApiClient();
     // --organization names the target here, so an app's name is looked up in every organization of the user's
@@ -62,13 +69,6 @@ export default defineCommand({
       );
     }
   },
-  description:
-    'Move an app to the organization --organization names, one you are an Admin of.',
-  examples: [
-    'hotcodepush app transfer --organization Globex',
-    'hotcodepush app transfer --app "My App" --organization Globex --yes --json',
-  ],
-  options: defineCommandOptions({}),
 });
 
 /**
