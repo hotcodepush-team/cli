@@ -10,8 +10,11 @@ import type {
 } from '@hotcodepush/node';
 
 export const ACME_ORGANIZATION: Organization = {
+  countryAllowlist: null,
   createdAt: '2026-09-01T08:00:00.000Z',
   id: '0f8fad5b-d9cb-469f-a165-70867728950e',
+  ipAllowlist: null,
+  isTwoFactorRequired: false,
   name: 'Acme',
   plan: 'free',
   region: 'eu',
@@ -20,8 +23,11 @@ export const ACME_ORGANIZATION: Organization = {
 };
 
 export const GLOBEX_ORGANIZATION: Organization = {
+  countryAllowlist: null,
   createdAt: '2026-09-02T08:00:00.000Z',
   id: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
+  ipAllowlist: null,
+  isTwoFactorRequired: false,
   name: 'Globex',
   plan: 'pay_as_you_go',
   region: 'eu',
@@ -160,7 +166,7 @@ export const RUNNER_USER: User = {
   createdAt: '2026-09-01T08:00:00.000Z',
   credential: 'session',
   email: 'anna@example.com',
-  emailVerified: true,
   id: 'user-1',
+  isEmailVerified: true,
   name: 'Anna Example',
 };
