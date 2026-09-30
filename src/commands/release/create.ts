@@ -138,7 +138,7 @@ export default defineCommand({
       }
     }
     if (options.json) {
-      printJson(releases.length === 1 ? releases[0] : releases);
+      printJson(releases);
     }
   },
 });

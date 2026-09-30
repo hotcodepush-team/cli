@@ -3,7 +3,7 @@ import {
   computeSha256Hex,
   stringifyCanonicalJson,
 } from '@hotcodepush/protocol';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
   useCommandHarness,
@@ -136,7 +136,7 @@ describe('release create', () => {
     ]);
   });
 
-  it('should upload the web build first without --bundle, and print the release as JSON when --yes and --json are passed', async () => {
+  it('should upload the web build first without --bundle, and print the one release as a JSON array when --yes and --json are passed', async () => {
     stubWebBuildUpload();
     respondWithStagingChannel();
     harness.routes[`POST ${CHANNEL_PATH}/releases`] = () =>
@@ -172,40 +172,49 @@ describe('release create', () => {
       notes: 'cart fix',
       rolloutPercentage: 10,
     });
-    expect(harness.readJson()).toEqual(LIVE_RELEASE);
+    expect(harness.readJson()).toEqual([LIVE_RELEASE]);
   });
 
-  it('should release to every channel named, one release each', async () => {
-    respondWithStagingChannel();
-    harness.routes[`GET ${PRODUCTION_CHANNEL_PATH}`] = () =>
-      Response.json({
-        ...PRODUCTION_CHANNEL,
-        activeDeviceCount: 1000,
-        currentDeviceCount: 900,
-        embeddedDeviceCount: 100,
-      });
-    harness.routes[`GET ${BUNDLES_PATH}/${READY_BUNDLE.id}`] = () =>
-      Response.json(READY_BUNDLE);
-    harness.routes[`POST ${CHANNEL_PATH}/releases`] = () =>
-      Response.json(LIVE_RELEASE, { status: 201 });
-    harness.routes[`POST ${PRODUCTION_CHANNEL_PATH}/releases`] = () =>
-      Response.json(PRODUCTION_RELEASE, { status: 201 });
+  describe('when several channels are named', () => {
+    const OPTIONS = {
+      app: DEMO_APP.id,
+      bundle: READY_BUNDLE.id,
+      channel: [STAGING_CHANNEL.id, PRODUCTION_CHANNEL.id],
+      yes: true,
+    };
 
-    await releaseCreateCommand.action(
-      {
-        app: DEMO_APP.id,
-        bundle: READY_BUNDLE.id,
-        channel: [STAGING_CHANNEL.id, PRODUCTION_CHANNEL.id],
-        yes: true,
-      },
-      undefined,
-    );
+    beforeEach(() => {
+      respondWithStagingChannel();
+      harness.routes[`GET ${PRODUCTION_CHANNEL_PATH}`] = () =>
+        Response.json({
+          ...PRODUCTION_CHANNEL,
+          activeDeviceCount: 1000,
+          currentDeviceCount: 900,
+          embeddedDeviceCount: 100,
+        });
+      harness.routes[`GET ${BUNDLES_PATH}/${READY_BUNDLE.id}`] = () =>
+        Response.json(READY_BUNDLE);
+      harness.routes[`POST ${CHANNEL_PATH}/releases`] = () =>
+        Response.json(LIVE_RELEASE, { status: 201 });
+      harness.routes[`POST ${PRODUCTION_CHANNEL_PATH}/releases`] = () =>
+        Response.json(PRODUCTION_RELEASE, { status: 201 });
+    });
 
-    expect(readCreateRequests()).toHaveLength(2);
-    expect(harness.readLines()).toEqual([
-      `Released bundle #17 · 1.4.2 to staging as release #43 at 100 percent, live since ${LIVE_RELEASE.liveAt}.`,
-      `Released bundle #17 · 1.4.2 to production as release #7 at 100 percent, live since ${LIVE_RELEASE.liveAt}.`,
-    ]);
+    it('should release to every channel named, one release each', async () => {
+      await releaseCreateCommand.action(OPTIONS, undefined);
+
+      expect(readCreateRequests()).toHaveLength(2);
+      expect(harness.readLines()).toEqual([
+        `Released bundle #17 · 1.4.2 to staging as release #43 at 100 percent, live since ${LIVE_RELEASE.liveAt}.`,
+        `Released bundle #17 · 1.4.2 to production as release #7 at 100 percent, live since ${LIVE_RELEASE.liveAt}.`,
+      ]);
+    });
+
+    it('should print the releases as a JSON array in the order of the channels', async () => {
+      await releaseCreateCommand.action({ ...OPTIONS, json: true }, undefined);
+
+      expect(harness.readJson()).toEqual([LIVE_RELEASE, PRODUCTION_RELEASE]);
+    });
   });
 
   it('should stop with E_CONFIRMATION_REQUIRED when nobody can confirm', async () => {
