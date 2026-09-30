@@ -8,7 +8,6 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "noUncheckedIndexedAccess": true,
-    "outDir": "dist",
     "skipLibCheck": true,
     "strict": true,
     "target": "ES2022",
