@@ -47,7 +47,7 @@ describe('open', () => {
     expect(harness.requests).toEqual([]);
   });
 
-  it("should open the channel's page when --channel names one, printing the URL as JSON", async () => {
+  it("should print the channel's page as JSON without opening it when --channel names one and --json is passed", async () => {
     harness.routes[
       `GET /v1/apps/${DEMO_APP.id}/channels/${STAGING_CHANNEL.id}`
     ] = () => Response.json(STAGING_CHANNEL_WITH_DEVICE_COUNTS);
@@ -57,9 +57,10 @@ describe('open', () => {
       undefined,
     );
 
-    const url = `http://localhost:4300/apps/${DEMO_APP.id}/channels/${STAGING_CHANNEL.id}`;
-    expect(openBrowser).toHaveBeenCalledWith(url);
-    expect(harness.readJson()).toEqual({ url });
+    expect(harness.readJson()).toEqual({
+      url: `http://localhost:4300/apps/${DEMO_APP.id}/channels/${STAGING_CHANNEL.id}`,
+    });
+    expect(openBrowser).not.toHaveBeenCalled();
   });
 
   it('should name --app when no hotcodepush.json names the app and nobody can pick', async () => {

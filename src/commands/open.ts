@@ -24,9 +24,9 @@ export default defineCommand({
     const url = await resolveConsolePageUrl(options);
     if (options.json) {
       printJson({ url });
-    } else {
-      console.log(`Opening ${url}`);
+      return;
     }
+    console.log(`Opening ${url}`);
     await openBrowser(url);
   },
 });
