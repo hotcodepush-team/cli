@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { InvalidParameterError } from './errors.js';
-import { readProjectConfig } from './project-config.js';
+import { assertProjectConfigId, readProjectConfig } from './project-config.js';
 
 const PROJECT_CONFIG = {
   appId: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
@@ -46,4 +46,26 @@ describe('project config', () => {
       InvalidParameterError,
     );
   });
+
+  it('should pass an id of the file', () => {
+    expect(() =>
+      assertProjectConfigId('appId', PROJECT_CONFIG.appId),
+    ).not.toThrow();
+  });
+
+  it.each([
+    ['appId', 'app'],
+    ['channelId', 'channel'],
+  ] as const)(
+    'should throw E_INVALID_PARAMETER naming %s when it is no id',
+    (field, noun) => {
+      expect(() => assertProjectConfigId(field, 'x & calc')).toThrow(
+        expect.objectContaining({
+          code: 'E_INVALID_PARAMETER',
+          fix: `set ${field} to the id "hotcodepush ${noun} list" prints.`,
+          message: `hotcodepush.json: ${field} is no id`,
+        }),
+      );
+    },
+  );
 });

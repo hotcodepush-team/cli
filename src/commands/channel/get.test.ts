@@ -63,6 +63,25 @@ describe('channel get', () => {
     expect(harness.readJson()).toEqual(STAGING_CHANNEL_WITH_DEVICE_COUNTS);
   });
 
+  it.each([
+    ['appId', { appId: 'x & calc', channelId: STAGING_CHANNEL.id }],
+    ['channelId', { appId: DEMO_APP.id, channelId: '../bundles' }],
+  ])(
+    'should refuse a hotcodepush.json %s that is no id before asking the API',
+    async (field, projectConfig) => {
+      await expect(
+        channelGetCommand.action(
+          { config: harness.writeProjectConfig(projectConfig) },
+          undefined,
+        ),
+      ).rejects.toMatchObject({
+        code: 'E_INVALID_PARAMETER',
+        message: `hotcodepush.json: ${field} is no id`,
+      });
+      expect(harness.requests).toEqual([]);
+    },
+  );
+
   it("should not take hotcodepush.json's channel for another app", async () => {
     await expect(
       channelGetCommand.action(

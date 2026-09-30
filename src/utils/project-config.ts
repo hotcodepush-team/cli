@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
+import { z } from 'zod';
 import { PROJECT_CONFIG_FILE_NAME } from '../config/consts.js';
 import { InvalidParameterError } from './errors.js';
 
@@ -18,6 +19,25 @@ export interface ProjectConfig {
 export interface ProjectConfigLocation {
   directoryPath: string;
   projectConfig: ProjectConfig | undefined;
+}
+
+const ID_SCHEMA = z.guid();
+
+/**
+ * An id of the file, checked before a command uses it without asking the API:
+ * the file comes with the repository, and its ids reach console URLs, the browser and the resource file devices read.
+ */
+export function assertProjectConfigId(
+  field: 'appId' | 'channelId',
+  id: string,
+): void {
+  if (!ID_SCHEMA.safeParse(id).success) {
+    throw new InvalidParameterError(
+      `${PROJECT_CONFIG_FILE_NAME}: ${field} is no id`,
+      undefined,
+      `set ${field} to the id "hotcodepush ${field === 'appId' ? 'app' : 'channel'} list" prints.`,
+    );
+  }
 }
 
 /**

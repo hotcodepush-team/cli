@@ -4,7 +4,10 @@ import { openBrowser } from '../utils/browser.js';
 import { defineCommandOptions } from '../utils/global-options.js';
 import { resolveConsoleBaseUrl } from '../utils/hosts.js';
 import { printJson } from '../utils/output.js';
-import { readProjectConfig } from '../utils/project-config.js';
+import {
+  assertProjectConfigId,
+  readProjectConfig,
+} from '../utils/project-config.js';
 import {
   channelOptionShape,
   fetchAppId,
@@ -24,7 +27,7 @@ export default defineCommand({
     } else {
       console.log(`Opening ${url}`);
     }
-    openBrowser(url);
+    await openBrowser(url);
   },
 });
 
@@ -43,9 +46,10 @@ async function resolveConsolePageUrl(options: {
     return `${consoleBaseUrl}/apps/${channel.appId}/channels/${channel.id}`;
   }
   const projectConfig = readProjectConfig(options.config);
-  const appId =
-    options.app === undefined && projectConfig?.appId !== undefined
-      ? projectConfig.appId
-      : await fetchAppId(createApiClient(), options, projectConfig);
+  if (options.app === undefined && projectConfig?.appId !== undefined) {
+    assertProjectConfigId('appId', projectConfig.appId);
+    return `${consoleBaseUrl}/apps/${projectConfig.appId}`;
+  }
+  const appId = await fetchAppId(createApiClient(), options, projectConfig);
   return `${consoleBaseUrl}/apps/${appId}`;
 }

@@ -15,7 +15,7 @@ import {
 } from './errors.js';
 import { fetchAllPages } from './pagination.js';
 import type { ProjectConfig } from './project-config.js';
-import { readProjectConfig } from './project-config.js';
+import { assertProjectConfigId, readProjectConfig } from './project-config.js';
 import { promptSelect } from './prompts.js';
 
 interface AppOptions extends OrganizationOptions {
@@ -62,6 +62,7 @@ export async function fetchAppId(
     );
   }
   if (projectConfig?.appId !== undefined) {
+    assertProjectConfigId('appId', projectConfig.appId);
     return projectConfig.appId;
   }
   if (!isInteractive(options)) {
@@ -220,6 +221,7 @@ async function fetchChannelId(
     );
   }
   if (projectConfig?.channelId !== undefined && projectConfig.appId === appId) {
+    assertProjectConfigId('channelId', projectConfig.channelId);
     return projectConfig.channelId;
   }
   if (!isInteractive(options)) {

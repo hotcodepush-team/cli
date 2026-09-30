@@ -197,7 +197,7 @@ async function fetchSessionTokenOnApproval(
   process.stderr.write(
     `Open ${deviceAuthorization.verificationUrl} and approve the code ${deviceAuthorization.userCode}.\nWaiting for the approval…\n`,
   );
-  openBrowser(deviceAuthorization.verificationUrl);
+  await openBrowser(deviceAuthorization.verificationUrl);
   return fetchApprovedSessionToken(authClient, deviceAuthorization);
 }
 

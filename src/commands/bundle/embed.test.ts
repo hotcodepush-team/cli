@@ -193,6 +193,30 @@ describe('bundle embed', () => {
     ).toBe(false);
   });
 
+  it('should refuse a hotcodepush.json channelId that is no id before writing or registering anything', async () => {
+    const configPath = join(projectDirectoryPath, 'hotcodepush.json');
+    writeFileSync(
+      configPath,
+      JSON.stringify({ appId: DEMO_APP.id, channelId: 'staging', dir: 'dist' }),
+    );
+
+    await expect(
+      bundleEmbedCommand.action(
+        { config: configPath, platform: 'ios' },
+        undefined,
+      ),
+    ).rejects.toMatchObject({
+      code: 'E_INVALID_PARAMETER',
+      message: 'hotcodepush.json: channelId is no id',
+    });
+    expect(harness.requests).toEqual([]);
+    expect(
+      existsSync(
+        join(projectDirectoryPath, 'ios', 'App', 'App', 'hotcodepush.json'),
+      ),
+    ).toBe(false);
+  });
+
   it('should take the platform from CAPACITOR_PLATFORM_NAME and the identity from the Gradle file, printing JSON', async () => {
     vi.stubEnv('CAPACITOR_PLATFORM_NAME', 'android');
     harness.routes[`POST ${EMBEDDED_BUNDLES_PATH}`] = () =>

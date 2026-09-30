@@ -22,7 +22,10 @@ import { resolveDeviceHosts } from '../../utils/hosts.js';
 import { printJson } from '../../utils/output.js';
 import { createReporter, resolveByteText } from '../../utils/progress.js';
 import type { ProjectConfig } from '../../utils/project-config.js';
-import { locateProjectConfig } from '../../utils/project-config.js';
+import {
+  assertProjectConfigId,
+  locateProjectConfig,
+} from '../../utils/project-config.js';
 import { promptSelect } from '../../utils/prompts.js';
 import {
   buildResourceFile,
@@ -171,6 +174,8 @@ function assertProjectConfig(
       undefined,
     );
   }
+  assertProjectConfigId('appId', projectConfig.appId);
+  assertProjectConfigId('channelId', projectConfig.channelId);
   return {
     ...projectConfig,
     appId: projectConfig.appId,

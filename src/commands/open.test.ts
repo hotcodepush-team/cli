@@ -11,7 +11,10 @@ import {
   STAGING_CHANNEL_WITH_DEVICE_COUNTS,
 } from '../../test/fixtures.js';
 import { openBrowser } from '../utils/browser.js';
-import { MissingParameterError } from '../utils/errors.js';
+import {
+  InvalidParameterError,
+  MissingParameterError,
+} from '../utils/errors.js';
 import openCommand from './open.js';
 
 vi.mock('@clack/prompts');
@@ -30,6 +33,18 @@ describe('open', () => {
     expect(openBrowser).toHaveBeenCalledWith(url);
     expect(harness.requests).toEqual([]);
     expect(harness.readLines()).toEqual([`Opening ${url}`]);
+  });
+
+  it('should refuse a hotcodepush.json appId that is no id before opening anything', async () => {
+    await expect(
+      openCommand.action(
+        { config: harness.writeProjectConfig({ appId: 'x & calc' }) },
+        undefined,
+      ),
+    ).rejects.toBeInstanceOf(InvalidParameterError);
+
+    expect(openBrowser).not.toHaveBeenCalled();
+    expect(harness.requests).toEqual([]);
   });
 
   it("should open the channel's page when --channel names one, printing the URL as JSON", async () => {
