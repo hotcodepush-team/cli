@@ -2,7 +2,7 @@
 
 `hotcodepush`, the HotCodePush CLI: the npm package and the binary that set up, release and manage live updates from the terminal and CI.
 The repo is public and MIT; this is the skeleton, and the commands arrive issue by issue on top of it.
-Stack: TypeScript compiled by `tsc` into ESM in `dist/`, zodline and zod for the commands, `@hotcodepush/node` for the API, `@clack/prompts` for the prompts, `@napi-rs/keyring` for the token, ESLint, Prettier, Vitest, Node 24.
+Stack: TypeScript compiled by `tsc` into ESM in `dist/`, zodline and zod for the commands, `@hotcodepush/node` for the API, `@clack/prompts` for the prompts, `@napi-rs/keyring` for the token, ESLint, Prettier, Vitest, Node 22 as the floor, developed on 24.
 
 The plan is the private `handbook` repo, checked out beside this one: `../handbook/docs/`.
 Its `cli.md` is the spec — every command, flag, file, error code and exit code — and `repositories.md` › _The CLI's structure_ the layout; both are binding, with `api.md` for the API the commands call.
@@ -85,12 +85,12 @@ No releases yet: the version stays `0.0.0`, and release-please and npm provenanc
   the Xcode project gains one resource reference through the `xcode` package, and `init` names the files it will change and asks once before touching them.
 - **The token** is `readToken()`: `HOTCODEPUSH_TOKEN` when set, then the keyring, then the `config.json` fallback that any keyring failure latches for the rest of the process.
 - **An upload never holds a file in memory**: every file is hashed and gzip-compressed through streams into a temporary directory,
-  put as a `Blob` opened from disk so the client can retry it, in parts above `SINGLE_UPLOAD_LIMIT_BYTES`, and the packs are written the same way.
+  put as a `Blob` opened from disk so the client can retry it, and the Node client splits it into parts above its `SINGLE_UPLOAD_LIMIT_BYTES`; the packs go the same way.
   Only the hashes the API answers as missing move; the delta pack against the previous bundle needs that bundle's manifest from the files host and is skipped, never failed, when it is unreachable.
 - **`bundle embed` never breaks a build**: the resource file is always written; the registration is skipped with one warning
   without a token or when the API refuses locally, and fails loud only in CI, where `E_EMBED_CONFLICT` under an unbumped build number is a pipeline mistake.
   The device hosts it writes derive from the API URL: none for production, the staging hosts for staging, `<apiUrl>/files` and `/updates` for any other, `HOTCODEPUSH_FILES_BASE_URL` and `HOTCODEPUSH_UPDATES_BASE_URL` overriding.
-- **A login that cannot wait** keeps its device code, expiry, user code and verification URL in `config.json`; the next `login` redeems the code first and, while it is pending, shows the same code again, so an agent sees one output until the person approves.
+- **Every login** keeps its device code, expiry, user code and verification URL in `config.json` until approved; the next `login` redeems the code first and, while it is pending, shows the same code again, so an agent sees one output until the person approves.
 
 ## Naming
 
