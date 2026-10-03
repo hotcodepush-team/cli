@@ -26,6 +26,8 @@ npx hotcodepush channel list --app "My App" --json
 npx hotcodepush bundle upload --path dist --bundle-version 1.4.2
 npx hotcodepush bundle list --json
 npx hotcodepush binary list
+npx hotcodepush signing-key create
+npx hotcodepush signing-key list
 npx hotcodepush release create --path dist
 npx hotcodepush release create --bundle 17 --channel staging --rollout-percentage 10
 npx hotcodepush release create --from-channel staging --channel production --binary ">=2.3.0" --dry-run
@@ -45,7 +47,8 @@ On Capacitor the embed step is the `capacitor:copy:after` hook and the iOS resou
 Every command prints its options and two examples with `--help`, and `--json` turns its output into JSON for scripts and agents.
 An organization, app or channel is named by id or by name, `--app "My App"`; `--app` defaults to the app id in the project's `hotcodepush.json` and `--channel` to the channel it names, `production` unless the file or `HOTCODEPUSH_CHANNEL` says otherwise.
 A command that changes what devices receive or cannot be undone — a release, a rollout, a pause, a revoke, a rollback, a delete — asks once with the consequence, `--yes` confirming in scripts.
-`bundle upload` hashes every file of the web build, uploads only the files the app lacks and the packs, and records the commit it was built from.
+`bundle upload` hashes every file of the web build, patches the large files that changed against the previous bundle, signs the manifest when `hotcodepush.json` lists a public key, uploads only the files and patches the app lacks and the packs, and records the commit it was built from.
+`signing-key create` turns code signing on: it generates the key pair on this machine, registers the public key with the app, adds it to `publicKeys` in `hotcodepush.json` and prints the private key once — kept in `keys/{appId}.key` in the CLI's config directory, and in CI in `HOTCODEPUSH_SIGNING_KEY` — after which the app releases only signed bundles; `--expo-bridge` adds the RSA pair the Expo Updates bridge signs with, `signing-key list` shows the fingerprints, and `signing-key delete` unregisters a key, never the app's only one.
 `release create` uploads the web build unless `--bundle` names one already uploaded, releases it to every `--channel` named with the project's channel as the default, and waits until the release is live; a retried pipeline gets the same release back, the `Idempotency-Key` being derived from the bundle and the channel.
 A release carries its conditions as flags — `--binary`, `--os`, `--runtime`, `--attribute` and `--device` — and `--from-channel` releases what another channel serves; `--dry-run` publishes nothing and prints the audience the release would reach, the count `audience get` answers on its own.
 `release revoke` takes one release, every release from a number on with `--release-from`, a channel's whole log with `--all`, or every release of a bundle with `--bundle`; revoked is final, and the confirmation says how many releases move and where their devices land.

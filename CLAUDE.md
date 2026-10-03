@@ -2,7 +2,7 @@
 
 `hotcodepush`, the HotCodePush CLI: the npm package and the binary that set up, release and manage live updates from the terminal and CI.
 The repo is public and MIT; this is the skeleton, and the commands arrive issue by issue on top of it.
-Stack: TypeScript compiled by `tsc` into ESM in `dist/`, zodline and zod for the commands, `@hotcodepush/node` for the API, `@clack/prompts` for the prompts, `@napi-rs/keyring` for the token, ESLint, Prettier, Vitest, Node 22 as the floor, developed on 24.
+Stack: TypeScript compiled by `tsc` into ESM in `dist/`, zodline and zod for the commands, `@hotcodepush/node` for the API, `@clack/prompts` for the prompts, `@napi-rs/keyring` for the token, `@bsdiff-rust/node` for the patches, ESLint, Prettier, Vitest, Node 22 as the floor, developed on 24.
 
 The plan is the private `handbook` repo, checked out beside this one: `../handbook/docs/`.
 Its `cli.md` is the spec — every command, flag, file, error code and exit code — and `repositories.md` › _The CLI's structure_ the layout; both are binding, with `api.md` for the API the commands call.
@@ -24,7 +24,8 @@ src/
                the framework and the build's directory, `frameworks/` with one module per framework behind one interface
                and the registry line that makes the CLI package it, the files of a build hashed, their gzip copies,
                the pack writer, the git provenance, the device hosts derived from the API URL,
-               the upload flow, the store build's binary identity from the native projects, the resource file,
+               the upload flow, the signing keys at hand and the pair that signs, the patches against the previous bundle
+               and the bsdiff binding behind one function, the store build's binary identity from the native projects, the resource file,
                the progress lines, the browser opener, the JSON, tables and details output,
                init's step runner, the outcome rows init and doctor print, the package manager and its visible runs,
                the embed hook in package.json, the resource reference in the Xcode project
@@ -100,6 +101,15 @@ Capacitor's module reads `capacitor.config` as text and the native projects' own
 - **An upload never holds a file in memory**: every file is hashed and gzip-compressed through streams into a temporary directory,
   put as a `Blob` opened from disk so the client can retry it, and the Node client splits it into parts above its `SINGLE_UPLOAD_LIMIT_BYTES`; the packs go the same way.
   Only the hashes the API answers as missing move; the delta pack against the previous bundle needs that bundle's manifest from the files host and is skipped, never failed, when it is unreachable.
+- **An upload is signed when `hotcodepush.json` lists a public key**, with the first listed key whose private half is at hand:
+  `HOTCODEPUSH_SIGNING_KEY` first, a CI's secret holding one key or two separated by a comma, then `keys/{appId}.key` in the config directory, one key per line.
+  None at hand is `E_SIGNING_KEY_UNAVAILABLE` before a byte moves, since the app would refuse the unsigned bundle; no listed key means no signature, and the API's `E_SIGNATURE_REQUIRED` passes through.
+  The signed bytes are the manifest as the API rebuilds it — the files by path, the patches by path then base, the platforms sorted, by code units — so `buildManifestToSign` and the API's builder change together.
+  `signing-key create` appends to `publicKeys` and to the key file, so the key that signs keeps signing until the file's order says otherwise; a private key never reaches a message, a progress line or an error.
+- **A patch is optional bytes**: a file of 16 KB or more whose path the previous bundle lists with other content is diffed from the base's bytes, fetched by hash from the files host,
+  and listed when the patch is at most 70 percent of the file's stored bytes.
+  A base that cannot be fetched, a platform the binding has no build for and a diff that fails each mean the file moves whole and the upload goes on.
+  bsdiff is `@bsdiff-rust/node`'s behind `utils/bsdiff.ts`, the BSDIFF40 format the SDKs apply, never written here.
 - **`bundle embed` resolves the channel's name before it writes anything**: the resource file carries the channel's id, which only the API knows, so a build without a token fails with `E_NOT_LOGGED_IN` and a name the app lacks fails with `E_INVALID_PARAMETER`, locally and in CI alike.
   The registration is the lenient half: skipped with one warning when the API refuses locally, loud only in CI, where `E_EMBED_CONFLICT` under an unbumped build number is a pipeline mistake.
   The fingerprint is the strict half too: a project the recipe cannot read is `E_FINGERPRINT_UNAVAILABLE` on embed and upload alike, never `null`, since a release targets it.
