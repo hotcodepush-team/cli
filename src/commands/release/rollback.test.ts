@@ -65,10 +65,11 @@ describe('release rollback', () => {
     expect(confirm).toHaveBeenCalledWith({
       initialValue: false,
       message:
-        'This rolls channel staging back to bundle #16 · 1.4.1 of release #42 as a new release, reaching its 120 active devices. Continue?',
+        'This rolls channel staging back to bundle #16 · 1.4.1 of release #42 as a new mandatory release, reaching its 120 active devices. Continue?',
     });
     const [rollbackRequest] = readRollbackRequests();
     expect(await rollbackRequest?.json()).toEqual({
+      isMandatory: true,
       toReleaseId: PREVIOUS_RELEASE.id,
     });
     expect(harness.readLines()).toEqual([
@@ -93,6 +94,7 @@ describe('release rollback', () => {
     expect(confirm).not.toHaveBeenCalled();
     const [rollbackRequest] = readRollbackRequests();
     expect(await rollbackRequest?.json()).toEqual({
+      isMandatory: true,
       toReleaseId: PREVIOUS_RELEASE.id,
     });
     expect(harness.readJson()).toEqual(ROLLBACK_RELEASE);
@@ -125,7 +127,30 @@ describe('release rollback', () => {
 
     const [rollbackRequest] = readRollbackRequests();
     expect(await rollbackRequest?.json()).toEqual({
+      isMandatory: true,
       toReleaseId: OLDEST_RELEASE.id,
+    });
+  });
+
+  it('should create an optional release when --mandatory false is passed', async () => {
+    stubInteractiveTerminal();
+    vi.mocked(confirm).mockResolvedValue(true);
+    respondWithRollback();
+
+    await releaseRollbackCommand.action(
+      { app: DEMO_APP.id, channel: STAGING_CHANNEL.id, mandatory: false },
+      undefined,
+    );
+
+    expect(confirm).toHaveBeenCalledWith({
+      initialValue: false,
+      message:
+        'This rolls channel staging back to bundle #16 · 1.4.1 of release #42 as a new release, reaching its 120 active devices. Continue?',
+    });
+    const [rollbackRequest] = readRollbackRequests();
+    expect(await rollbackRequest?.json()).toEqual({
+      isMandatory: false,
+      toReleaseId: PREVIOUS_RELEASE.id,
     });
   });
 

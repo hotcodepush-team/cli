@@ -1,4 +1,5 @@
 import type {
+  Channel,
   ChannelWithDeviceCounts,
   HotCodePush,
   Release,
@@ -64,7 +65,7 @@ export async function fetchReleaseInChannel(
  */
 export function fetchReleaseLog(
   hotCodePush: HotCodePush,
-  channel: ChannelWithDeviceCounts,
+  channel: Channel,
 ): Promise<Release[]> {
   return fetchAllPages(page =>
     hotCodePush.apps.channels.releases.list({

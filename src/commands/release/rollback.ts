@@ -2,6 +2,7 @@ import type { Release } from '@hotcodepush/node';
 import { z } from 'zod';
 import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
+import { booleanFlagSchema } from '../../utils/boolean-flag.js';
 import { InvalidParameterError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
@@ -27,6 +28,11 @@ export default defineCommand({
   ],
   options: defineCommandOptions({
     ...channelOptionShape,
+    mandatory: booleanFlagSchema
+      .optional()
+      .describe(
+        'Devices install the rollback at once and restart, the default for an incident fix; pass false to let them wait.',
+      ),
     toRelease: z
       .string()
       .optional()
@@ -43,8 +49,9 @@ export default defineCommand({
         ? resolvePreviousRelease(releases)
         : resolveReleaseInLog(releases, options.toRelease, '--to-release');
     const bundleLabel = resolveReleaseBundleLabel(targetRelease);
+    const isMandatory = options.mandatory ?? true;
     const isConfirmed = await confirmConsequence(
-      `rolls channel ${fetchedChannel.name} back to bundle ${bundleLabel} of release #${targetRelease.number} as a new release, reaching its ${fetchedChannel.activeDeviceCount} active devices`,
+      `rolls channel ${fetchedChannel.name} back to bundle ${bundleLabel} of release #${targetRelease.number} as a new ${isMandatory ? 'mandatory ' : ''}release, reaching its ${fetchedChannel.activeDeviceCount} active devices`,
       options,
     );
     if (!isConfirmed) {
@@ -53,6 +60,7 @@ export default defineCommand({
     const createdRelease = await hotCodePush.apps.channels.rollbacks.create({
       appId: fetchedChannel.appId,
       channelId: fetchedChannel.id,
+      isMandatory,
       toReleaseId: targetRelease.id,
     });
     const liveRelease = await waitUntilLive(hotCodePush, createdRelease);
