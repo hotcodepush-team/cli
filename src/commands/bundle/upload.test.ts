@@ -32,9 +32,15 @@ import {
   UnknownFrameworkError,
   UnsupportedFrameworkError,
 } from '../../utils/errors.js';
+import type * as packageManagerModule from '../../utils/package-manager.js';
+import { runCommandLineVisibly } from '../../utils/package-manager.js';
 import bundleUploadCommand from './upload.js';
 
 vi.mock('@clack/prompts');
+vi.mock('../../utils/package-manager.js', async importOriginal => ({
+  ...(await importOriginal<typeof packageManagerModule>()),
+  runCommandLineVisibly: vi.fn(),
+}));
 
 const BUNDLES_PATH = `/v1/apps/${DEMO_APP.id}/bundles`;
 
@@ -508,8 +514,8 @@ describe('bundle upload', () => {
     );
   });
 
-  it('should refuse a React Native project until its packaging arrives', async () => {
-    writeProject({ 'react-native': '0.82.0' });
+  it('should refuse a project whose framework is not packaged yet', async () => {
+    writeProject({ expo: '55.0.0' });
 
     await expect(
       bundleUploadCommand.action(
@@ -518,6 +524,126 @@ describe('bundle upload', () => {
       ),
     ).rejects.toThrow(UnsupportedFrameworkError);
     expect(harness.requests).toEqual([]);
+  });
+
+  describe('in a React Native project', () => {
+    beforeEach(() => {
+      writeFileSync(
+        join(projectDirectoryPath, 'package.json'),
+        JSON.stringify({
+          dependencies: { 'react-native': '0.82.1' },
+          name: 'demo',
+          version: '1.4.2',
+        }),
+      );
+      writeFileSync(
+        join(projectDirectoryPath, 'hotcodepush.json'),
+        JSON.stringify({ appId: DEMO_APP.id }),
+      );
+      // without Hermes the bundler's output is the bundle, so the test needs no compiler
+      mkdirSync(join(projectDirectoryPath, 'android'));
+      writeFileSync(
+        join(projectDirectoryPath, 'android', 'gradle.properties'),
+        'hermesEnabled=false\n',
+      );
+      mkdirSync(join(projectDirectoryPath, 'ios'));
+      writeFileSync(
+        join(projectDirectoryPath, 'ios', 'Podfile'),
+        'use_react_native!(:hermes_enabled => false)\n',
+      );
+      vi.mocked(runCommandLineVisibly).mockImplementation(({ args }) => {
+        const bundleFilePath = args[args.indexOf('--bundle-output') + 1];
+        if (bundleFilePath !== undefined) {
+          writeFileSync(bundleFilePath, `bundle of ${bundleFilePath}`);
+        }
+      });
+      harness.routes[`GET ${BUNDLES_PATH}?limit=1&state=ready`] = () =>
+        Response.json([]);
+      harness.routes[`POST ${BUNDLES_PATH}`] = () =>
+        Response.json(
+          {
+            ...READY_BUNDLE,
+            state: 'uploading',
+            uploads: {
+              files: [],
+              pack: `${API_URL}${BUNDLES_PATH}/${READY_BUNDLE.id}/pack`,
+              patches: [],
+            },
+            warnings: [],
+          },
+          { status: 201 },
+        );
+      harness.routes[`PUT ${BUNDLES_PATH}/${READY_BUNDLE.id}/pack`] = () =>
+        Response.json({ sizeBytes: 1536 });
+      harness.routes[`POST ${BUNDLES_PATH}/${READY_BUNDLE.id}/complete`] = () =>
+        Response.json(READY_BUNDLE);
+    });
+
+    afterEach(() => {
+      vi.mocked(runCommandLineVisibly).mockReset();
+    });
+
+    it('should bundle each platform and upload one bundle per platform, printing the list as JSON', async () => {
+      await bundleUploadCommand.action(
+        {
+          config: join(projectDirectoryPath, 'hotcodepush.json'),
+          json: true,
+          noGit: true,
+        },
+        undefined,
+      );
+
+      const createBodies = await Promise.all(
+        harness.requests
+          .filter(
+            ({ method, url }) => method === 'POST' && url.endsWith('/bundles'),
+          )
+          .map(
+            request =>
+              request.json() as Promise<{
+                files: { path: string }[];
+                platforms: string[];
+              }>,
+          ),
+      );
+      expect(
+        createBodies.map(({ files, platforms }) => ({
+          paths: files.map(({ path }) => path),
+          platforms,
+        })),
+      ).toEqual([
+        { paths: ['index.android.bundle'], platforms: ['android'] },
+        { paths: ['main.jsbundle'], platforms: ['ios'] },
+      ]);
+      expect(harness.readJson()).toEqual([
+        expect.objectContaining({ id: READY_BUNDLE.id }),
+        expect.objectContaining({ id: READY_BUNDLE.id }),
+      ]);
+    });
+
+    it('should upload --path as the prepared bundle of the one platform named, bundling nothing', async () => {
+      const exportDirectoryPath = join(projectDirectoryPath, 'export');
+      mkdirSync(exportDirectoryPath);
+      writeFileSync(join(exportDirectoryPath, 'main.jsbundle'), 'prepared');
+
+      await bundleUploadCommand.action(
+        {
+          config: join(projectDirectoryPath, 'hotcodepush.json'),
+          json: true,
+          noGit: true,
+          path: exportDirectoryPath,
+          platform: ['ios'],
+        },
+        undefined,
+      );
+
+      expect(runCommandLineVisibly).not.toHaveBeenCalled();
+      expect(await readRequest('POST', '/bundles')?.json()).toMatchObject({
+        files: [expect.objectContaining({ path: 'main.jsbundle' })],
+        platforms: ['ios'],
+      });
+      expect(harness.readJson()).toMatchObject({ id: READY_BUNDLE.id });
+    });
   });
 
   it('should refuse a project without a known framework', async () => {

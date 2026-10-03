@@ -23,7 +23,28 @@ const APP_GROUP_NAME = 'App';
 
 const APPLICATION_PRODUCT_TYPE = 'com.apple.product-type.application';
 
+const EMBED_PHASE_FIX =
+  'add a Run Script phase after "Bundle React Native code and images" that runs node_modules/@hotcodepush/react-native-code-push/scripts/embed-xcode.sh through React Native\'s with-environment.sh.';
+
+const EMBED_PHASE_MARKER = 'embed-xcode.sh';
+
+const EMBED_PHASE_NAME = 'Embed HotCodePush';
+
+// the lines of the phase as a pbxproj string carries them, the line breaks escaped
+const EMBED_PHASE_SCRIPT = [
+  'set -e',
+  '',
+  '# hotcodepush: writes hotcodepush.json into the app and registers the binary',
+  'WITH_ENVIRONMENT="$REACT_NATIVE_PATH/scripts/xcode/with-environment.sh"',
+  'HOTCODEPUSH_EMBED="$REACT_NATIVE_PATH/../@hotcodepush/react-native-code-push/scripts/embed-xcode.sh"',
+  '',
+  '/bin/sh -c "$WITH_ENVIRONMENT $HOTCODEPUSH_EMBED"',
+  '',
+].join('\\n');
+
 const JSON_FILE_TYPE = 'text.json';
+
+const REACT_NATIVE_BUNDLE_PHASE_NAME = 'Bundle React Native code and images';
 
 const RESOURCE_FILE_NAME = 'hotcodepush.json';
 
@@ -88,6 +109,56 @@ export async function addResourceReference(
   project.addToPbxBuildFileSection(file);
   project.addToPbxResourcesBuildPhase(file);
   deleteUndefinedFields(project, file);
+  writeFileSync(projectFilePath, project.writeSync());
+  return 'added';
+}
+
+/**
+ * Whether the React Native project already runs the embed step: the phase is recognised by the script it runs.
+ */
+export function hasEmbedPhase(projectFilePath: string): boolean {
+  return readFileSync(projectFilePath, 'utf8').includes(EMBED_PHASE_MARKER);
+}
+
+/**
+ * Adds the run-script phase that runs the embed step to the app target, right after "Bundle React Native code and images",
+ * whose output it hashes; the phase already there is left alone, and a project without that bundling phase is the manual step.
+ */
+export async function addEmbedPhase(
+  projectFilePath: string,
+  options: XcodeTargetOptions,
+): Promise<'added' | 'present'> {
+  if (hasEmbedPhase(projectFilePath)) {
+    return 'present';
+  }
+  const project = parseProject(projectFilePath, EMBED_PHASE_FIX);
+  const target = await resolveAppTarget(project, options);
+  const nativeTarget = project.pbxNativeTargetSection()[target.key];
+  const buildPhases =
+    typeof nativeTarget === 'object' ? nativeTarget.buildPhases : [];
+  const bundlePhaseIndex = buildPhases.findIndex(
+    ({ comment }) => comment === REACT_NATIVE_BUNDLE_PHASE_NAME,
+  );
+  if (bundlePhaseIndex === -1) {
+    throw new XcodeProjectError(
+      `${projectFilePath} has no "${REACT_NATIVE_BUNDLE_PHASE_NAME}" phase to run the embed step after`,
+      undefined,
+      projectFilePath,
+      EMBED_PHASE_FIX,
+    );
+  }
+  project.addBuildPhase(
+    [],
+    'PBXShellScriptBuildPhase',
+    EMBED_PHASE_NAME,
+    target.key,
+    { shellPath: '/bin/sh', shellScript: EMBED_PHASE_SCRIPT },
+  );
+  // the package appends the phase to the target; the embed step belongs right after the bundling it reads
+  const embedPhase = buildPhases.pop();
+  if (embedPhase !== undefined) {
+    buildPhases.splice(bundlePhaseIndex + 1, 0, embedPhase);
+  }
   writeFileSync(projectFilePath, project.writeSync());
   return 'added';
 }
@@ -159,7 +230,7 @@ function findXcodeProjectPath(iosProjectPath: string): string | undefined {
   return undefined;
 }
 
-function parseProject(projectFilePath: string): XcodeProject {
+function parseProject(projectFilePath: string, fix?: string): XcodeProject {
   try {
     // the package reads the file itself; reading it first turns a missing file into the CLI's error
     readFileSync(projectFilePath);
@@ -169,6 +240,7 @@ function parseProject(projectFilePath: string): XcodeProject {
       `${projectFilePath} could not be parsed`,
       error,
       projectFilePath,
+      fix,
     );
   }
 }

@@ -379,12 +379,13 @@ async function resolveEditBlocker(
 }
 
 function resolveFilesToChange({
+  framework,
   projectConfig,
   wiring,
 }: ProjectFiles): string[] {
   return [
     ...wiring.packageFilePaths,
-    ...(isConfigurationComplete(projectConfig)
+    ...(isConfigurationComplete(projectConfig, framework)
       ? []
       : [PROJECT_CONFIG_FILE_NAME]),
     ...wiring.nativeFilePaths,
@@ -421,7 +422,7 @@ async function writeConfiguration(
   app: App,
   editBlocker: ConfirmationRequiredError | undefined,
 ): Promise<StepOutcome<undefined>> {
-  if (isConfigurationComplete(projectConfig)) {
+  if (isConfigurationComplete(projectConfig, framework)) {
     return {
       message: `${PROJECT_CONFIG_FILE_NAME} already present`,
       status: 'skipped',
@@ -432,7 +433,7 @@ async function writeConfiguration(
     throw editBlocker;
   }
   const dir = projectConfig?.dir ?? framework.readBuildDirectory(directoryPath);
-  if (dir === undefined) {
+  if (dir === undefined && framework.packageBundles === undefined) {
     throw new InvalidParameterError(
       'the project names no build directory',
       undefined,
@@ -450,7 +451,7 @@ async function writeConfiguration(
         ...(hasChannel(projectConfig)
           ? {}
           : { channel: await fetchDefaultChannelName(hotCodePush, app) }),
-        dir,
+        ...(dir === undefined ? {} : { dir }),
       },
       sourceText || '{}\n',
     ),
@@ -525,9 +526,16 @@ async function createSigningKey(
  * The project's `build` script, run visibly when a release follows; skipped with the reason otherwise.
  */
 function buildProject(
-  { directoryPath, packageJson }: ProjectFiles,
+  { directoryPath, framework, packageJson }: ProjectFiles,
   isReleaseWanted: boolean,
 ): Promise<StepOutcome<boolean>> {
+  if (framework.packageBundles !== undefined) {
+    return Promise.resolve({
+      message: 'release create packages the bundles itself',
+      status: 'skipped',
+      value: false,
+    });
+  }
   const buildCommandLine = resolveBuildCommandLine(directoryPath, packageJson);
   if (buildCommandLine === undefined) {
     return Promise.resolve({
@@ -570,7 +578,11 @@ async function releaseFirst(
   }
   const dir =
     projectConfig?.dir ?? framework.readBuildDirectory(directoryPath) ?? '';
-  if (!isBuilt && !existsSync(join(directoryPath, dir))) {
+  if (
+    framework.packageBundles === undefined &&
+    !isBuilt &&
+    !existsSync(join(directoryPath, dir))
+  ) {
     const buildCommandLine = resolveBuildCommandLine(
       directoryPath,
       packageJson,
@@ -649,13 +661,17 @@ function hasChannel(projectConfig: ProjectConfig | undefined): boolean {
   );
 }
 
+/**
+ * The file names the app, the channel and, where the upload reads a build from the project, that build's directory.
+ */
 function isConfigurationComplete(
   projectConfig: ProjectConfig | undefined,
+  framework: FrameworkModule,
 ): boolean {
   return (
     projectConfig?.appId !== undefined &&
     hasChannel(projectConfig) &&
-    projectConfig.dir !== undefined
+    (framework.packageBundles !== undefined || projectConfig.dir !== undefined)
   );
 }
 

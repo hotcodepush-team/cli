@@ -127,9 +127,9 @@ describe('release create', () => {
   }
 
   function stubWebBuildUpload(warnings: Audience['warnings'] = []): void {
-    vi.mocked(resolveUploadBundleOptions).mockResolvedValue(
+    vi.mocked(resolveUploadBundleOptions).mockResolvedValue([
       UPLOAD_BUNDLE_OPTIONS,
-    );
+    ]);
     vi.mocked(uploadBundle).mockResolvedValue({
       bundle: { ...READY_BUNDLE, fingerprint: CAPACITOR_FINGERPRINT },
       deltaBaseBundleId: null,
@@ -215,6 +215,7 @@ describe('release create', () => {
     expect(resolveUploadBundleOptions).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ path: 'dist' }),
+      expect.any(String),
     );
     expect(uploadBundle).toHaveBeenCalledWith(
       expect.anything(),
@@ -581,6 +582,66 @@ describe('release create', () => {
       });
       expect(uploadBundle).not.toHaveBeenCalled();
       expect(readCreateRequests()).toEqual([]);
+    });
+  });
+
+  describe('when each platform has a bundle of its own to upload', () => {
+    const OPTIONS = { app: DEMO_APP.id, channel: [STAGING_CHANNEL.id] };
+
+    function stubPlatformBundleUploads(): void {
+      vi.mocked(resolveUploadBundleOptions).mockResolvedValue([
+        { ...UPLOAD_BUNDLE_OPTIONS, platforms: ['android'] },
+        { ...UPLOAD_BUNDLE_OPTIONS, platforms: ['ios'] },
+      ]);
+      for (const bundle of [READY_BUNDLE, PREVIOUS_BUNDLE]) {
+        vi.mocked(uploadBundle).mockResolvedValueOnce({
+          bundle: { ...bundle, fingerprint: CAPACITOR_FINGERPRINT },
+          deltaBaseBundleId: null,
+          patchCount: 0,
+          uploadedBytes: 0,
+          uploadedFileCount: 0,
+          warnings: [],
+        });
+      }
+    }
+
+    it('should name the bundles by their platforms in the confirmation, before uploading anything', async () => {
+      stubPlatformBundleUploads();
+      respondWithStagingChannel();
+
+      await expect(
+        releaseCreateCommand.action(OPTIONS, undefined),
+      ).rejects.toThrow(
+        new ConfirmationRequiredError(
+          'uploads the android and ios bundles as 1.4.2 and releases each at 100 percent: reaches 100 of 120 active devices in staging',
+        ),
+      );
+
+      expect(uploadBundle).not.toHaveBeenCalled();
+    });
+
+    it('should upload each bundle and release each to the channel', async () => {
+      stubPlatformBundleUploads();
+      respondWithStagingChannel();
+      respondWithCreatedRelease();
+
+      await releaseCreateCommand.action(
+        { ...OPTIONS, json: true, yes: true },
+        undefined,
+      );
+
+      expect(uploadBundle).toHaveBeenCalledTimes(2);
+      expect(
+        await Promise.all(
+          readCreateRequests().map(async request => {
+            const { bundleId } = (await request.json()) as {
+              bundleId: string;
+            };
+            return bundleId;
+          }),
+        ),
+      ).toEqual([READY_BUNDLE.id, PREVIOUS_BUNDLE.id]);
+      expect(harness.readJson()).toHaveLength(2);
     });
   });
 

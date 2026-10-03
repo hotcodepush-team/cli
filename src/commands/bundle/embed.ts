@@ -12,7 +12,10 @@ import {
   compressFiles,
   withTemporaryDirectory,
 } from '../../utils/compressed-files.js';
-import { InvalidParameterError } from '../../utils/errors.js';
+import {
+  InvalidParameterError,
+  MissingParameterError,
+} from '../../utils/errors.js';
 import { readFingerprint } from '../../utils/fingerprint.js';
 import {
   detectFramework,
@@ -120,17 +123,12 @@ export default defineCommand({
       options.config,
     );
     const completeProjectConfig = assertProjectConfig(projectConfig);
-    const channelId = await fetchBuildChannelId(completeProjectConfig);
     const platform =
       options.platform ?? (await resolvePlatformFromEnvironment(options));
     const framework = resolveFrameworkModule(detectFramework(directoryPath));
-    const identity = resolveBinaryIdentity(
-      options,
-      platform,
-      directoryPath,
+    const files = await collectEmbeddedFiles(
       framework,
-    );
-    const files = await collectBundleFiles(
+      platform,
       await resolveInputDirectoryPath(
         options,
         projectConfig,
@@ -138,7 +136,27 @@ export default defineCommand({
         framework,
       ),
     );
+    if (files === undefined) {
+      // a build that bundled nothing runs the development server's JavaScript: no API call, no resource file, no failure
+      process.stderr.write(
+        `Nothing is embedded: the ${platform} build bundled no JavaScript, as a debug build served by the development server does.\n`,
+      );
+      return;
+    }
     assertWithinBundleBytesLimit(files);
+    const resourceFilePath = resolveResourceFilePath(
+      options.out,
+      platform,
+      directoryPath,
+      framework,
+    );
+    const channelId = await fetchBuildChannelId(completeProjectConfig);
+    const identity = resolveBinaryIdentity(
+      options,
+      platform,
+      directoryPath,
+      framework,
+    );
     const fingerprint = await readFingerprint(
       directoryPath,
       completeProjectConfig.nativeSources ?? [],
@@ -156,13 +174,6 @@ export default defineCommand({
       reporter,
     );
     const builtAt = new Date().toISOString();
-    const resourceFilePath =
-      options.out === undefined
-        ? framework.resolveResourceFilePath(
-            platform,
-            framework.resolveNativeProjectPaths(directoryPath)[platform],
-          )
-        : resolve(options.out);
     writeResourceFile(
       resourceFilePath,
       buildResourceFile({
@@ -305,6 +316,19 @@ async function registerWithUploads(
   }
 }
 
+/**
+ * The embedded bundle's files under `--path`: every file there, or the part of a native build's output the framework names.
+ */
+function collectEmbeddedFiles(
+  framework: FrameworkModule,
+  platform: Platform,
+  inputDirectoryPath: string,
+): Promise<BundleFile[] | undefined> {
+  return framework.collectEmbeddedFiles === undefined
+    ? collectBundleFiles(inputDirectoryPath)
+    : framework.collectEmbeddedFiles(platform, inputDirectoryPath);
+}
+
 function resolveBinaryIdentity(
   options: { binaryBuild?: string; binaryVersion?: string },
   platform: Platform,
@@ -328,6 +352,28 @@ function resolveBinaryIdentity(
     binaryBuild: options.binaryBuild ?? readIdentity.binaryBuild,
     binaryVersion: options.binaryVersion ?? readIdentity.binaryVersion,
   };
+}
+
+/**
+ * `--out` as the native build names it, otherwise the place the framework's native project reads the file from.
+ */
+function resolveResourceFilePath(
+  out: string | undefined,
+  platform: Platform,
+  projectDirectoryPath: string,
+  framework: FrameworkModule,
+): string {
+  const resourceFilePath =
+    out === undefined
+      ? framework.resolveResourceFilePath(
+          platform,
+          framework.resolveNativeProjectPaths(projectDirectoryPath)[platform],
+        )
+      : resolve(out);
+  if (resourceFilePath === undefined) {
+    throw new MissingParameterError('--out');
+  }
+  return resourceFilePath;
 }
 
 /**

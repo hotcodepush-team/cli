@@ -20,6 +20,16 @@ import {
   SIGNING_KEY,
 } from '../../test/fixtures.js';
 import {
+  APP_DELEGATE_FILE_PATH,
+  APP_GRADLE_FILE_PATH,
+  MAIN_APPLICATION_FILE_PATH,
+  PODFILE_PATH,
+  XCODE_PROJECT_FILE_PATH,
+  readProjectFile,
+  writeInstalledSdk,
+  writeReactNativeProject,
+} from '../../test/react-native-project.js';
+import {
   ReportedFailureError,
   UnknownFrameworkError,
 } from '../utils/errors.js';
@@ -681,4 +691,104 @@ describe('init', () => {
     vi.spyOn(process, 'cwd').mockReturnValue(directoryPath);
     return {};
   }
+
+  describe('in a React Native project', () => {
+    function writeReactNative(
+      options: Parameters<typeof writeReactNativeProject>[0] = {},
+    ): string {
+      const directoryPath = writeReactNativeProject(options);
+      directoryPaths.push(directoryPath);
+      return directoryPath;
+    }
+
+    afterEach(() => {
+      vi.mocked(runCommandLineVisibly).mockReset();
+    });
+
+    it('should install the SDK, write hotcodepush.json without dir, and wire the phase, the Gradle line, both apps and the pod', async () => {
+      const directoryPath = writeReactNative();
+      // the Podfile pins the commit the SDK names, which is there once the install ran
+      vi.mocked(runCommandLineVisibly).mockImplementation(({ command }) => {
+        if (command === 'npm') {
+          writeInstalledSdk(directoryPath);
+        }
+      });
+      respondWithSession([ACME_ORGANIZATION]);
+      harness.routes[`GET ${APPS_PATH}`] = () => Response.json([]);
+      harness.routes[`POST ${APPS_PATH}`] = () =>
+        Response.json(
+          { ...DEMO_APP, framework: 'react-native' },
+          { status: 201 },
+        );
+
+      await initCommand.action(
+        { app: 'Demo', json: true, yes: true, ...withCwd(directoryPath) },
+        undefined,
+      );
+
+      const createRequest = harness.requests.find(
+        ({ method }) => method === 'POST',
+      );
+      expect(await createRequest?.json()).toEqual({
+        framework: 'react-native',
+        name: 'Demo',
+      });
+      expect(readJsonFile(join(directoryPath, 'hotcodepush.json'))).toEqual({
+        appId: DEMO_APP.id,
+        channel: PRODUCTION_CHANNEL.name,
+      });
+      expect(readProjectFile(directoryPath, APP_GRADLE_FILE_PATH)).toContain(
+        'hotcodepush.gradle',
+      );
+      expect(readProjectFile(directoryPath, APP_DELEGATE_FILE_PATH)).toContain(
+        'HotCodePush.bundleURL()',
+      );
+      expect(
+        readProjectFile(directoryPath, MAIN_APPLICATION_FILE_PATH),
+      ).toContain('HotCodePushReactHost.getDefaultReactHost');
+      expect(readProjectFile(directoryPath, PODFILE_PATH)).toContain(
+        "pod 'HotCodePushProtocol'",
+      );
+      expect(readProjectFile(directoryPath, XCODE_PROJECT_FILE_PATH)).toContain(
+        'Embed HotCodePush',
+      );
+      expect(runCommandLineVisibly).toHaveBeenLastCalledWith(
+        { args: ['install'], command: 'pod' },
+        join(directoryPath, 'ios'),
+      );
+      const result = harness.readJson() as InitResult;
+      expect(result.status).toBe('complete');
+      expect(result.steps.slice(3).map(({ message }) => message)).toEqual([
+        expect.stringMatching(
+          /^installed @hotcodepush\/react-native-code-push from https:\/\/pkg\.pr\.new\//,
+        ),
+        'wrote hotcodepush.json',
+        'wired the Embed HotCodePush phase in Xcode, the embed task in the Gradle build, HotCodePush.bundleURL() in AppDelegate.swift, HotCodePushReactHost in MainApplication.kt, the HotCodePushProtocol pod in the Podfile, the pods through pod install',
+        'run signing-key create to enable code signing',
+        'release create packages the bundles itself',
+        'run release create to publish the first release',
+      ]);
+    }, 15_000);
+
+    it('should name the native files it would change and change none when nobody can confirm', async () => {
+      const directoryPath = writeReactNative();
+      respondWithSession([ACME_ORGANIZATION]);
+      harness.routes[`GET ${APPS_PATH}`] = () => Response.json([DEMO_APP]);
+
+      await expect(
+        initCommand.action(
+          { json: true, ...withCwd(directoryPath) },
+          undefined,
+        ),
+      ).rejects.toBeInstanceOf(ReportedFailureError);
+
+      const result = harness.readJson() as InitResult;
+      expect(result.steps.find(({ step }) => step === 'hook')?.message).toBe(
+        `a confirmation is required: changes package.json, hotcodepush.json, ${XCODE_PROJECT_FILE_PATH}, ${APP_GRADLE_FILE_PATH}, ${APP_DELEGATE_FILE_PATH}, ${MAIN_APPLICATION_FILE_PATH}, ${PODFILE_PATH}`,
+      );
+      expect(
+        readProjectFile(directoryPath, APP_GRADLE_FILE_PATH),
+      ).not.toContain('hotcodepush.gradle');
+    });
+  });
 });

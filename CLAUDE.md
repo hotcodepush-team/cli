@@ -28,7 +28,8 @@ src/
                and the bsdiff binding behind one function, the store build's binary identity from the native projects, the resource file,
                the progress lines, the browser opener, the JSON, tables and details output,
                init's step runner, the outcome rows init and doctor print, the package manager and its visible runs,
-               the embed hook in package.json, the resource reference in the Xcode project
+               the embed hook in package.json, the resource reference and the embed phase in the Xcode project,
+               the lines a React Native project is wired with
   config/      consts: the API URL, the client id and header, the config file, the docs and issues URLs,
                the keyring entry, package.json, the project file
 test/          the command tests' harness, the API faked behind fetch, their fixtures, the release routes
@@ -71,6 +72,8 @@ No releases yet: the version stays `0.0.0`, and release-please and npm provenanc
 3. Nothing outside the module names the framework: a command asks the module, never a config file or a path of its own.
 
 Capacitor's module reads `capacitor.config` as text and the native projects' own files; Cordova's reads `config.xml` through `fast-xml-parser` and derives the store build's identity as Cordova's prepare does.
+React Native's has no build output to read: `packageBundles` runs `react-native bundle` and Hermes' compiler per platform into the command's packaging directory, one bundle each, `collectEmbeddedFiles` takes `main.jsbundle` and `assets/` out of the app the Xcode phase points at, and the native build passes the identity and `--out` in.
+Its wiring is five edits, each recognised afterwards by what it wrote: the Xcode phase through the `xcode` package, and one line each in `build.gradle`, `AppDelegate.swift`, `MainApplication.kt` and the Podfile, in `utils/react-native-project.ts`.
 
 ## Rules the code does not show
 
@@ -96,7 +99,8 @@ Capacitor's module reads `capacitor.config` as text and the native projects' own
 - **A command that reports several outcomes** — `init`'s steps, `doctor`'s checks — prints them itself and ends with `ReportedFailureError` when one failed,
   so the exit code is set without a second message; nothing else throws it.
 - **`init` and `bundle embed` edit only what they can recognise afterwards**: the hook script gains the embed command or is returned as the manual step,
-  the Xcode project gains one resource reference through the `xcode` package, and `init` names the files it will change and asks once before touching them.
+  the Xcode project gains one resource reference or one run-script phase through the `xcode` package, a React Native project's other files one line each,
+  and `init` names the files it will change and asks once before touching them.
 - **The token** is `readToken()`: `HOTCODEPUSH_TOKEN` when set, then the keyring, then the `config.json` fallback that any keyring failure latches for the rest of the process.
 - **An upload never holds a file in memory**: every file is hashed and gzip-compressed through streams into a temporary directory,
   put as a `Blob` opened from disk so the client can retry it, and the Node client splits it into parts above its `SINGLE_UPLOAD_LIMIT_BYTES`; the packs go the same way.

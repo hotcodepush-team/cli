@@ -11,10 +11,22 @@ import {
   SIGNING_KEY,
   SIGNING_PRIVATE_KEY,
 } from '../../test/fixtures.js';
+import {
+  writeInstalledSdk,
+  writeReactNativeProject,
+} from '../../test/react-native-project.js';
 import { respondWithChannels } from '../../test/release-routes.js';
 import { ReportedFailureError } from '../utils/errors.js';
+import { reactNativeFramework } from '../utils/frameworks/react-native.js';
+import type * as packageManagerModule from '../utils/package-manager.js';
 import { addResourceReference } from '../utils/xcode-project.js';
 import doctorCommand from './doctor.js';
+
+// wiring a React Native project ends with pod install, which a test never runs
+vi.mock('../utils/package-manager.js', async importOriginal => ({
+  ...(await importOriginal<typeof packageManagerModule>()),
+  runCommandLineVisibly: vi.fn(),
+}));
 
 // the no-session case must not find a token in the machine's keyring
 vi.mock('@napi-rs/keyring', () => ({
@@ -411,6 +423,55 @@ describe('doctor', () => {
         message: 'not logged in; the app is not checked against the API',
         status: 'skipped',
       },
+    ]);
+  });
+
+  it('should check a wired React Native project: no dir to name, the phase and the Gradle line, both apps, and no resource file to read', async () => {
+    const directoryPath = writeReactNativeProject({
+      isPackageInstalled: true,
+      projectConfig: { appId: DEMO_APP.id, channel: PRODUCTION_CHANNEL.name },
+    });
+    directoryPaths.push(directoryPath);
+    writeInstalledSdk(directoryPath);
+    await (
+      await reactNativeFramework.resolveWiring(
+        {
+          directoryPath,
+          packageJson: {
+            dependencies: {
+              '@hotcodepush/react-native-code-push': '0.1.0',
+            },
+          },
+        },
+        { yes: true },
+      )
+    ).wireEmbedStep(undefined);
+    respondWithSessionAndApp();
+
+    await doctorCommand.action(
+      { config: join(directoryPath, 'hotcodepush.json'), json: true },
+      undefined,
+    );
+
+    const result = harness.readJson() as DoctorResult;
+    expect(result.status).toBe('clean');
+    expect(result.checks[0]?.message).toBe(
+      `hotcodepush.json names app ${DEMO_APP.id} and channel production`,
+    );
+    expect(
+      result.checks.map(({ check, status }) => `${check}:${status}`),
+    ).toEqual([
+      'configuration:ok',
+      'session:ok',
+      'app:ok',
+      'package:ok',
+      'hook:ok',
+      'host:ok',
+      'android-resource-file:skipped',
+      'ios-resource-file:skipped',
+      'hosts:ok',
+      'signing-key:skipped',
+      'versions:ok',
     ]);
   });
 });

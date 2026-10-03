@@ -27,6 +27,7 @@ import {
   failurePolicyShape,
   resolveFailurePolicy,
 } from '../../utils/channel-fields.js';
+import { withTemporaryDirectory } from '../../utils/compressed-files.js';
 import { InvalidParameterError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson, printWarnings } from '../../utils/output.js';
@@ -62,12 +63,13 @@ import {
 
 /**
  * What a release is made of: the bundle `--bundle` names, what the channel `--from-channel` names serves,
- * or the web build to upload once the release is confirmed.
+ * or the builds to upload once the release is confirmed — the web build, or one bundle per platform where the
+ * framework has one each, every one of them released.
  */
 export type BundleSource =
   | { bundle: Bundle }
   | { bundle: Bundle; sourceChannel: Channel; sourceRelease: Release }
-  | { uploadBundleOptions: UploadBundleOptions };
+  | { bundleUploads: UploadBundleOptions[] };
 
 /**
  * A channel the release goes to with the audience its conditions reach there.
@@ -145,32 +147,52 @@ export default defineCommand({
         'The share of devices the release reaches, 0 to 100; 100 by default.',
       ),
   }),
-  action: async options => {
-    const hotCodePush = createApiClient();
-    const bundleSource = await resolveBundleSource(hotCodePush, options);
-    const fingerprint = resolveSourceFingerprint(bundleSource);
-    const isMandatory = options.mandatory ?? false;
-    const rolloutPercentage = options.rolloutPercentage ?? 100;
-    const channelAudiences = await fetchChannelAudiences(
-      hotCodePush,
-      options,
-      fingerprint,
-      rolloutPercentage,
-    );
-    const consequence = resolveReleaseConsequence(
-      bundleSource,
-      channelAudiences,
-      rolloutPercentage,
-      isMandatory,
-    );
-    if (options.dryRun) {
-      await printDryRun(bundleSource, channelAudiences, consequence, options);
-      return;
-    }
-    if (!(await confirmConsequence(consequence, options))) {
-      return;
-    }
-    const bundle = await resolveReleasedBundle(hotCodePush, bundleSource);
+  action: options =>
+    withTemporaryDirectory(packagingDirectoryPath =>
+      createReleases(options, packagingDirectoryPath),
+    ),
+});
+
+/**
+ * The command, with the directory a framework that packages inside the upload bundles into; it is gone when the command ends.
+ */
+async function createReleases(
+  options: ReleaseCreateOptions,
+  packagingDirectoryPath: string,
+): Promise<void> {
+  const hotCodePush = createApiClient();
+  const bundleSource = await resolveBundleSource(
+    hotCodePush,
+    options,
+    packagingDirectoryPath,
+  );
+  const fingerprint = resolveSourceFingerprint(bundleSource);
+  const isMandatory = options.mandatory ?? false;
+  const rolloutPercentage = options.rolloutPercentage ?? 100;
+  const channelAudiences = await fetchChannelAudiences(
+    hotCodePush,
+    options,
+    fingerprint,
+    rolloutPercentage,
+  );
+  const consequence = resolveReleaseConsequence(
+    bundleSource,
+    channelAudiences,
+    rolloutPercentage,
+    isMandatory,
+  );
+  if (options.dryRun) {
+    await printDryRun(bundleSource, channelAudiences, consequence, options);
+    return;
+  }
+  if (!(await confirmConsequence(consequence, options))) {
+    return;
+  }
+  const releases: CreatedRelease[] = [];
+  for (const bundle of await resolveReleasedBundles(
+    hotCodePush,
+    bundleSource,
+  )) {
     const releaseBody: ReleaseBody = {
       ...('sourceChannel' in bundleSource
         ? { fromChannelId: bundleSource.sourceChannel.id }
@@ -181,7 +203,6 @@ export default defineCommand({
       notes: options.notes ?? null,
       rolloutPercentage,
     };
-    const releases: CreatedRelease[] = [];
     for (const { channel } of channelAudiences) {
       const createdRelease = await hotCodePush.apps.channels.releases.create({
         ...releaseBody,
@@ -200,11 +221,11 @@ export default defineCommand({
         );
       }
     }
-    if (options.json) {
-      printJson(releases);
-    }
-  },
-});
+  }
+  if (options.json) {
+    printJson(releases);
+  }
+}
 
 /**
  * What the release does, with the audience its conditions reach in every channel, from the audience preview.
@@ -304,10 +325,10 @@ async function printDryRun(
   consequence: string,
   options: ReleaseCreateOptions,
 ): Promise<void> {
-  if ('uploadBundleOptions' in bundleSource) {
-    assertWithinBundleBytesLimit(
-      await collectBundleFiles(bundleSource.uploadBundleOptions.directoryPath),
-    );
+  if ('bundleUploads' in bundleSource) {
+    for (const { directoryPath } of bundleSource.bundleUploads) {
+      assertWithinBundleBytesLimit(await collectBundleFiles(directoryPath));
+    }
   }
   for (const { audience } of channelAudiences) {
     printWarnings(audience.warnings);
@@ -331,6 +352,7 @@ async function printDryRun(
 async function resolveBundleSource(
   hotCodePush: HotCodePush,
   options: ReleaseCreateOptions,
+  packagingDirectoryPath: string,
 ): Promise<BundleSource> {
   const sourceFlags = [
     options.bundle === undefined ? undefined : '--bundle',
@@ -345,9 +367,10 @@ async function resolveBundleSource(
   }
   if (options.bundle === undefined && options.fromChannel === undefined) {
     return {
-      uploadBundleOptions: await resolveUploadBundleOptions(
+      bundleUploads: await resolveUploadBundleOptions(
         hotCodePush,
         options,
+        packagingDirectoryPath,
       ),
     };
   }
@@ -362,21 +385,22 @@ async function resolveBundleSource(
 }
 
 /**
- * The bundle the release carries, the web build uploaded first when that is the source, its warnings printed.
+ * The bundles the release carries: the one named, or each build uploaded first when that is the source, its warnings printed.
  */
-async function resolveReleasedBundle(
+async function resolveReleasedBundles(
   hotCodePush: HotCodePush,
   bundleSource: BundleSource,
-): Promise<Bundle> {
+): Promise<Bundle[]> {
   if ('bundle' in bundleSource) {
-    return bundleSource.bundle;
+    return [bundleSource.bundle];
   }
-  const uploadedBundle = await uploadBundle(
-    hotCodePush,
-    bundleSource.uploadBundleOptions,
-  );
-  printWarnings(uploadedBundle.warnings);
-  return uploadedBundle.bundle;
+  const bundles: Bundle[] = [];
+  for (const uploadBundleOptions of bundleSource.bundleUploads) {
+    const uploadedBundle = await uploadBundle(hotCodePush, uploadBundleOptions);
+    printWarnings(uploadedBundle.warnings);
+    bundles.push(uploadedBundle.bundle);
+  }
+  return bundles;
 }
 
 /**
@@ -394,8 +418,8 @@ function resolveIdempotencyKey(
 }
 
 function resolveReleaseText(bundleSource: BundleSource): string {
-  if ('uploadBundleOptions' in bundleSource) {
-    return `uploads the web build as ${bundleSource.uploadBundleOptions.bundleVersion} and releases it`;
+  if ('bundleUploads' in bundleSource) {
+    return resolveUploadText(bundleSource.bundleUploads);
   }
   const bundleText = `releases bundle ${resolveBundleLabel(bundleSource.bundle)}`;
   return 'sourceChannel' in bundleSource
@@ -404,10 +428,28 @@ function resolveReleaseText(bundleSource: BundleSource): string {
 }
 
 /**
- * The fingerprint the release's condition carries: the bundle's own, or the one the web build will be uploaded with.
+ * A build still to upload has no number yet, so it is named by the version label it will carry: one bundle for both
+ * platforms is the web build, the bundles of a framework that has one per platform are named by their platforms.
+ */
+function resolveUploadText(bundleUploads: UploadBundleOptions[]): string {
+  const bundleVersion = bundleUploads[0]?.bundleVersion ?? '';
+  const platformTexts = bundleUploads.map(({ platforms }) =>
+    platforms.join(' and '),
+  );
+  if (bundleUploads.length === 1 && platformTexts[0]?.includes(' and ')) {
+    return `uploads the web build as ${bundleVersion} and releases it`;
+  }
+  return bundleUploads.length === 1
+    ? `uploads the ${platformTexts[0]} bundle as ${bundleVersion} and releases it`
+    : `uploads the ${platformTexts.join(' and ')} bundles as ${bundleVersion} and releases each`;
+}
+
+/**
+ * The fingerprint the release's condition carries: the bundle's own, or the one the builds will be uploaded with,
+ * the project's one native contract whatever the platform.
  */
 function resolveSourceFingerprint(bundleSource: BundleSource): string | null {
   return 'bundle' in bundleSource
     ? bundleSource.bundle.fingerprint
-    : bundleSource.uploadBundleOptions.fingerprint;
+    : (bundleSource.bundleUploads[0]?.fingerprint ?? null);
 }

@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { join, relative, resolve } from 'node:path';
+import { join, relative } from 'node:path';
 import {
   CAPACITOR_PACKAGE_NAME,
   CAPACITOR_PACKAGE_SPEC,
@@ -11,22 +11,21 @@ import {
   resolveEmbedHookState,
   wireEmbedHook,
 } from '../embed-hook.js';
-import { isInteractive } from '../environment.js';
 import type { ConfirmationRequiredError } from '../errors.js';
-import { MissingParameterError } from '../errors.js';
 import type { StepOutcome } from '../init-steps.js';
 import {
   resolveInstallCommandLine,
   resolvePackageManager,
   runCommandLineVisibly,
 } from '../package-manager.js';
-import { promptText } from '../prompts.js';
 import type { Platform } from '../upload.js';
 import {
   addResourceReference,
   hasResourceReference,
   resolveXcodeProjectFilePath,
 } from '../xcode-project.js';
+import type { NativeProjects } from './native-projects.js';
+import { resolveNativeProjects } from './native-projects.js';
 import { checkSdkPackage, isSdkPackageDeclared } from './sdk-package.js';
 import type {
   FrameworkCheck,
@@ -36,13 +35,6 @@ import type {
   NativeProjectPaths,
   WiringOptions,
 } from './index.js';
-
-/**
- * The native projects the hook step wires and the reason it cannot when neither was found or named.
- */
-interface NativeProjects extends NativeProjectPaths {
-  missingError: MissingParameterError | undefined;
-}
 
 export const CAPACITOR_CONFIG_FILE_NAMES = [
   'capacitor.config.json',
@@ -216,49 +208,6 @@ function resolveNativeProjectPaths(
 }
 
 /**
- * `--ios-path` and `--android-path`, typed against the working directory, over `capacitor.config`'s paths and `ios/`, `android/`;
- * neither found is asked for, and non-interactively the hook step's stop.
- */
-async function resolveNativeProjects(
-  projectDirectoryPath: string,
-  options: WiringOptions,
-): Promise<NativeProjects> {
-  const defaultPaths = resolveNativeProjectPaths(projectDirectoryPath);
-  const android =
-    options.androidPath === undefined
-      ? defaultPaths.android
-      : resolve(options.androidPath);
-  const ios =
-    options.iosPath === undefined ? defaultPaths.ios : resolve(options.iosPath);
-  if (existsSync(android) || existsSync(ios)) {
-    return { android, ios, missingError: undefined };
-  }
-  if (!isInteractive(options)) {
-    return {
-      android,
-      ios,
-      missingError: new MissingParameterError(
-        '--ios-path',
-        `run "npx cap add ios" and "npx cap add android", or pass --ios-path and --android-path; neither ${relative(projectDirectoryPath, ios)} nor ${relative(projectDirectoryPath, android)} exists.`,
-      ),
-    };
-  }
-  return {
-    android: resolve(
-      await promptText(
-        '--android-path',
-        'Where is the Android project?',
-        options,
-      ),
-    ),
-    ios: resolve(
-      await promptText('--ios-path', 'Where is the iOS project?', options),
-    ),
-    missingError: undefined,
-  };
-}
-
-/**
  * Where each platform's native project reads the file: the app bundle's resources on iOS, the assets on Android.
  */
 function resolveResourceFilePath(
@@ -281,7 +230,12 @@ async function resolveWiring(
   { directoryPath, packageJson }: FrameworkProject,
   options: WiringOptions,
 ): Promise<FrameworkWiring> {
-  const nativeProjects = await resolveNativeProjects(directoryPath, options);
+  const nativeProjects = await resolveNativeProjects(
+    directoryPath,
+    resolveNativeProjectPaths(directoryPath),
+    options,
+    'run "npx cap add ios" and "npx cap add android", or ',
+  );
   const xcodeProjectFilePath = resolveXcodeProjectFilePath(nativeProjects.ios);
   const isPackageInstalled = isSdkPackageDeclared(
     packageJson,

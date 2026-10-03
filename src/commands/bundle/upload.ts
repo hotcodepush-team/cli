@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
 import { resolveBundleLabel } from '../../utils/bundle-resolution.js';
+import { withTemporaryDirectory } from '../../utils/compressed-files.js';
 import type { InteractivityOptions } from '../../utils/environment.js';
 import { readFingerprint } from '../../utils/fingerprint.js';
 import {
@@ -94,38 +95,65 @@ export default defineCommand({
   options: defineCommandOptions(bundleUploadOptionShape),
   action: async options => {
     const hotCodePush = createApiClient();
-    const uploadedBundle = await uploadBundle(
-      hotCodePush,
-      await resolveUploadBundleOptions(hotCodePush, options),
+    const uploadedBundles = await withTemporaryDirectory(
+      async packagingDirectoryPath => {
+        const bundles: UploadedBundle[] = [];
+        for (const uploadBundleOptions of await resolveUploadBundleOptions(
+          hotCodePush,
+          options,
+          packagingDirectoryPath,
+        )) {
+          bundles.push(await uploadBundle(hotCodePush, uploadBundleOptions));
+        }
+        return bundles;
+      },
     );
-    printUploadedBundle(uploadedBundle, options.json);
+    printUploadedBundles(uploadedBundles, options.json);
   },
 });
 
-export function printUploadedBundle(
-  {
-    bundle,
-    deltaBaseBundleId,
-    patchCount,
-    uploadedBytes,
-    uploadedFileCount,
-    warnings,
-  }: UploadedBundle,
+/**
+ * One bundle prints as itself, the shape a web build always had; a framework with a bundle per platform prints the list.
+ */
+function printUploadedBundles(
+  uploadedBundles: UploadedBundle[],
   isJson: boolean | undefined,
 ): void {
-  printWarnings(warnings);
-  if (isJson) {
-    printJson({
-      ...bundle,
-      upload: {
-        deltaBaseBundleId,
-        patchCount,
-        uploadedBytes,
-        uploadedFileCount,
-      },
-    });
+  for (const { warnings } of uploadedBundles) {
+    printWarnings(warnings);
+  }
+  if (!isJson) {
+    uploadedBundles.forEach(printUploadedBundle);
     return;
   }
+  const [onlyBundle] = uploadedBundles;
+  printJson(
+    onlyBundle !== undefined && uploadedBundles.length === 1
+      ? resolveUploadedBundleJson(onlyBundle)
+      : uploadedBundles.map(resolveUploadedBundleJson),
+  );
+}
+
+function resolveUploadedBundleJson({
+  bundle,
+  deltaBaseBundleId,
+  patchCount,
+  uploadedBytes,
+  uploadedFileCount,
+}: UploadedBundle): object {
+  return {
+    ...bundle,
+    upload: { deltaBaseBundleId, patchCount, uploadedBytes, uploadedFileCount },
+  };
+}
+
+function printUploadedBundle({
+  bundle,
+  deltaBaseBundleId,
+  patchCount,
+  uploadedBytes,
+  uploadedFileCount,
+}: UploadedBundle): void {
   const previousBundleText = [
     ...(patchCount === 0 ? [] : [resolvePatchCountText(patchCount)]),
     ...(deltaBaseBundleId === null ? [] : ['a delta pack']),
@@ -140,35 +168,53 @@ function resolvePatchCountText(patchCount: number): string {
 }
 
 /**
- * What the upload needs, from the project's configuration and the flags, asked for where missing; nothing moves yet,
- * so `release create --path` resolves it before it confirms and uploads only once confirmed.
+ * What each upload of the command needs, from the project's configuration and the flags, asked for where missing: one
+ * bundle for a build the project holds, one per platform where the framework packages inside the upload, which it does
+ * here, into the packaging directory. Nothing moves yet, so `release create` resolves them before it confirms and
+ * uploads only once confirmed.
  */
 export async function resolveUploadBundleOptions(
   hotCodePush: HotCodePush,
   options: BundleUploadOptions,
-): Promise<UploadBundleOptions> {
+  packagingDirectoryPath: string,
+): Promise<UploadBundleOptions[]> {
   const { directoryPath, projectConfig } = locateProjectConfig(options.config);
   const framework = resolveFrameworkModule(detectFramework(directoryPath));
   const appId = await fetchAppId(hotCodePush, options, projectConfig);
-  const inputDirectoryPath = await resolveInputDirectoryPath(
-    options,
-    projectConfig,
-    directoryPath,
-    framework,
-  );
-  return {
+  const sharedOptions = {
     appId,
     bundleVersion: await resolveBundleVersion(options, directoryPath),
-    directoryPath: inputDirectoryPath,
     fingerprint: await readFingerprint(
       directoryPath,
       projectConfig?.nativeSources ?? [],
     ),
     gitProvenance: await resolveGitProvenance(directoryPath, options),
-    platforms: options.platform ?? PLATFORMS,
     reporter: createReporter(options),
     signingPrivateKey: await resolveSigningPrivateKey(appId, projectConfig),
   };
+  const packagedBundles =
+    framework.packageBundles === undefined
+      ? [
+          {
+            directoryPath: await resolveInputDirectoryPath(
+              options,
+              projectConfig,
+              directoryPath,
+              framework,
+            ),
+            platforms: options.platform ?? PLATFORMS,
+          },
+        ]
+      : await framework.packageBundles({
+          packagingDirectoryPath,
+          path: options.path,
+          platforms: options.platform,
+          projectDirectoryPath: directoryPath,
+        });
+  return packagedBundles.map(packagedBundle => ({
+    ...sharedOptions,
+    ...packagedBundle,
+  }));
 }
 
 /**

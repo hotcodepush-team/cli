@@ -198,6 +198,20 @@ export class MissingParameterError extends CliError {
  * Without a prompt the fix names `login`; with one, from a login that cannot wait for the approval,
  * it carries the page and the code for an agent to relay.
  */
+/**
+ * A native project file the CLI cannot edit: the line its edit replaces or follows is not there, so the fix is the edit by hand.
+ */
+export class NativeProjectError extends CliError {
+  constructor(message: string, fix: string) {
+    super({
+      code: 'E_NATIVE_PROJECT',
+      exitCode: ExitCode.Error,
+      fix,
+      message,
+    });
+  }
+}
+
 export class NotLoggedInError extends CliError {
   constructor(deviceAuthorizationPrompt?: DeviceAuthorizationPrompt) {
     super({
@@ -269,15 +283,21 @@ export class UnexpectedResponseError extends CliError {
 }
 
 /**
- * An Xcode project the CLI cannot edit: unparseable, or without the group the resource belongs in.
+ * An Xcode project the CLI cannot edit: unparseable, or without the group or the phase its edit attaches to.
+ * The fix is the edit by hand, the resource reference a Capacitor project takes unless another is named.
  */
 export class XcodeProjectError extends CliError {
-  constructor(message: string, cause: unknown, projectFilePath: string) {
+  constructor(
+    message: string,
+    cause: unknown,
+    projectFilePath: string,
+    fix = `add hotcodepush.json to the app target's Copy Bundle Resources in ${projectFilePath}.`,
+  ) {
     super({
       cause,
       code: 'E_XCODE_PROJECT',
       exitCode: ExitCode.Error,
-      fix: `add hotcodepush.json to the app target's Copy Bundle Resources in ${projectFilePath}.`,
+      fix,
       message,
     });
   }

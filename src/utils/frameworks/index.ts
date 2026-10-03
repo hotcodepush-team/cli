@@ -1,4 +1,5 @@
 import type { BinaryIdentity } from '../binary-identity.js';
+import type { BundleFile } from '../bundle-files.js';
 import type { PackageJson } from '../embed-hook.js';
 import type { InteractivityOptions } from '../environment.js';
 import type { ConfirmationRequiredError } from '../errors.js';
@@ -8,6 +9,7 @@ import type { StepOutcome } from '../init-steps.js';
 import type { Platform } from '../upload.js';
 import { capacitorFramework } from './capacitor.js';
 import { cordovaFramework } from './cordova.js';
+import { reactNativeFramework } from './react-native.js';
 
 /**
  * One row of `doctor`: a check, its outcome and the step that repairs it.
@@ -37,6 +39,20 @@ export interface FrameworkModule {
    * The SDK package and the embed step as `doctor` reports them.
    */
   checkWiring: (project: FrameworkProject) => FrameworkCheck[];
+  /**
+   * The embedded bundle among the files under the embed step's `--path`, where a native build's output holds more than
+   * the bundle; none when the build bundled nothing. Without the member every file under the path is the bundle.
+   */
+  collectEmbeddedFiles?: (
+    platform: Platform,
+    inputDirectoryPath: string,
+  ) => Promise<BundleFile[] | undefined>;
+  /**
+   * The bundles one upload makes, where the framework's packaging runs inside the upload: each platform's JavaScript
+   * bundled into the packaging directory. `hotcodepush.json` then names no `dir` and `init` runs no build.
+   * Without the member the project's build output is one bundle for every platform.
+   */
+  packageBundles?: (request: PackagingRequest) => Promise<PackagedBundle[]>;
   readBinaryIdentity: (
     platform: Platform,
     projectDirectoryPath: string,
@@ -49,12 +65,13 @@ export interface FrameworkModule {
     projectDirectoryPath: string,
   ) => NativeProjectPaths;
   /**
-   * Where the platform's native project reads the resource file.
+   * Where the platform's native project reads the resource file; none where the native build writes it into the app
+   * it builds and names the place with `--out`.
    */
   resolveResourceFilePath: (
     platform: Platform,
     nativeProjectPath: string,
-  ) => string;
+  ) => string | undefined;
   /**
    * What `init` installs and wires in this project, resolved once before the editing steps, asking where it must.
    */
@@ -97,6 +114,25 @@ export interface FrameworkWiring {
   ) => Promise<StepOutcome<undefined>>;
 }
 
+/**
+ * One bundle of an upload: its files and the platforms it serves.
+ */
+export interface PackagedBundle {
+  directoryPath: string;
+  platforms: Platform[];
+}
+
+/**
+ * What a framework packages for one upload: the project, the platforms `--platform` names, `--path` as typed,
+ * and the directory the bundles go into, which the command removes when it ends.
+ */
+export interface PackagingRequest {
+  packagingDirectoryPath: string;
+  path: string | undefined;
+  platforms: Platform[] | undefined;
+  projectDirectoryPath: string;
+}
+
 export interface NativeProjectPaths {
   android: string;
   ios: string;
@@ -109,8 +145,9 @@ export interface WiringOptions extends InteractivityOptions {
 }
 
 const FRAMEWORK_MODULES: Partial<Record<Framework, FrameworkModule>> = {
-  capacitor: capacitorFramework,
-  cordova: cordovaFramework,
+  'capacitor': capacitorFramework,
+  'cordova': cordovaFramework,
+  'react-native': reactNativeFramework,
 };
 
 /**

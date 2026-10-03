@@ -137,6 +137,7 @@ export default defineCommand({
 
 function checkConfiguration({
   directoryPath,
+  framework,
   projectConfig,
 }: Project): DoctorCheck {
   if (projectConfig === undefined) {
@@ -147,7 +148,10 @@ function checkConfiguration({
       status: 'failed',
     };
   }
-  const problems = resolveConfigurationProblems(projectConfig);
+  // a framework whose upload packages the bundle itself has no build output for `dir` to name
+  const isDirRequired =
+    framework instanceof Error || framework.packageBundles === undefined;
+  const problems = resolveConfigurationProblems(projectConfig, isDirRequired);
   if (problems.length > 0) {
     return {
       check: 'configuration',
@@ -158,16 +162,23 @@ function checkConfiguration({
   }
   return {
     check: 'configuration',
-    message: `${PROJECT_CONFIG_FILE_NAME} names app ${projectConfig.appId} and channel ${resolveProjectChannel(projectConfig)}, web build at ${projectConfig.dir}`,
+    message: `${PROJECT_CONFIG_FILE_NAME} names app ${projectConfig.appId} and channel ${resolveProjectChannel(projectConfig)}${projectConfig.dir === undefined ? '' : `, web build at ${projectConfig.dir}`}`,
     status: 'ok',
   };
 }
 
 /**
- * What keeps the file from naming a valid app, channel and web build; a file without `channel` follows the schema's default.
+ * What keeps the file from naming a valid app, channel and, where the upload reads a build from the project, that build;
+ * a file without `channel` follows the schema's default.
  */
-function resolveConfigurationProblems(projectConfig: ProjectConfig): string[] {
-  const problems = (['appId', 'dir'] as const)
+function resolveConfigurationProblems(
+  projectConfig: ProjectConfig,
+  isDirRequired: boolean,
+): string[] {
+  const requiredFields = isDirRequired
+    ? (['appId', 'dir'] as const)
+    : (['appId'] as const);
+  const problems = requiredFields
     .filter(field => projectConfig[field] === undefined)
     .map(field => `lacks ${field}`);
   if (
@@ -380,6 +391,13 @@ function checkResourceFile(
     platform,
     nativeProjectPath,
   );
+  if (filePath === undefined) {
+    return {
+      check,
+      message: `the ${platform} build writes hotcodepush.json into the app it builds`,
+      status: 'skipped',
+    };
+  }
   const relativeFilePath = relative(directoryPath, filePath);
   if (!existsSync(filePath)) {
     return {

@@ -35,6 +35,7 @@ import {
   STAGING_CHANNEL,
 } from '../../../test/fixtures.js';
 import { respondWithChannels } from '../../../test/release-routes.js';
+import { MissingParameterError } from '../../utils/errors.js';
 import bundleEmbedCommand from './embed.js';
 
 // the not-logged-in case must not find a token in the machine's keyring
@@ -505,6 +506,124 @@ describe('bundle embed', () => {
       bundleEmbedCommand.action(options, undefined),
     ).rejects.toMatchObject({
       code: 'E_EMBED_CONFLICT',
+    });
+  });
+
+  describe('in a React Native build', () => {
+    const BUNDLE = 'bytecode';
+    const BUNDLE_SHA256 = createHash('sha256').update(BUNDLE).digest('hex');
+    const LOGO = 'png';
+    const LOGO_SHA256 = createHash('sha256').update(LOGO).digest('hex');
+
+    let appDirectoryPath = '';
+
+    beforeEach(() => {
+      writeFileSync(
+        join(projectDirectoryPath, 'package.json'),
+        JSON.stringify({
+          dependencies: { 'react-native': '0.82.1' },
+          name: 'demo',
+          version: '1.0.0',
+        }),
+      );
+      writeFileSync(
+        join(projectDirectoryPath, 'hotcodepush.json'),
+        JSON.stringify({
+          appId: DEMO_APP.id,
+          channel: PRODUCTION_CHANNEL.name,
+        }),
+      );
+      rmSync(join(projectDirectoryPath, 'capacitor.config.json'));
+      appDirectoryPath = join(projectDirectoryPath, 'build', 'Demo.app');
+      mkdirSync(join(appDirectoryPath, 'assets'), { recursive: true });
+      writeFileSync(join(appDirectoryPath, 'Info.plist'), '<plist />');
+      harness.routes[`POST ${BINARIES_PATH}`] = () =>
+        Response.json(BINARY, { status: 201 });
+    });
+
+    function writeBundledJavaScript(): void {
+      writeFileSync(join(appDirectoryPath, 'main.jsbundle'), BUNDLE);
+      writeFileSync(join(appDirectoryPath, 'assets', 'logo.png'), LOGO);
+    }
+
+    async function embed(
+      options: { binaryVersion?: string; out?: string } = {},
+    ): Promise<void> {
+      await bundleEmbedCommand.action(
+        {
+          binaryBuild: '57',
+          binaryVersion: '2.4.1',
+          config: join(projectDirectoryPath, 'hotcodepush.json'),
+          out: join(appDirectoryPath, 'hotcodepush.json'),
+          path: appDirectoryPath,
+          platform: 'ios',
+          ...options,
+        },
+        undefined,
+      );
+    }
+
+    it('should embed the JavaScript and its assets out of the app, with the identity the build passes in, into the place --out names', async () => {
+      writeBundledJavaScript();
+
+      await embed();
+
+      const files = [
+        { path: 'assets/logo.png', sha256: LOGO_SHA256, sizeBytes: 3 },
+        { path: 'main.jsbundle', sha256: BUNDLE_SHA256, sizeBytes: 8 },
+      ];
+      const createRequest = harness.requests.find(
+        ({ method, url }) => method === 'POST' && url.endsWith('/binaries'),
+      );
+      expect(await createRequest?.json()).toEqual({
+        binaryBuild: '57',
+        binaryVersion: '2.4.1',
+        files,
+        fingerprint: CAPACITOR_FINGERPRINT,
+        force: false,
+        platform: 'ios',
+      });
+      expect(
+        ConfigurationSchema.parse(
+          readResourceFile('build/Demo.app/hotcodepush.json'),
+        ),
+      ).toMatchObject({
+        appId: DEMO_APP.id,
+        channelId: PRODUCTION_CHANNEL.id,
+        embeddedBundleId: BINARY.bundleId,
+        embeddedBundleManifest: { bundleVersion: '2.4.1', files },
+      });
+    });
+
+    it('should embed nothing and ask the API nothing when the build bundled no JavaScript', async () => {
+      await embed();
+
+      expect(harness.requests).toEqual([]);
+      expect(existsSync(join(appDirectoryPath, 'hotcodepush.json'))).toBe(
+        false,
+      );
+      expect(stderrWrite).toHaveBeenCalledWith(
+        'Nothing is embedded: the ios build bundled no JavaScript, as a debug build served by the development server does.\n',
+      );
+    });
+
+    it('should name --out when the build does not say where the resource file goes', async () => {
+      writeBundledJavaScript();
+
+      await expect(embed({ out: undefined })).rejects.toThrow(
+        new MissingParameterError('--out'),
+      );
+      expect(
+        harness.requests.filter(({ method }) => method === 'POST'),
+      ).toEqual([]);
+    });
+
+    it('should name --binary-version when the build does not pass its identity in', async () => {
+      writeBundledJavaScript();
+
+      await expect(embed({ binaryVersion: undefined })).rejects.toThrow(
+        new MissingParameterError('--binary-version'),
+      );
     });
   });
 });
