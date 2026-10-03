@@ -12,6 +12,10 @@ import { join } from 'node:path';
 import { ConfigurationSchema } from '@hotcodepush/protocol';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  CAPACITOR_FINGERPRINT,
+  writeFingerprintInputs,
+} from '../../../test/capacitor-project.js';
+import {
   respondWithApiError,
   useCommandHarness,
 } from '../../../test/command-harness.js';
@@ -84,6 +88,7 @@ describe('bundle embed', () => {
       join(projectDirectoryPath, 'android', 'app', 'build.gradle'),
       'versionCode 1\nversionName "1.0"\n',
     );
+    writeFingerprintInputs(projectDirectoryPath);
     stderrWrite = vi
       .spyOn(process.stderr, 'write')
       .mockImplementation(() => true);
@@ -160,7 +165,7 @@ describe('bundle embed', () => {
       binaryBuild: '1',
       binaryVersion: '1.0',
       files: [{ path: 'index.html', sha256: INDEX_SHA256, sizeBytes: 11 }],
-      fingerprint: null,
+      fingerprint: CAPACITOR_FINGERPRINT,
       force: false,
       platform: 'ios',
     });
@@ -174,6 +179,7 @@ describe('bundle embed', () => {
         version: '1.0',
       },
       filesBaseUrl: 'https://api.example.com/files',
+      fingerprint: CAPACITOR_FINGERPRINT,
       updatesBaseUrl: 'https://api.example.com/updates',
     });
     expect(harness.readLines()).toEqual([
@@ -215,6 +221,28 @@ describe('bundle embed', () => {
       code: 'E_INVALID_PARAMETER',
       message: 'hotcodepush.json: no channel is named "beta"',
     });
+    expect(harness.requests.filter(({ method }) => method === 'POST')).toEqual(
+      [],
+    );
+    expect(
+      existsSync(
+        join(projectDirectoryPath, 'ios', 'App', 'App', 'hotcodepush.json'),
+      ),
+    ).toBe(false);
+  });
+
+  it('should fail the build with E_FINGERPRINT_UNAVAILABLE when the project has no lockfile, before writing or registering anything', async () => {
+    rmSync(join(projectDirectoryPath, 'package-lock.json'));
+
+    await expect(
+      bundleEmbedCommand.action(
+        {
+          config: join(projectDirectoryPath, 'hotcodepush.json'),
+          platform: 'ios',
+        },
+        undefined,
+      ),
+    ).rejects.toMatchObject({ code: 'E_FINGERPRINT_UNAVAILABLE' });
     expect(harness.requests.filter(({ method }) => method === 'POST')).toEqual(
       [],
     );

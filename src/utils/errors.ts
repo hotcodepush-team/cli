@@ -113,6 +113,22 @@ export class ConfirmationRequiredError extends CliError {
 }
 
 /**
+ * The native contract's hash cannot be computed from the project: no lockfile, two, one the recipe cannot read, or no `node_modules`.
+ * A build without it would match binaries it does not describe, so nothing goes on without it.
+ */
+export class FingerprintUnavailableError extends CliError {
+  constructor(cause: Error) {
+    super({
+      cause,
+      code: 'E_FINGERPRINT_UNAVAILABLE',
+      exitCode: ExitCode.Error,
+      fix: 'the fingerprint reads the committed lockfile and the installed packages; make both current and run the command again.',
+      message: `the fingerprint cannot be computed: ${cause.message}`,
+    });
+  }
+}
+
+/**
  * The hook script the CLI would add its command to is one it cannot parse as a command chain.
  */
 export class HookOccupiedError extends CliError {

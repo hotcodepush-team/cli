@@ -4,6 +4,7 @@ import {
   stringifyCanonicalJson,
 } from '@hotcodepush/protocol';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { CAPACITOR_FINGERPRINT } from '../../../test/capacitor-project.js';
 import {
   stubInteractiveTerminal,
   useCommandHarness,
@@ -47,6 +48,7 @@ const UPLOAD_BUNDLE_OPTIONS: UploadBundleOptions = {
   appId: DEMO_APP.id,
   bundleVersion: '1.4.2',
   directoryPath: '/projects/demo/dist',
+  fingerprint: CAPACITOR_FINGERPRINT,
   gitProvenance: {
     gitMessage: null,
     gitRef: null,

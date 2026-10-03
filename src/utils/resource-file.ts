@@ -12,6 +12,7 @@ interface ResourceFileInput {
   channelId: string;
   embeddedBundleId: string | null;
   files: BundleFile[];
+  fingerprint: string;
   hosts: DeviceHosts;
   projectConfig: ProjectConfig;
   version: string;
@@ -24,13 +25,14 @@ export const UNREGISTERED_BUNDLE_ID = 'embedded';
 
 /**
  * The resource file: the project's configuration with the channel as the id the embed step resolved, plus what only
- * a build step can know — the floor, the fingerprint slot, the embedded bundle's manifest and id, and the device hosts outside production.
+ * a build step can know — the floor, the fingerprint, the embedded bundle's manifest and id, and the device hosts outside production.
  */
 export function buildResourceFile({
   builtAt,
   channelId,
   embeddedBundleId,
   files,
+  fingerprint,
   hosts,
   projectConfig,
   version,
@@ -54,7 +56,7 @@ export function buildResourceFile({
       patches: [],
       version,
     },
-    fingerprint: null,
+    fingerprint,
     ...(hosts.filesBaseUrl === undefined
       ? {}
       : { filesBaseUrl: hosts.filesBaseUrl }),

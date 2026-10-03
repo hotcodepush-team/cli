@@ -14,6 +14,7 @@ import {
   withTemporaryDirectory,
 } from '../../utils/compressed-files.js';
 import { InvalidParameterError } from '../../utils/errors.js';
+import { readFingerprint } from '../../utils/fingerprint.js';
 import {
   resolveInputDirectoryPath,
   resolveNativeProjectPaths,
@@ -50,6 +51,16 @@ import { readApiUrl } from '../../utils/user-config.js';
 interface Registration extends UploadedFiles {
   embeddedBundle: EmbeddedBundle | null;
   skippedReason: string | null;
+}
+
+/**
+ * What registers the store build beside its files: the app, the platform, the version and build, and the native contract it was built on.
+ */
+interface RegistrationRequest extends BinaryIdentity {
+  appId: string;
+  fingerprint: string;
+  force: boolean;
+  platform: Platform;
 }
 
 const PLATFORMS = ['android', 'ios'] as const;
@@ -123,13 +134,17 @@ export default defineCommand({
       await resolveInputDirectoryPath(options, projectConfig, directoryPath),
     );
     assertWithinBundleBytesLimit(files);
+    const fingerprint = await readFingerprint(directoryPath);
     const reporter = createReporter(options);
     const registration = await registerEmbeddedBundle(
-      completeProjectConfig.appId,
-      platform,
-      identity,
+      {
+        ...identity,
+        appId: completeProjectConfig.appId,
+        fingerprint,
+        force: options.force ?? false,
+        platform,
+      },
       files,
-      options.force ?? false,
       reporter,
     );
     const builtAt = new Date().toISOString();
@@ -144,6 +159,7 @@ export default defineCommand({
         channelId,
         embeddedBundleId: registration.embeddedBundle?.bundleId ?? null,
         files,
+        fingerprint,
         hosts: resolveDeviceHosts(readApiUrl()),
         projectConfig: completeProjectConfig,
         version: identity.binaryVersion,
@@ -208,11 +224,8 @@ function fetchBuildChannelId(
  * fingerprint under an unbumped build number is a pipeline mistake someone must see — a build never breaks locally.
  */
 async function registerEmbeddedBundle(
-  appId: string,
-  platform: Platform,
-  identity: BinaryIdentity,
+  request: RegistrationRequest,
   files: BundleFile[],
-  force: boolean,
   reporter: ReturnType<typeof createReporter>,
 ): Promise<Registration> {
   if (readToken() === undefined) {
@@ -225,15 +238,7 @@ async function registerEmbeddedBundle(
   }
   const hotCodePush = createApiClient();
   try {
-    return await registerWithUploads(
-      hotCodePush,
-      appId,
-      platform,
-      identity,
-      files,
-      force,
-      reporter,
-    );
+    return await registerWithUploads(hotCodePush, request, files, reporter);
   } catch (error) {
     // a build never breaks locally: a refused, conflicting or unreachable registration is one warning; CI fails with it
     if (process.env.CI) {
@@ -249,25 +254,17 @@ async function registerEmbeddedBundle(
 
 async function registerWithUploads(
   hotCodePush: HotCodePush,
-  appId: string,
-  platform: Platform,
-  identity: BinaryIdentity,
+  request: RegistrationRequest,
   files: BundleFile[],
-  force: boolean,
   reporter: ReturnType<typeof createReporter>,
 ): Promise<Registration> {
   const createOptions = {
-    appId,
-    binaryBuild: identity.binaryBuild,
-    binaryVersion: identity.binaryVersion,
+    ...request,
     files: files.map(({ path, sha256, sizeBytes }) => ({
       path,
       sha256,
       sizeBytes,
     })),
-    fingerprint: null,
-    force,
-    platform,
   };
   try {
     const embeddedBundle =
@@ -283,7 +280,7 @@ async function registerWithUploads(
       async temporaryDirectoryPath =>
         uploadMissingFiles(
           hotCodePush,
-          appId,
+          request.appId,
           missingSha256s,
           await compressFiles(
             files.filter(({ sha256 }) => missingSha256s.includes(sha256)),

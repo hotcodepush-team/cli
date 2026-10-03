@@ -7,6 +7,10 @@ import { text } from '@clack/prompts';
 import { stringifyCanonicalJson } from '@hotcodepush/protocol';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  CAPACITOR_FINGERPRINT,
+  writeFingerprintInputs,
+} from '../../../test/capacitor-project.js';
+import {
   API_URL,
   stubInteractiveTerminal,
   useCommandHarness,
@@ -41,6 +45,7 @@ describe('bundle upload', () => {
   beforeEach(() => {
     projectDirectoryPath = mkdtempSync(join(tmpdir(), 'hotcodepush-project-'));
     writeProject({ '@capacitor/core': '8.0.0' });
+    writeFingerprintInputs(projectDirectoryPath);
   });
 
   afterEach(() => {
@@ -148,7 +153,7 @@ describe('bundle upload', () => {
         { path: 'assets/app.js', sha256: APP_JS_SHA256, sizeBytes: 14 },
         { path: 'index.html', sha256: INDEX_SHA256, sizeBytes: 11 },
       ],
-      fingerprint: null,
+      fingerprint: CAPACITOR_FINGERPRINT,
       gitMessage: null,
       gitRef: null,
       gitRemote: null,

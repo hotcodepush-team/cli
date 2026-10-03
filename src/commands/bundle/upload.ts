@@ -6,6 +6,7 @@ import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
 import { resolveBundleLabel } from '../../utils/bundle-resolution.js';
 import type { InteractivityOptions } from '../../utils/environment.js';
+import { readFingerprint } from '../../utils/fingerprint.js';
 import {
   detectFramework,
   resolveInputDirectoryPath,
@@ -143,6 +144,7 @@ export async function resolveUploadBundleOptions(
     appId,
     bundleVersion: await resolveBundleVersion(options, directoryPath),
     directoryPath: inputDirectoryPath,
+    fingerprint: await readFingerprint(directoryPath),
     gitProvenance: await resolveGitProvenance(directoryPath, options),
     platforms: options.platform ?? PLATFORMS,
     reporter: createReporter(options),

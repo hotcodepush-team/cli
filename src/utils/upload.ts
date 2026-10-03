@@ -24,6 +24,7 @@ export interface UploadBundleOptions {
   appId: string;
   bundleVersion: string;
   directoryPath: string;
+  fingerprint: string;
   gitProvenance: GitProvenance;
   platforms: Platform[];
   reporter: Reporter;
@@ -70,6 +71,7 @@ export async function uploadBundle(
     appId,
     bundleVersion,
     directoryPath,
+    fingerprint,
     gitProvenance,
     platforms,
     reporter,
@@ -91,7 +93,7 @@ export async function uploadBundle(
       sha256,
       sizeBytes,
     })),
-    fingerprint: null,
+    fingerprint,
     platforms,
     ...gitProvenance,
   });

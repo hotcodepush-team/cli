@@ -1,6 +1,7 @@
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { computeFingerprint } from '@hotcodepush/protocol/fingerprint';
 
 /**
  * What a Capacitor project's `package.json` starts with in a test: the framework, the SDK when installed, the hook when wired.
@@ -11,6 +12,14 @@ export interface CapacitorProjectOptions {
   projectConfig?: object;
   webDir?: string;
 }
+
+/**
+ * The fingerprint of a project whose lockfile installs `@capacitor/core` 8.0.0 beside a package without native code.
+ */
+export const CAPACITOR_FINGERPRINT = computeFingerprint({
+  nativeSources: [],
+  packages: [{ name: '@capacitor/core', version: '8.0.0' }],
+});
 
 export const PBXPROJ_FIXTURE_PATH = join(
   import.meta.dirname,
@@ -66,6 +75,31 @@ export function writeCapacitorProject({
     recursive: true,
   });
   return directoryPath;
+}
+
+/**
+ * What the fingerprint reads: an npm lockfile and the packages it installs, `@capacitor/core` and a package without native code.
+ */
+export function writeFingerprintInputs(directoryPath: string): void {
+  const packages = { '@capacitor/core': '8.0.0', 'left-pad': '1.3.0' };
+  writeJson(join(directoryPath, 'package-lock.json'), {
+    lockfileVersion: 3,
+    name: 'demo',
+    packages: {
+      '': { dependencies: packages, name: 'demo' },
+      ...Object.fromEntries(
+        Object.entries(packages).map(([name, version]) => [
+          `node_modules/${name}`,
+          { version },
+        ]),
+      ),
+    },
+  });
+  for (const [name, version] of Object.entries(packages)) {
+    const packagePath = join(directoryPath, 'node_modules', name);
+    mkdirSync(packagePath, { recursive: true });
+    writeJson(join(packagePath, 'package.json'), { name, version });
+  }
 }
 
 export function readJsonFile<TValue>(filePath: string): TValue {
