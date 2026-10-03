@@ -25,7 +25,7 @@ npx hotcodepush channel pause --app "My App" --channel staging
 npx hotcodepush channel list --app "My App" --json
 npx hotcodepush bundle upload --path dist --bundle-version 1.4.2
 npx hotcodepush bundle list --json
-npx hotcodepush embedded-bundle list
+npx hotcodepush binary list
 npx hotcodepush release create --path dist
 npx hotcodepush release create --bundle 17 --channel staging --rollout-percentage 10
 npx hotcodepush release rollout --release 43 --rollout-percentage 100
@@ -39,7 +39,7 @@ An organization, app or channel is named by id or by name, `--app "My App"`; `--
 A command that changes what devices receive or cannot be undone — a release, a rollout, a pause, a revoke, a rollback, a delete — asks once with the consequence, `--yes` confirming in scripts.
 `bundle upload` hashes every file of the web build, uploads only the files the app lacks and the packs, and records the commit it was built from.
 `release create` uploads the web build unless `--bundle` names one already uploaded, releases it to every `--channel` named with the project's channel as the default, and waits until the release is live; a retried pipeline gets the same release back, the `Idempotency-Key` being derived from the bundle and the channel.
-`bundle embed` is the build step the native hook runs — `npx hotcodepush bundle embed` from `capacitor:copy:after` — writing the resource file the SDK reads and registering the store build's embedded bundle.
+`bundle embed` is the build step the native hook runs — `npx hotcodepush bundle embed` from `capacitor:copy:after` — writing the resource file the SDK reads and registering the store build as a binary, with the bundle it ships and its fingerprint.
 
 ## Documentation
 
