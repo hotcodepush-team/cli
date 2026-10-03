@@ -12,6 +12,7 @@ import {
 import {
   ApiError,
   MissingParameterError,
+  UnexpectedResponseError,
   UnknownCommandError,
 } from './errors.js';
 
@@ -60,14 +61,15 @@ describe('error mapping', () => {
       expect(cliError.message).toBe('Invalid device code');
     });
 
-    it('should map a response without a code to E_UNEXPECTED', () => {
+    it('should map a response without a code to E_UNEXPECTED_RESPONSE, as the typed client does', () => {
       const cliError = resolveApiError({
         status: 502,
         statusText: 'Bad Gateway',
       });
 
-      expect(cliError.code).toBe('E_UNEXPECTED');
-      expect(cliError.message).toBe('the API answered 502 Bad Gateway');
+      expect(cliError).toEqual(new UnexpectedResponseError(502));
+      expect(cliError.code).toBe('E_UNEXPECTED_RESPONSE');
+      expect(cliError.message).toBe('the API answered 502 outside its shape');
     });
   });
 
@@ -95,6 +97,22 @@ describe('error mapping', () => {
         'The bearer token is missing, invalid or expired.',
       );
       expect(cliError.exitCode).toBe(3);
+    });
+
+    it("should render the typed client's answer outside the API's shape as the auth client's", () => {
+      const cliError = resolveCliError(
+        new HotCodePushError(
+          {
+            code: 'E_UNEXPECTED_RESPONSE',
+            message: 'Request failed with status 502.',
+          },
+          502,
+        ),
+      );
+
+      expect(cliError).toEqual(
+        resolveApiError({ status: 502, statusText: 'Bad Gateway' }),
+      );
     });
 
     it('should map a zod validation error to E_INVALID_PARAMETER naming the flag', () => {

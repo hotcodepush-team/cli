@@ -239,6 +239,21 @@ export class UnexpectedError extends CliError {
 }
 
 /**
+ * An answer outside the API's shape, a proxy's error page or a body without the catalog's code, from either client:
+ * the typed client reports it as `E_UNEXPECTED_RESPONSE`, Better Auth's client as an error without a code.
+ */
+export class UnexpectedResponseError extends CliError {
+  constructor(status: number) {
+    super({
+      code: 'E_UNEXPECTED_RESPONSE',
+      exitCode: ExitCode.Error,
+      fix: `check the API URL in config.json and the network, and report it at ${ISSUES_URL} if it persists.`,
+      message: `the API answered ${status} outside its shape`,
+    });
+  }
+}
+
+/**
  * An Xcode project the CLI cannot edit: unparseable, or without the group the resource belongs in.
  */
 export class XcodeProjectError extends CliError {

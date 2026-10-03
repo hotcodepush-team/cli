@@ -9,6 +9,7 @@ import {
   CliError,
   InvalidParameterError,
   UnexpectedError,
+  UnexpectedResponseError,
 } from './errors.js';
 import { printJson } from './output.js';
 
@@ -44,6 +45,9 @@ interface PrintErrorOptions {
   isJson: boolean;
   isVerbose: boolean;
 }
+
+/** The typed client's code for an answer outside the API's shape, which the CLI's catalog renders. */
+const UNEXPECTED_RESPONSE_CODE = 'E_UNEXPECTED_RESPONSE';
 
 export function buildErrorJson({ code, fix, message }: CliError): ErrorJson {
   return { error: { code, message, fix } };
@@ -93,9 +97,7 @@ export function resolveApiError({
 }: ApiErrorResponse): CliError {
   const receivedCode = code ?? error;
   if (receivedCode === undefined) {
-    return new UnexpectedError(
-      new Error(`the API answered ${status} ${statusText}`),
-    );
+    return new UnexpectedResponseError(status);
   }
   return new ApiError(
     receivedCode,
@@ -106,14 +108,17 @@ export function resolveApiError({
 
 /**
  * Maps anything a command line can throw to the CLI's catalog: its own errors as they are, the typed client's
- * as the API answered them, zod and zodline's parameter errors to `E_INVALID_PARAMETER`, everything else to `E_UNEXPECTED`.
+ * as the API answered them unless the answer was outside the API's shape, zod and zodline's parameter errors to
+ * `E_INVALID_PARAMETER`, everything else to `E_UNEXPECTED`.
  */
 export function resolveCliError(error: unknown): CliError {
   if (error instanceof CliError) {
     return error;
   }
   if (error instanceof HotCodePushError) {
-    return new ApiError(error.code, error.message, error.status);
+    return error.code === UNEXPECTED_RESPONSE_CODE
+      ? new UnexpectedResponseError(error.status)
+      : new ApiError(error.code, error.message, error.status);
   }
   if (error instanceof ZodError) {
     return new InvalidParameterError(resolveZodErrorMessage(error), error);
