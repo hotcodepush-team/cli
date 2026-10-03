@@ -27,6 +27,7 @@ import {
   respondWithApiError,
   useCommandHarness,
 } from '../../../test/command-harness.js';
+import { writeCordovaProject } from '../../../test/cordova-project.js';
 import {
   BINARY,
   DEMO_APP,
@@ -197,6 +198,55 @@ describe('bundle embed', () => {
       `Wrote ${join(projectDirectoryPath, 'ios', 'App', 'App', 'hotcodepush.json')} for ios.`,
       `Registered the binary ios 1.0 (1): 1 files uploaded, ${uploadedByteCount} B.`,
     ]);
+  });
+
+  it("should write a Cordova project's resource file beside the platform's web assets, with the identity config.xml gives the store build", async () => {
+    const cordovaDirectoryPath = writeCordovaProject({
+      isPluginInstalled: true,
+      projectConfig: {
+        appId: DEMO_APP.id,
+        channel: PRODUCTION_CHANNEL.name,
+        dir: 'www',
+      },
+    });
+    harness.routes[`POST ${BINARIES_PATH}`] = () =>
+      Response.json(BINARY, { status: 201 });
+
+    try {
+      await bundleEmbedCommand.action(
+        {
+          config: join(cordovaDirectoryPath, 'hotcodepush.json'),
+          platform: 'android',
+        },
+        undefined,
+      );
+
+      const createRequest = harness.requests.find(
+        ({ method, url }) => method === 'POST' && url.endsWith('/binaries'),
+      );
+      expect(await createRequest?.json()).toMatchObject({
+        binaryBuild: '20401',
+        binaryVersion: '2.4.1',
+        platform: 'android',
+      });
+      const resourceFile = ConfigurationSchema.parse(
+        JSON.parse(
+          readFileSync(
+            join(
+              cordovaDirectoryPath,
+              'platforms/android/app/src/main/assets/www/hotcodepush.json',
+            ),
+            'utf8',
+          ),
+        ),
+      );
+      expect(resourceFile.embeddedBundleManifest.bundleVersion).toBe('2.4.1');
+      expect(resourceFile.embeddedBundleManifest.files).toEqual([
+        { path: 'index.html', sha256: INDEX_SHA256, sizeBytes: 11 },
+      ]);
+    } finally {
+      rmSync(cordovaDirectoryPath, { force: true, recursive: true });
+    }
   });
 
   it('should do nothing when the hook runs for the web platform, before any configuration check', async () => {

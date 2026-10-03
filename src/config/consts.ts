@@ -1,11 +1,14 @@
 import { createRequire } from 'node:module';
 import type { CliMeta } from '../utils/cli.js';
 
-// The SDK is installed from the pkg.pr.new build of one commit until the package is published; a bump is one edit of the sha
+// An SDK is installed from the pkg.pr.new build of one commit until its package is published; a bump is one edit of the sha
 export const CAPACITOR_PACKAGE_NAME = '@hotcodepush/capacitor-live-updates';
 export const CAPACITOR_PACKAGE_SPEC =
   'https://pkg.pr.new/hotcodepush-team/capacitor-live-updates/@hotcodepush/capacitor-live-updates@93a9cc2';
 export const CLI_CLIENT_ID = 'hotcodepush-cli';
+export const CORDOVA_PACKAGE_NAME = '@hotcodepush/cordova-code-push';
+export const CORDOVA_PACKAGE_SPEC =
+  'https://pkg.pr.new/hotcodepush-team/cordova-code-push/@hotcodepush/cordova-code-push@ad60469';
 export const CLIENT_HEADER_NAME = 'X-HotCodePush-Client';
 export const CONFIG_DIRECTORY_NAME = 'hotcodepush';
 export const CONFIG_FILE_NAME = 'config.json';

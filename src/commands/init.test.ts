@@ -10,6 +10,7 @@ import {
   stubInteractiveTerminal,
   useCommandHarness,
 } from '../../test/command-harness.js';
+import { writeCordovaProject } from '../../test/cordova-project.js';
 import {
   ACME_ORGANIZATION,
   DEMO_APP,
@@ -620,6 +621,46 @@ describe('init', () => {
       status: 'stopped',
       step: 'hook',
     });
+  });
+
+  it('should set a Cordova project up through cordova plugin add, with www as the build directory and no hook to wire', async () => {
+    const directoryPath = writeCordovaProject();
+    directoryPaths.push(directoryPath);
+    respondWithSession([ACME_ORGANIZATION]);
+    harness.routes[`GET ${APPS_PATH}`] = () => Response.json([DEMO_APP]);
+
+    await initCommand.action(
+      { json: true, yes: true, ...withCwd(directoryPath) },
+      undefined,
+    );
+
+    expect(runCommandLineVisibly).toHaveBeenCalledWith(
+      {
+        args: [
+          'cordova',
+          'plugin',
+          'add',
+          expect.stringMatching(/@hotcodepush\/cordova-code-push@/) as string,
+        ],
+        command: 'npx',
+      },
+      directoryPath,
+    );
+    expect(readJsonFile(join(directoryPath, 'hotcodepush.json'))).toEqual({
+      appId: DEMO_APP.id,
+      channel: PRODUCTION_CHANNEL.name,
+      dir: 'www',
+    });
+    const result = harness.readJson() as InitResult;
+    expect(result.status).toBe('complete');
+    expect(readStepStatuses(result)).toMatchObject({
+      configuration: 'done',
+      hook: 'skipped',
+      package: 'done',
+    });
+    expect(result.steps.find(({ step }) => step === 'hook')?.message).toBe(
+      'the plugin brings its after_prepare hook; nothing to wire',
+    );
   });
 
   it('should refuse a project without a supported framework before any step', async () => {

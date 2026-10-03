@@ -4,6 +4,7 @@ import { EMBED_HOOK_COMMAND, EMBED_HOOK_NAME } from '../config/consts.js';
 import { HookOccupiedError } from './errors.js';
 
 export interface PackageJson {
+  cordova?: { plugins?: Record<string, unknown> };
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
   name?: string;

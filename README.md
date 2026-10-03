@@ -40,7 +40,8 @@ npx hotcodepush statistics get --type fleet
 npx hotcodepush fingerprint
 ```
 
-`init` takes a Capacitor project from sign-in to the first release — the organization, the app, the SDK package from its pkg.pr.new build until it is published, `hotcodepush.json`, the `capacitor:copy:after` hook and the iOS resource reference — re-runnable at any step, each step `done`, `skipped` or `stopped` with the manual step; `doctor` is the read-only check of the same, and `open` opens the app's console page.
+`init` takes a Capacitor or Cordova project from sign-in to the first release — the organization, the app, the SDK package from its pkg.pr.new build until it is published, `hotcodepush.json` and the embed step — re-runnable at any step, each step `done`, `skipped` or `stopped` with the manual step; `doctor` is the read-only check of the same, and `open` opens the app's console page.
+On Capacitor the embed step is the `capacitor:copy:after` hook and the iOS resource reference, which `init` wires; on Cordova `init` runs `cordova plugin add`, and the plugin brings its own `after_prepare` hook, so nothing is wired.
 Every command prints its options and two examples with `--help`, and `--json` turns its output into JSON for scripts and agents.
 An organization, app or channel is named by id or by name, `--app "My App"`; `--app` defaults to the app id in the project's `hotcodepush.json` and `--channel` to the channel it names, `production` unless the file or `HOTCODEPUSH_CHANNEL` says otherwise.
 A command that changes what devices receive or cannot be undone — a release, a rollout, a pause, a revoke, a rollback, a delete — asks once with the consequence, `--yes` confirming in scripts.
@@ -50,7 +51,7 @@ A release carries its conditions as flags — `--binary`, `--os`, `--runtime`, `
 `release revoke` takes one release, every release from a number on with `--release-from`, a channel's whole log with `--all`, or every release of a bundle with `--bundle`; revoked is final, and the confirmation says how many releases move and where their devices land.
 `device probe` answers why a device did not update: it reads the live index as a device would, evaluates every release in the frontier for the facts given, or for a registered device with `--device`, and marks each condition passed, failed or unknown.
 `statistics get` reads the fleet, the updates or the usage of an app, chosen with `--type`, and `fingerprint` prints the native contract's hash with the packages and native sources behind it, without a login.
-`bundle embed` is the build step the native hook runs — `npx hotcodepush bundle embed` from `capacitor:copy:after` — writing the resource file the SDK reads and registering the store build as a binary, with the bundle it ships and its fingerprint.
+`bundle embed` is the build step the native hook runs — `npx hotcodepush bundle embed` from Capacitor's `capacitor:copy:after` or the Cordova plugin's `after_prepare` — writing the resource file the SDK reads and registering the store build as a binary, with the bundle it ships and its fingerprint; a Cordova build takes its version and build number from `config.xml`, as Cordova itself derives them.
 
 ## Documentation
 

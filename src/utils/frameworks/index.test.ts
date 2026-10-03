@@ -7,6 +7,9 @@ describe('frameworks', () => {
     expect(resolveFrameworkModule('capacitor').packageName).toBe(
       '@hotcodepush/capacitor-live-updates',
     );
+    expect(resolveFrameworkModule('cordova').packageName).toBe(
+      '@hotcodepush/cordova-code-push',
+    );
   });
 
   it('should refuse a framework whose packaging has not arrived', () => {

@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { writeCapacitorProject } from '../../test/capacitor-project.js';
 import { useCommandHarness } from '../../test/command-harness.js';
+import { writeCordovaProject } from '../../test/cordova-project.js';
 import {
   DEMO_APP,
   PRODUCTION_CHANNEL,
@@ -143,6 +144,49 @@ describe('doctor', () => {
     ]);
     expect(result.checks.at(-1)?.message).toMatch(
       /^hotcodepush \d+\.\d+\.\d+, node v\d+.*, @capacitor\/core 8\.0\.0, @hotcodepush\/capacitor-live-updates 8\.0\.0$/,
+    );
+  });
+
+  it("should check a Cordova project by its plugin, its hook and the resource file beside each prepared platform's web assets", async () => {
+    const directoryPath = writeCordovaProject({
+      isPluginInstalled: true,
+      projectConfig: {
+        appId: DEMO_APP.id,
+        channel: PRODUCTION_CHANNEL.name,
+        dir: 'www',
+      },
+    });
+    directoryPaths.push(directoryPath);
+    const assetsPath = join(
+      directoryPath,
+      'platforms/android/app/src/main/assets/www',
+    );
+    mkdirSync(assetsPath, { recursive: true });
+    respondWithSessionAndApp();
+
+    await expect(
+      doctorCommand.action(
+        { config: join(directoryPath, 'hotcodepush.json'), json: true },
+        undefined,
+      ),
+    ).rejects.toBeInstanceOf(ReportedFailureError);
+
+    const result = harness.readJson() as DoctorResult;
+    expect(
+      result.checks
+        .slice(3, 7)
+        .map(({ check, status }) => `${check}:${status}`),
+    ).toEqual([
+      'package:ok',
+      'hook:ok',
+      'android-resource-file:failed',
+      'ios-resource-file:skipped',
+    ]);
+    expect(result.checks[5]?.manualStep).toBe(
+      'run npx cordova prepare, which runs the embed hook',
+    );
+    expect(result.checks.at(-1)?.message).toMatch(
+      /, cordova 13\.0\.0, cordova-android 15\.1\.0, cordova-ios missing, @hotcodepush\/cordova-code-push 0\.1\.0$/,
     );
   });
 

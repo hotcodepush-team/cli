@@ -7,6 +7,7 @@ import type { Framework } from '../framework.js';
 import type { StepOutcome } from '../init-steps.js';
 import type { Platform } from '../upload.js';
 import { capacitorFramework } from './capacitor.js';
+import { cordovaFramework } from './cordova.js';
 
 /**
  * One row of `doctor`: a check, its outcome and the step that repairs it.
@@ -109,6 +110,7 @@ export interface WiringOptions extends InteractivityOptions {
 
 const FRAMEWORK_MODULES: Partial<Record<Framework, FrameworkModule>> = {
   capacitor: capacitorFramework,
+  cordova: cordovaFramework,
 };
 
 /**

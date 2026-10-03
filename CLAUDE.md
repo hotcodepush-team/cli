@@ -32,7 +32,7 @@ src/
                the keyring entry, package.json, the project file
 test/          the command tests' harness, the API faked behind fetch, their fixtures, the release routes
                and the Capacitor project a test writes, with the pbxproj of `cap add ios`, the fingerprint inputs,
-               the protocol's fixtures read from the installed package; never built
+               the Cordova project with its `config.xml`, the protocol's fixtures read from the installed package; never built
 dist/          the build output, never committed
 ```
 
@@ -68,6 +68,8 @@ No releases yet: the version stays `0.0.0`, and release-please and npm provenanc
    the store build's identity, what `init` installs and wires, what `doctor` checks.
 2. One line joins the registry in `src/utils/frameworks/index.ts`; a framework without a line is `E_UNSUPPORTED_FRAMEWORK`.
 3. Nothing outside the module names the framework: a command asks the module, never a config file or a path of its own.
+
+Capacitor's module reads `capacitor.config` as text and the native projects' own files; Cordova's reads `config.xml` through `fast-xml-parser` and derives the store build's identity as Cordova's prepare does.
 
 ## Rules the code does not show
 
