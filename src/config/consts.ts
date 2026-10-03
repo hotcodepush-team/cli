@@ -8,7 +8,7 @@ export const CAPACITOR_PACKAGE_SPEC =
 export const CLI_CLIENT_ID = 'hotcodepush-cli';
 export const CORDOVA_PACKAGE_NAME = '@hotcodepush/cordova-code-push';
 export const CORDOVA_PACKAGE_SPEC =
-  'https://pkg.pr.new/hotcodepush-team/cordova-code-push/@hotcodepush/cordova-code-push@902a556';
+  'https://pkg.pr.new/hotcodepush-team/cordova-code-push/@hotcodepush/cordova-code-push@052b236';
 export const CLIENT_HEADER_NAME = 'X-HotCodePush-Client';
 export const CONFIG_DIRECTORY_NAME = 'hotcodepush';
 export const CONFIG_FILE_NAME = 'config.json';
