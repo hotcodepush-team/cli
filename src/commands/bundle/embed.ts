@@ -113,13 +113,13 @@ export default defineCommand({
       ),
   }),
   action: async options => {
+    if (options.platform === undefined && isWebHookRun()) {
+      return;
+    }
     const { directoryPath, projectConfig } = locateProjectConfig(
       options.config,
     );
     const completeProjectConfig = assertProjectConfig(projectConfig);
-    if (options.platform === undefined && isWebHookRun()) {
-      return;
-    }
     const channelId = await fetchBuildChannelId(completeProjectConfig);
     const platform =
       options.platform ?? (await resolvePlatformFromEnvironment(options));
@@ -317,7 +317,8 @@ function resolveBinaryIdentity(
 }
 
 /**
- * Capacitor runs the copy hook for `web` too, where no native project takes a resource file: nothing to do, and no failure.
+ * Capacitor runs the copy hook for `web` too, where no native project takes a resource file: nothing to do, and no failure,
+ * whatever the configuration says, since a web-only checkout may have none.
  */
 function isWebHookRun(): boolean {
   const platformName = process.env.CAPACITOR_PLATFORM_NAME;

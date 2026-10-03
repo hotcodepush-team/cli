@@ -188,13 +188,12 @@ describe('bundle embed', () => {
     ]);
   });
 
-  it('should do nothing when the hook runs for the web platform', async () => {
+  it('should do nothing when the hook runs for the web platform, before any configuration check', async () => {
     vi.stubEnv('CAPACITOR_PLATFORM_NAME', 'web');
+    rmSync(join(projectDirectoryPath, 'hotcodepush.json'));
+    vi.spyOn(process, 'cwd').mockReturnValue(projectDirectoryPath);
 
-    await bundleEmbedCommand.action(
-      { config: join(projectDirectoryPath, 'hotcodepush.json') },
-      undefined,
-    );
+    await bundleEmbedCommand.action({}, undefined);
 
     expect(harness.requests).toEqual([]);
     expect(harness.readLines()).toEqual([]);
