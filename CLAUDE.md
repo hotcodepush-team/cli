@@ -20,6 +20,7 @@ src/
                the project's fingerprint through the protocol's recipe,
                a bundle by number or id, a release by number or id in its channel with the wait until it is live,
                the released line, the prompts and the confirmation, the pages of a list, the boolean flag, the channel fields,
+               the release conditions from their flags, the audience in one clause, a device by id, a duration as a time bound,
                the framework and the build's directory, `frameworks/` with one module per framework behind one interface
                and the registry line that makes the CLI package it, the files of a build hashed, their gzip copies,
                the pack writer, the git provenance, the device hosts derived from the API URL,
@@ -30,7 +31,8 @@ src/
   config/      consts: the API URL, the client id and header, the config file, the docs and issues URLs,
                the keyring entry, package.json, the project file
 test/          the command tests' harness, the API faked behind fetch, their fixtures, the release routes
-               and the Capacitor project a test writes, with the pbxproj of `cap add ios`, the fingerprint inputs; never built
+               and the Capacitor project a test writes, with the pbxproj of `cap add ios`, the fingerprint inputs,
+               the protocol's fixtures read from the installed package; never built
 dist/          the build output, never committed
 ```
 
