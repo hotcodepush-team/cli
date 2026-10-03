@@ -4,11 +4,11 @@ import {
   AmbiguousNameError,
   ApiError,
   ConfirmationRequiredError,
+  FingerprintUnavailableError,
   InvalidParameterError,
   LoginDeniedError,
   LoginExpiredError,
   MissingParameterError,
-  NoTtyError,
   NotLoggedInError,
   UnexpectedError,
   UnknownCommandError,
@@ -34,6 +34,11 @@ describe('errors', () => {
       4,
     ],
     [
+      new FingerprintUnavailableError(new Error('the project has no lockfile')),
+      'E_FINGERPRINT_UNAVAILABLE',
+      1,
+    ],
+    [
       new InvalidParameterError('--limit: Too big', new Error('Too big')),
       'E_INVALID_PARAMETER',
       2,
@@ -41,7 +46,6 @@ describe('errors', () => {
     [new LoginDeniedError(), 'E_LOGIN_DENIED', 1],
     [new LoginExpiredError(), 'E_LOGIN_EXPIRED', 1],
     [new MissingParameterError('--channel'), 'E_MISSING_PARAMETER', 2],
-    [new NoTtyError(), 'E_NO_TTY', 1],
     [new NotLoggedInError(), 'E_NOT_LOGGED_IN', 3],
     [new UnexpectedError(new Error('boom')), 'E_UNEXPECTED', 1],
     [

@@ -194,17 +194,6 @@ export class MissingParameterError extends CliError {
   }
 }
 
-export class NoTtyError extends CliError {
-  constructor() {
-    super({
-      code: 'E_NO_TTY',
-      exitCode: ExitCode.Error,
-      fix: 'run it in a terminal, outside CI and without --json or --yes.',
-      message: 'the command needs an interactive terminal',
-    });
-  }
-}
-
 /**
  * Without a prompt the fix names `login`; with one, from a login that cannot wait for the approval,
  * it carries the page and the code for an agent to relay.
