@@ -1,4 +1,4 @@
-import { ISSUES_URL } from '../config/consts.js';
+import { ISSUES_URL, PROJECT_CONFIG_FILE_NAME } from '../config/consts.js';
 
 export const ExitCode = {
   ConfirmationRequired: 4,
@@ -222,6 +222,21 @@ export class ReportedFailureError extends CliError {
       exitCode: ExitCode.Error,
       fix: null,
       message: 'reported above',
+    });
+  }
+}
+
+/**
+ * `hotcodepush.json` lists public keys and no private key at hand belongs to one of them:
+ * the app releases only signed bundles, so the upload stops before a byte moves.
+ */
+export class SigningKeyUnavailableError extends CliError {
+  constructor(signingKeyFilePath: string) {
+    super({
+      code: 'E_SIGNING_KEY_UNAVAILABLE',
+      exitCode: ExitCode.Error,
+      fix: `set HOTCODEPUSH_SIGNING_KEY to the private key, or restore ${signingKeyFilePath}; "hotcodepush signing-key create" makes a new pair.`,
+      message: `no private key at hand belongs to a public key ${PROJECT_CONFIG_FILE_NAME} lists`,
     });
   }
 }

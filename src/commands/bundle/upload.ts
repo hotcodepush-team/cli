@@ -17,9 +17,11 @@ import { resolveGitProvenance } from '../../utils/git-provenance.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson, printWarnings } from '../../utils/output.js';
 import { createReporter, resolveByteText } from '../../utils/progress.js';
+import type { ProjectConfig } from '../../utils/project-config.js';
 import { locateProjectConfig } from '../../utils/project-config.js';
 import { promptText } from '../../utils/prompts.js';
 import { fetchAppId } from '../../utils/resource-resolution.js';
+import { resolveSigningKeyPair } from '../../utils/signing-key-store.js';
 import type {
   Platform,
   UploadBundleOptions,
@@ -84,7 +86,7 @@ export const bundleUploadOptionShape = {
 
 export default defineCommand({
   description:
-    'Upload a web build as a bundle: only the files the app lacks move, then the packs; nothing is released.',
+    'Upload a web build as a bundle, signed where a key is configured: only the files the app lacks move, then the packs; nothing is released.',
   examples: [
     'hotcodepush bundle upload',
     'hotcodepush bundle upload --path dist --bundle-version 1.4.2 --platform ios --json',
@@ -155,7 +157,24 @@ export async function resolveUploadBundleOptions(
     gitProvenance: await resolveGitProvenance(directoryPath, options),
     platforms: options.platform ?? PLATFORMS,
     reporter: createReporter(options),
+    signingPrivateKey: await resolveSigningPrivateKey(appId, projectConfig),
   };
+}
+
+/**
+ * The private key the manifest is signed with, null where signing is off: `hotcodepush.json` lists no public key,
+ * or it names another app than the one `--app` meant, whose keys it does not hold.
+ */
+async function resolveSigningPrivateKey(
+  appId: string,
+  projectConfig: ProjectConfig | undefined,
+): Promise<string | null> {
+  const publicKeys =
+    projectConfig?.appId === appId ? (projectConfig.publicKeys ?? []) : [];
+  if (publicKeys.length === 0) {
+    return null;
+  }
+  return (await resolveSigningKeyPair(appId, publicKeys)).privateKey;
 }
 
 /**

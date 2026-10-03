@@ -21,3 +21,4 @@ export const PACKAGE_JSON: CliMeta = createRequire(import.meta.url)(
   '../../package.json',
 );
 export const PROJECT_CONFIG_FILE_NAME = 'hotcodepush.json';
+export const SIGNING_KEY_DIRECTORY_NAME = 'keys';

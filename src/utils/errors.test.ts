@@ -10,6 +10,7 @@ import {
   LoginExpiredError,
   MissingParameterError,
   NotLoggedInError,
+  SigningKeyUnavailableError,
   UnexpectedError,
   UnknownCommandError,
   UnknownNameError,
@@ -47,6 +48,11 @@ describe('errors', () => {
     [new LoginExpiredError(), 'E_LOGIN_EXPIRED', 1],
     [new MissingParameterError('--channel'), 'E_MISSING_PARAMETER', 2],
     [new NotLoggedInError(), 'E_NOT_LOGGED_IN', 3],
+    [
+      new SigningKeyUnavailableError('/config/hotcodepush/keys/app.key'),
+      'E_SIGNING_KEY_UNAVAILABLE',
+      1,
+    ],
     [new UnexpectedError(new Error('boom')), 'E_UNEXPECTED', 1],
     [
       new UnknownCommandError('relese create', 'release create'),

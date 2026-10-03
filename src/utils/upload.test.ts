@@ -22,6 +22,7 @@ import {
 import { BundleTooLargeError } from './errors.js';
 import {
   assertWithinBundleBytesLimit,
+  buildManifestToSign,
   BUNDLE_BYTES_LIMIT,
   resolveMissingSha256s,
   uploadDeltaPack,
@@ -193,6 +194,35 @@ describe('upload', () => {
       ]);
     },
   );
+
+  it('should build the manifest with the files by path and the platforms sorted by code units, as the API rebuilds it', () => {
+    const file = { filePath: '/dist/a', sha256: SHA256, sizeBytes: 1 };
+
+    expect(
+      buildManifestToSign({
+        appId: DEMO_APP.id,
+        bundleVersion: '1.4.2',
+        files: [
+          { ...file, path: 'b.js' },
+          { ...file, path: 'a/z.js' },
+          { ...file, path: 'Z.js' },
+        ],
+        fingerprint: 'fp1:abc',
+        platforms: ['ios', 'android'],
+      }),
+    ).toEqual({
+      appId: DEMO_APP.id,
+      bundleVersion: '1.4.2',
+      files: [
+        { path: 'Z.js', sha256: SHA256, sizeBytes: 1 },
+        { path: 'a/z.js', sha256: SHA256, sizeBytes: 1 },
+        { path: 'b.js', sha256: SHA256, sizeBytes: 1 },
+      ],
+      fingerprint: 'fp1:abc',
+      patches: [],
+      platforms: ['android', 'ios'],
+    });
+  });
 
   it('should refuse a file or a bundle above the one public size limit before any request', () => {
     const file = {

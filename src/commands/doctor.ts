@@ -1,8 +1,10 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
+import type { App } from '@hotcodepush/node';
 import {
   ConfigurationSchema,
   ProjectConfigurationSchema,
+  resolveSigningKeyFingerprint,
 } from '@hotcodepush/protocol';
 import { z } from 'zod';
 import { defineCommand } from 'zodline';
@@ -17,8 +19,10 @@ import type { PackageJson } from '../utils/embed-hook.js';
 import { readPackageJson } from '../utils/embed-hook.js';
 import {
   CliError,
+  InvalidParameterError,
   NotLoggedInError,
   ReportedFailureError,
+  SigningKeyUnavailableError,
   UnknownFrameworkError,
   UnsupportedFrameworkError,
 } from '../utils/errors.js';
@@ -42,9 +46,18 @@ import {
   fetchChannels,
   fetchResourceId,
 } from '../utils/resource-resolution.js';
+import { resolveSigningKeyPair } from '../utils/signing-key-store.js';
 import { readToken } from '../utils/token-store.js';
 import type { Platform } from '../utils/upload.js';
 import { readApiUrl } from '../utils/user-config.js';
+
+/**
+ * The app check with the app it fetched, which the signing-key check reads.
+ */
+interface AppCheck {
+  app: App | undefined;
+  check: DoctorCheck;
+}
 
 type DoctorCheck = FrameworkCheck;
 
@@ -57,6 +70,11 @@ interface Project {
   framework: CliError | FrameworkModule;
   packageJson: PackageJson | undefined;
   projectConfig: ProjectConfig | undefined;
+}
+
+interface SessionAndAppChecks {
+  app: App | undefined;
+  checks: DoctorCheck[];
 }
 
 const CHANNEL_NAME_SCHEMA = ProjectConfigurationSchema.shape.channel;
@@ -86,16 +104,14 @@ export default defineCommand({
         : undefined,
       projectConfig,
     };
+    const { app, checks: sessionAndAppChecks } =
+      await checkSessionAndApp(project);
     const checks: DoctorCheck[] = [
       checkConfiguration(project),
-      ...(await checkSessionAndApp(project)),
+      ...sessionAndAppChecks,
       ...checkFramework(project),
       await checkHosts(),
-      {
-        check: 'signing-key',
-        message: 'code signing arrives with milestone 3',
-        status: 'skipped',
-      },
+      await checkSigningKey(project, app),
       checkVersions(project),
     ];
     const status = checks.some(({ status }) => status === 'failed')
@@ -174,15 +190,18 @@ function resolveConfigurationProblems(projectConfig: ProjectConfig): string[] {
  */
 async function checkSessionAndApp({
   projectConfig,
-}: Project): Promise<DoctorCheck[]> {
+}: Project): Promise<SessionAndAppChecks> {
   if (readToken() === undefined) {
-    return [
-      {
-        check: 'session',
-        message: 'not logged in; the app is not checked against the API',
-        status: 'skipped',
-      },
-    ];
+    return {
+      app: undefined,
+      checks: [
+        {
+          check: 'session',
+          message: 'not logged in; the app is not checked against the API',
+          status: 'skipped',
+        },
+      ],
+    };
   }
   try {
     const sessionCheck: DoctorCheck = {
@@ -190,7 +209,8 @@ async function checkSessionAndApp({
       message: resolveCredentialText(await fetchCurrentUser()),
       status: 'ok',
     };
-    return [sessionCheck, await checkApp(projectConfig)];
+    const { app, check } = await checkApp(projectConfig);
+    return { app, checks: [sessionCheck, check] };
   } catch (error) {
     if (
       !isUnauthenticatedError(error) &&
@@ -198,28 +218,34 @@ async function checkSessionAndApp({
     ) {
       throw error;
     }
-    return [
-      {
-        check: 'session',
-        manualStep: 'run hotcodepush login, or set a valid HOTCODEPUSH_TOKEN',
-        message: 'the API does not accept the credential',
-        status: 'failed',
-      },
-    ];
+    return {
+      app: undefined,
+      checks: [
+        {
+          check: 'session',
+          manualStep: 'run hotcodepush login, or set a valid HOTCODEPUSH_TOKEN',
+          message: 'the API does not accept the credential',
+          status: 'failed',
+        },
+      ],
+    };
   }
 }
 
 async function checkApp(
   projectConfig: ProjectConfig | undefined,
-): Promise<DoctorCheck> {
+): Promise<AppCheck> {
   if (
     projectConfig?.appId === undefined ||
     !ID_SCHEMA.safeParse(projectConfig.appId).success
   ) {
     return {
-      check: 'app',
-      message: 'the configuration names no app and channel to check',
-      status: 'skipped',
+      app: undefined,
+      check: {
+        check: 'app',
+        message: 'the configuration names no app and channel to check',
+        status: 'skipped',
+      },
     };
   }
   const { appId } = projectConfig;
@@ -235,17 +261,76 @@ async function checkApp(
       ).then(channelId => hotCodePush.apps.channels.get({ appId, channelId })),
     ]);
     return {
-      check: 'app',
-      message: `app ${app.name}, channel ${channel.name}`,
-      status: 'ok',
+      app,
+      check: {
+        check: 'app',
+        message: `app ${app.name}, channel ${channel.name}`,
+        status: 'ok',
+      },
     };
   } catch (error) {
     return {
-      check: 'app',
-      manualStep: INIT_STEP,
-      message: `the API does not know the app or the channel: ${error instanceof Error ? error.message : String(error)}`,
-      status: 'failed',
+      app: undefined,
+      check: {
+        check: 'app',
+        manualStep: INIT_STEP,
+        message: `the API does not know the app or the channel: ${error instanceof Error ? error.message : String(error)}`,
+        status: 'failed',
+      },
     };
+  }
+}
+
+/**
+ * Whether the keys `hotcodepush.json` lists and the keys at hand let this machine upload: signing off is skipped, as is
+ * signing on without a private key here, the developer whose CI holds it; a key the app has and the file does not list
+ * fails, since a build from that file would verify nothing and an upload would go unsigned.
+ */
+async function checkSigningKey(
+  { projectConfig }: Project,
+  app: App | undefined,
+): Promise<DoctorCheck> {
+  const appId = projectConfig?.appId;
+  const publicKeys = projectConfig?.publicKeys ?? [];
+  if (appId === undefined || publicKeys.length === 0) {
+    return app?.hasSigningKey
+      ? {
+          check: 'signing-key',
+          manualStep: `run hotcodepush signing-key list --json and add each publicKey to publicKeys in ${PROJECT_CONFIG_FILE_NAME}`,
+          message: `the app has a signing key and ${PROJECT_CONFIG_FILE_NAME} lists none`,
+          status: 'failed',
+        }
+      : {
+          check: 'signing-key',
+          message: 'code signing is off; signing-key create turns it on',
+          status: 'skipped',
+        };
+  }
+  try {
+    const { publicKey } = await resolveSigningKeyPair(appId, publicKeys);
+    return {
+      check: 'signing-key',
+      message: `uploads are signed with key ${resolveSigningKeyFingerprint(publicKey)}`,
+      status: 'ok',
+    };
+  } catch (error) {
+    if (error instanceof SigningKeyUnavailableError) {
+      return {
+        check: 'signing-key',
+        message:
+          'code signing is on; no private key on this machine, so uploads run where HOTCODEPUSH_SIGNING_KEY is set',
+        status: 'skipped',
+      };
+    }
+    if (error instanceof InvalidParameterError) {
+      return {
+        check: 'signing-key',
+        manualStep: error.fix ?? undefined,
+        message: error.message,
+        status: 'failed',
+      };
+    }
+    throw error;
   }
 }
 

@@ -16,6 +16,7 @@ import {
   GLOBEX_ORGANIZATION,
   PRODUCTION_CHANNEL,
   RUNNER_USER,
+  SIGNING_KEY,
 } from '../../test/fixtures.js';
 import {
   ReportedFailureError,
@@ -175,7 +176,7 @@ describe('init', () => {
       'installed @hotcodepush/capacitor-live-updates from https://pkg.pr.new/hotcodepush-team/capacitor-live-updates/@hotcodepush/capacitor-live-updates@93a9cc2',
       'wrote hotcodepush.json',
       'wired capacitor:copy:after and the iOS resource reference',
-      'run signing-key create to enable code signing; it arrives with milestone 3',
+      'run signing-key create to enable code signing',
       'no release follows: run npm run build, then release create',
       'run release create to publish the first release',
     ]);
@@ -216,7 +217,7 @@ describe('init', () => {
       '– package        @hotcodepush/capacitor-live-updates already installed',
       '– configuration  hotcodepush.json already present',
       '– hook           capacitor:copy:after and the iOS resource reference already wired',
-      '– signing-key    run signing-key create to enable code signing; it arrives with milestone 3',
+      '– signing-key    run signing-key create to enable code signing',
       '– build          no release follows: run npm run build, then release create',
       '– release        run release create to publish the first release',
       '',
@@ -455,7 +456,11 @@ describe('init', () => {
     vi.mocked(select)
       .mockResolvedValueOnce(ACME_ORGANIZATION.id)
       .mockResolvedValueOnce(DEMO_APP.id);
-    vi.mocked(confirm).mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+    // the files to change, then the signing key, then the first release
+    vi.mocked(confirm)
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(false);
     const directoryPath = writeProject({ isPackageInstalled: true });
     respondWithSession([ACME_ORGANIZATION]);
     harness.routes[`GET ${APPS_PATH}`] = () => Response.json([DEMO_APP]);
@@ -480,6 +485,80 @@ describe('init', () => {
       '✓ organization   used organization Acme',
       '✓ app            used app Demo',
     ]);
+  });
+
+  it('should generate a signing key pair in place when a person says yes', async () => {
+    stubInteractiveTerminal();
+    vi.mocked(select)
+      .mockResolvedValueOnce(ACME_ORGANIZATION.id)
+      .mockResolvedValueOnce(DEMO_APP.id);
+    // the files to change, then the signing key, then the first release
+    vi.mocked(confirm)
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false);
+    const directoryPath = writeProject({ isPackageInstalled: true });
+    respondWithSession([ACME_ORGANIZATION]);
+    harness.routes[`GET ${APPS_PATH}`] = () => Response.json([DEMO_APP]);
+    harness.routes[`POST /v1/apps/${DEMO_APP.id}/signing-keys`] =
+      async request =>
+        Response.json(
+          {
+            ...SIGNING_KEY,
+            ...((await request.json()) as { publicKey: string }),
+          },
+          { status: 201 },
+        );
+
+    await initCommand.action({ ...withCwd(directoryPath) }, undefined);
+
+    expect(confirm).toHaveBeenNthCalledWith(2, {
+      initialValue: true,
+      message: 'Generate a signing key pair?',
+    });
+    expect(
+      readJsonFile<{ publicKeys: string[] }>(
+        join(directoryPath, 'hotcodepush.json'),
+      ).publicKeys,
+    ).toEqual([expect.stringMatching(/^ed25519:/)]);
+    expect(harness.readLines()).toContain(
+      '✓ signing-key    generated a signing key pair, its private key printed above',
+    );
+  });
+
+  it('should skip the signing key for an app that has one', async () => {
+    const directoryPath = writeProject({
+      hookScript: 'npx hotcodepush bundle embed',
+      isPackageInstalled: true,
+      projectConfig: {
+        appId: DEMO_APP.id,
+        channel: PRODUCTION_CHANNEL.name,
+        dir: 'www',
+      },
+    });
+    respondWithSession([ACME_ORGANIZATION]);
+    respondWithConfiguredApp();
+    harness.routes[`GET /v1/apps/${DEMO_APP.id}`] = () =>
+      Response.json({ ...DEMO_APP, hasSigningKey: true });
+
+    await initCommand.action(
+      {
+        config: join(directoryPath, 'hotcodepush.json'),
+        json: true,
+        yes: true,
+      },
+      undefined,
+    );
+
+    expect(
+      (harness.readJson() as InitResult).steps.find(
+        ({ step }) => step === 'signing-key',
+      ),
+    ).toEqual({
+      message: 'the app already has a signing key',
+      status: 'skipped',
+      step: 'signing-key',
+    });
   });
 
   it('should take the native projects from --ios-path and --android-path, typed against the working directory', async () => {

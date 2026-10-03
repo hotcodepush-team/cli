@@ -79,6 +79,7 @@ const UPLOAD_BUNDLE_OPTIONS: UploadBundleOptions = {
   },
   platforms: ['android', 'ios'],
   reporter: createReporter({ json: true }),
+  signingPrivateKey: null,
 };
 
 const PRODUCTION_RELEASE = {

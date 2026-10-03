@@ -1,8 +1,9 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { ProjectConfigurationSchema } from '@hotcodepush/protocol';
 import { z } from 'zod';
 import { PROJECT_CONFIG_FILE_NAME } from '../config/consts.js';
+import { stringifyLikeSource } from './embed-hook.js';
 import { InvalidParameterError } from './errors.js';
 
 /**
@@ -20,6 +21,8 @@ export type ProjectConfig = Partial<
  */
 export interface ProjectConfigLocation {
   directoryPath: string;
+  /** The file the configuration was read from; none without a file. */
+  filePath: string | undefined;
   projectConfig: ProjectConfig | undefined;
 }
 
@@ -81,7 +84,11 @@ export function locateProjectConfig(
       ? findProjectConfigFilePath(process.cwd())
       : resolve(configPath);
   if (filePath === undefined) {
-    return { directoryPath: process.cwd(), projectConfig: undefined };
+    return {
+      directoryPath: process.cwd(),
+      filePath: undefined,
+      projectConfig: undefined,
+    };
   }
   const projectConfig = JSON.parse(
     readFileSync(filePath, 'utf8'),
@@ -89,7 +96,20 @@ export function locateProjectConfig(
   if (projectConfig.channelId !== undefined) {
     printChannelIdNotice();
   }
-  return { directoryPath: dirname(filePath), projectConfig };
+  return { directoryPath: dirname(filePath), filePath, projectConfig };
+}
+
+/**
+ * The configuration written back into its file with the indentation the file had, so an edit is the lines it means.
+ */
+export function writeProjectConfig(
+  filePath: string,
+  projectConfig: ProjectConfig,
+): void {
+  writeFileSync(
+    filePath,
+    stringifyLikeSource(projectConfig, readFileSync(filePath, 'utf8')),
+  );
 }
 
 function findProjectConfigFilePath(directoryPath: string): string | undefined {

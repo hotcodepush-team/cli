@@ -5,7 +5,9 @@ import { HotCodePushError } from '@hotcodepush/node';
 import {
   BundleManifestSchema,
   ManifestEnvelopeSchema,
+  signManifest,
 } from '@hotcodepush/protocol';
+import type { ManifestToSign } from '@hotcodepush/protocol';
 import type { BundleFile } from './bundle-files.js';
 import { collectBundleFiles } from './bundle-files.js';
 import type { CompressedFile } from './compressed-files.js';
@@ -28,6 +30,8 @@ export interface UploadBundleOptions {
   gitProvenance: GitProvenance;
   platforms: Platform[];
   reporter: Reporter;
+  /** The private key the manifest is signed with, self-describing; null where signing is off. */
+  signingPrivateKey: string | null;
 }
 
 export interface UploadedBundle {
@@ -64,8 +68,9 @@ export function assertWithinBundleBytesLimit(files: BundleFile[]): void {
 }
 
 /**
- * The whole upload of a web build: hash every file, post the manifest, upload only the hashes the app lacks,
- * the full pack, the delta pack against the app's previous bundle where its manifest is reachable, then complete.
+ * The whole upload of a web build: hash every file, sign the manifest where a key is configured, post it, upload only
+ * the hashes the app lacks, the full pack, the delta pack against the app's previous bundle where its manifest is
+ * reachable, then complete.
  */
 export async function uploadBundle(
   hotCodePush: HotCodePush,
@@ -77,6 +82,7 @@ export async function uploadBundle(
     gitProvenance,
     platforms,
     reporter,
+    signingPrivateKey,
   }: UploadBundleOptions,
 ): Promise<UploadedBundle> {
   reporter.report(`Hashing the files under ${directoryPath}…`);
@@ -87,16 +93,28 @@ export async function uploadBundle(
     limit: 1,
     state: 'ready',
   });
+  const manifest = buildManifestToSign({
+    appId,
+    bundleVersion,
+    files,
+    fingerprint,
+    platforms,
+  });
+  const signature =
+    signingPrivateKey === null
+      ? null
+      : (await signManifest(manifest, signingPrivateKey)).signature;
+  if (signature !== null) {
+    reporter.report(`Signed the manifest with key ${signature.keyId}.`);
+  }
   const createdBundle = await hotCodePush.apps.bundles.create({
     appId,
     bundleVersion,
-    files: files.map(({ path, sha256, sizeBytes }) => ({
-      path,
-      sha256,
-      sizeBytes,
-    })),
+    files: manifest.files,
     fingerprint,
-    platforms,
+    patches: [],
+    platforms: manifest.platforms,
+    signature,
     ...gitProvenance,
   });
   return withTemporaryDirectory(async temporaryDirectoryPath => {
@@ -146,6 +164,32 @@ export async function uploadBundle(
       warnings: createdBundle.warnings,
     };
   });
+}
+
+/**
+ * The manifest as the API rebuilds it from the bundle's rows before it checks the signature: the files by path and the
+ * platforms sorted, each by UTF-16 code units, the order canonical JSON leaves to the writer.
+ */
+export function buildManifestToSign({
+  appId,
+  bundleVersion,
+  files,
+  fingerprint,
+  platforms,
+}: Pick<
+  UploadBundleOptions,
+  'appId' | 'bundleVersion' | 'fingerprint' | 'platforms'
+> & { files: BundleFile[] }): ManifestToSign & { platforms: Platform[] } {
+  return {
+    appId,
+    bundleVersion,
+    files: files
+      .map(({ path, sha256, sizeBytes }) => ({ path, sha256, sizeBytes }))
+      .sort((left, right) => compareCodeUnits(left.path, right.path)),
+    fingerprint,
+    patches: [],
+    platforms: [...platforms].sort(compareCodeUnits),
+  };
 }
 
 /**
@@ -218,6 +262,13 @@ export function resolveMissingSha256s(error: unknown): string[] | undefined {
         (sha256): sha256 is string => typeof sha256 === 'string',
       )
     : [];
+}
+
+function compareCodeUnits(left: string, right: string): number {
+  if (left === right) {
+    return 0;
+  }
+  return left < right ? -1 : 1;
 }
 
 function resolveCompressedFiles(

@@ -1,4 +1,4 @@
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { writeCapacitorProject } from '../../test/capacitor-project.js';
@@ -7,6 +7,8 @@ import {
   DEMO_APP,
   PRODUCTION_CHANNEL,
   RUNNER_USER,
+  SIGNING_KEY,
+  SIGNING_PRIVATE_KEY,
 } from '../../test/fixtures.js';
 import { respondWithChannels } from '../../test/release-routes.js';
 import { ReportedFailureError } from '../utils/errors.js';
@@ -190,9 +192,80 @@ describe('doctor', () => {
       '✓ ios-resource-file      ios/App/App/hotcodepush.json built at 2026-09-29T12:00:00.000Z',
       '✗ hosts                  unreachable: api (https://api.example.com/health)',
       '                         check the network, the API URL in config.json and the HOTCODEPUSH_*_BASE_URL variables',
-      '– signing-key            code signing arrives with milestone 3',
+      '– signing-key            code signing is off; signing-key create turns it on',
       expect.stringMatching(/^✓ versions +hotcodepush /),
     ]);
+  });
+
+  function listPublicKey(directoryPath: string): void {
+    const configPath = join(directoryPath, 'hotcodepush.json');
+    writeFileSync(
+      configPath,
+      JSON.stringify({
+        ...(JSON.parse(readFileSync(configPath, 'utf8')) as object),
+        publicKeys: [SIGNING_KEY.publicKey],
+      }),
+    );
+  }
+
+  async function readSigningKeyCheck(
+    directoryPath: string,
+  ): Promise<DoctorResult['checks'][number] | undefined> {
+    try {
+      await doctorCommand.action(
+        { config: join(directoryPath, 'hotcodepush.json'), json: true },
+        undefined,
+      );
+    } catch (error) {
+      // a failed check ends the command through the reported failure, after its JSON
+      if (!(error instanceof ReportedFailureError)) {
+        throw error;
+      }
+    }
+    return (harness.readJson() as DoctorResult).checks.find(
+      ({ check }) => check === 'signing-key',
+    );
+  }
+
+  it('should name the key uploads are signed with when its private half is at hand', async () => {
+    const directoryPath = await writeSetUpProject();
+    listPublicKey(directoryPath);
+    vi.stubEnv('HOTCODEPUSH_SIGNING_KEY', SIGNING_PRIVATE_KEY);
+    respondWithSessionAndApp();
+
+    expect(await readSigningKeyCheck(directoryPath)).toEqual({
+      check: 'signing-key',
+      message: `uploads are signed with key ${SIGNING_KEY.fingerprint}`,
+      status: 'ok',
+    });
+  });
+
+  it('should skip the signing key when the configuration lists a key and this machine holds no private half', async () => {
+    const directoryPath = await writeSetUpProject();
+    listPublicKey(directoryPath);
+    respondWithSessionAndApp();
+
+    expect(await readSigningKeyCheck(directoryPath)).toEqual({
+      check: 'signing-key',
+      message:
+        'code signing is on; no private key on this machine, so uploads run where HOTCODEPUSH_SIGNING_KEY is set',
+      status: 'skipped',
+    });
+  });
+
+  it('should fail the signing key when the app has one and the configuration lists none', async () => {
+    const directoryPath = await writeSetUpProject();
+    respondWithSessionAndApp();
+    harness.routes[`GET /v1/apps/${DEMO_APP.id}`] = () =>
+      Response.json({ ...DEMO_APP, hasSigningKey: true });
+
+    expect(await readSigningKeyCheck(directoryPath)).toEqual({
+      check: 'signing-key',
+      manualStep:
+        'run hotcodepush signing-key list --json and add each publicKey to publicKeys in hotcodepush.json',
+      message: 'the app has a signing key and hotcodepush.json lists none',
+      status: 'failed',
+    });
   });
 
   it('should accept HOTCODEPUSH_TOKEN as an API token, the credential CI and agents hold', async () => {

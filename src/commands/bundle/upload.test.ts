@@ -4,7 +4,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gunzipSync } from 'node:zlib';
 import { text } from '@clack/prompts';
-import { stringifyCanonicalJson } from '@hotcodepush/protocol';
+import {
+  stringifyCanonicalJson,
+  verifyManifestSignature,
+} from '@hotcodepush/protocol';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   CAPACITOR_FINGERPRINT,
@@ -19,10 +22,13 @@ import {
   DEMO_APP,
   PREVIOUS_BUNDLE,
   READY_BUNDLE,
+  SIGNING_KEY,
+  SIGNING_PRIVATE_KEY,
 } from '../../../test/fixtures.js';
 import { PACKAGE_JSON } from '../../config/consts.js';
 import { runCli } from '../../utils/cli.js';
 import {
+  SigningKeyUnavailableError,
   UnknownFrameworkError,
   UnsupportedFrameworkError,
 } from '../../utils/errors.js';
@@ -161,7 +167,9 @@ describe('bundle upload', () => {
       gitRemote: null,
       gitSha: null,
       isGitDirty: null,
+      patches: [],
       platforms: ['ios'],
+      signature: null,
     });
     const fileRequest = readRequest('PUT', `/files/${APP_JS_SHA256}`);
     expect(fileRequest).toBeDefined();
@@ -271,6 +279,75 @@ describe('bundle upload', () => {
 
     expect(readRequest('PUT', `/deltas/${PREVIOUS_BUNDLE.id}`)).toBeUndefined();
     expect(readRequest('POST', '/complete')).toBeDefined();
+  });
+
+  function listPublicKey(): string {
+    const configPath = join(projectDirectoryPath, 'hotcodepush.json');
+    writeFileSync(
+      configPath,
+      JSON.stringify({
+        appId: DEMO_APP.id,
+        dir: 'dist',
+        publicKeys: [SIGNING_KEY.publicKey],
+      }),
+    );
+    return configPath;
+  }
+
+  it('should sign the manifest the API rebuilds, the platforms sorted, when the private key of a listed public key is at hand', async () => {
+    respondWithUploadRoutes();
+    vi.stubEnv('HOTCODEPUSH_SIGNING_KEY', SIGNING_PRIVATE_KEY);
+
+    await bundleUploadCommand.action(
+      {
+        config: listPublicKey(),
+        json: true,
+        noGit: true,
+        platform: ['ios', 'android'],
+      },
+      undefined,
+    );
+
+    const { bundleVersion, files, fingerprint, platforms, signature } =
+      (await readRequest('POST', '/bundles')?.json()) as {
+        bundleVersion: string;
+        files: object[];
+        fingerprint: string;
+        platforms: string[];
+        signature: { keyId: string; value: string };
+      };
+    expect(platforms).toEqual(['android', 'ios']);
+    expect(signature.keyId).toBe(SIGNING_KEY.fingerprint);
+    expect(
+      await verifyManifestSignature(
+        {
+          manifest: stringifyCanonicalJson({
+            appId: DEMO_APP.id,
+            bundleVersion,
+            files,
+            fingerprint,
+            keyId: signature.keyId,
+            patches: [],
+            platforms,
+          }),
+          signature,
+        },
+        [SIGNING_KEY.publicKey],
+      ),
+    ).toBe(true);
+  });
+
+  it('should stop with E_SIGNING_KEY_UNAVAILABLE before any request when no private key belongs to a listed public key', async () => {
+    respondWithUploadRoutes();
+
+    await expect(
+      bundleUploadCommand.action(
+        { config: listPublicKey(), noGit: true },
+        undefined,
+      ),
+    ).rejects.toBeInstanceOf(SigningKeyUnavailableError);
+
+    expect(harness.requests).toHaveLength(0);
   });
 
   it('should ask for the version label when package.json has none and someone can answer', async () => {

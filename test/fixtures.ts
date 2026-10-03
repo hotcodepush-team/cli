@@ -6,6 +6,7 @@ import type {
   ChannelWithDeviceCounts,
   Organization,
   Release,
+  SigningKey,
   User,
 } from '@hotcodepush/node';
 
@@ -175,3 +176,16 @@ export const RUNNER_USER: User = {
   isEmailVerified: true,
   name: 'Anna Example',
 };
+
+// The key pair is the protocol fixtures' `ed25519-a`, a test key
+export const SIGNING_KEY: SigningKey = {
+  appId: DEMO_APP.id,
+  createdAt: '2026-09-09T08:00:00.000Z',
+  fingerprint:
+    'sha256:c94659a0e65e23d4dbeb8c193e8053c8a8ad23598d3b7be1e6f10cbcc1c80081',
+  id: '3b1f8e7a-5c2d-4f6b-9a0e-7d4c1b2a3f5e',
+  publicKey: 'ed25519:NYn5qxMGX39y0hB0UZzOG8KFtzCesZ+/dRZQBTFeCz4=',
+};
+
+export const SIGNING_PRIVATE_KEY =
+  'ed25519:MC4CAQAwBQYDK2VwBCIEIAjN1Scub3Am52jlsFBD2tRBZIaFbv1sMbNJipZMjOL0';

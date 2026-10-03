@@ -58,6 +58,7 @@ import { readToken } from '../utils/token-store.js';
 import { readApiUrl } from '../utils/user-config.js';
 import { logIn } from './login.js';
 import releaseCreateCommand from './release/create.js';
+import signingKeyCreateCommand from './signing-key/create.js';
 
 interface InitOptions extends InteractivityOptions {
   androidPath?: string;
@@ -166,12 +167,7 @@ export default defineCommand({
     );
     await run.run('hook', () => projectFiles.wiring.wireEmbedStep(editBlocker));
     await run.run('signing-key', () =>
-      Promise.resolve({
-        message:
-          'run signing-key create to enable code signing; it arrives with milestone 3',
-        status: 'skipped',
-        value: undefined,
-      }),
+      createSigningKey(app, projectFiles, options),
     );
     const isReleaseWanted =
       run.stoppedCode === undefined &&
@@ -481,6 +477,48 @@ async function fetchDefaultChannelName(
     channelId: app.defaultChannelId,
   });
   return defaultChannel.name;
+}
+
+/**
+ * The signing key pair, for a person only: `signing-key create` in place, which prints the private key once.
+ * Nobody to ask points at the command instead, since a private key in a CI log is a private key leaked.
+ */
+async function createSigningKey(
+  app: App | undefined,
+  { directoryPath }: ProjectFiles,
+  options: InitOptions,
+): Promise<StepOutcome<undefined>> {
+  if (app?.hasSigningKey) {
+    return {
+      message: 'the app already has a signing key',
+      status: 'skipped',
+      value: undefined,
+    };
+  }
+  if (
+    app === undefined ||
+    !(await promptYesNo('Generate a signing key pair?', options))
+  ) {
+    return {
+      message: 'run signing-key create to enable code signing',
+      status: 'skipped',
+      value: undefined,
+    };
+  }
+  const configPath = join(directoryPath, PROJECT_CONFIG_FILE_NAME);
+  await signingKeyCreateCommand.action(
+    {
+      app: app.id,
+      config: existsSync(configPath) ? configPath : undefined,
+      json: options.json,
+    },
+    undefined,
+  );
+  return {
+    message: 'generated a signing key pair, its private key printed above',
+    status: 'done',
+    value: undefined,
+  };
 }
 
 /**
