@@ -189,17 +189,21 @@ describe('bundle upload', () => {
       `GET /files/apps/${DEMO_APP.id}/bundles/${PREVIOUS_BUNDLE.id}/manifest.json`
     ] = () =>
       Response.json({
+        bundleId: PREVIOUS_BUNDLE.id,
+        createdAt: PREVIOUS_BUNDLE.createdAt,
+        deltas: [],
         encryption: null,
         manifest: stringifyCanonicalJson({
           appId: DEMO_APP.id,
-          bundleId: PREVIOUS_BUNDLE.id,
-          createdAt: PREVIOUS_BUNDLE.createdAt,
-          deltas: [],
+          bundleVersion: '1.4.1',
           files: [{ path: 'index.html', sha256: INDEX_SHA256, sizeBytes: 11 }],
-          pack: { sizeBytes: 1024, url: `${API_URL}/files/pack` },
+          fingerprint: CAPACITOR_FINGERPRINT,
+          keyId: null,
           patches: [],
-          version: '1.4.1',
+          platforms: ['android', 'ios'],
         }),
+        pack: { sizeBytes: 1024, url: `${API_URL}/files/pack` },
+        patches: [],
         signature: null,
       });
 

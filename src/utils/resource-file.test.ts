@@ -1,7 +1,7 @@
 import { ConfigurationSchema } from '@hotcodepush/protocol';
 import { describe, expect, it } from 'vitest';
 import { CAPACITOR_FINGERPRINT } from '../../test/capacitor-project.js';
-import { buildResourceFile, UNREGISTERED_BUNDLE_ID } from './resource-file.js';
+import { buildResourceFile } from './resource-file.js';
 
 const CHANNEL_ID = '83ae07ef-2539-4c88-8380-17a56e24a82f';
 
@@ -18,6 +18,7 @@ describe('resource file', () => {
   it('should carry the configuration with its defaults and the resolved channel id, the floor, the fingerprint, the files-only manifest and the hosts', () => {
     const resourceFile = buildResourceFile({
       builtAt: '2026-09-29T12:00:00.000Z',
+      bundleVersion: '1.0',
       channelId: CHANNEL_ID,
       embeddedBundleId: null,
       files: FILES,
@@ -26,12 +27,12 @@ describe('resource file', () => {
         filesBaseUrl: 'http://localhost:8787/files',
         updatesBaseUrl: 'http://localhost:8787/updates',
       },
+      platform: 'ios',
       projectConfig: {
         appId: 'ec266350-15f9-44c6-9d85-82f1363ede75',
         channel: 'production',
         dir: 'dist',
       },
-      version: '1.0',
     });
 
     expect(ConfigurationSchema.parse(resourceFile)).toEqual(resourceFile);
@@ -46,13 +47,11 @@ describe('resource file', () => {
       embeddedBundleId: null,
       embeddedBundleManifest: {
         appId: 'ec266350-15f9-44c6-9d85-82f1363ede75',
-        bundleId: UNREGISTERED_BUNDLE_ID,
-        createdAt: '2026-09-29T12:00:00.000Z',
-        deltas: [],
+        bundleVersion: '1.0',
         files: [{ path: 'index.html', sha256: 'a'.repeat(64), sizeBytes: 11 }],
-        pack: null,
-        patches: [],
-        version: '1.0',
+        fingerprint: CAPACITOR_FINGERPRINT,
+        keyId: null,
+        platforms: ['ios'],
       },
       enabledInDebugBuilds: true,
       filesBaseUrl: 'http://localhost:8787/files',
@@ -70,22 +69,23 @@ describe('resource file', () => {
   it('should keep the configured SDK options, drop a deprecated channelId and write no hosts for production', () => {
     const resourceFile = buildResourceFile({
       builtAt: '2026-09-29T12:00:00.000Z',
+      bundleVersion: '1.0',
       channelId: CHANNEL_ID,
       embeddedBundleId: 'c56a4180-65aa-42ec-a945-5fd21dec0538',
       files: FILES,
       fingerprint: CAPACITOR_FINGERPRINT,
       hosts: { filesBaseUrl: undefined, updatesBaseUrl: undefined },
+      platform: 'android',
       projectConfig: {
         appId: 'ec266350-15f9-44c6-9d85-82f1363ede75',
         channelId: '9b2f4d1e-3c5a-4e6f-8a7b-1c2d3e4f5a6b',
         installStrategy: 'next-resume',
       },
-      version: '1.0',
     });
 
     expect(resourceFile.channelId).toBe(CHANNEL_ID);
     expect(resourceFile.installStrategy).toBe('next-resume');
-    expect(resourceFile.embeddedBundleManifest.bundleId).toBe(
+    expect(resourceFile.embeddedBundleId).toBe(
       'c56a4180-65aa-42ec-a945-5fd21dec0538',
     );
     expect(resourceFile).not.toHaveProperty('filesBaseUrl');

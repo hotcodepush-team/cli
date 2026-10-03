@@ -1,6 +1,7 @@
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import type { LockedPackage } from '@hotcodepush/protocol/fingerprint';
 import { computeFingerprint } from '@hotcodepush/protocol/fingerprint';
 
 /**
@@ -13,12 +14,25 @@ export interface CapacitorProjectOptions {
   webDir?: string;
 }
 
+const CAPACITOR_CORE_INTEGRITY = 'sha512-capacitorcore800invented==';
+
 /**
- * The fingerprint of a project whose lockfile installs `@capacitor/core` 8.0.0 beside a package without native code.
+ * The packages of the fingerprint inputs that contribute: `@capacitor/core` 8.0.0, never the package without native code.
+ */
+export const CAPACITOR_LOCKED_PACKAGES: LockedPackage[] = [
+  {
+    integrity: CAPACITOR_CORE_INTEGRITY,
+    name: '@capacitor/core',
+    version: '8.0.0',
+  },
+];
+
+/**
+ * The fingerprint of the fingerprint inputs without custom native sources.
  */
 export const CAPACITOR_FINGERPRINT = computeFingerprint({
   nativeSources: [],
-  packages: [{ name: '@capacitor/core', version: '8.0.0' }],
+  packages: CAPACITOR_LOCKED_PACKAGES,
 });
 
 export const PBXPROJ_FIXTURE_PATH = join(
@@ -87,12 +101,14 @@ export function writeFingerprintInputs(directoryPath: string): void {
     name: 'demo',
     packages: {
       '': { dependencies: packages, name: 'demo' },
-      ...Object.fromEntries(
-        Object.entries(packages).map(([name, version]) => [
-          `node_modules/${name}`,
-          { version },
-        ]),
-      ),
+      'node_modules/@capacitor/core': {
+        integrity: CAPACITOR_CORE_INTEGRITY,
+        version: '8.0.0',
+      },
+      'node_modules/left-pad': {
+        integrity: 'sha512-leftpad130invented==',
+        version: '1.3.0',
+      },
     },
   });
   for (const [name, version] of Object.entries(packages)) {

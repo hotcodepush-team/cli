@@ -4,7 +4,7 @@ import type { ProjectReader } from '@hotcodepush/protocol/fingerprint';
 import {
   computeFingerprint,
   FingerprintError,
-  resolveFingerprintContributors,
+  readFingerprintContributors,
 } from '@hotcodepush/protocol/fingerprint';
 import { FingerprintUnavailableError } from './errors.js';
 
@@ -12,15 +12,17 @@ import { FingerprintUnavailableError } from './errors.js';
 const ABSENT_ERROR_CODES = new Set(['EISDIR', 'ENOENT', 'ENOTDIR']);
 
 /**
- * The project's `fp1` fingerprint, the native contract's hash, from its committed lockfile and installed packages.
+ * The project's `fp1` fingerprint, the native contract's hash, from its committed lockfile, its installed packages
+ * and the custom native sources hotcodepush.json declares, relative to the project root.
  */
 export async function readFingerprint(
   projectDirectoryPath: string,
+  nativeSourcePaths: readonly string[],
 ): Promise<string> {
   try {
     return computeFingerprint(
-      await resolveFingerprintContributors({
-        nativeSourcePaths: [],
+      await readFingerprintContributors({
+        nativeSourcePaths,
         reader: createProjectReader(projectDirectoryPath),
       }),
     );

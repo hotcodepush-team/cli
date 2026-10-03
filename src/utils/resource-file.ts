@@ -9,33 +9,31 @@ import type { Platform } from './upload.js';
 
 interface ResourceFileInput {
   builtAt: string;
+  bundleVersion: string;
   channelId: string;
   embeddedBundleId: string | null;
   files: BundleFile[];
   fingerprint: string;
   hosts: DeviceHosts;
+  platform: Platform;
   projectConfig: ProjectConfig;
-  version: string;
 }
-
-/**
- * The bundle id the resource file carries for a store build the platform never saw: the SDK requires the field, not a value.
- */
-export const UNREGISTERED_BUNDLE_ID = 'embedded';
 
 /**
  * The resource file: the project's configuration with the channel as the id the embed step resolved, plus what only
  * a build step can know — the floor, the fingerprint, the embedded bundle's manifest and id, and the device hosts outside production.
+ * The manifest is the bundle manifest without patches, unsigned, the same whether the bundle was registered or not.
  */
 export function buildResourceFile({
   builtAt,
+  bundleVersion,
   channelId,
   embeddedBundleId,
   files,
   fingerprint,
   hosts,
+  platform,
   projectConfig,
-  version,
 }: ResourceFileInput): Configuration {
   return ConfigurationSchema.parse({
     ...omitChannel(projectConfig),
@@ -44,17 +42,15 @@ export function buildResourceFile({
     embeddedBundleId,
     embeddedBundleManifest: {
       appId: projectConfig.appId,
-      bundleId: embeddedBundleId ?? UNREGISTERED_BUNDLE_ID,
-      createdAt: builtAt,
-      deltas: [],
+      bundleVersion,
       files: files.map(({ path, sha256, sizeBytes }) => ({
         path,
         sha256,
         sizeBytes,
       })),
-      pack: null,
-      patches: [],
-      version,
+      fingerprint,
+      keyId: null,
+      platforms: [platform],
     },
     fingerprint,
     ...(hosts.filesBaseUrl === undefined

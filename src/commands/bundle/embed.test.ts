@@ -175,8 +175,12 @@ describe('bundle embed', () => {
       channelId: PRODUCTION_CHANNEL.id,
       embeddedBundleId: EMBEDDED_BUNDLE.bundleId,
       embeddedBundleManifest: {
-        bundleId: EMBEDDED_BUNDLE.bundleId,
-        version: '1.0',
+        appId: DEMO_APP.id,
+        bundleVersion: '1.0',
+        files: [{ path: 'index.html', sha256: INDEX_SHA256, sizeBytes: 11 }],
+        fingerprint: CAPACITOR_FINGERPRINT,
+        keyId: null,
+        platforms: ['ios'],
       },
       filesBaseUrl: 'https://api.example.com/files',
       fingerprint: CAPACITOR_FINGERPRINT,
@@ -355,7 +359,7 @@ describe('bundle embed', () => {
     expect(readResourceFile('ios/App/App/hotcodepush.json')).toMatchObject({
       channelId: PRODUCTION_CHANNEL.id,
       embeddedBundleId: null,
-      embeddedBundleManifest: { bundleId: 'embedded' },
+      embeddedBundleManifest: { platforms: ['ios'] },
     });
     expect(stderrWrite).toHaveBeenCalledWith(
       expect.stringContaining('Warning: not logged in'),
@@ -437,7 +441,7 @@ describe('bundle embed', () => {
     );
     expect(readResourceFile('ios/App/App/hotcodepush.json')).toMatchObject({
       embeddedBundleId: null,
-      embeddedBundleManifest: { version: '2.4.1' },
+      embeddedBundleManifest: { bundleVersion: '2.4.1' },
     });
 
     vi.stubEnv('CI', 'true');

@@ -134,7 +134,10 @@ export default defineCommand({
       await resolveInputDirectoryPath(options, projectConfig, directoryPath),
     );
     assertWithinBundleBytesLimit(files);
-    const fingerprint = await readFingerprint(directoryPath);
+    const fingerprint = await readFingerprint(
+      directoryPath,
+      completeProjectConfig.nativeSources ?? [],
+    );
     const reporter = createReporter(options);
     const registration = await registerEmbeddedBundle(
       {
@@ -156,13 +159,14 @@ export default defineCommand({
       resourceFilePath,
       buildResourceFile({
         builtAt,
+        bundleVersion: identity.binaryVersion,
         channelId,
         embeddedBundleId: registration.embeddedBundle?.bundleId ?? null,
         files,
         fingerprint,
         hosts: resolveDeviceHosts(readApiUrl()),
+        platform,
         projectConfig: completeProjectConfig,
-        version: identity.binaryVersion,
       }),
     );
     if (registration.skippedReason !== null) {

@@ -68,13 +68,11 @@ describe('doctor', () => {
       embeddedBundleId: null,
       embeddedBundleManifest: {
         appId: DEMO_APP.id,
-        bundleId: 'embedded',
-        createdAt: '2026-09-29T12:00:00.000Z',
-        deltas: [],
+        bundleVersion: '1.0',
         files: [],
-        pack: null,
-        patches: [],
-        version: '1.0',
+        fingerprint: null,
+        keyId: null,
+        platforms: ['ios'],
       },
       fingerprint: null,
     };
