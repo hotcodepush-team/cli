@@ -99,6 +99,7 @@ export const READY_BUNDLE: Bundle = {
   number: 17,
   platforms: ['android', 'ios'],
   signature: null,
+  signatureKeyId: null,
   sizeBytes: 812331,
   state: 'ready',
   unusedSince: '2026-09-05T08:05:00.000Z',
@@ -150,6 +151,7 @@ export const LIVE_RELEASE: Release = {
   rolloutPercentage: 100,
   state: 'active',
   updatedAt: '2026-09-07T08:00:06.000Z',
+  verifier: null,
 };
 
 export const PREVIOUS_RELEASE: Release = {
