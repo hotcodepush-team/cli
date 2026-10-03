@@ -2,8 +2,8 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MissingParameterError } from './errors.js';
-import { resolveInputDirectoryPath } from './framework.js';
+import { MissingParameterError, UnsupportedFrameworkError } from './errors.js';
+import { detectFramework, resolveInputDirectoryPath } from './framework.js';
 
 describe('framework', () => {
   let projectDirectoryPath = '';
@@ -15,6 +15,40 @@ describe('framework', () => {
 
   afterEach(() => {
     rmSync(projectDirectoryPath, { force: true, recursive: true });
+  });
+
+  function writePackageJson(dependencies: Record<string, string>): void {
+    writeFileSync(
+      join(projectDirectoryPath, 'package.json'),
+      JSON.stringify({ dependencies }),
+    );
+  }
+
+  it('should take the framework whose config file the project has when package.json names several', () => {
+    writePackageJson({ '@capacitor/core': '8.0.0', 'cordova': '12.0.0' });
+    writeFileSync(join(projectDirectoryPath, 'config.xml'), '<widget />');
+
+    expect(() => detectFramework(projectDirectoryPath)).toThrow(
+      new UnsupportedFrameworkError('cordova'),
+    );
+  });
+
+  it('should take an app.json carrying the expo key as the config file that breaks the tie', () => {
+    writePackageJson({ '@capacitor/core': '8.0.0', 'expo': '54.0.0' });
+    writeFileSync(
+      join(projectDirectoryPath, 'app.json'),
+      JSON.stringify({ expo: { name: 'Demo' } }),
+    );
+
+    expect(() => detectFramework(projectDirectoryPath)).toThrow(
+      new UnsupportedFrameworkError('expo'),
+    );
+  });
+
+  it('should keep the first framework named when no config file breaks the tie', () => {
+    writePackageJson({ '@capacitor/core': '8.0.0', 'cordova': '12.0.0' });
+
+    expect(detectFramework(projectDirectoryPath)).toBe('capacitor');
   });
 
   it('should keep an absolute --path and resolve a relative one against the working directory', async () => {

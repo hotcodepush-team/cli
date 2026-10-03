@@ -20,6 +20,11 @@ interface PackageJson {
   devDependencies?: Record<string, string>;
 }
 
+const CAPACITOR_CONFIG_FILE_NAMES = [
+  'capacitor.config.json',
+  'capacitor.config.ts',
+];
+
 const FRAMEWORK_PACKAGES: [packageName: string, framework: Framework][] = [
   ['@capacitor/core', 'capacitor'],
   ['cordova', 'cordova'],
@@ -28,7 +33,8 @@ const FRAMEWORK_PACKAGES: [packageName: string, framework: Framework][] = [
 ];
 
 /**
- * The framework of the project, from `package.json`'s dependencies; Capacitor is the one the CLI packages today.
+ * The framework of the project, from `package.json`'s dependencies, the framework's config file breaking a tie
+ * when several are named, an Expo app's `react-native` among them; Capacitor is the one the CLI packages today.
  */
 export function detectFramework(projectDirectoryPath: string): Framework {
   const packageJsonPath = join(projectDirectoryPath, 'package.json');
@@ -42,13 +48,16 @@ export function detectFramework(projectDirectoryPath: string): Framework {
     ...Object.keys(packageJson.dependencies ?? {}),
     ...Object.keys(packageJson.devDependencies ?? {}),
   ]);
-  const detected = FRAMEWORK_PACKAGES.find(([packageName]) =>
+  const detectedFrameworks = FRAMEWORK_PACKAGES.filter(([packageName]) =>
     dependencyNames.has(packageName),
-  );
-  if (detected === undefined) {
+  ).map(([, framework]) => framework);
+  const framework =
+    detectedFrameworks.find(detectedFramework =>
+      hasFrameworkConfigFile(detectedFramework, projectDirectoryPath),
+    ) ?? detectedFrameworks[0];
+  if (framework === undefined) {
     throw new UnknownFrameworkError();
   }
-  const [, framework] = detected;
   if (framework !== 'capacitor') {
     throw new UnsupportedFrameworkError(framework);
   }
@@ -114,10 +123,45 @@ export function assertMissingParameter(
 }
 
 /**
+ * The config file the framework keeps beside `package.json`: `capacitor.config`, `app.json` with its `expo` key,
+ * Cordova's `config.xml`; React Native has none of its own.
+ */
+function hasFrameworkConfigFile(
+  framework: Framework,
+  projectDirectoryPath: string,
+): boolean {
+  switch (framework) {
+    case 'capacitor':
+      return CAPACITOR_CONFIG_FILE_NAMES.some(fileName =>
+        existsSync(join(projectDirectoryPath, fileName)),
+      );
+    case 'cordova':
+      return existsSync(join(projectDirectoryPath, 'config.xml'));
+    case 'expo':
+      return hasExpoAppJson(projectDirectoryPath);
+    case 'react-native':
+      return false;
+  }
+}
+
+function hasExpoAppJson(projectDirectoryPath: string): boolean {
+  const appJsonPath = join(projectDirectoryPath, 'app.json');
+  if (!existsSync(appJsonPath)) {
+    return false;
+  }
+  try {
+    const appJson: unknown = JSON.parse(readFileSync(appJsonPath, 'utf8'));
+    return typeof appJson === 'object' && appJson !== null && 'expo' in appJson;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * The text of `capacitor.config.json` or `.ts`, read as text since the TypeScript form is code: the values are matched, never evaluated.
  */
 function readCapacitorConfig(projectDirectoryPath: string): string | undefined {
-  for (const fileName of ['capacitor.config.json', 'capacitor.config.ts']) {
+  for (const fileName of CAPACITOR_CONFIG_FILE_NAMES) {
     const filePath = join(projectDirectoryPath, fileName);
     if (existsSync(filePath)) {
       return readFileSync(filePath, 'utf8');
