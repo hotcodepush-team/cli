@@ -25,6 +25,7 @@ const commandRegistry: CommandRegistry = {
   'channel resume': () => import('./commands/channel/resume.js'),
   'channel update': () => import('./commands/channel/update.js'),
   'doctor': () => import('./commands/doctor.js'),
+  'fingerprint': () => import('./commands/fingerprint.js'),
   'init': () => import('./commands/init.js'),
   'login': () => import('./commands/login.js'),
   'logout': () => import('./commands/logout.js'),

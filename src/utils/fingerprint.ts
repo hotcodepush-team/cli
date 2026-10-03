@@ -1,7 +1,10 @@
 import { existsSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 import { dirname, join, relative, sep } from 'node:path';
-import type { ProjectReader } from '@hotcodepush/protocol/fingerprint';
+import type {
+  FingerprintContributors,
+  ProjectReader,
+} from '@hotcodepush/protocol/fingerprint';
 import {
   computeFingerprint,
   FingerprintError,
@@ -18,13 +21,28 @@ const LOCKFILE_NAMES = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'];
 /**
  * The project's `fp1` fingerprint, the native contract's hash, from its committed lockfile, its installed packages
  * and the custom native sources hotcodepush.json declares, relative to the project root.
- * The recipe reads from the nearest directory with a lockfile walking up from the project root, a monorepo's root
- * where the workspace installs, and the native sources are given to it relative to that directory.
  */
 export async function readFingerprint(
   projectDirectoryPath: string,
   nativeSourcePaths: readonly string[],
 ): Promise<string> {
+  return computeFingerprint(
+    await readProjectFingerprintContributors(
+      projectDirectoryPath,
+      nativeSourcePaths,
+    ),
+  );
+}
+
+/**
+ * What the project's fingerprint hashes: the native packages with their versions and the declared native sources.
+ * The recipe reads from the nearest directory with a lockfile walking up from the project root, a monorepo's root
+ * where the workspace installs, and the native sources are given to it relative to that directory.
+ */
+export async function readProjectFingerprintContributors(
+  projectDirectoryPath: string,
+  nativeSourcePaths: readonly string[],
+): Promise<FingerprintContributors> {
   const lockfileDirectoryPath =
     findLockfileDirectoryPath(projectDirectoryPath) ?? projectDirectoryPath;
   const projectPathFromLockfileDirectory = relative(
@@ -34,17 +52,15 @@ export async function readFingerprint(
     .split(sep)
     .join('/');
   try {
-    return computeFingerprint(
-      await readFingerprintContributors({
-        // joined as text, never normalized, so the recipe still refuses a `..` segment the file declares
-        nativeSourcePaths: nativeSourcePaths.map(path =>
-          projectPathFromLockfileDirectory === ''
-            ? path
-            : `${projectPathFromLockfileDirectory}/${path}`,
-        ),
-        reader: createProjectReader(lockfileDirectoryPath),
-      }),
-    );
+    return await readFingerprintContributors({
+      // joined as text, never normalized, so the recipe still refuses a `..` segment the file declares
+      nativeSourcePaths: nativeSourcePaths.map(path =>
+        projectPathFromLockfileDirectory === ''
+          ? path
+          : `${projectPathFromLockfileDirectory}/${path}`,
+      ),
+      reader: createProjectReader(lockfileDirectoryPath),
+    });
   } catch (error) {
     if (error instanceof FingerprintError) {
       throw new FingerprintUnavailableError(error);
