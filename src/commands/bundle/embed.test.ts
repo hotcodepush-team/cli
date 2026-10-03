@@ -20,8 +20,8 @@ import {
   useCommandHarness,
 } from '../../../test/command-harness.js';
 import {
+  BINARY,
   DEMO_APP,
-  EMBEDDED_BUNDLE,
   PRODUCTION_CHANNEL,
   STAGING_CHANNEL,
 } from '../../../test/fixtures.js';
@@ -35,7 +35,7 @@ vi.mock('@napi-rs/keyring', () => ({
   }),
 }));
 
-const EMBEDDED_BUNDLES_PATH = `/v1/apps/${DEMO_APP.id}/embedded-bundles`;
+const BINARIES_PATH = `/v1/apps/${DEMO_APP.id}/binaries`;
 const INDEX_HTML = '<h1>v1</h1>';
 const INDEX_SHA256 = createHash('sha256').update(INDEX_HTML).digest('hex');
 
@@ -106,9 +106,9 @@ describe('bundle embed', () => {
     );
   }
 
-  it('should write the resource file into the iOS project and register the embedded bundle, uploading what the app lacks', async () => {
+  it('should write the resource file into the iOS project and register the binary, uploading what the app lacks', async () => {
     let createCount = 0;
-    harness.routes[`POST ${EMBEDDED_BUNDLES_PATH}`] = () => {
+    harness.routes[`POST ${BINARIES_PATH}`] = () => {
       createCount += 1;
       return createCount === 1
         ? respondWithApiError(
@@ -116,9 +116,9 @@ describe('bundle embed', () => {
             'E_UPLOAD_INCOMPLETE',
             'Objects are missing.',
           )
-        : Response.json(EMBEDDED_BUNDLE, { status: 201 });
+        : Response.json(BINARY, { status: 201 });
     };
-    harness.routes[`POST ${EMBEDDED_BUNDLES_PATH}`] = () => {
+    harness.routes[`POST ${BINARIES_PATH}`] = () => {
       createCount += 1;
       if (createCount === 1) {
         return Response.json(
@@ -130,7 +130,7 @@ describe('bundle embed', () => {
           { status: 409 },
         );
       }
-      return Response.json(EMBEDDED_BUNDLE, { status: 201 });
+      return Response.json(BINARY, { status: 201 });
     };
     let uploadedByteCount = 0;
     harness.routes[`PUT /v1/apps/${DEMO_APP.id}/files/${INDEX_SHA256}`] =
@@ -140,7 +140,7 @@ describe('bundle embed', () => {
         return Response.json(
           {
             appId: DEMO_APP.id,
-            createdAt: EMBEDDED_BUNDLE.createdAt,
+            createdAt: BINARY.createdAt,
             sha256: INDEX_SHA256,
             sizeBytes: 31,
           },
@@ -157,8 +157,7 @@ describe('bundle embed', () => {
     );
 
     const createRequests = harness.requests.filter(
-      ({ method, url }) =>
-        method === 'POST' && url.endsWith('/embedded-bundles'),
+      ({ method, url }) => method === 'POST' && url.endsWith('/binaries'),
     );
     expect(createRequests).toHaveLength(2);
     expect(await createRequests[0]?.json()).toEqual({
@@ -173,7 +172,7 @@ describe('bundle embed', () => {
     expect(ConfigurationSchema.parse(resourceFile)).toMatchObject({
       appId: DEMO_APP.id,
       channelId: PRODUCTION_CHANNEL.id,
-      embeddedBundleId: EMBEDDED_BUNDLE.bundleId,
+      embeddedBundleId: BINARY.bundleId,
       embeddedBundleManifest: {
         appId: DEMO_APP.id,
         bundleVersion: '1.0',
@@ -188,7 +187,7 @@ describe('bundle embed', () => {
     });
     expect(harness.readLines()).toEqual([
       `Wrote ${join(projectDirectoryPath, 'ios', 'App', 'App', 'hotcodepush.json')} for ios.`,
-      `Registered the embedded bundle of ios 1.0 (1): 1 files uploaded, ${uploadedByteCount} B.`,
+      `Registered the binary ios 1.0 (1): 1 files uploaded, ${uploadedByteCount} B.`,
     ]);
   });
 
@@ -258,8 +257,8 @@ describe('bundle embed', () => {
 
   it('should follow the channel HOTCODEPUSH_CHANNEL names over the configured one, a build flavour', async () => {
     vi.stubEnv('HOTCODEPUSH_CHANNEL', STAGING_CHANNEL.name);
-    harness.routes[`POST ${EMBEDDED_BUNDLES_PATH}`] = () =>
-      Response.json(EMBEDDED_BUNDLE, { status: 201 });
+    harness.routes[`POST ${BINARIES_PATH}`] = () =>
+      Response.json(BINARY, { status: 201 });
 
     await bundleEmbedCommand.action(
       {
@@ -276,8 +275,8 @@ describe('bundle embed', () => {
 
   it('should take the platform from CAPACITOR_PLATFORM_NAME and the identity from the Gradle file, printing JSON', async () => {
     vi.stubEnv('CAPACITOR_PLATFORM_NAME', 'android');
-    harness.routes[`POST ${EMBEDDED_BUNDLES_PATH}`] = () =>
-      Response.json({ ...EMBEDDED_BUNDLE, platform: 'android' });
+    harness.routes[`POST ${BINARIES_PATH}`] = () =>
+      Response.json({ ...BINARY, platform: 'android' });
 
     await bundleEmbedCommand.action(
       { config: join(projectDirectoryPath, 'hotcodepush.json'), json: true },
@@ -298,7 +297,7 @@ describe('bundle embed', () => {
       ),
     ).toBe(true);
     expect(harness.readJson()).toEqual({
-      embeddedBundle: { ...EMBEDDED_BUNDLE, platform: 'android' },
+      binary: { ...BINARY, platform: 'android' },
       resourceFilePath: join(
         projectDirectoryPath,
         'android',
@@ -316,8 +315,8 @@ describe('bundle embed', () => {
   it('should write to an absolute --out as given, the path a native build passes in', async () => {
     const outDirectoryPath = mkdtempSync(join(tmpdir(), 'hotcodepush-out-'));
     const outFilePath = join(outDirectoryPath, 'hotcodepush.json');
-    harness.routes[`POST ${EMBEDDED_BUNDLES_PATH}`] = () =>
-      Response.json(EMBEDDED_BUNDLE, { status: 201 });
+    harness.routes[`POST ${BINARIES_PATH}`] = () =>
+      Response.json(BINARY, { status: 201 });
 
     await bundleEmbedCommand.action(
       {
@@ -390,7 +389,7 @@ describe('bundle embed', () => {
   });
 
   it('should still write the resource file and warn when the API is unreachable, and fail only in CI', async () => {
-    harness.routes[`POST ${EMBEDDED_BUNDLES_PATH}`] = () => {
+    harness.routes[`POST ${BINARIES_PATH}`] = () => {
       throw new TypeError('fetch failed');
     };
 
@@ -406,7 +405,7 @@ describe('bundle embed', () => {
       embeddedBundleId: null,
     });
     expect(stderrWrite).toHaveBeenCalledWith(
-      'Warning: the embedded bundle was not registered: fetch failed\n',
+      'Warning: the binary was not registered: fetch failed\n',
     );
 
     vi.stubEnv('CI', 'true');
@@ -422,7 +421,7 @@ describe('bundle embed', () => {
   });
 
   it('should warn and skip a conflicting registration locally, and fail with it in CI', async () => {
-    harness.routes[`POST ${EMBEDDED_BUNDLES_PATH}`] = () =>
+    harness.routes[`POST ${BINARIES_PATH}`] = () =>
       respondWithApiError(
         409,
         'E_EMBED_CONFLICT',

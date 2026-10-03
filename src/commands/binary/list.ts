@@ -8,15 +8,15 @@ import { fetchAppId } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
   description:
-    'List the store builds registered by the embed step, with their binary identity.',
+    'List the store builds the embed step registered, with the bundle each ships and the devices running it.',
   examples: [
-    'hotcodepush embedded-bundle list',
-    'hotcodepush embedded-bundle list --app "My App" --json',
+    'hotcodepush binary list',
+    'hotcodepush binary list --app "My App" --json',
   ],
   options: defineCommandOptions(paginationShape),
   action: async options => {
     const hotCodePush = createApiClient();
-    const listedEmbeddedBundles = await hotCodePush.apps.embeddedBundles.list({
+    const listedBinaries = await hotCodePush.apps.binaries.list({
       appId: await fetchAppId(
         hotCodePush,
         options,
@@ -25,30 +25,40 @@ export default defineCommand({
       limit: options.limit,
       offset: options.offset,
     });
-    const nextOffset = resolveNextOffset(listedEmbeddedBundles.length, options);
+    const nextOffset = resolveNextOffset(listedBinaries.length, options);
     if (options.json) {
-      printJson({ embeddedBundles: listedEmbeddedBundles, nextOffset });
+      printJson({ binaries: listedBinaries, nextOffset });
       return;
     }
     printTable({
-      emptyText: 'No embedded bundles; a native build registers one.',
-      headers: ['ID', 'PLATFORM', 'VERSION', 'BUILD', 'FINGERPRINT', 'CREATED'],
+      emptyText: 'No binaries; a native build registers one.',
+      headers: [
+        'ID',
+        'VERSION',
+        'BUILD',
+        'PLATFORM',
+        'BUNDLE',
+        'DEVICES',
+        'LAST SEEN',
+      ],
       nextOffset,
-      rows: listedEmbeddedBundles.map(
+      rows: listedBinaries.map(
         ({
           binaryBuild,
           binaryVersion,
-          createdAt,
-          fingerprint,
+          bundleId,
+          deviceCount,
           id,
+          lastSeenAt,
           platform,
         }) => [
           id,
-          platform,
           binaryVersion,
           binaryBuild,
-          fingerprint ?? 'none',
-          resolveDate(createdAt),
+          platform,
+          bundleId,
+          String(deviceCount),
+          lastSeenAt === null ? 'never' : resolveDate(lastSeenAt),
         ],
       ),
     });

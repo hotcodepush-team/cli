@@ -1,8 +1,8 @@
 import type {
   App,
+  Binary,
   Bundle,
   Channel,
-  EmbeddedBundle,
   ChannelWithDeviceCounts,
   Organization,
   Release,
@@ -55,6 +55,7 @@ export const DEMO_APP: App = {
   createdAt: '2026-09-03T08:00:00.000Z',
   defaultChannelId: PRODUCTION_CHANNEL.id,
   framework: 'capacitor',
+  hasSigningKey: false,
   id: PRODUCTION_CHANNEL.appId,
   name: 'Demo',
   organizationId: ACME_ORGANIZATION.id,
@@ -113,14 +114,16 @@ export const PREVIOUS_BUNDLE: Bundle = {
   updatedAt: '2026-09-04T08:05:00.000Z',
 };
 
-export const EMBEDDED_BUNDLE: EmbeddedBundle = {
+export const BINARY: Binary = {
   appId: DEMO_APP.id,
   binaryBuild: '1',
   binaryVersion: '1.0',
   bundleId: '4d3c2b1a-0f9e-4d8c-b7a6-59483726150e',
   createdAt: '2026-09-06T08:00:00.000Z',
+  deviceCount: 12,
   fingerprint: null,
   id: '8e7d6c5b-4a39-4281-9f0e-1d2c3b4a5968',
+  lastSeenAt: '2026-09-08T08:00:00.000Z',
   platform: 'ios',
   updatedAt: '2026-09-06T08:00:00.000Z',
 };

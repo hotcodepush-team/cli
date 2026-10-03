@@ -1,5 +1,5 @@
 import { resolve } from 'node:path';
-import type { EmbeddedBundle, HotCodePush } from '@hotcodepush/node';
+import type { Binary, HotCodePush } from '@hotcodepush/node';
 import { HotCodePushError } from '@hotcodepush/node';
 import { z } from 'zod';
 import { defineCommand } from 'zodline';
@@ -49,7 +49,7 @@ import {
 import { readApiUrl } from '../../utils/user-config.js';
 
 interface Registration extends UploadedFiles {
-  embeddedBundle: EmbeddedBundle | null;
+  binary: Binary | null;
   skippedReason: string | null;
 }
 
@@ -69,7 +69,7 @@ const NO_UPLOAD: UploadedFiles = { uploadedBytes: 0, uploadedFileCount: 0 };
 
 export default defineCommand({
   description:
-    "The build step the native hook calls: writes the resource file the SDK reads and registers the store build's embedded bundle.",
+    'The build step the native hook calls: writes the resource file the SDK reads and registers the store build, the binary, with the bundle it ships.',
   examples: [
     'hotcodepush bundle embed --platform ios',
     'hotcodepush bundle embed --platform android --binary-version 2.4.1 --binary-build 57 --force',
@@ -139,7 +139,7 @@ export default defineCommand({
       completeProjectConfig.nativeSources ?? [],
     );
     const reporter = createReporter(options);
-    const registration = await registerEmbeddedBundle(
+    const registration = await registerBinary(
       {
         ...identity,
         appId: completeProjectConfig.appId,
@@ -161,7 +161,7 @@ export default defineCommand({
         builtAt,
         bundleVersion: identity.binaryVersion,
         channelId,
-        embeddedBundleId: registration.embeddedBundle?.bundleId ?? null,
+        embeddedBundleId: registration.binary?.bundleId ?? null,
         files,
         fingerprint,
         hosts: resolveDeviceHosts(readApiUrl()),
@@ -174,7 +174,7 @@ export default defineCommand({
     }
     if (options.json) {
       printJson({
-        embeddedBundle: registration.embeddedBundle,
+        binary: registration.binary,
         resourceFilePath,
         uploadedBytes: registration.uploadedBytes,
         uploadedFileCount: registration.uploadedFileCount,
@@ -182,9 +182,9 @@ export default defineCommand({
       return;
     }
     console.log(`Wrote ${resourceFilePath} for ${platform}.`);
-    if (registration.embeddedBundle !== null) {
+    if (registration.binary !== null) {
       console.log(
-        `Registered the embedded bundle of ${platform} ${identity.binaryVersion} (${identity.binaryBuild}): ${registration.uploadedFileCount} files uploaded, ${resolveByteText(registration.uploadedBytes)}.`,
+        `Registered the binary ${platform} ${identity.binaryVersion} (${identity.binaryBuild}): ${registration.uploadedFileCount} files uploaded, ${resolveByteText(registration.uploadedBytes)}.`,
       );
     }
   },
@@ -227,7 +227,7 @@ function fetchBuildChannelId(
  * Without a token the registration is skipped; a failure skips it too with one warning, except in CI, where a conflicting
  * fingerprint under an unbumped build number is a pipeline mistake someone must see — a build never breaks locally.
  */
-async function registerEmbeddedBundle(
+async function registerBinary(
   request: RegistrationRequest,
   files: BundleFile[],
   reporter: ReturnType<typeof createReporter>,
@@ -235,9 +235,9 @@ async function registerEmbeddedBundle(
   if (readToken() === undefined) {
     return {
       ...NO_UPLOAD,
-      embeddedBundle: null,
+      binary: null,
       skippedReason:
-        'not logged in, so the embedded bundle was not registered; run "hotcodepush login" or set HOTCODEPUSH_TOKEN.',
+        'not logged in, so the binary was not registered; run "hotcodepush login" or set HOTCODEPUSH_TOKEN.',
     };
   }
   const hotCodePush = createApiClient();
@@ -250,8 +250,8 @@ async function registerEmbeddedBundle(
     }
     return {
       ...NO_UPLOAD,
-      embeddedBundle: null,
-      skippedReason: `the embedded bundle was not registered: ${resolveFailureText(error)}`,
+      binary: null,
+      skippedReason: `the binary was not registered: ${resolveFailureText(error)}`,
     };
   }
 }
@@ -271,9 +271,8 @@ async function registerWithUploads(
     })),
   };
   try {
-    const embeddedBundle =
-      await hotCodePush.apps.embeddedBundles.create(createOptions);
-    return { ...NO_UPLOAD, embeddedBundle, skippedReason: null };
+    const binary = await hotCodePush.apps.binaries.create(createOptions);
+    return { ...NO_UPLOAD, binary, skippedReason: null };
   } catch (error) {
     const missingSha256s = resolveMissingSha256s(error);
     if (missingSha256s === undefined) {
@@ -293,9 +292,8 @@ async function registerWithUploads(
           reporter,
         ),
     );
-    const embeddedBundle =
-      await hotCodePush.apps.embeddedBundles.create(createOptions);
-    return { ...uploadedFiles, embeddedBundle, skippedReason: null };
+    const binary = await hotCodePush.apps.binaries.create(createOptions);
+    return { ...uploadedFiles, binary, skippedReason: null };
   }
 }
 
