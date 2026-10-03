@@ -10,7 +10,15 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ConfigurationSchema } from '@hotcodepush/protocol';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  onTestFinished,
+  vi,
+} from 'vitest';
 import {
   CAPACITOR_FINGERPRINT,
   writeFingerprintInputs,
@@ -313,7 +321,7 @@ describe('bundle embed', () => {
   });
 
   it('should write to an absolute --out as given, the path a native build passes in', async () => {
-    const outDirectoryPath = mkdtempSync(join(tmpdir(), 'hotcodepush-out-'));
+    const outDirectoryPath = createTemporaryDirectory('hotcodepush-out-');
     const outFilePath = join(outDirectoryPath, 'hotcodepush.json');
     harness.routes[`POST ${BINARIES_PATH}`] = () =>
       Response.json(BINARY, { status: 201 });
@@ -330,14 +338,13 @@ describe('bundle embed', () => {
 
     expect(existsSync(outFilePath)).toBe(true);
     expect(harness.readJson()).toMatchObject({ resourceFilePath: outFilePath });
-    rmSync(outDirectoryPath, { force: true, recursive: true });
   });
 
   it('should still write the resource file and warn when not logged in and hotcodepush.json still names the channel by id', async () => {
     vi.stubEnv('HOTCODEPUSH_TOKEN', undefined);
     vi.stubEnv(
       'XDG_CONFIG_HOME',
-      mkdtempSync(join(tmpdir(), 'hotcodepush-nohome-')),
+      createTemporaryDirectory('hotcodepush-nohome-'),
     );
     const configPath = join(projectDirectoryPath, 'hotcodepush.json');
     writeFileSync(
@@ -369,7 +376,7 @@ describe('bundle embed', () => {
     vi.stubEnv('HOTCODEPUSH_TOKEN', undefined);
     vi.stubEnv(
       'XDG_CONFIG_HOME',
-      mkdtempSync(join(tmpdir(), 'hotcodepush-nohome-')),
+      createTemporaryDirectory('hotcodepush-nohome-'),
     );
 
     await expect(
@@ -451,3 +458,14 @@ describe('bundle embed', () => {
     });
   });
 });
+
+/**
+ * A temporary directory of the running test's own, removed when the test finishes however it finishes.
+ */
+function createTemporaryDirectory(prefix: string): string {
+  const directoryPath = mkdtempSync(join(tmpdir(), prefix));
+  onTestFinished(() => {
+    rmSync(directoryPath, { force: true, recursive: true });
+  });
+  return directoryPath;
+}
