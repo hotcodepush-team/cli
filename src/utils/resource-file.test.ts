@@ -1,6 +1,8 @@
 import { ConfigurationSchema } from '@hotcodepush/protocol';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { buildResourceFile, UNREGISTERED_BUNDLE_ID } from './resource-file.js';
+
+const CHANNEL_ID = '83ae07ef-2539-4c88-8380-17a56e24a82f';
 
 const FILES = [
   {
@@ -12,13 +14,10 @@ const FILES = [
 ];
 
 describe('resource file', () => {
-  afterEach(() => {
-    vi.unstubAllEnvs();
-  });
-
-  it('should carry the configuration with its defaults, the floor, the files-only manifest and the hosts', () => {
+  it('should carry the configuration with its defaults and the resolved channel id, the floor, the files-only manifest and the hosts', () => {
     const resourceFile = buildResourceFile({
       builtAt: '2026-09-29T12:00:00.000Z',
+      channelId: CHANNEL_ID,
       embeddedBundleId: null,
       files: FILES,
       hosts: {
@@ -27,52 +26,62 @@ describe('resource file', () => {
       },
       projectConfig: {
         appId: 'ec266350-15f9-44c6-9d85-82f1363ede75',
-        channelId: '83ae07ef-2539-4c88-8380-17a56e24a82f',
+        channel: 'production',
         dir: 'dist',
       },
       version: '1.0',
     });
 
     expect(ConfigurationSchema.parse(resourceFile)).toEqual(resourceFile);
-    expect(resourceFile).toMatchObject({
+    expect(resourceFile).toEqual({
+      appId: 'ec266350-15f9-44c6-9d85-82f1363ede75',
       autoCheck: true,
       builtAt: '2026-09-29T12:00:00.000Z',
-      channelId: '83ae07ef-2539-4c88-8380-17a56e24a82f',
+      channelId: CHANNEL_ID,
       checkInterval: 900,
+      dir: 'dist',
+      downloadStrategy: 'auto',
       embeddedBundleId: null,
       embeddedBundleManifest: {
+        appId: 'ec266350-15f9-44c6-9d85-82f1363ede75',
         bundleId: UNREGISTERED_BUNDLE_ID,
+        createdAt: '2026-09-29T12:00:00.000Z',
         deltas: [],
         files: [{ path: 'index.html', sha256: 'a'.repeat(64), sizeBytes: 11 }],
         pack: null,
         patches: [],
         version: '1.0',
       },
+      enabledInDebugBuilds: true,
       filesBaseUrl: 'http://localhost:8787/files',
       fingerprint: null,
+      installOnResumeAfter: 300,
+      installStrategy: 'next-start',
+      mandatoryInstallStrategy: 'immediate',
+      publicKeys: [],
+      readySignal: 'render',
+      readyTimeout: 10,
       updatesBaseUrl: 'http://localhost:8787/updates',
     });
   });
 
-  it('should apply HOTCODEPUSH_CHANNEL_ID over the configured channel and write no hosts for production', () => {
-    vi.stubEnv(
-      'HOTCODEPUSH_CHANNEL_ID',
-      '9b2f4d1e-3c5a-4e6f-8a7b-1c2d3e4f5a6b',
-    );
-
+  it('should keep the configured SDK options, drop a deprecated channelId and write no hosts for production', () => {
     const resourceFile = buildResourceFile({
       builtAt: '2026-09-29T12:00:00.000Z',
+      channelId: CHANNEL_ID,
       embeddedBundleId: 'c56a4180-65aa-42ec-a945-5fd21dec0538',
       files: FILES,
       hosts: { filesBaseUrl: undefined, updatesBaseUrl: undefined },
       projectConfig: {
         appId: 'ec266350-15f9-44c6-9d85-82f1363ede75',
-        channelId: '83ae07ef-2539-4c88-8380-17a56e24a82f',
+        channelId: '9b2f4d1e-3c5a-4e6f-8a7b-1c2d3e4f5a6b',
+        installStrategy: 'next-resume',
       },
       version: '1.0',
     });
 
-    expect(resourceFile.channelId).toBe('9b2f4d1e-3c5a-4e6f-8a7b-1c2d3e4f5a6b');
+    expect(resourceFile.channelId).toBe(CHANNEL_ID);
+    expect(resourceFile.installStrategy).toBe('next-resume');
     expect(resourceFile.embeddedBundleManifest.bundleId).toBe(
       'c56a4180-65aa-42ec-a945-5fd21dec0538',
     );

@@ -1,7 +1,7 @@
 import { existsSync, renameSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { confirm, select } from '@clack/prompts';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   readJsonFile,
   writeCapacitorProject,
@@ -96,6 +96,13 @@ describe('init', () => {
     );
   }
 
+  beforeEach(() => {
+    // the configuration step names the app's default channel by its name
+    harness.routes[
+      `GET /v1/apps/${DEMO_APP.id}/channels/${PRODUCTION_CHANNEL.id}`
+    ] = () => Response.json(PRODUCTION_CHANNEL);
+  });
+
   afterEach(() => {
     for (const directoryPath of directoryPaths.splice(0)) {
       rmSync(directoryPath, { force: true, recursive: true });
@@ -135,7 +142,7 @@ describe('init', () => {
     );
     expect(readJsonFile(join(directoryPath, 'hotcodepush.json'))).toEqual({
       appId: DEMO_APP.id,
-      channelId: PRODUCTION_CHANNEL.id,
+      channel: PRODUCTION_CHANNEL.name,
       dir: 'www',
     });
     expect(
@@ -180,7 +187,7 @@ describe('init', () => {
       isPackageInstalled: true,
       projectConfig: {
         appId: DEMO_APP.id,
-        channelId: PRODUCTION_CHANNEL.id,
+        channel: PRODUCTION_CHANNEL.name,
         dir: 'www',
       },
     });
@@ -217,6 +224,32 @@ describe('init', () => {
       `Console: http://localhost:4300/apps/${DEMO_APP.id}`,
       'Docs: https://hotcodepush.com/docs',
     ]);
+  });
+
+  it('should complete a hotcodepush.json that still carries the deprecated channelId without naming another channel', async () => {
+    const directoryPath = writeProject({
+      hookScript: 'npx hotcodepush bundle embed',
+      isPackageInstalled: true,
+      projectConfig: { appId: DEMO_APP.id, channelId: PRODUCTION_CHANNEL.id },
+    });
+    rmSync(join(directoryPath, 'ios'), { force: true, recursive: true });
+    respondWithSession([ACME_ORGANIZATION]);
+    respondWithConfiguredApp();
+
+    await initCommand.action(
+      {
+        config: join(directoryPath, 'hotcodepush.json'),
+        json: true,
+        yes: true,
+      },
+      undefined,
+    );
+
+    expect(readJsonFile(join(directoryPath, 'hotcodepush.json'))).toEqual({
+      appId: DEMO_APP.id,
+      channelId: PRODUCTION_CHANNEL.id,
+      dir: 'www',
+    });
   });
 
   it('should stop the editing steps with E_CONFIRMATION_REQUIRED when nobody can confirm the files to change', async () => {
@@ -260,7 +293,7 @@ describe('init', () => {
       isPackageInstalled: true,
       projectConfig: {
         appId: DEMO_APP.id,
-        channelId: PRODUCTION_CHANNEL.id,
+        channel: PRODUCTION_CHANNEL.name,
         dir: 'www',
       },
     });
@@ -297,7 +330,7 @@ describe('init', () => {
       isPackageInstalled: true,
       projectConfig: {
         appId: DEMO_APP.id,
-        channelId: PRODUCTION_CHANNEL.id,
+        channel: PRODUCTION_CHANNEL.name,
         dir: 'www',
       },
     });
@@ -383,7 +416,7 @@ describe('init', () => {
     });
     expect(readJsonFile(join(directoryPath, 'hotcodepush.json'))).toEqual({
       appId: DEMO_APP.id,
-      channelId: PRODUCTION_CHANNEL.id,
+      channel: PRODUCTION_CHANNEL.name,
       dir: 'www',
     });
   });

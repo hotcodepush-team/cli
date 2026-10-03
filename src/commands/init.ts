@@ -55,7 +55,10 @@ import {
   runCommandLineVisibly,
 } from '../utils/package-manager.js';
 import type { ProjectConfig } from '../utils/project-config.js';
-import { locateProjectConfig } from '../utils/project-config.js';
+import {
+  locateProjectConfig,
+  resolveProjectChannel,
+} from '../utils/project-config.js';
 import {
   confirmConsequence,
   promptSelect,
@@ -179,7 +182,13 @@ export default defineCommand({
     await run.run('package', () => installPackage(projectFiles, editBlocker));
     await run.run(
       'configuration',
-      () => writeConfiguration(projectFiles, requireValue(app), editBlocker),
+      () =>
+        writeConfiguration(
+          requireValue(hotCodePush),
+          projectFiles,
+          requireValue(app),
+          editBlocker,
+        ),
       { dependsOn: ['app'] },
     );
     await run.run('hook', () => wireHook(projectFiles, editBlocker, options));
@@ -502,19 +511,20 @@ function installPackage(
 }
 
 /**
- * `hotcodepush.json` with the app, its production channel and the web build from `capacitor.config`; a file present keeps what it has.
+ * `hotcodepush.json` with the app, its default channel by name and the web build from `capacitor.config`; a file present keeps what it has.
  */
-function writeConfiguration(
+async function writeConfiguration(
+  hotCodePush: HotCodePush,
   { directoryPath, projectConfig }: ProjectFiles,
   app: App,
   editBlocker: ConfirmationRequiredError | undefined,
 ): Promise<StepOutcome<undefined>> {
   if (isConfigurationComplete(projectConfig)) {
-    return Promise.resolve({
+    return {
       message: `${PROJECT_CONFIG_FILE_NAME} already present`,
       status: 'skipped',
       value: undefined,
-    });
+    };
   }
   if (editBlocker !== undefined) {
     throw editBlocker;
@@ -535,17 +545,36 @@ function writeConfiguration(
       {
         ...projectConfig,
         appId: projectConfig?.appId ?? app.id,
-        channelId: projectConfig?.channelId ?? app.defaultChannelId,
+        ...(hasChannel(projectConfig)
+          ? {}
+          : { channel: await fetchDefaultChannelName(hotCodePush, app) }),
         dir,
       },
       sourceText || '{}\n',
     ),
   );
-  return Promise.resolve({
+  return {
     message: `${projectConfig === undefined ? 'wrote' : 'completed'} ${PROJECT_CONFIG_FILE_NAME}`,
     status: 'done',
     value: undefined,
+  };
+}
+
+/**
+ * The name of the app's default channel, the one a new project follows; the schema's default for an app without one.
+ */
+async function fetchDefaultChannelName(
+  hotCodePush: HotCodePush,
+  app: App,
+): Promise<string> {
+  if (app.defaultChannelId === null) {
+    return resolveProjectChannel({});
+  }
+  const defaultChannel = await hotCodePush.apps.channels.get({
+    appId: app.id,
+    channelId: app.defaultChannelId,
   });
+  return defaultChannel.name;
 }
 
 /**
@@ -708,12 +737,22 @@ function findNamed<TResource extends { id: string; name: string }>(
       );
 }
 
+/**
+ * The file names a channel: by name, or by the deprecated `channelId`, which it keeps for one more release.
+ */
+function hasChannel(projectConfig: ProjectConfig | undefined): boolean {
+  return (
+    projectConfig?.channel !== undefined ||
+    projectConfig?.channelId !== undefined
+  );
+}
+
 function isConfigurationComplete(
   projectConfig: ProjectConfig | undefined,
-): projectConfig is Required<ProjectConfig> {
+): boolean {
   return (
     projectConfig?.appId !== undefined &&
-    projectConfig.channelId !== undefined &&
+    hasChannel(projectConfig) &&
     projectConfig.dir !== undefined
   );
 }

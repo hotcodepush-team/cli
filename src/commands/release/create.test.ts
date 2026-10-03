@@ -16,7 +16,11 @@ import {
   STAGING_CHANNEL,
   STAGING_CHANNEL_WITH_DEVICE_COUNTS,
 } from '../../../test/fixtures.js';
-import { CHANNEL_PATH, RELEASES_PATH } from '../../../test/release-routes.js';
+import {
+  CHANNEL_PATH,
+  RELEASES_PATH,
+  respondWithChannels,
+} from '../../../test/release-routes.js';
 import {
   ConfirmationRequiredError,
   InvalidParameterError,
@@ -71,6 +75,7 @@ describe('release create', () => {
   }
 
   function respondWithStagingChannel(): void {
+    respondWithChannels(harness);
     harness.routes[`GET ${CHANNEL_PATH}`] = () =>
       Response.json(STAGING_CHANNEL_WITH_DEVICE_COUNTS);
   }
@@ -102,7 +107,7 @@ describe('release create', () => {
         bundle: '17',
         config: harness.writeProjectConfig({
           appId: DEMO_APP.id,
-          channelId: STAGING_CHANNEL.id,
+          channel: STAGING_CHANNEL.name,
         }),
       },
       undefined,

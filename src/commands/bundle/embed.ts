@@ -3,6 +3,7 @@ import type { EmbeddedBundle, HotCodePush } from '@hotcodepush/node';
 import { HotCodePushError } from '@hotcodepush/node';
 import { z } from 'zod';
 import { defineCommand } from 'zodline';
+import { PROJECT_CONFIG_FILE_NAME } from '../../config/consts.js';
 import { createApiClient } from '../../utils/api-client.js';
 import type { BinaryIdentity } from '../../utils/binary-identity.js';
 import { readBinaryIdentity } from '../../utils/binary-identity.js';
@@ -23,8 +24,9 @@ import { printJson } from '../../utils/output.js';
 import { createReporter, resolveByteText } from '../../utils/progress.js';
 import type { ProjectConfig } from '../../utils/project-config.js';
 import {
-  assertProjectConfigId,
+  assertProjectConfigAppId,
   locateProjectConfig,
+  resolveProjectChannel,
 } from '../../utils/project-config.js';
 import { promptSelect } from '../../utils/prompts.js';
 import {
@@ -32,6 +34,10 @@ import {
   resolveResourceFilePath,
   writeResourceFile,
 } from '../../utils/resource-file.js';
+import {
+  fetchChannels,
+  fetchResourceId,
+} from '../../utils/resource-resolution.js';
 import { readToken } from '../../utils/token-store.js';
 import type { Platform, UploadedFiles } from '../../utils/upload.js';
 import {
@@ -103,6 +109,7 @@ export default defineCommand({
     if (options.platform === undefined && isWebHookRun()) {
       return;
     }
+    const channelId = await fetchBuildChannelId(completeProjectConfig);
     const platform =
       options.platform ?? (await resolvePlatformFromEnvironment(options));
     const nativeProjectPath =
@@ -134,6 +141,7 @@ export default defineCommand({
       resourceFilePath,
       buildResourceFile({
         builtAt,
+        channelId,
         embeddedBundleId: registration.embeddedBundle?.bundleId ?? null,
         files,
         hosts: resolveDeviceHosts(readApiUrl()),
@@ -164,23 +172,34 @@ export default defineCommand({
 
 function assertProjectConfig(
   projectConfig: ProjectConfig | undefined,
-): ProjectConfig & { appId: string; channelId: string } {
-  if (
-    projectConfig?.appId === undefined ||
-    projectConfig.channelId === undefined
-  ) {
+): ProjectConfig & { appId: string } {
+  if (projectConfig?.appId === undefined) {
     throw new InvalidParameterError(
-      'hotcodepush.json with appId and channelId is missing; run "hotcodepush init" or --config',
+      'hotcodepush.json with appId is missing; run "hotcodepush init" or --config',
       undefined,
     );
   }
-  assertProjectConfigId('appId', projectConfig.appId);
-  assertProjectConfigId('channelId', projectConfig.channelId);
-  return {
-    ...projectConfig,
-    appId: projectConfig.appId,
-    channelId: projectConfig.channelId,
-  };
+  assertProjectConfigAppId(projectConfig.appId);
+  return { ...projectConfig, appId: projectConfig.appId };
+}
+
+/**
+ * The id of the channel the build follows: `HOTCODEPUSH_CHANNEL`, a build flavour's override, otherwise hotcodepush.json's.
+ * A name is resolved through the API, so a name the app does not have fails the build with the source named; an id is taken as it is.
+ */
+function fetchBuildChannelId(
+  projectConfig: ProjectConfig & { appId: string },
+): Promise<string> {
+  const flavourChannel = process.env.HOTCODEPUSH_CHANNEL;
+  const [reference, source] = flavourChannel
+    ? [flavourChannel, 'HOTCODEPUSH_CHANNEL']
+    : [resolveProjectChannel(projectConfig), PROJECT_CONFIG_FILE_NAME];
+  return fetchResourceId(
+    'channel',
+    reference,
+    () => fetchChannels(createApiClient(), projectConfig.appId),
+    source,
+  );
 }
 
 /**

@@ -5,7 +5,7 @@ import { defineCommandOptions } from '../utils/global-options.js';
 import { resolveConsoleBaseUrl } from '../utils/hosts.js';
 import { printJson } from '../utils/output.js';
 import {
-  assertProjectConfigId,
+  assertProjectConfigAppId,
   readProjectConfig,
 } from '../utils/project-config.js';
 import {
@@ -47,7 +47,7 @@ async function resolveConsolePageUrl(options: {
   }
   const projectConfig = readProjectConfig(options.config);
   if (options.app === undefined && projectConfig?.appId !== undefined) {
-    assertProjectConfigId('appId', projectConfig.appId);
+    assertProjectConfigAppId(projectConfig.appId);
     return `${consoleBaseUrl}/apps/${projectConfig.appId}`;
   }
   const appId = await fetchAppId(createApiClient(), options, projectConfig);

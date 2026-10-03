@@ -25,7 +25,7 @@ describe('release get', () => {
       {
         config: harness.writeProjectConfig({
           appId: DEMO_APP.id,
-          channelId: STAGING_CHANNEL.id,
+          channel: STAGING_CHANNEL.name,
         }),
         release: '43',
       },

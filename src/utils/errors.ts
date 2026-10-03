@@ -48,12 +48,12 @@ export class CliError extends Error {
  * A name several resources carry: organizations can share one, and apps of different organizations can.
  */
 export class AmbiguousNameError extends CliError {
-  constructor(noun: string, name: string) {
+  constructor(noun: string, name: string, source = `--${noun}`) {
     super({
       code: 'E_INVALID_PARAMETER',
       exitCode: ExitCode.MissingOrInvalidParameter,
       fix: `pass the id instead, as "hotcodepush ${noun} list" prints it.`,
-      message: `--${noun}: several ${noun}s are named "${name}"`,
+      message: `${source}: several ${noun}s are named "${name}"`,
     });
   }
 }
@@ -287,15 +287,16 @@ export class UnknownCommandError extends CliError {
 }
 
 /**
- * A name no resource carries; an id the API does not know is the API's own E_NOT_FOUND instead.
+ * A name no resource carries, named with where it came from, its flag by default;
+ * an id the API does not know is the API's own E_NOT_FOUND instead.
  */
 export class UnknownNameError extends CliError {
-  constructor(noun: string, name: string) {
+  constructor(noun: string, name: string, source = `--${noun}`) {
     super({
       code: 'E_INVALID_PARAMETER',
       exitCode: ExitCode.MissingOrInvalidParameter,
       fix: `run "hotcodepush ${noun} list" to see the names.`,
-      message: `--${noun}: no ${noun} is named "${name}"`,
+      message: `${source}: no ${noun} is named "${name}"`,
     });
   }
 }

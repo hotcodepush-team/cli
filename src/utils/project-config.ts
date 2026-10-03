@@ -1,17 +1,19 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
+import { ProjectConfigurationSchema } from '@hotcodepush/protocol';
 import { z } from 'zod';
 import { PROJECT_CONFIG_FILE_NAME } from '../config/consts.js';
 import { InvalidParameterError } from './errors.js';
 
 /**
- * `hotcodepush.json`, the project's configuration, as far as the commands read it; `init` writes it.
+ * `hotcodepush.json`, the project's configuration, as written: `init` writes it and completes a partial one, so every key is optional.
+ * `channelId`, the channel by id, is the key `channel` replaced, read for one more release.
  */
-export interface ProjectConfig {
-  appId?: string;
+export type ProjectConfig = Partial<
+  z.input<typeof ProjectConfigurationSchema>
+> & {
   channelId?: string;
-  dir?: string;
-}
+};
 
 /**
  * The project's configuration with the directory it lies in, the project root every path is relative to.
@@ -23,21 +25,32 @@ export interface ProjectConfigLocation {
 
 const ID_SCHEMA = z.guid();
 
+let isChannelIdNoticePrinted = false;
+
 /**
- * An id of the file, checked before a command uses it without asking the API:
- * the file comes with the repository, and its ids reach console URLs, the browser and the resource file devices read.
+ * The app id of the file, checked before a command uses it without asking the API:
+ * the file comes with the repository, and the id reaches console URLs, the browser and the resource file devices read.
  */
-export function assertProjectConfigId(
-  field: 'appId' | 'channelId',
-  id: string,
-): void {
-  if (!ID_SCHEMA.safeParse(id).success) {
+export function assertProjectConfigAppId(appId: string): void {
+  if (!ID_SCHEMA.safeParse(appId).success) {
     throw new InvalidParameterError(
-      `${PROJECT_CONFIG_FILE_NAME}: ${field} is no id`,
+      `${PROJECT_CONFIG_FILE_NAME}: appId is no id`,
       undefined,
-      `set ${field} to the id "hotcodepush ${field === 'appId' ? 'app' : 'channel'} list" prints.`,
+      'set appId to the id "hotcodepush app list" prints.',
     );
   }
+}
+
+/**
+ * The channel the project follows: `channel` by name, `production`, the schema's default, when the file names none,
+ * or the deprecated `channelId` by id while a file still carries it alone.
+ */
+export function resolveProjectChannel(projectConfig: ProjectConfig): string {
+  return (
+    projectConfig.channel ??
+    projectConfig.channelId ??
+    ProjectConfigurationSchema.shape.channel.parse(undefined)
+  );
 }
 
 /**
@@ -52,6 +65,7 @@ export function readProjectConfig(
 
 /**
  * The configuration and its directory; without a file the working directory is the project root.
+ * A file still carrying `channelId` gets one deprecation notice on stderr per run.
  */
 export function locateProjectConfig(
   configPath: string | undefined,
@@ -69,10 +83,13 @@ export function locateProjectConfig(
   if (filePath === undefined) {
     return { directoryPath: process.cwd(), projectConfig: undefined };
   }
-  return {
-    directoryPath: dirname(filePath),
-    projectConfig: JSON.parse(readFileSync(filePath, 'utf8')) as ProjectConfig,
-  };
+  const projectConfig = JSON.parse(
+    readFileSync(filePath, 'utf8'),
+  ) as ProjectConfig;
+  if (projectConfig.channelId !== undefined) {
+    printChannelIdNotice();
+  }
+  return { directoryPath: dirname(filePath), projectConfig };
 }
 
 function findProjectConfigFilePath(directoryPath: string): string | undefined {
@@ -84,4 +101,14 @@ function findProjectConfigFilePath(directoryPath: string): string | undefined {
   return parentDirectoryPath === directoryPath
     ? undefined
     : findProjectConfigFilePath(parentDirectoryPath);
+}
+
+function printChannelIdNotice(): void {
+  if (isChannelIdNoticePrinted) {
+    return;
+  }
+  isChannelIdNoticePrinted = true;
+  process.stderr.write(
+    `Warning: ${PROJECT_CONFIG_FILE_NAME}'s channelId is deprecated and read for one more release; replace it with "channel", the channel's name.\n`,
+  );
 }

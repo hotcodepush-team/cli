@@ -8,6 +8,7 @@ import {
   PRODUCTION_CHANNEL,
   RUNNER_USER,
 } from '../../test/fixtures.js';
+import { respondWithChannels } from '../../test/release-routes.js';
 import { ReportedFailureError } from '../utils/errors.js';
 import { addResourceReference } from '../utils/xcode-project.js';
 import doctorCommand from './doctor.js';
@@ -39,7 +40,7 @@ describe('doctor', () => {
       isPackageInstalled: true,
       projectConfig: {
         appId: DEMO_APP.id,
-        channelId: PRODUCTION_CHANNEL.id,
+        channel: PRODUCTION_CHANNEL.name,
         dir: 'www',
       },
     });
@@ -101,6 +102,7 @@ describe('doctor', () => {
     harness.routes['GET /v1/users/me'] = () => Response.json(RUNNER_USER);
     harness.routes[`GET /v1/apps/${DEMO_APP.id}`] = () =>
       Response.json(DEMO_APP);
+    respondWithChannels(harness);
     harness.routes[
       `GET /v1/apps/${DEMO_APP.id}/channels/${PRODUCTION_CHANNEL.id}`
     ] = () => Response.json(PRODUCTION_CHANNEL);
@@ -177,7 +179,7 @@ describe('doctor', () => {
     ).rejects.toBeInstanceOf(ReportedFailureError);
 
     expect(harness.readLines()).toEqual([
-      `✓ configuration          hotcodepush.json names app ${DEMO_APP.id} and channel ${PRODUCTION_CHANNEL.id}, web build at www`,
+      `✓ configuration          hotcodepush.json names app ${DEMO_APP.id} and channel production, web build at www`,
       '✓ session                logged in as Anna Example (anna@example.com)',
       '✓ app                    app Demo, channel production',
       '✗ package                @hotcodepush/capacitor-live-updates is not in package.json',
@@ -217,6 +219,57 @@ describe('doctor', () => {
       },
       { check: 'app', message: 'app Demo, channel production', status: 'ok' },
     ]);
+  });
+
+  it('should fail the configuration on a channel that is no channel name', async () => {
+    const directoryPath = await writeSetUpProject();
+    writeFileSync(
+      join(directoryPath, 'hotcodepush.json'),
+      JSON.stringify({
+        appId: DEMO_APP.id,
+        channel: 'pre release',
+        dir: 'www',
+      }),
+    );
+    respondWithSessionAndApp();
+
+    await expect(
+      doctorCommand.action(
+        { config: join(directoryPath, 'hotcodepush.json'), json: true },
+        undefined,
+      ),
+    ).rejects.toBeInstanceOf(ReportedFailureError);
+
+    expect((harness.readJson() as DoctorResult).checks[0]).toEqual({
+      check: 'configuration',
+      manualStep: 'run hotcodepush init',
+      message: 'hotcodepush.json has a channel that is no channel name',
+      status: 'failed',
+    });
+  });
+
+  it('should fail the app check when the app has no channel of the configured name', async () => {
+    const directoryPath = await writeSetUpProject();
+    writeFileSync(
+      join(directoryPath, 'hotcodepush.json'),
+      JSON.stringify({ appId: DEMO_APP.id, channel: 'beta', dir: 'www' }),
+    );
+    respondWithSessionAndApp();
+
+    await expect(
+      doctorCommand.action(
+        { config: join(directoryPath, 'hotcodepush.json'), json: true },
+        undefined,
+      ),
+    ).rejects.toBeInstanceOf(ReportedFailureError);
+
+    expect((harness.readJson() as DoctorResult).checks[2]).toEqual({
+      check: 'app',
+      manualStep: 'run hotcodepush init',
+      message:
+        'the API does not know the app or the channel: hotcodepush.json: no channel is named "beta"',
+      status: 'failed',
+    });
   });
 
   it('should skip the API checks without a session and fail on a missing configuration', async () => {

@@ -5,12 +5,15 @@ import {
   LIVE_RELEASE,
   PREVIOUS_BUNDLE,
   PREVIOUS_RELEASE,
+  PRODUCTION_CHANNEL,
   READY_BUNDLE,
   STAGING_CHANNEL,
   STAGING_CHANNEL_WITH_DEVICE_COUNTS,
 } from './fixtures.js';
 
 export const CHANNEL_PATH = `/v1/apps/${DEMO_APP.id}/channels/${STAGING_CHANNEL.id}`;
+
+export const CHANNELS_PATH = `/v1/apps/${DEMO_APP.id}/channels`;
 
 export const RELEASES_PATH = `/v1/apps/${DEMO_APP.id}/releases`;
 
@@ -37,9 +40,19 @@ export const RELEASE_LOG: Release[] = [
 ];
 
 /**
- * The staging channel of the demo app, its release log and release #43 with its relations, the routes every release command starts from.
+ * The demo app's channels, where a channel named in a flag or in hotcodepush.json is looked up.
+ */
+export function respondWithChannels(harness: CommandHarness): void {
+  harness.routes[`GET ${CHANNELS_PATH}`] = () =>
+    Response.json([STAGING_CHANNEL, PRODUCTION_CHANNEL]);
+}
+
+/**
+ * The staging channel of the demo app among its channels, its release log and release #43 with its relations,
+ * the routes every release command starts from.
  */
 export function respondWithStagingReleases(harness: CommandHarness): void {
+  respondWithChannels(harness);
   harness.routes[`GET ${CHANNEL_PATH}`] = () =>
     Response.json(STAGING_CHANNEL_WITH_DEVICE_COUNTS);
   harness.routes[`GET ${CHANNEL_PATH}/releases`] = () =>

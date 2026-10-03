@@ -1,6 +1,9 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import { ConfigurationSchema } from '@hotcodepush/protocol';
+import {
+  ConfigurationSchema,
+  ProjectConfigurationSchema,
+} from '@hotcodepush/protocol';
 import { z } from 'zod';
 import { defineCommand } from 'zodline';
 import {
@@ -24,8 +27,15 @@ import { resolveFilesBaseUrl, resolveUpdatesBaseUrl } from '../utils/hosts.js';
 import { printOutcomeRows } from '../utils/outcome.js';
 import { printJson } from '../utils/output.js';
 import type { ProjectConfig } from '../utils/project-config.js';
-import { locateProjectConfig } from '../utils/project-config.js';
+import {
+  locateProjectConfig,
+  resolveProjectChannel,
+} from '../utils/project-config.js';
 import { resolveResourceFilePath } from '../utils/resource-file.js';
+import {
+  fetchChannels,
+  fetchResourceId,
+} from '../utils/resource-resolution.js';
 import { readToken } from '../utils/token-store.js';
 import type { Platform } from '../utils/upload.js';
 import { readApiUrl } from '../utils/user-config.js';
@@ -49,6 +59,8 @@ interface Project {
   packageJson: PackageJson | undefined;
   projectConfig: ProjectConfig | undefined;
 }
+
+const CHANNEL_NAME_SCHEMA = ProjectConfigurationSchema.shape.channel;
 
 const ID_SCHEMA = z.guid();
 
@@ -124,30 +136,42 @@ function checkConfiguration({
       status: 'failed',
     };
   }
-  const missingFields = (['appId', 'channelId', 'dir'] as const).filter(
-    field => projectConfig[field] === undefined,
-  );
-  const invalidIds = (['appId', 'channelId'] as const).filter(
-    field =>
-      projectConfig[field] !== undefined &&
-      !ID_SCHEMA.safeParse(projectConfig[field]).success,
-  );
-  if (missingFields.length > 0 || invalidIds.length > 0) {
+  const problems = resolveConfigurationProblems(projectConfig);
+  if (problems.length > 0) {
     return {
       check: 'configuration',
       manualStep: INIT_STEP,
-      message: `${PROJECT_CONFIG_FILE_NAME} ${[
-        ...missingFields.map(field => `lacks ${field}`),
-        ...invalidIds.map(field => `has a ${field} that is no id`),
-      ].join(', ')}`,
+      message: `${PROJECT_CONFIG_FILE_NAME} ${problems.join(', ')}`,
       status: 'failed',
     };
   }
   return {
     check: 'configuration',
-    message: `${PROJECT_CONFIG_FILE_NAME} names app ${projectConfig.appId} and channel ${projectConfig.channelId}, web build at ${projectConfig.dir}`,
+    message: `${PROJECT_CONFIG_FILE_NAME} names app ${projectConfig.appId} and channel ${resolveProjectChannel(projectConfig)}, web build at ${projectConfig.dir}`,
     status: 'ok',
   };
+}
+
+/**
+ * What keeps the file from naming a valid app, channel and web build; a file without `channel` follows the schema's default.
+ */
+function resolveConfigurationProblems(projectConfig: ProjectConfig): string[] {
+  const problems = (['appId', 'dir'] as const)
+    .filter(field => projectConfig[field] === undefined)
+    .map(field => `lacks ${field}`);
+  if (
+    projectConfig.appId !== undefined &&
+    !ID_SCHEMA.safeParse(projectConfig.appId).success
+  ) {
+    problems.push('has an appId that is no id');
+  }
+  if (
+    projectConfig.channel !== undefined &&
+    !CHANNEL_NAME_SCHEMA.safeParse(projectConfig.channel).success
+  ) {
+    problems.push('has a channel that is no channel name');
+  }
+  return problems;
 }
 
 /**
@@ -195,9 +219,7 @@ async function checkApp(
 ): Promise<DoctorCheck> {
   if (
     projectConfig?.appId === undefined ||
-    projectConfig.channelId === undefined ||
-    !ID_SCHEMA.safeParse(projectConfig.appId).success ||
-    !ID_SCHEMA.safeParse(projectConfig.channelId).success
+    !ID_SCHEMA.safeParse(projectConfig.appId).success
   ) {
     return {
       check: 'app',
@@ -205,14 +227,17 @@ async function checkApp(
       status: 'skipped',
     };
   }
+  const { appId } = projectConfig;
   const hotCodePush = createApiClient();
   try {
     const [app, channel] = await Promise.all([
-      hotCodePush.apps.get({ appId: projectConfig.appId }),
-      hotCodePush.apps.channels.get({
-        appId: projectConfig.appId,
-        channelId: projectConfig.channelId,
-      }),
+      hotCodePush.apps.get({ appId }),
+      fetchResourceId(
+        'channel',
+        resolveProjectChannel(projectConfig),
+        () => fetchChannels(hotCodePush, appId),
+        PROJECT_CONFIG_FILE_NAME,
+      ).then(channelId => hotCodePush.apps.channels.get({ appId, channelId })),
     ]);
     return {
       check: 'app',

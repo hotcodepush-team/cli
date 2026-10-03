@@ -71,7 +71,7 @@ export default defineCommand({
       .array(z.string())
       .optional()
       .describe(
-        "The channel, by id or name, repeatable; hotcodepush.json's channelId by default.",
+        "The channel, by id or name, repeatable; hotcodepush.json's channel by default.",
       ),
     mandatory: booleanFlagSchema
       .optional()

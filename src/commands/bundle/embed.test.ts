@@ -15,7 +15,13 @@ import {
   respondWithApiError,
   useCommandHarness,
 } from '../../../test/command-harness.js';
-import { DEMO_APP, EMBEDDED_BUNDLE } from '../../../test/fixtures.js';
+import {
+  DEMO_APP,
+  EMBEDDED_BUNDLE,
+  PRODUCTION_CHANNEL,
+  STAGING_CHANNEL,
+} from '../../../test/fixtures.js';
+import { respondWithChannels } from '../../../test/release-routes.js';
 import bundleEmbedCommand from './embed.js';
 
 // the not-logged-in case must not find a token in the machine's keyring
@@ -28,7 +34,6 @@ vi.mock('@napi-rs/keyring', () => ({
 const EMBEDDED_BUNDLES_PATH = `/v1/apps/${DEMO_APP.id}/embedded-bundles`;
 const INDEX_HTML = '<h1>v1</h1>';
 const INDEX_SHA256 = createHash('sha256').update(INDEX_HTML).digest('hex');
-const CHANNEL_ID = '83ae07ef-2539-4c88-8380-17a56e24a82f';
 
 describe('bundle embed', () => {
   const harness = useCommandHarness();
@@ -49,7 +54,7 @@ describe('bundle embed', () => {
       join(projectDirectoryPath, 'hotcodepush.json'),
       JSON.stringify({
         appId: DEMO_APP.id,
-        channelId: CHANNEL_ID,
+        channel: PRODUCTION_CHANNEL.name,
         dir: 'dist',
       }),
     );
@@ -82,6 +87,7 @@ describe('bundle embed', () => {
     stderrWrite = vi
       .spyOn(process.stderr, 'write')
       .mockImplementation(() => true);
+    respondWithChannels(harness);
   });
 
   afterEach(() => {
@@ -161,7 +167,7 @@ describe('bundle embed', () => {
     const resourceFile = readResourceFile('ios/App/App/hotcodepush.json');
     expect(ConfigurationSchema.parse(resourceFile)).toMatchObject({
       appId: DEMO_APP.id,
-      channelId: CHANNEL_ID,
+      channelId: PRODUCTION_CHANNEL.id,
       embeddedBundleId: EMBEDDED_BUNDLE.bundleId,
       embeddedBundleManifest: {
         bundleId: EMBEDDED_BUNDLE.bundleId,
@@ -193,11 +199,11 @@ describe('bundle embed', () => {
     ).toBe(false);
   });
 
-  it('should refuse a hotcodepush.json channelId that is no id before writing or registering anything', async () => {
+  it('should fail the build naming hotcodepush.json when the app has no channel of its name, before writing or registering anything', async () => {
     const configPath = join(projectDirectoryPath, 'hotcodepush.json');
     writeFileSync(
       configPath,
-      JSON.stringify({ appId: DEMO_APP.id, channelId: 'staging', dir: 'dist' }),
+      JSON.stringify({ appId: DEMO_APP.id, channel: 'beta', dir: 'dist' }),
     );
 
     await expect(
@@ -207,14 +213,34 @@ describe('bundle embed', () => {
       ),
     ).rejects.toMatchObject({
       code: 'E_INVALID_PARAMETER',
-      message: 'hotcodepush.json: channelId is no id',
+      message: 'hotcodepush.json: no channel is named "beta"',
     });
-    expect(harness.requests).toEqual([]);
+    expect(harness.requests.filter(({ method }) => method === 'POST')).toEqual(
+      [],
+    );
     expect(
       existsSync(
         join(projectDirectoryPath, 'ios', 'App', 'App', 'hotcodepush.json'),
       ),
     ).toBe(false);
+  });
+
+  it('should follow the channel HOTCODEPUSH_CHANNEL names over the configured one, a build flavour', async () => {
+    vi.stubEnv('HOTCODEPUSH_CHANNEL', STAGING_CHANNEL.name);
+    harness.routes[`POST ${EMBEDDED_BUNDLES_PATH}`] = () =>
+      Response.json(EMBEDDED_BUNDLE, { status: 201 });
+
+    await bundleEmbedCommand.action(
+      {
+        config: join(projectDirectoryPath, 'hotcodepush.json'),
+        platform: 'ios',
+      },
+      undefined,
+    );
+
+    expect(readResourceFile('ios/App/App/hotcodepush.json')).toMatchObject({
+      channelId: STAGING_CHANNEL.id,
+    });
   });
 
   it('should take the platform from CAPACITOR_PLATFORM_NAME and the identity from the Gradle file, printing JSON', async () => {
@@ -277,29 +303,59 @@ describe('bundle embed', () => {
     rmSync(outDirectoryPath, { force: true, recursive: true });
   });
 
-  it('should still write the resource file and warn when not logged in', async () => {
+  it('should still write the resource file and warn when not logged in and hotcodepush.json still names the channel by id', async () => {
     vi.stubEnv('HOTCODEPUSH_TOKEN', undefined);
     vi.stubEnv(
       'XDG_CONFIG_HOME',
       mkdtempSync(join(tmpdir(), 'hotcodepush-nohome-')),
     );
+    const configPath = join(projectDirectoryPath, 'hotcodepush.json');
+    writeFileSync(
+      configPath,
+      JSON.stringify({
+        appId: DEMO_APP.id,
+        channelId: PRODUCTION_CHANNEL.id,
+        dir: 'dist',
+      }),
+    );
 
     await bundleEmbedCommand.action(
-      {
-        config: join(projectDirectoryPath, 'hotcodepush.json'),
-        platform: 'ios',
-      },
+      { config: configPath, platform: 'ios' },
       undefined,
     );
 
     expect(harness.requests).toEqual([]);
     expect(readResourceFile('ios/App/App/hotcodepush.json')).toMatchObject({
+      channelId: PRODUCTION_CHANNEL.id,
       embeddedBundleId: null,
       embeddedBundleManifest: { bundleId: 'embedded' },
     });
     expect(stderrWrite).toHaveBeenCalledWith(
       expect.stringContaining('Warning: not logged in'),
     );
+  });
+
+  it('should fail with E_NOT_LOGGED_IN when not logged in and the channel is a name only the API resolves', async () => {
+    vi.stubEnv('HOTCODEPUSH_TOKEN', undefined);
+    vi.stubEnv(
+      'XDG_CONFIG_HOME',
+      mkdtempSync(join(tmpdir(), 'hotcodepush-nohome-')),
+    );
+
+    await expect(
+      bundleEmbedCommand.action(
+        {
+          config: join(projectDirectoryPath, 'hotcodepush.json'),
+          platform: 'ios',
+        },
+        undefined,
+      ),
+    ).rejects.toMatchObject({ code: 'E_NOT_LOGGED_IN' });
+    expect(
+      existsSync(
+        join(projectDirectoryPath, 'ios', 'App', 'App', 'hotcodepush.json'),
+      ),
+    ).toBe(false);
   });
 
   it('should still write the resource file and warn when the API is unreachable, and fail only in CI', async () => {

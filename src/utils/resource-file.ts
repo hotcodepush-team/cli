@@ -9,6 +9,7 @@ import type { Platform } from './upload.js';
 
 interface ResourceFileInput {
   builtAt: string;
+  channelId: string;
   embeddedBundleId: string | null;
   files: BundleFile[];
   hosts: DeviceHosts;
@@ -22,11 +23,12 @@ interface ResourceFileInput {
 export const UNREGISTERED_BUNDLE_ID = 'embedded';
 
 /**
- * The resource file: the project's configuration plus what only a build step can know — the floor, the fingerprint slot,
- * the embedded bundle's manifest and id, and the device hosts outside production.
+ * The resource file: the project's configuration with the channel as the id the embed step resolved, plus what only
+ * a build step can know — the floor, the fingerprint slot, the embedded bundle's manifest and id, and the device hosts outside production.
  */
 export function buildResourceFile({
   builtAt,
+  channelId,
   embeddedBundleId,
   files,
   hosts,
@@ -34,9 +36,9 @@ export function buildResourceFile({
   version,
 }: ResourceFileInput): Configuration {
   return ConfigurationSchema.parse({
-    ...projectConfig,
-    channelId: process.env.HOTCODEPUSH_CHANNEL_ID || projectConfig.channelId,
+    ...omitChannel(projectConfig),
     builtAt,
+    channelId,
     embeddedBundleId,
     embeddedBundleManifest: {
       appId: projectConfig.appId,
@@ -87,4 +89,14 @@ export function writeResourceFile(
 ): void {
   mkdirSync(dirname(filePath), { recursive: true });
   writeFileSync(filePath, `${JSON.stringify(configuration, null, 2)}\n`);
+}
+
+/**
+ * The project's configuration without its channel by name or by the deprecated id, which the resolved id replaces.
+ */
+function omitChannel(projectConfig: ProjectConfig): ProjectConfig {
+  const configuration = { ...projectConfig };
+  delete configuration.channel;
+  delete configuration.channelId;
+  return configuration;
 }

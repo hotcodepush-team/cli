@@ -6,6 +6,7 @@ import type {
   Organization,
 } from '@hotcodepush/node';
 import { z } from 'zod';
+import { PROJECT_CONFIG_FILE_NAME } from '../config/consts.js';
 import type { InteractivityOptions } from './environment.js';
 import { isInteractive } from './environment.js';
 import {
@@ -15,7 +16,11 @@ import {
 } from './errors.js';
 import { fetchAllPages } from './pagination.js';
 import type { ProjectConfig } from './project-config.js';
-import { assertProjectConfigId, readProjectConfig } from './project-config.js';
+import {
+  assertProjectConfigAppId,
+  readProjectConfig,
+  resolveProjectChannel,
+} from './project-config.js';
 import { promptSelect } from './prompts.js';
 
 interface AppOptions extends OrganizationOptions {
@@ -43,7 +48,7 @@ export const channelOptionShape = {
     .string()
     .optional()
     .describe(
-      "The channel, by id or name; hotcodepush.json's channelId by default.",
+      "The channel, by id or name; hotcodepush.json's channel by default.",
     ),
 };
 
@@ -62,7 +67,7 @@ export async function fetchAppId(
     );
   }
   if (projectConfig?.appId !== undefined) {
-    assertProjectConfigId('appId', projectConfig.appId);
+    assertProjectConfigAppId(projectConfig.appId);
     return projectConfig.appId;
   }
   if (!isInteractive(options)) {
@@ -139,17 +144,19 @@ export function fetchOrganizations(
 }
 
 /**
- * A resource named in its flag, told apart by shape: a UUID is its id, anything else a name looked up in the list.
+ * A resource named in its flag, or in the source given, told apart by shape: a UUID is its id, anything else a name looked up in the list.
  */
 export async function fetchResourceId(
   noun: string,
   reference: string,
   fetchResources: () => Promise<NamedResource[]>,
+  source = `--${noun}`,
 ): Promise<string> {
   if (ID_SCHEMA.safeParse(reference).success) {
     return reference;
   }
-  return resolveNamedResource(noun, reference, await fetchResources()).id;
+  return resolveNamedResource(noun, reference, await fetchResources(), source)
+    .id;
 }
 
 export function promptResourceId(
@@ -166,22 +173,24 @@ export function promptResourceId(
 }
 
 /**
- * The resource carrying the name, compared case-insensitively as the API keeps app and channel names unique.
+ * The resource carrying the name, compared case-insensitively as the API keeps app and channel names unique;
+ * an error names the source of the name, its flag by default.
  */
 export function resolveNamedResource<TResource extends NamedResource>(
   noun: string,
   name: string,
   resources: TResource[],
+  source = `--${noun}`,
 ): TResource {
   const namedResources = resources.filter(
     resource => resource.name.toLowerCase() === name.toLowerCase(),
   );
   const [namedResource] = namedResources;
   if (namedResource === undefined) {
-    throw new UnknownNameError(noun, name);
+    throw new UnknownNameError(noun, name, source);
   }
   if (namedResources.length > 1) {
-    throw new AmbiguousNameError(noun, name);
+    throw new AmbiguousNameError(noun, name, source);
   }
   return namedResource;
 }
@@ -220,9 +229,13 @@ async function fetchChannelId(
       fetchChannels(hotCodePush, appId),
     );
   }
-  if (projectConfig?.channelId !== undefined && projectConfig.appId === appId) {
-    assertProjectConfigId('channelId', projectConfig.channelId);
-    return projectConfig.channelId;
+  if (projectConfig !== undefined && projectConfig.appId === appId) {
+    return fetchResourceId(
+      'channel',
+      resolveProjectChannel(projectConfig),
+      () => fetchChannels(hotCodePush, appId),
+      PROJECT_CONFIG_FILE_NAME,
+    );
   }
   if (!isInteractive(options)) {
     throw new MissingParameterError('--channel');

@@ -22,14 +22,14 @@ describe('channel get', () => {
     ] = () => Response.json(STAGING_CHANNEL_WITH_DEVICE_COUNTS);
   }
 
-  it('should print the channel of hotcodepush.json with its device counts', async () => {
+  it('should print the channel hotcodepush.json names with its device counts', async () => {
     respondWithChannel();
 
     await channelGetCommand.action(
       {
         config: harness.writeProjectConfig({
           appId: DEMO_APP.id,
-          channelId: STAGING_CHANNEL.id,
+          channel: 'staging',
         }),
       },
       undefined,
@@ -63,24 +63,62 @@ describe('channel get', () => {
     expect(harness.readJson()).toEqual(STAGING_CHANNEL_WITH_DEVICE_COUNTS);
   });
 
-  it.each([
-    ['appId', { appId: 'x & calc', channelId: STAGING_CHANNEL.id }],
-    ['channelId', { appId: DEMO_APP.id, channelId: '../bundles' }],
-  ])(
-    'should refuse a hotcodepush.json %s that is no id before asking the API',
-    async (field, projectConfig) => {
-      await expect(
-        channelGetCommand.action(
-          { config: harness.writeProjectConfig(projectConfig) },
-          undefined,
-        ),
-      ).rejects.toMatchObject({
-        code: 'E_INVALID_PARAMETER',
-        message: `hotcodepush.json: ${field} is no id`,
-      });
-      expect(harness.requests).toEqual([]);
-    },
-  );
+  it('should read the channel by id when hotcodepush.json still carries the deprecated channelId', async () => {
+    respondWithChannel();
+
+    await channelGetCommand.action(
+      {
+        config: harness.writeProjectConfig({
+          appId: DEMO_APP.id,
+          channelId: STAGING_CHANNEL.id,
+        }),
+        json: true,
+      },
+      undefined,
+    );
+
+    expect(harness.readJson()).toEqual(STAGING_CHANNEL_WITH_DEVICE_COUNTS);
+    expect(harness.requests.map(({ url }) => url)).toEqual([
+      `https://api.example.com/v1/apps/${DEMO_APP.id}/channels/${STAGING_CHANNEL.id}`,
+    ]);
+  });
+
+  it('should refuse a hotcodepush.json appId that is no id before asking the API', async () => {
+    await expect(
+      channelGetCommand.action(
+        {
+          config: harness.writeProjectConfig({
+            appId: 'x & calc',
+            channel: 'staging',
+          }),
+        },
+        undefined,
+      ),
+    ).rejects.toMatchObject({
+      code: 'E_INVALID_PARAMETER',
+      message: 'hotcodepush.json: appId is no id',
+    });
+    expect(harness.requests).toEqual([]);
+  });
+
+  it('should throw E_INVALID_PARAMETER naming hotcodepush.json when the app has no channel of its name', async () => {
+    respondWithChannel();
+
+    await expect(
+      channelGetCommand.action(
+        {
+          config: harness.writeProjectConfig({
+            appId: DEMO_APP.id,
+            channel: 'beta',
+          }),
+        },
+        undefined,
+      ),
+    ).rejects.toMatchObject({
+      code: 'E_INVALID_PARAMETER',
+      message: 'hotcodepush.json: no channel is named "beta"',
+    });
+  });
 
   it("should not take hotcodepush.json's channel for another app", async () => {
     await expect(
@@ -89,7 +127,7 @@ describe('channel get', () => {
           app: OTHER_APP_ID,
           config: harness.writeProjectConfig({
             appId: DEMO_APP.id,
-            channelId: STAGING_CHANNEL.id,
+            channel: 'staging',
           }),
         },
         undefined,

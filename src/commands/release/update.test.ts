@@ -36,7 +36,7 @@ describe('release update', () => {
       {
         config: harness.writeProjectConfig({
           appId: DEMO_APP.id,
-          channelId: STAGING_CHANNEL.id,
+          channel: STAGING_CHANNEL.name,
         }),
         mandatory: true,
         notes: 'hotfix',

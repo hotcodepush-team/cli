@@ -9,6 +9,7 @@ import {
   STAGING_CHANNEL,
   STAGING_CHANNEL_WITH_DEVICE_COUNTS,
 } from '../../../test/fixtures.js';
+import { respondWithChannels } from '../../../test/release-routes.js';
 import { ConfirmationRequiredError } from '../../utils/errors.js';
 import channelPauseCommand from './pause.js';
 
@@ -29,6 +30,7 @@ describe('channel pause', () => {
   }
 
   function respondWithChannel(): void {
+    respondWithChannels(harness);
     harness.routes[`GET ${CHANNEL_PATH}`] = () =>
       Response.json(STAGING_CHANNEL_WITH_DEVICE_COUNTS);
     harness.routes[`POST ${CHANNEL_PATH}/pause`] = () =>
@@ -44,7 +46,7 @@ describe('channel pause', () => {
       {
         config: harness.writeProjectConfig({
           appId: DEMO_APP.id,
-          channelId: STAGING_CHANNEL.id,
+          channel: STAGING_CHANNEL.name,
         }),
       },
       undefined,
