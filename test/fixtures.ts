@@ -4,6 +4,7 @@ import type {
   Bundle,
   Channel,
   ChannelWithDeviceCounts,
+  Device,
   Organization,
   Release,
   SigningKey,
@@ -189,3 +190,24 @@ export const SIGNING_KEY: SigningKey = {
 
 export const SIGNING_PRIVATE_KEY =
   'ed25519:MC4CAQAwBQYDK2VwBCIEIAjN1Scub3Am52jlsFBD2tRBZIaFbv1sMbNJipZMjOL0';
+
+export const DEVICE: Device = {
+  appId: DEMO_APP.id,
+  attributes: { tier: 'beta' },
+  binaryBuild: '57',
+  binaryVersion: '2.4.1',
+  channelId: STAGING_CHANNEL.id,
+  channelSource: 'config',
+  country: 'DE',
+  createdAt: '2026-09-02T08:00:00.000Z',
+  currentReleaseId: null,
+  embeddedBundleId: null,
+  fingerprint: null,
+  id: '6b1e9d37-2f5c-4a80-9c46-d8e3a1f7b259',
+  lastSeenAt: '2026-09-08T08:00:00.000Z',
+  osVersion: '17.4',
+  platform: 'ios',
+  runtimeVersion: null,
+  sdkVersion: '0.1.0',
+  updatedAt: '2026-09-08T08:00:00.000Z',
+};

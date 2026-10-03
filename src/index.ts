@@ -25,6 +25,10 @@ const commandRegistry: CommandRegistry = {
   'channel pause': () => import('./commands/channel/pause.js'),
   'channel resume': () => import('./commands/channel/resume.js'),
   'channel update': () => import('./commands/channel/update.js'),
+  'device delete': () => import('./commands/device/delete.js'),
+  'device get': () => import('./commands/device/get.js'),
+  'device list': () => import('./commands/device/list.js'),
+  'device probe': () => import('./commands/device/probe.js'),
   'doctor': () => import('./commands/doctor.js'),
   'fingerprint': () => import('./commands/fingerprint.js'),
   'init': () => import('./commands/init.js'),
@@ -48,6 +52,7 @@ const commandRegistry: CommandRegistry = {
   'signing-key create': () => import('./commands/signing-key/create.js'),
   'signing-key delete': () => import('./commands/signing-key/delete.js'),
   'signing-key list': () => import('./commands/signing-key/list.js'),
+  'statistics get': () => import('./commands/statistics/get.js'),
   'whoami': () => import('./commands/whoami.js'),
 };
 

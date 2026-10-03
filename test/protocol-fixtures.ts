@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
+import type { ChannelIndex, DeviceInfo } from '@hotcodepush/protocol';
 import type { FingerprintContributors } from '@hotcodepush/protocol/fingerprint';
 
 /**
@@ -13,6 +14,22 @@ export interface FingerprintFixture {
   fingerprint: string;
   name: string;
   nativeSourcePaths: string[];
+}
+
+/**
+ * A case of the protocol's `evaluation/*.json`: an index, what the device knows, and the outcome the evaluator yields.
+ */
+export interface EvaluationFixture {
+  device: DeviceInfo;
+  expected: {
+    condition?: string;
+    isMandatory?: boolean;
+    reason?: string;
+    releaseId: string | null;
+    status: 'AVAILABLE' | 'SKIPPED' | 'UP_TO_DATE';
+  };
+  index: ChannelIndex;
+  name: string;
 }
 
 /**
@@ -42,4 +59,18 @@ export function readFingerprintFixtures(): FingerprintFixtures {
   return JSON.parse(
     readFileSync(join(PROTOCOL_FIXTURES_PATH, 'fingerprints.json'), 'utf8'),
   ) as FingerprintFixtures;
+}
+
+/**
+ * The cases of one rule's file under `evaluation/`, such as `conditions-binary`.
+ */
+export function readEvaluationFixtures(rule: string): EvaluationFixture[] {
+  return (
+    JSON.parse(
+      readFileSync(
+        join(PROTOCOL_FIXTURES_PATH, 'evaluation', `${rule}.json`),
+        'utf8',
+      ),
+    ) as { cases: EvaluationFixture[] }
+  ).cases;
 }

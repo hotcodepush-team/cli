@@ -123,7 +123,7 @@ export function buildReleaseConditions(
 /**
  * Every `--attribute` split at its first `=`, the key an identifier and the value printable, as the API checks them.
  */
-function resolveAttributePairs(
+export function resolveAttributePairs(
   attributes: string[] | undefined,
 ): { key: string; value: string }[] {
   return (attributes ?? []).map(pair => {

@@ -1,6 +1,7 @@
 import type { CreateChannelOptions } from '@hotcodepush/node';
 import { z } from 'zod';
 import { booleanFlagSchema } from './boolean-flag.js';
+import { DURATION_PATTERN, resolveDurationMilliseconds } from './duration.js';
 import { InvalidParameterError } from './errors.js';
 
 type ChannelFields = Omit<
@@ -25,13 +26,6 @@ export interface FailurePolicyOptions {
   failureMinSample?: number;
   failureThreshold?: number;
 }
-
-const DURATION_PATTERN = /^\d+[dh]$/;
-
-const MILLISECONDS_PER_DURATION_UNIT = {
-  d: 24 * 60 * 60 * 1000,
-  h: 60 * 60 * 1000,
-} as const;
 
 /**
  * The auto-pause policy's flags, set on a channel by `channel create` and `channel update` and overridden per release by `release create`.
@@ -127,14 +121,4 @@ function resolveExpiresAt({
   return new Date(
     Date.now() + resolveDurationMilliseconds(expiresIn),
   ).toISOString();
-}
-
-/**
- * A duration the schema checked, 14d or 12h, in milliseconds.
- */
-function resolveDurationMilliseconds(duration: string): number {
-  const unit = duration.slice(
-    -1,
-  ) as keyof typeof MILLISECONDS_PER_DURATION_UNIT;
-  return Number(duration.slice(0, -1)) * MILLISECONDS_PER_DURATION_UNIT[unit];
 }
