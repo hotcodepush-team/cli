@@ -11,6 +11,7 @@ import {
   detectFramework,
   resolveInputDirectoryPath,
 } from '../../utils/framework.js';
+import { resolveFrameworkModule } from '../../utils/frameworks/index.js';
 import type { GitProvenanceOptions } from '../../utils/git-provenance.js';
 import { resolveGitProvenance } from '../../utils/git-provenance.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
@@ -133,12 +134,13 @@ export async function resolveUploadBundleOptions(
   options: BundleUploadOptions,
 ): Promise<UploadBundleOptions> {
   const { directoryPath, projectConfig } = locateProjectConfig(options.config);
-  detectFramework(directoryPath);
+  const framework = resolveFrameworkModule(detectFramework(directoryPath));
   const appId = await fetchAppId(hotCodePush, options, projectConfig);
   const inputDirectoryPath = await resolveInputDirectoryPath(
     options,
     projectConfig,
     directoryPath,
+    framework,
   );
   return {
     appId,

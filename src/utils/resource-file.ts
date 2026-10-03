@@ -1,5 +1,5 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname } from 'node:path';
 import type { Configuration } from '@hotcodepush/protocol';
 import { ConfigurationSchema } from '@hotcodepush/protocol';
 import type { BundleFile } from './bundle-files.js';
@@ -60,25 +60,6 @@ export function buildResourceFile({
       ? {}
       : { updatesBaseUrl: hosts.updatesBaseUrl }),
   });
-}
-
-/**
- * Where each platform's native project reads the file: the app bundle's resources on iOS, the assets on Android.
- */
-export function resolveResourceFilePath(
-  platform: Platform,
-  nativeProjectPath: string,
-): string {
-  return platform === 'ios'
-    ? join(nativeProjectPath, 'App', 'App', 'hotcodepush.json')
-    : join(
-        nativeProjectPath,
-        'app',
-        'src',
-        'main',
-        'assets',
-        'hotcodepush.json',
-      );
 }
 
 export function writeResourceFile(

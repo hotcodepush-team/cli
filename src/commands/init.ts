@@ -1,15 +1,9 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { join, relative, resolve } from 'node:path';
+import { join } from 'node:path';
 import type { App, HotCodePush, Organization } from '@hotcodepush/node';
 import { z } from 'zod';
 import { defineCommand } from 'zodline';
-import {
-  CAPACITOR_PACKAGE_NAME,
-  CAPACITOR_PACKAGE_SPEC,
-  DOCS_URL,
-  EMBED_HOOK_NAME,
-  PROJECT_CONFIG_FILE_NAME,
-} from '../config/consts.js';
+import { DOCS_URL, PROJECT_CONFIG_FILE_NAME } from '../config/consts.js';
 import { createApiClient } from '../utils/api-client.js';
 import {
   fetchCurrentUser,
@@ -17,12 +11,7 @@ import {
   resolveCredentialText,
 } from '../utils/credential.js';
 import type { PackageJson } from '../utils/embed-hook.js';
-import {
-  readPackageJson,
-  resolveEmbedHookState,
-  stringifyLikeSource,
-  wireEmbedHook,
-} from '../utils/embed-hook.js';
+import { readPackageJson, stringifyLikeSource } from '../utils/embed-hook.js';
 import type { InteractivityOptions } from '../utils/environment.js';
 import { isInteractive } from '../utils/environment.js';
 import {
@@ -32,14 +21,14 @@ import {
   NotLoggedInError,
   ReportedFailureError,
   UnexpectedError,
-  UnsupportedFrameworkError,
 } from '../utils/errors.js';
 import type { Framework } from '../utils/framework.js';
-import {
-  detectFramework,
-  readCapacitorWebDir,
-  resolveNativeProjectPaths,
-} from '../utils/framework.js';
+import { detectFramework } from '../utils/framework.js';
+import type {
+  FrameworkModule,
+  FrameworkWiring,
+} from '../utils/frameworks/index.js';
+import { resolveFrameworkModule } from '../utils/frameworks/index.js';
 import { defineCommandOptions } from '../utils/global-options.js';
 import { resolveConsoleBaseUrl } from '../utils/hosts.js';
 import type { StepOutcome } from '../utils/init-steps.js';
@@ -49,7 +38,6 @@ import { printJson } from '../utils/output.js';
 import type { CommandLine } from '../utils/package-manager.js';
 import {
   resolveCommandLineText,
-  resolveInstallCommandLine,
   resolvePackageManager,
   resolveRunScriptCommandLine,
   runCommandLineVisibly,
@@ -68,11 +56,6 @@ import {
 import { fetchApps, fetchOrganizations } from '../utils/resource-resolution.js';
 import { readToken } from '../utils/token-store.js';
 import { readApiUrl } from '../utils/user-config.js';
-import {
-  addResourceReference,
-  hasResourceReference,
-  resolveXcodeProjectFilePath,
-} from '../utils/xcode-project.js';
 import { logIn } from './login.js';
 import releaseCreateCommand from './release/create.js';
 
@@ -87,23 +70,14 @@ interface InitOptions extends InteractivityOptions {
 }
 
 /**
- * The native projects the hook step wires and the reason it cannot when neither was found or named.
- */
-interface NativeProjects {
-  android: string;
-  ios: string;
-  missingError: MissingParameterError | undefined;
-}
-
-/**
- * What the run knows about the project once the app is settled: the files the remaining steps edit.
+ * What the run knows about the project once the app is settled: the files the remaining steps edit and what its framework wires.
  */
 interface ProjectFiles {
   directoryPath: string;
-  nativeProjects: NativeProjects;
+  framework: FrameworkModule;
   packageJson: PackageJson;
   projectConfig: ProjectConfig | undefined;
-  xcodeProjectFilePath: string | undefined;
+  wiring: FrameworkWiring;
 }
 
 /**
@@ -151,9 +125,7 @@ export default defineCommand({
       options.config,
     );
     const framework = options.framework ?? detectFramework(directoryPath);
-    if (framework !== 'capacitor') {
-      throw new UnsupportedFrameworkError(framework);
-    }
+    const frameworkModule = resolveFrameworkModule(framework);
     const run = new InitRun();
     const hotCodePush = await run.run('sign-in', () => signIn(options));
     const scope = await run.run(
@@ -176,6 +148,7 @@ export default defineCommand({
     const projectFiles = await resolveProjectFiles(
       directoryPath,
       projectConfig,
+      frameworkModule,
       options,
     );
     const editBlocker = await resolveEditBlocker(projectFiles, options);
@@ -191,7 +164,7 @@ export default defineCommand({
         ),
       { dependsOn: ['app'] },
     );
-    await run.run('hook', () => wireHook(projectFiles, editBlocker, options));
+    await run.run('hook', () => projectFiles.wiring.wireEmbedStep(editBlocker));
     await run.run('signing-key', () =>
       Promise.resolve({
         message:
@@ -367,58 +340,19 @@ async function resolveApp(
 async function resolveProjectFiles(
   directoryPath: string,
   projectConfig: ProjectConfig | undefined,
+  framework: FrameworkModule,
   options: InitOptions,
 ): Promise<ProjectFiles> {
-  const nativeProjects = await resolveNativeProjects(directoryPath, options);
+  const packageJson = readPackageJson(directoryPath);
   return {
     directoryPath,
-    nativeProjects,
-    packageJson: readPackageJson(directoryPath),
+    framework,
+    packageJson,
     projectConfig,
-    xcodeProjectFilePath: resolveXcodeProjectFilePath(nativeProjects.ios),
-  };
-}
-
-/**
- * `--ios-path` and `--android-path`, typed against the working directory, over `capacitor.config`'s paths and `ios/`, `android/`;
- * neither found is asked for, and non-interactively the hook step's stop.
- */
-async function resolveNativeProjects(
-  directoryPath: string,
-  options: InitOptions,
-): Promise<NativeProjects> {
-  const defaultPaths = resolveNativeProjectPaths(directoryPath);
-  const android =
-    options.androidPath === undefined
-      ? defaultPaths.android
-      : resolve(options.androidPath);
-  const ios =
-    options.iosPath === undefined ? defaultPaths.ios : resolve(options.iosPath);
-  if (existsSync(android) || existsSync(ios)) {
-    return { android, ios, missingError: undefined };
-  }
-  if (!isInteractive(options)) {
-    return {
-      android,
-      ios,
-      missingError: new MissingParameterError(
-        '--ios-path',
-        `run "npx cap add ios" and "npx cap add android", or pass --ios-path and --android-path; neither ${relative(directoryPath, ios)} nor ${relative(directoryPath, android)} exists.`,
-      ),
-    };
-  }
-  return {
-    android: resolve(
-      await promptText(
-        '--android-path',
-        'Where is the Android project?',
-        options,
-      ),
+    wiring: await framework.resolveWiring(
+      { directoryPath, packageJson },
+      options,
     ),
-    ios: resolve(
-      await promptText('--ios-path', 'Where is the iOS project?', options),
-    ),
-    missingError: undefined,
   };
 }
 
@@ -449,48 +383,25 @@ async function resolveEditBlocker(
 }
 
 function resolveFilesToChange({
-  directoryPath,
-  packageJson,
   projectConfig,
-  xcodeProjectFilePath,
+  wiring,
 }: ProjectFiles): string[] {
-  const filePaths: string[] = [];
-  if (
-    !isPackageInstalled(packageJson) ||
-    resolveEmbedHookState(packageJson) !== 'wired'
-  ) {
-    filePaths.push('package.json');
-  }
-  if (!isConfigurationComplete(projectConfig)) {
-    filePaths.push(PROJECT_CONFIG_FILE_NAME);
-  }
-  if (
-    xcodeProjectFilePath !== undefined &&
-    !hasReadableResourceReference(xcodeProjectFilePath)
-  ) {
-    filePaths.push(relative(directoryPath, xcodeProjectFilePath));
-  }
-  return filePaths;
-}
-
-/**
- * Whether the reference is there; a project the CLI cannot read counts as one to change, and the hook step says why.
- */
-function hasReadableResourceReference(xcodeProjectFilePath: string): boolean {
-  try {
-    return hasResourceReference(xcodeProjectFilePath);
-  } catch {
-    return false;
-  }
+  return [
+    ...wiring.packageFilePaths,
+    ...(isConfigurationComplete(projectConfig)
+      ? []
+      : [PROJECT_CONFIG_FILE_NAME]),
+    ...wiring.nativeFilePaths,
+  ];
 }
 
 function installPackage(
-  { directoryPath, packageJson }: ProjectFiles,
+  { framework, wiring }: ProjectFiles,
   editBlocker: ConfirmationRequiredError | undefined,
 ): Promise<StepOutcome<undefined>> {
-  if (isPackageInstalled(packageJson)) {
+  if (wiring.isPackageInstalled) {
     return Promise.resolve({
-      message: `${CAPACITOR_PACKAGE_NAME} already installed`,
+      message: `${framework.packageName} already installed`,
       status: 'skipped',
       value: undefined,
     });
@@ -498,24 +409,19 @@ function installPackage(
   if (editBlocker !== undefined) {
     throw editBlocker;
   }
-  const packageManager = resolvePackageManager(directoryPath);
-  runCommandLineVisibly(
-    resolveInstallCommandLine(packageManager, CAPACITOR_PACKAGE_SPEC),
-    directoryPath,
-  );
   return Promise.resolve({
-    message: `installed ${CAPACITOR_PACKAGE_NAME} from ${CAPACITOR_PACKAGE_SPEC}`,
+    message: wiring.installPackage(),
     status: 'done',
     value: undefined,
   });
 }
 
 /**
- * `hotcodepush.json` with the app, its default channel by name and the web build from `capacitor.config`; a file present keeps what it has.
+ * `hotcodepush.json` with the app, its default channel by name and the framework's build output; a file present keeps what it has.
  */
 async function writeConfiguration(
   hotCodePush: HotCodePush,
-  { directoryPath, projectConfig }: ProjectFiles,
+  { directoryPath, framework, projectConfig }: ProjectFiles,
   app: App,
   editBlocker: ConfirmationRequiredError | undefined,
 ): Promise<StepOutcome<undefined>> {
@@ -529,10 +435,10 @@ async function writeConfiguration(
   if (editBlocker !== undefined) {
     throw editBlocker;
   }
-  const dir = projectConfig?.dir ?? readCapacitorWebDir(directoryPath);
+  const dir = projectConfig?.dir ?? framework.readBuildDirectory(directoryPath);
   if (dir === undefined) {
     throw new InvalidParameterError(
-      'capacitor.config names no webDir',
+      'the project names no build directory',
       undefined,
       `set dir in ${PROJECT_CONFIG_FILE_NAME} to the web build directory.`,
     );
@@ -578,49 +484,6 @@ async function fetchDefaultChannelName(
 }
 
 /**
- * The embed command in the `capacitor:copy:after` script and the resource reference in the iOS project, each left alone when present.
- */
-async function wireHook(
-  { directoryPath, nativeProjects, xcodeProjectFilePath }: ProjectFiles,
-  editBlocker: ConfirmationRequiredError | undefined,
-  options: InitOptions,
-): Promise<StepOutcome<undefined>> {
-  if (nativeProjects.missingError !== undefined) {
-    throw nativeProjects.missingError;
-  }
-  const isHookWired =
-    resolveEmbedHookState(readPackageJson(directoryPath)) === 'wired';
-  const isReferencePresent =
-    xcodeProjectFilePath === undefined ||
-    hasReadableResourceReference(xcodeProjectFilePath);
-  if (isHookWired && isReferencePresent) {
-    return {
-      message: `${EMBED_HOOK_NAME} and the iOS resource reference already wired`,
-      status: 'skipped',
-      value: undefined,
-    };
-  }
-  if (editBlocker !== undefined) {
-    throw editBlocker;
-  }
-  const wired: string[] = [];
-  if (wireEmbedHook(directoryPath) === 'wired') {
-    wired.push(EMBED_HOOK_NAME);
-  }
-  if (
-    xcodeProjectFilePath !== undefined &&
-    (await addResourceReference(xcodeProjectFilePath, options)) === 'added'
-  ) {
-    wired.push('the iOS resource reference');
-  }
-  return {
-    message: `wired ${wired.join(' and ')}`,
-    status: 'done',
-    value: undefined,
-  };
-}
-
-/**
  * The project's `build` script, run visibly when a release follows; skipped with the reason otherwise.
  */
 function buildProject(
@@ -655,7 +518,7 @@ function buildProject(
  * The first release through `release create`, interactively only; the web build must exist by then.
  */
 async function releaseFirst(
-  { directoryPath, packageJson, projectConfig }: ProjectFiles,
+  { directoryPath, framework, packageJson, projectConfig }: ProjectFiles,
   isReleaseWanted: boolean,
   isBuilt: boolean,
   options: InitOptions,
@@ -667,7 +530,8 @@ async function releaseFirst(
       value: undefined,
     };
   }
-  const dir = projectConfig?.dir ?? readCapacitorWebDir(directoryPath) ?? '';
+  const dir =
+    projectConfig?.dir ?? framework.readBuildDirectory(directoryPath) ?? '';
   if (!isBuilt && !existsSync(join(directoryPath, dir))) {
     const buildCommandLine = resolveBuildCommandLine(
       directoryPath,
@@ -754,13 +618,6 @@ function isConfigurationComplete(
     projectConfig?.appId !== undefined &&
     hasChannel(projectConfig) &&
     projectConfig.dir !== undefined
-  );
-}
-
-function isPackageInstalled(packageJson: PackageJson): boolean {
-  return (
-    packageJson.dependencies?.[CAPACITOR_PACKAGE_NAME] !== undefined ||
-    packageJson.devDependencies?.[CAPACITOR_PACKAGE_NAME] !== undefined
   );
 }
 

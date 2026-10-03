@@ -2,8 +2,11 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MissingParameterError, UnsupportedFrameworkError } from './errors.js';
+import { MissingParameterError } from './errors.js';
 import { detectFramework, resolveInputDirectoryPath } from './framework.js';
+import { resolveFrameworkModule } from './frameworks/index.js';
+
+const CAPACITOR = resolveFrameworkModule('capacitor');
 
 describe('framework', () => {
   let projectDirectoryPath = '';
@@ -28,9 +31,7 @@ describe('framework', () => {
     writePackageJson({ '@capacitor/core': '8.0.0', 'cordova': '12.0.0' });
     writeFileSync(join(projectDirectoryPath, 'config.xml'), '<widget />');
 
-    expect(() => detectFramework(projectDirectoryPath)).toThrow(
-      new UnsupportedFrameworkError('cordova'),
-    );
+    expect(detectFramework(projectDirectoryPath)).toBe('cordova');
   });
 
   it('should take an app.json carrying the expo key as the config file that breaks the tie', () => {
@@ -40,9 +41,7 @@ describe('framework', () => {
       JSON.stringify({ expo: { name: 'Demo' } }),
     );
 
-    expect(() => detectFramework(projectDirectoryPath)).toThrow(
-      new UnsupportedFrameworkError('expo'),
-    );
+    expect(detectFramework(projectDirectoryPath)).toBe('expo');
   });
 
   it('should keep the first framework named when no config file breaks the tie', () => {
@@ -57,6 +56,7 @@ describe('framework', () => {
         { path: '/abs/dist' },
         { dir: 'www' },
         projectDirectoryPath,
+        CAPACITOR,
       ),
     ).toBe(resolve('/abs/dist'));
     expect(
@@ -64,20 +64,31 @@ describe('framework', () => {
         { path: '../dist' },
         { dir: 'www' },
         projectDirectoryPath,
+        CAPACITOR,
       ),
     ).toBe(join(projectDirectoryPath, 'dist'));
   });
 
   it("should resolve hotcodepush.json's dir and Capacitor's webDir against the project root", async () => {
     expect(
-      await resolveInputDirectoryPath({}, { dir: 'www' }, projectDirectoryPath),
+      await resolveInputDirectoryPath(
+        {},
+        { dir: 'www' },
+        projectDirectoryPath,
+        CAPACITOR,
+      ),
     ).toBe(join(projectDirectoryPath, 'www'));
     writeFileSync(
       join(projectDirectoryPath, 'capacitor.config.json'),
       JSON.stringify({ webDir: 'build' }),
     );
     expect(
-      await resolveInputDirectoryPath({}, undefined, projectDirectoryPath),
+      await resolveInputDirectoryPath(
+        {},
+        undefined,
+        projectDirectoryPath,
+        CAPACITOR,
+      ),
     ).toBe(join(projectDirectoryPath, 'build'));
   });
 
@@ -87,6 +98,7 @@ describe('framework', () => {
         { json: true },
         undefined,
         projectDirectoryPath,
+        CAPACITOR,
       ),
     ).rejects.toBeInstanceOf(MissingParameterError);
   });

@@ -6,7 +6,6 @@ import { defineCommand } from 'zodline';
 import { PROJECT_CONFIG_FILE_NAME } from '../../config/consts.js';
 import { createApiClient } from '../../utils/api-client.js';
 import type { BinaryIdentity } from '../../utils/binary-identity.js';
-import { readBinaryIdentity } from '../../utils/binary-identity.js';
 import type { BundleFile } from '../../utils/bundle-files.js';
 import { collectBundleFiles } from '../../utils/bundle-files.js';
 import {
@@ -16,9 +15,11 @@ import {
 import { InvalidParameterError } from '../../utils/errors.js';
 import { readFingerprint } from '../../utils/fingerprint.js';
 import {
+  detectFramework,
   resolveInputDirectoryPath,
-  resolveNativeProjectPaths,
 } from '../../utils/framework.js';
+import type { FrameworkModule } from '../../utils/frameworks/index.js';
+import { resolveFrameworkModule } from '../../utils/frameworks/index.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { resolveDeviceHosts } from '../../utils/hosts.js';
 import { printJson } from '../../utils/output.js';
@@ -32,7 +33,6 @@ import {
 import { promptSelect } from '../../utils/prompts.js';
 import {
   buildResourceFile,
-  resolveResourceFilePath,
   writeResourceFile,
 } from '../../utils/resource-file.js';
 import {
@@ -123,15 +123,20 @@ export default defineCommand({
     const channelId = await fetchBuildChannelId(completeProjectConfig);
     const platform =
       options.platform ?? (await resolvePlatformFromEnvironment(options));
-    const nativeProjectPath =
-      resolveNativeProjectPaths(directoryPath)[platform];
+    const framework = resolveFrameworkModule(detectFramework(directoryPath));
     const identity = resolveBinaryIdentity(
       options,
       platform,
-      nativeProjectPath,
+      directoryPath,
+      framework,
     );
     const files = await collectBundleFiles(
-      await resolveInputDirectoryPath(options, projectConfig, directoryPath),
+      await resolveInputDirectoryPath(
+        options,
+        projectConfig,
+        directoryPath,
+        framework,
+      ),
     );
     assertWithinBundleBytesLimit(files);
     const fingerprint = await readFingerprint(
@@ -153,7 +158,10 @@ export default defineCommand({
     const builtAt = new Date().toISOString();
     const resourceFilePath =
       options.out === undefined
-        ? resolveResourceFilePath(platform, nativeProjectPath)
+        ? framework.resolveResourceFilePath(
+            platform,
+            framework.resolveNativeProjectPaths(directoryPath)[platform],
+          )
         : resolve(options.out);
     writeResourceFile(
       resourceFilePath,
@@ -300,7 +308,8 @@ async function registerWithUploads(
 function resolveBinaryIdentity(
   options: { binaryBuild?: string; binaryVersion?: string },
   platform: Platform,
-  nativeProjectPath: string,
+  projectDirectoryPath: string,
+  framework: FrameworkModule,
 ): BinaryIdentity {
   if (
     options.binaryBuild !== undefined &&
@@ -311,7 +320,10 @@ function resolveBinaryIdentity(
       binaryVersion: options.binaryVersion,
     };
   }
-  const readIdentity = readBinaryIdentity(platform, nativeProjectPath);
+  const readIdentity = framework.readBinaryIdentity(
+    platform,
+    projectDirectoryPath,
+  );
   return {
     binaryBuild: options.binaryBuild ?? readIdentity.binaryBuild,
     binaryVersion: options.binaryVersion ?? readIdentity.binaryVersion,

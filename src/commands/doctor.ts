@@ -6,12 +6,7 @@ import {
 } from '@hotcodepush/protocol';
 import { z } from 'zod';
 import { defineCommand } from 'zodline';
-import {
-  CAPACITOR_PACKAGE_NAME,
-  EMBED_HOOK_NAME,
-  PACKAGE_JSON,
-  PROJECT_CONFIG_FILE_NAME,
-} from '../config/consts.js';
+import { PACKAGE_JSON, PROJECT_CONFIG_FILE_NAME } from '../config/consts.js';
 import { createApiClient } from '../utils/api-client.js';
 import {
   fetchCurrentUser,
@@ -19,9 +14,21 @@ import {
   resolveCredentialText,
 } from '../utils/credential.js';
 import type { PackageJson } from '../utils/embed-hook.js';
-import { readPackageJson, resolveEmbedHookState } from '../utils/embed-hook.js';
-import { NotLoggedInError, ReportedFailureError } from '../utils/errors.js';
-import { resolveNativeProjectPaths } from '../utils/framework.js';
+import { readPackageJson } from '../utils/embed-hook.js';
+import {
+  CliError,
+  NotLoggedInError,
+  ReportedFailureError,
+  UnknownFrameworkError,
+  UnsupportedFrameworkError,
+} from '../utils/errors.js';
+import { detectFramework } from '../utils/framework.js';
+import type {
+  FrameworkCheck,
+  FrameworkModule,
+} from '../utils/frameworks/index.js';
+import { resolveFrameworkModule } from '../utils/frameworks/index.js';
+import { readInstalledPackageVersion } from '../utils/frameworks/sdk-package.js';
 import { defineCommandOptions } from '../utils/global-options.js';
 import { resolveFilesBaseUrl, resolveUpdatesBaseUrl } from '../utils/hosts.js';
 import { printOutcomeRows } from '../utils/outcome.js';
@@ -31,7 +38,6 @@ import {
   locateProjectConfig,
   resolveProjectChannel,
 } from '../utils/project-config.js';
-import { resolveResourceFilePath } from '../utils/resource-file.js';
 import {
   fetchChannels,
   fetchResourceId,
@@ -39,23 +45,16 @@ import {
 import { readToken } from '../utils/token-store.js';
 import type { Platform } from '../utils/upload.js';
 import { readApiUrl } from '../utils/user-config.js';
-import {
-  hasResourceReference,
-  resolveXcodeProjectFilePath,
-} from '../utils/xcode-project.js';
 
-interface DoctorCheck {
-  check: string;
-  manualStep?: string;
-  message: string;
-  status: 'failed' | 'ok' | 'skipped';
-}
+type DoctorCheck = FrameworkCheck;
 
 /**
- * What every check reads: the project, its configuration and its `package.json`, located once.
+ * What every check reads: the project, its configuration, its `package.json` and its framework, located once;
+ * a project whose framework the CLI cannot name or does not package carries the error that says so.
  */
 interface Project {
   directoryPath: string;
+  framework: CliError | FrameworkModule;
   packageJson: PackageJson | undefined;
   projectConfig: ProjectConfig | undefined;
 }
@@ -70,8 +69,6 @@ const PLATFORMS: Platform[] = ['android', 'ios'];
 
 const PROBE_TIMEOUT_MS = 5000;
 
-const SYNC_STEP = 'run npx cap sync, which runs the embed hook';
-
 export default defineCommand({
   description:
     'Check the project: its configuration, the hook wiring, the resource files, the hosts and the versions a bug report needs.',
@@ -83,6 +80,7 @@ export default defineCommand({
     );
     const project: Project = {
       directoryPath,
+      framework: resolveProjectFramework(directoryPath),
       packageJson: existsSync(join(directoryPath, 'package.json'))
         ? readPackageJson(directoryPath)
         : undefined,
@@ -91,10 +89,7 @@ export default defineCommand({
     const checks: DoctorCheck[] = [
       checkConfiguration(project),
       ...(await checkSessionAndApp(project)),
-      checkPackage(project),
-      checkHook(project),
-      checkXcodeProject(project),
-      ...PLATFORMS.map(platform => checkResourceFile(project, platform)),
+      ...checkFramework(project),
       await checkHosts(),
       {
         check: 'signing-key',
@@ -254,96 +249,28 @@ async function checkApp(
   }
 }
 
-function checkPackage({ directoryPath, packageJson }: Project): DoctorCheck {
-  const declaredSpec =
-    packageJson?.dependencies?.[CAPACITOR_PACKAGE_NAME] ??
-    packageJson?.devDependencies?.[CAPACITOR_PACKAGE_NAME];
-  if (declaredSpec === undefined) {
-    return {
-      check: 'package',
-      manualStep: INIT_STEP,
-      message: `${CAPACITOR_PACKAGE_NAME} is not in package.json`,
-      status: 'failed',
-    };
-  }
-  const installedVersion = readInstalledVersion(
-    directoryPath,
-    CAPACITOR_PACKAGE_NAME,
-  );
-  if (installedVersion === undefined) {
-    return {
-      check: 'package',
-      manualStep: 'install the dependencies',
-      message: `${CAPACITOR_PACKAGE_NAME} is declared but not in node_modules`,
-      status: 'failed',
-    };
-  }
-  return {
-    check: 'package',
-    message: `${CAPACITOR_PACKAGE_NAME} ${installedVersion} installed`,
-    status: 'ok',
-  };
-}
-
-function checkHook({ packageJson }: Project): DoctorCheck {
-  const state =
-    packageJson === undefined ? 'absent' : resolveEmbedHookState(packageJson);
-  switch (state) {
-    case 'wired':
-      return {
-        check: 'hook',
-        message: `${EMBED_HOOK_NAME} runs the embed step`,
-        status: 'ok',
-      };
-    case 'unparseable':
-      return {
-        check: 'hook',
-        manualStep: `add "npx hotcodepush bundle embed" to the ${EMBED_HOOK_NAME} script by hand`,
-        message: `${EMBED_HOOK_NAME} runs a script without the embed step`,
+/**
+ * The framework's SDK package and embed step, then the resource file of each platform; a project without a framework
+ * the CLI packages gets the one row that says so.
+ */
+function checkFramework(project: Project): DoctorCheck[] {
+  const { framework } = project;
+  if (framework instanceof CliError) {
+    return [
+      {
+        check: 'framework',
+        manualStep: framework.fix ?? undefined,
+        message: framework.message,
         status: 'failed',
-      };
-    default:
-      return {
-        check: 'hook',
-        manualStep: INIT_STEP,
-        message: `${EMBED_HOOK_NAME} does not run the embed step`,
-        status: 'failed',
-      };
+      },
+    ];
   }
-}
-
-function checkXcodeProject({ directoryPath }: Project): DoctorCheck {
-  const iosProjectPath = resolveNativeProjectPaths(directoryPath).ios;
-  const projectFilePath = resolveXcodeProjectFilePath(iosProjectPath);
-  if (projectFilePath === undefined) {
-    return {
-      check: 'ios-project',
-      message: `no iOS project at ${relative(directoryPath, iosProjectPath)}`,
-      status: 'skipped',
-    };
-  }
-  try {
-    return hasResourceReference(projectFilePath)
-      ? {
-          check: 'ios-project',
-          message: 'the app target copies hotcodepush.json into the bundle',
-          status: 'ok',
-        }
-      : {
-          check: 'ios-project',
-          manualStep: INIT_STEP,
-          message: 'the app target does not copy hotcodepush.json',
-          status: 'failed',
-        };
-  } catch (error) {
-    return {
-      check: 'ios-project',
-      manualStep:
-        "add hotcodepush.json to the app target's Copy Bundle Resources in Xcode",
-      message: error instanceof Error ? error.message : String(error),
-      status: 'failed',
-    };
-  }
+  return [
+    ...framework.checkWiring(project),
+    ...PLATFORMS.map(platform =>
+      checkResourceFile(project, framework, platform),
+    ),
+  ];
 }
 
 /**
@@ -351,10 +278,12 @@ function checkXcodeProject({ directoryPath }: Project): DoctorCheck {
  */
 function checkResourceFile(
   { directoryPath, projectConfig }: Project,
+  framework: FrameworkModule,
   platform: Platform,
 ): DoctorCheck {
   const check = `${platform}-resource-file`;
-  const nativeProjectPath = resolveNativeProjectPaths(directoryPath)[platform];
+  const nativeProjectPath =
+    framework.resolveNativeProjectPaths(directoryPath)[platform];
   if (!existsSync(nativeProjectPath)) {
     return {
       check,
@@ -362,12 +291,15 @@ function checkResourceFile(
       status: 'skipped',
     };
   }
-  const filePath = resolveResourceFilePath(platform, nativeProjectPath);
+  const filePath = framework.resolveResourceFilePath(
+    platform,
+    nativeProjectPath,
+  );
   const relativeFilePath = relative(directoryPath, filePath);
   if (!existsSync(filePath)) {
     return {
       check,
-      manualStep: SYNC_STEP,
+      manualStep: framework.embedStep,
       message: `no resource file at ${relativeFilePath}`,
       status: 'failed',
     };
@@ -378,7 +310,7 @@ function checkResourceFile(
   if (!parsed.success) {
     return {
       check,
-      manualStep: SYNC_STEP,
+      manualStep: framework.embedStep,
       message: `${relativeFilePath} is not a configuration the SDK reads`,
       status: 'failed',
     };
@@ -389,7 +321,7 @@ function checkResourceFile(
   ) {
     return {
       check,
-      manualStep: SYNC_STEP,
+      manualStep: framework.embedStep,
       message: `${relativeFilePath} names another app`,
       status: 'failed',
     };
@@ -434,13 +366,19 @@ async function checkHosts(): Promise<DoctorCheck> {
   };
 }
 
-function checkVersions({ directoryPath, packageJson }: Project): DoctorCheck {
+function checkVersions({
+  directoryPath,
+  framework,
+  packageJson,
+}: Project): DoctorCheck {
+  const packageNames =
+    framework instanceof CliError ? [] : framework.versionedPackageNames;
   const versions = [
     `${PACKAGE_JSON.name} ${PACKAGE_JSON.version}`,
     `node ${process.version}`,
-    ...['@capacitor/core', CAPACITOR_PACKAGE_NAME].map(
+    ...packageNames.map(
       packageName =>
-        `${packageName} ${readInstalledVersion(directoryPath, packageName) ?? packageJson?.dependencies?.[packageName] ?? 'missing'}`,
+        `${packageName} ${readInstalledPackageVersion(directoryPath, packageName) ?? packageJson?.dependencies?.[packageName] ?? 'missing'}`,
     ),
   ];
   return { check: 'versions', message: versions.join(', '), status: 'ok' };
@@ -455,19 +393,21 @@ async function isReachable(url: string): Promise<boolean> {
   }
 }
 
-function readInstalledVersion(
+/**
+ * The module of the project's framework, or the error naming why the CLI has none for it.
+ */
+function resolveProjectFramework(
   directoryPath: string,
-  packageName: string,
-): string | undefined {
-  const packageJsonPath = join(
-    directoryPath,
-    'node_modules',
-    packageName,
-    'package.json',
-  );
-  if (!existsSync(packageJsonPath)) {
-    return undefined;
+): CliError | FrameworkModule {
+  try {
+    return resolveFrameworkModule(detectFramework(directoryPath));
+  } catch (error) {
+    if (
+      error instanceof UnknownFrameworkError ||
+      error instanceof UnsupportedFrameworkError
+    ) {
+      return error;
+    }
+    throw error;
   }
-  return (JSON.parse(readFileSync(packageJsonPath, 'utf8')) as PackageJson)
-    .version;
 }

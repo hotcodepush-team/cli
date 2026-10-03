@@ -20,7 +20,8 @@ src/
                the project's fingerprint through the protocol's recipe,
                a bundle by number or id, a release by number or id in its channel with the wait until it is live,
                the released line, the prompts and the confirmation, the pages of a list, the boolean flag, the channel fields,
-               the framework and the web build's directory, the files of a build hashed, their gzip copies,
+               the framework and the build's directory, `frameworks/` with one module per framework behind one interface
+               and the registry line that makes the CLI package it, the files of a build hashed, their gzip copies,
                the pack writer, the git provenance, the device hosts derived from the API URL,
                the upload flow, the store build's binary identity from the native projects, the resource file,
                the progress lines, the browser opener, the JSON, tables and details output,
@@ -58,6 +59,13 @@ No releases yet: the version stays `0.0.0`, and release-please and npm provenanc
 2. Its options are `defineCommandOptions({ … })`, so the global options come with every command.
 3. It has a `description` and exactly two `examples`, which end its `--help`.
 4. One line joins the registry in `src/index.ts`: `'channel create': () => import('./commands/channel/create.js')`.
+
+## Adding a framework
+
+1. `src/utils/frameworks/<framework>.ts` exports a `FrameworkModule`: the build output, the native projects, the resource file's place,
+   the store build's identity, what `init` installs and wires, what `doctor` checks.
+2. One line joins the registry in `src/utils/frameworks/index.ts`; a framework without a line is `E_UNSUPPORTED_FRAMEWORK`.
+3. Nothing outside the module names the framework: a command asks the module, never a config file or a path of its own.
 
 ## Rules the code does not show
 

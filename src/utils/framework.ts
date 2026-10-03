@@ -1,11 +1,9 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import type { InteractivityOptions } from './environment.js';
-import {
-  MissingParameterError,
-  UnknownFrameworkError,
-  UnsupportedFrameworkError,
-} from './errors.js';
+import { MissingParameterError, UnknownFrameworkError } from './errors.js';
+import { CAPACITOR_CONFIG_FILE_NAMES } from './frameworks/capacitor.js';
+import type { FrameworkModule } from './frameworks/index.js';
 import type { ProjectConfig } from './project-config.js';
 import { promptText } from './prompts.js';
 
@@ -20,11 +18,6 @@ interface PackageJson {
   devDependencies?: Record<string, string>;
 }
 
-const CAPACITOR_CONFIG_FILE_NAMES = [
-  'capacitor.config.json',
-  'capacitor.config.ts',
-];
-
 const FRAMEWORK_PACKAGES: [packageName: string, framework: Framework][] = [
   ['@capacitor/core', 'capacitor'],
   ['cordova', 'cordova'],
@@ -34,7 +27,7 @@ const FRAMEWORK_PACKAGES: [packageName: string, framework: Framework][] = [
 
 /**
  * The framework of the project, from `package.json`'s dependencies, the framework's config file breaking a tie
- * when several are named, an Expo app's `react-native` among them; Capacitor is the one the CLI packages today.
+ * when several are named, an Expo app's `react-native` among them.
  */
 export function detectFramework(projectDirectoryPath: string): Framework {
   const packageJsonPath = join(projectDirectoryPath, 'package.json');
@@ -58,58 +51,30 @@ export function detectFramework(projectDirectoryPath: string): Framework {
   if (framework === undefined) {
     throw new UnknownFrameworkError();
   }
-  if (framework !== 'capacitor') {
-    throw new UnsupportedFrameworkError(framework);
-  }
   return framework;
 }
 
 /**
- * The web build to package: `--path` as typed, against the working directory; otherwise `hotcodepush.json`'s `dir`
- * or Capacitor's `webDir`, both relative to the project root; otherwise asked for when interactive.
+ * The build to package: `--path` as typed, against the working directory; otherwise `hotcodepush.json`'s `dir`
+ * or the framework's own build output, both relative to the project root; otherwise asked for when interactive.
  */
 export async function resolveInputDirectoryPath(
   options: InputDirectoryOptions,
   projectConfig: ProjectConfig | undefined,
   projectDirectoryPath: string,
+  framework: Pick<FrameworkModule, 'readBuildDirectory'>,
 ): Promise<string> {
   if (options.path !== undefined) {
     return resolve(options.path);
   }
   const configuredPath =
-    projectConfig?.dir ?? readCapacitorWebDir(projectDirectoryPath);
+    projectConfig?.dir ?? framework.readBuildDirectory(projectDirectoryPath);
   if (configuredPath !== undefined) {
     return join(projectDirectoryPath, configuredPath);
   }
   return resolve(
     await promptText('--path', 'Where is the web build?', options),
   );
-}
-
-/**
- * `ios.path` and `android.path` of `capacitor.config`, or `ios/` and `android/` beside `package.json`.
- */
-export function resolveNativeProjectPaths(projectDirectoryPath: string): {
-  android: string;
-  ios: string;
-} {
-  const capacitorConfig = readCapacitorConfig(projectDirectoryPath);
-  return {
-    android: join(
-      projectDirectoryPath,
-      readConfigValue(
-        capacitorConfig,
-        /android:\s*\{[^}]*?path:\s*['"]([^'"]+)['"]/,
-      ) ?? 'android',
-    ),
-    ios: join(
-      projectDirectoryPath,
-      readConfigValue(
-        capacitorConfig,
-        /ios:\s*\{[^}]*?path:\s*['"]([^'"]+)['"]/,
-      ) ?? 'ios',
-    ),
-  };
 }
 
 export function assertMissingParameter(
@@ -155,36 +120,4 @@ function hasExpoAppJson(projectDirectoryPath: string): boolean {
   } catch {
     return false;
   }
-}
-
-/**
- * The text of `capacitor.config.json` or `.ts`, read as text since the TypeScript form is code: the values are matched, never evaluated.
- */
-function readCapacitorConfig(projectDirectoryPath: string): string | undefined {
-  for (const fileName of CAPACITOR_CONFIG_FILE_NAMES) {
-    const filePath = join(projectDirectoryPath, fileName);
-    if (existsSync(filePath)) {
-      return readFileSync(filePath, 'utf8');
-    }
-  }
-  return undefined;
-}
-
-/**
- * Capacitor's `webDir`, the web build the hook embeds.
- */
-export function readCapacitorWebDir(
-  projectDirectoryPath: string,
-): string | undefined {
-  return readConfigValue(
-    readCapacitorConfig(projectDirectoryPath),
-    /webDir['"]?\s*:\s*['"]([^'"]+)['"]/,
-  );
-}
-
-function readConfigValue(
-  configText: string | undefined,
-  pattern: RegExp,
-): string | undefined {
-  return configText === undefined ? undefined : pattern.exec(configText)?.[1];
 }
