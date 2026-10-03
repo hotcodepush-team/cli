@@ -35,9 +35,10 @@ describe('resource file', () => {
 
     expect(ConfigurationSchema.parse(resourceFile)).toEqual(resourceFile);
     expect(resourceFile).toMatchObject({
-      autoSync: true,
+      autoCheck: true,
       builtAt: '2026-09-29T12:00:00.000Z',
       channelId: '83ae07ef-2539-4c88-8380-17a56e24a82f',
+      checkInterval: 900,
       embeddedBundleId: null,
       embeddedBundleManifest: {
         bundleId: UNREGISTERED_BUNDLE_ID,
@@ -49,7 +50,6 @@ describe('resource file', () => {
       },
       filesBaseUrl: 'http://localhost:8787/files',
       fingerprint: null,
-      syncInterval: 900,
       updatesBaseUrl: 'http://localhost:8787/updates',
     });
   });
