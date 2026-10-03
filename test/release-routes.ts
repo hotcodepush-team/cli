@@ -1,4 +1,4 @@
-import type { Release } from '@hotcodepush/node';
+import type { Audience, Release } from '@hotcodepush/node';
 import type { CommandHarness } from './command-harness.js';
 import {
   DEMO_APP,
@@ -10,6 +10,24 @@ import {
   STAGING_CHANNEL,
   STAGING_CHANNEL_WITH_DEVICE_COUNTS,
 } from './fixtures.js';
+
+/**
+ * What the staging channel's audience preview answers: 100 of its 120 active devices reached.
+ */
+export const STAGING_AUDIENCE: Audience = {
+  byBinaryVersion: [
+    { count: 70, value: '2.4.1' },
+    { count: 30, value: '2.3.0' },
+  ],
+  byPlatform: [
+    { count: 60, value: 'ios' },
+    { count: 40, value: 'android' },
+  ],
+  estimatedAtRollout: 100,
+  reached: 100,
+  total: 120,
+  warnings: [],
+};
 
 export const CHANNEL_PATH = `/v1/apps/${DEMO_APP.id}/channels/${STAGING_CHANNEL.id}`;
 

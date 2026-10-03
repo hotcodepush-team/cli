@@ -1,6 +1,6 @@
 import { openAsBlob } from 'node:fs';
 import { join } from 'node:path';
-import type { Bundle, HotCodePush } from '@hotcodepush/node';
+import type { Bundle, BundleWithUploads, HotCodePush } from '@hotcodepush/node';
 import { HotCodePushError } from '@hotcodepush/node';
 import {
   BundleManifestSchema,
@@ -35,6 +35,8 @@ export interface UploadedBundle {
   deltaBaseBundleId: string | null;
   uploadedBytes: number;
   uploadedFileCount: number;
+  /** What the API answered beside the created bundle, the fingerprint no binary is registered with among them. */
+  warnings: BundleWithUploads['warnings'];
 }
 
 export interface UploadedFiles {
@@ -137,7 +139,12 @@ export async function uploadBundle(
       appId,
       bundleId: createdBundle.id,
     });
-    return { bundle: completedBundle, deltaBaseBundleId, ...uploadedFiles };
+    return {
+      bundle: completedBundle,
+      deltaBaseBundleId,
+      ...uploadedFiles,
+      warnings: createdBundle.warnings,
+    };
   });
 }
 

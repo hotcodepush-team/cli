@@ -15,7 +15,7 @@ import { resolveFrameworkModule } from '../../utils/frameworks/index.js';
 import type { GitProvenanceOptions } from '../../utils/git-provenance.js';
 import { resolveGitProvenance } from '../../utils/git-provenance.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson } from '../../utils/output.js';
+import { printJson, printWarnings } from '../../utils/output.js';
 import { createReporter, resolveByteText } from '../../utils/progress.js';
 import { locateProjectConfig } from '../../utils/project-config.js';
 import { promptText } from '../../utils/prompts.js';
@@ -106,9 +106,11 @@ export function printUploadedBundle(
     deltaBaseBundleId,
     uploadedBytes,
     uploadedFileCount,
+    warnings,
   }: UploadedBundle,
   isJson: boolean | undefined,
 ): void {
+  printWarnings(warnings);
   if (isJson) {
     printJson({
       ...bundle,

@@ -79,6 +79,7 @@ describe('bundle upload', () => {
 
   function respondWithUploadRoutes(
     previousBundles = [] as (typeof READY_BUNDLE)[],
+    warnings = [] as { code: string; details: unknown; message: string }[],
   ): void {
     harness.routes[`GET ${BUNDLES_PATH}?limit=1&state=ready`] = () =>
       Response.json(previousBundles);
@@ -97,6 +98,7 @@ describe('bundle upload', () => {
             ],
             pack: `${API_URL}${BUNDLES_PATH}/${READY_BUNDLE.id}/pack`,
           },
+          warnings,
         },
         { status: 201 },
       );
@@ -181,6 +183,34 @@ describe('bundle upload', () => {
     expect(harness.readLines()).toEqual([
       `Uploaded bundle #17 · 1.4.2 (${READY_BUNDLE.id}): 1 files moved, 34 B.`,
     ]);
+  });
+
+  it('should print the warnings the API answers beside the created bundle on stderr', async () => {
+    const message = `No binary of the app is registered with the fingerprint ${CAPACITOR_FINGERPRINT}; a release of this bundle reaches no device until a store build with it is registered.`;
+    respondWithUploadRoutes(
+      [],
+      [
+        {
+          code: 'FINGERPRINT_UNREGISTERED',
+          details: { fingerprint: CAPACITOR_FINGERPRINT },
+          message,
+        },
+      ],
+    );
+    const stderrWrite = vi
+      .spyOn(process.stderr, 'write')
+      .mockImplementation(() => true);
+
+    await bundleUploadCommand.action(
+      {
+        config: join(projectDirectoryPath, 'hotcodepush.json'),
+        json: true,
+        noGit: true,
+      },
+      undefined,
+    );
+
+    expect(stderrWrite).toHaveBeenCalledWith(`Warning: ${message}\n`);
   });
 
   it('should upload a delta pack of the changed files against the previous bundle when its manifest is reachable', async () => {

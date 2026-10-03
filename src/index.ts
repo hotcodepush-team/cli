@@ -10,6 +10,7 @@ const commandRegistry: CommandRegistry = {
   'app list': () => import('./commands/app/list.js'),
   'app transfer': () => import('./commands/app/transfer.js'),
   'app update': () => import('./commands/app/update.js'),
+  'audience get': () => import('./commands/audience/get.js'),
   'binary get': () => import('./commands/binary/get.js'),
   'binary list': () => import('./commands/binary/list.js'),
   'bundle delete': () => import('./commands/bundle/delete.js'),

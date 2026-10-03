@@ -1,9 +1,16 @@
+import type { Audience } from '@hotcodepush/node';
+
 interface Table {
   emptyText: string;
   headers: string[];
   nextOffset: number | null;
   rows: string[][];
 }
+
+/**
+ * A warning in the API's shape; every resource that answers one shares it.
+ */
+type Warning = Audience['warnings'][number];
 
 /**
  * One resource as label and value per line, the labels aligned.
@@ -20,6 +27,16 @@ export function printDetails(details: [label: string, value: string][]): void {
  */
 export function printJson(data: unknown): void {
   process.stdout.write(`${JSON.stringify(data, null, 2)}\n`);
+}
+
+/**
+ * What the API answered beside a row it created or a preview it computed, likely not what was meant: one line each on stderr,
+ * its message as received.
+ */
+export function printWarnings(warnings: Warning[]): void {
+  for (const { message } of warnings) {
+    process.stderr.write(`Warning: ${message}\n`);
+  }
 }
 
 /**
