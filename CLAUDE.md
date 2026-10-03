@@ -17,6 +17,7 @@ src/
   utils/       the runner, command resolution and did-you-mean, the E_ catalog and its one mapping,
                the global options, environment detection, config.json, the token store,
                the auth client, the API client, hotcodepush.json and its directory, a resource by id or name,
+               the project's fingerprint through the protocol's recipe,
                a bundle by number or id, a release by number or id in its channel with the wait until it is live,
                the released line, the prompts and the confirmation, the pages of a list, the boolean flag, the channel fields,
                the framework and the web build's directory, the files of a build hashed, their gzip copies,
@@ -28,7 +29,7 @@ src/
   config/      consts: the API URL, the client id and header, the config file, the docs and issues URLs,
                the keyring entry, package.json, the project file
 test/          the command tests' harness, the API faked behind fetch, their fixtures, the release routes
-               and the Capacitor project a test writes, with the pbxproj of `cap add ios`; never built
+               and the Capacitor project a test writes, with the pbxproj of `cap add ios`, the fingerprint inputs; never built
 dist/          the build output, never committed
 ```
 
@@ -87,8 +88,9 @@ No releases yet: the version stays `0.0.0`, and release-please and npm provenanc
 - **An upload never holds a file in memory**: every file is hashed and gzip-compressed through streams into a temporary directory,
   put as a `Blob` opened from disk so the client can retry it, and the Node client splits it into parts above its `SINGLE_UPLOAD_LIMIT_BYTES`; the packs go the same way.
   Only the hashes the API answers as missing move; the delta pack against the previous bundle needs that bundle's manifest from the files host and is skipped, never failed, when it is unreachable.
-- **`bundle embed` never breaks a build**: the resource file is always written; the registration is skipped with one warning
-  without a token or when the API refuses locally, and fails loud only in CI, where `E_EMBED_CONFLICT` under an unbumped build number is a pipeline mistake.
+- **`bundle embed` resolves the channel's name before it writes anything**: the resource file carries the channel's id, which only the API knows, so a build without a token fails with `E_NOT_LOGGED_IN` and a name the app lacks fails with `E_INVALID_PARAMETER`, locally and in CI alike.
+  The registration is the lenient half: skipped with one warning when the API refuses locally, loud only in CI, where `E_EMBED_CONFLICT` under an unbumped build number is a pipeline mistake.
+  The fingerprint is the strict half too: a project the recipe cannot read is `E_FINGERPRINT_UNAVAILABLE` on embed and upload alike, never `null`, since a release targets it.
   The device hosts it writes derive from the API URL: none for production, the staging hosts for staging, `<apiUrl>/files` and `/updates` for any other, `HOTCODEPUSH_FILES_BASE_URL` and `HOTCODEPUSH_UPDATES_BASE_URL` overriding.
 - **Every login** keeps its device code, expiry, user code and verification URL in `config.json` until approved; the next `login` redeems the code first and, while it is pending, shows the same code again, so an agent sees one output until the person approves.
 
