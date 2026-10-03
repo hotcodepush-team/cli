@@ -40,6 +40,7 @@
     "typecheck": "tsc --noEmit --project tsconfig.json"
   },
   "dependencies": {
+    "@bsdiff-rust/node": "0.0.7",
     "@clack/prompts": "1.8.1",
     "@hotcodepush/node": "https://pkg.pr.new/hotcodepush-team/hotcodepush-node/@hotcodepush/node@44c9ecc",
     "@hotcodepush/protocol": "https://pkg.pr.new/hotcodepush-team/protocol-js/@hotcodepush/protocol@5dce603acae4100b262890c7de22989061cee35d",

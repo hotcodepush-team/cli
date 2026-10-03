@@ -195,8 +195,14 @@ describe('upload', () => {
     },
   );
 
-  it('should build the manifest with the files by path and the platforms sorted by code units, as the API rebuilds it', () => {
+  it('should build the manifest with the files by path, the patches by path then base and the platforms sorted by code units, as the API rebuilds it', () => {
     const file = { filePath: '/dist/a', sha256: SHA256, sizeBytes: 1 };
+    const patch = {
+      format: 'bsdiff',
+      patchFilePath: '/tmp/patch',
+      sizeBytes: 9,
+      toSha256: SHA256,
+    };
 
     expect(
       buildManifestToSign({
@@ -208,6 +214,11 @@ describe('upload', () => {
           { ...file, path: 'Z.js' },
         ],
         fingerprint: 'fp1:abc',
+        patches: [
+          { ...patch, fromSha256: 'c'.repeat(64), path: 'b.js' },
+          { ...patch, fromSha256: 'b'.repeat(64), path: 'b.js' },
+          { ...patch, fromSha256: 'd'.repeat(64), path: 'Z.js' },
+        ],
         platforms: ['ios', 'android'],
       }),
     ).toEqual({
@@ -219,7 +230,26 @@ describe('upload', () => {
         { path: 'b.js', sha256: SHA256, sizeBytes: 1 },
       ],
       fingerprint: 'fp1:abc',
-      patches: [],
+      patches: [
+        {
+          format: 'bsdiff',
+          fromSha256: 'd'.repeat(64),
+          path: 'Z.js',
+          toSha256: SHA256,
+        },
+        {
+          format: 'bsdiff',
+          fromSha256: 'b'.repeat(64),
+          path: 'b.js',
+          toSha256: SHA256,
+        },
+        {
+          format: 'bsdiff',
+          fromSha256: 'c'.repeat(64),
+          path: 'b.js',
+          toSha256: SHA256,
+        },
+      ],
       platforms: ['android', 'ios'],
     });
   });

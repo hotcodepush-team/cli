@@ -103,6 +103,7 @@ describe('bundle upload', () => {
               },
             ],
             pack: `${API_URL}${BUNDLES_PATH}/${READY_BUNDLE.id}/pack`,
+            patches: [],
           },
           warnings,
         },
@@ -263,10 +264,119 @@ describe('bundle upload', () => {
       ...READY_BUNDLE,
       upload: {
         deltaBaseBundleId: PREVIOUS_BUNDLE.id,
+        patchCount: 0,
         uploadedBytes: 34,
         uploadedFileCount: 1,
       },
     });
+  });
+
+  it('should list a patch for a large file that changed against the previous bundle, upload the pair the app lacks and say so', async () => {
+    const baseScript = Array.from(
+      { length: 2000 },
+      (_, line) => `console.log(${line});\n`,
+    ).join('');
+    const nextScript = baseScript.replace(
+      'console.log(1000);',
+      'console.log("v2");',
+    );
+    const baseSha256 = createHash('sha256').update(baseScript).digest('hex');
+    const nextSha256 = createHash('sha256').update(nextScript).digest('hex');
+    writeFileSync(
+      join(projectDirectoryPath, 'dist', 'assets', 'app.js'),
+      nextScript,
+    );
+    respondWithUploadRoutes([PREVIOUS_BUNDLE]);
+    harness.routes[`POST ${BUNDLES_PATH}`] = () =>
+      Response.json(
+        {
+          ...READY_BUNDLE,
+          state: 'uploading',
+          uploads: {
+            files: [],
+            pack: `${API_URL}${BUNDLES_PATH}/${READY_BUNDLE.id}/pack`,
+            patches: [
+              {
+                fromSha256: baseSha256,
+                sizeBytes: 200,
+                toSha256: nextSha256,
+                url: `${API_URL}/v1/apps/${DEMO_APP.id}/patches/${baseSha256}/${nextSha256}`,
+              },
+            ],
+          },
+          warnings: [],
+        },
+        { status: 201 },
+      );
+    harness.routes[
+      `GET /files/apps/${DEMO_APP.id}/bundles/${PREVIOUS_BUNDLE.id}/manifest.json`
+    ] = () =>
+      Response.json({
+        bundleId: PREVIOUS_BUNDLE.id,
+        createdAt: PREVIOUS_BUNDLE.createdAt,
+        deltas: [],
+        encryption: null,
+        manifest: stringifyCanonicalJson({
+          appId: DEMO_APP.id,
+          bundleVersion: '1.4.1',
+          files: [
+            { path: 'assets/app.js', sha256: baseSha256, sizeBytes: 34890 },
+            { path: 'index.html', sha256: INDEX_SHA256, sizeBytes: 11 },
+          ],
+          fingerprint: CAPACITOR_FINGERPRINT,
+          keyId: null,
+          patches: [],
+          platforms: ['android', 'ios'],
+        }),
+        pack: { sizeBytes: 1024, url: `${API_URL}/files/pack` },
+        patches: [],
+        signature: null,
+      });
+    harness.routes[`GET /files/apps/${DEMO_APP.id}/files/${baseSha256}`] = () =>
+      new Response(baseScript);
+    let uploadedPatchBytes: Promise<ArrayBuffer> | undefined;
+    harness.routes[
+      `PUT /v1/apps/${DEMO_APP.id}/patches/${baseSha256}/${nextSha256}`
+    ] = request => {
+      // The patch comes from a temporary file the upload removes when it ends, so it is read as the request arrives
+      uploadedPatchBytes = request.arrayBuffer();
+      return Response.json(
+        {
+          appId: DEMO_APP.id,
+          createdAt: READY_BUNDLE.createdAt,
+          fromSha256: baseSha256,
+          sizeBytes: 200,
+          toSha256: nextSha256,
+        },
+        { status: 201 },
+      );
+    };
+
+    await bundleUploadCommand.action(
+      { config: join(projectDirectoryPath, 'hotcodepush.json'), noGit: true },
+      undefined,
+    );
+
+    const { patches } = (await readRequest('POST', '/bundles')?.json()) as {
+      patches: object[];
+    };
+    expect(patches).toEqual([
+      {
+        format: 'bsdiff',
+        fromSha256: baseSha256,
+        path: 'assets/app.js',
+        sizeBytes: expect.any(Number),
+        toSha256: nextSha256,
+      },
+    ]);
+    expect(
+      Buffer.from((await uploadedPatchBytes) ?? new ArrayBuffer(0))
+        .subarray(0, 8)
+        .toString(),
+    ).toBe('BSDIFF40');
+    expect(harness.readLines()).toEqual([
+      `Uploaded bundle #17 · 1.4.2 (${READY_BUNDLE.id}): 0 files moved, 0 B, with 1 patch and a delta pack against the previous bundle.`,
+    ]);
   });
 
   it('should skip the delta pack when the previous manifest is unreachable', async () => {

@@ -86,7 +86,7 @@ export const bundleUploadOptionShape = {
 
 export default defineCommand({
   description:
-    'Upload a web build as a bundle, signed where a key is configured: only the files the app lacks move, then the packs; nothing is released.',
+    'Upload a web build as a bundle, signed where a key is configured: only the files and patches the app lacks move, then the packs; nothing is released.',
   examples: [
     'hotcodepush bundle upload',
     'hotcodepush bundle upload --path dist --bundle-version 1.4.2 --platform ios --json',
@@ -106,6 +106,7 @@ export function printUploadedBundle(
   {
     bundle,
     deltaBaseBundleId,
+    patchCount,
     uploadedBytes,
     uploadedFileCount,
     warnings,
@@ -116,17 +117,26 @@ export function printUploadedBundle(
   if (isJson) {
     printJson({
       ...bundle,
-      upload: { deltaBaseBundleId, uploadedBytes, uploadedFileCount },
+      upload: {
+        deltaBaseBundleId,
+        patchCount,
+        uploadedBytes,
+        uploadedFileCount,
+      },
     });
     return;
   }
-  const deltaText =
-    deltaBaseBundleId === null
-      ? ''
-      : ', with a delta pack against the previous bundle';
+  const previousBundleText = [
+    ...(patchCount === 0 ? [] : [resolvePatchCountText(patchCount)]),
+    ...(deltaBaseBundleId === null ? [] : ['a delta pack']),
+  ].join(' and ');
   console.log(
-    `Uploaded bundle ${resolveBundleLabel(bundle)} (${bundle.id}): ${uploadedFileCount} files moved, ${resolveByteText(uploadedBytes)}${deltaText}.`,
+    `Uploaded bundle ${resolveBundleLabel(bundle)} (${bundle.id}): ${uploadedFileCount} files moved, ${resolveByteText(uploadedBytes)}${previousBundleText === '' ? '' : `, with ${previousBundleText} against the previous bundle`}.`,
   );
+}
+
+function resolvePatchCountText(patchCount: number): string {
+  return patchCount === 1 ? '1 patch' : `${patchCount} patches`;
 }
 
 /**

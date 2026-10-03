@@ -7,7 +7,7 @@ import {
   ManifestEnvelopeSchema,
   signManifest,
 } from '@hotcodepush/protocol';
-import type { ManifestToSign } from '@hotcodepush/protocol';
+import type { ManifestFile, ManifestToSign } from '@hotcodepush/protocol';
 import type { BundleFile } from './bundle-files.js';
 import { collectBundleFiles } from './bundle-files.js';
 import type { CompressedFile } from './compressed-files.js';
@@ -16,6 +16,8 @@ import { BundleTooLargeError } from './errors.js';
 import type { GitProvenance } from './git-provenance.js';
 import { resolveFilesBaseUrl } from './hosts.js';
 import { writePack } from './pack.js';
+import type { ComputedPatch } from './patches.js';
+import { computePatches } from './patches.js';
 import type { Reporter } from './progress.js';
 import { resolveByteText } from './progress.js';
 import { readApiUrl } from './user-config.js';
@@ -37,6 +39,8 @@ export interface UploadBundleOptions {
 export interface UploadedBundle {
   bundle: Bundle;
   deltaBaseBundleId: string | null;
+  /** The patches the bundle lists, each from a file of the previous bundle. */
+  patchCount: number;
   uploadedBytes: number;
   uploadedFileCount: number;
   /** What the API answered beside the created bundle, the fingerprint no binary is registered with among them. */
@@ -68,9 +72,10 @@ export function assertWithinBundleBytesLimit(files: BundleFile[]): void {
 }
 
 /**
- * The whole upload of a web build: hash every file, sign the manifest where a key is configured, post it, upload only
- * the hashes the app lacks, the full pack, the delta pack against the app's previous bundle where its manifest is
- * reachable, then complete.
+ * The whole upload of a web build: hash every file, patch the large ones that changed against the app's previous bundle,
+ * sign the manifest where a key is configured, post it, upload only the hashes and the patches the app lacks, the full
+ * pack, the delta pack against the previous bundle, then complete. The previous bundle's manifest is read from the
+ * files host; unreachable, the upload carries neither patches nor a delta pack and is none the worse.
  */
 export async function uploadBundle(
   hotCodePush: HotCodePush,
@@ -93,32 +98,56 @@ export async function uploadBundle(
     limit: 1,
     state: 'ready',
   });
-  const manifest = buildManifestToSign({
-    appId,
-    bundleVersion,
-    files,
-    fingerprint,
-    platforms,
-  });
-  const signature =
-    signingPrivateKey === null
-      ? null
-      : (await signManifest(manifest, signingPrivateKey)).signature;
-  if (signature !== null) {
-    reporter.report(`Signed the manifest with key ${signature.keyId}.`);
-  }
-  const createdBundle = await hotCodePush.apps.bundles.create({
-    appId,
-    bundleVersion,
-    files: manifest.files,
-    fingerprint,
-    patches: [],
-    platforms: manifest.platforms,
-    signature,
-    ...gitProvenance,
-  });
   return withTemporaryDirectory(async temporaryDirectoryPath => {
     const compressedFiles = await compressFiles(files, temporaryDirectoryPath);
+    const previousFiles =
+      previousBundle === undefined
+        ? null
+        : await fetchManifestFiles(appId, previousBundle, reporter);
+    const patches =
+      previousFiles === null
+        ? []
+        : await computePatches({
+            appId,
+            baseFiles: previousFiles,
+            compressedFiles,
+            files,
+            reporter,
+            temporaryDirectoryPath,
+          });
+    const manifest = buildManifestToSign({
+      appId,
+      bundleVersion,
+      files,
+      fingerprint,
+      patches,
+      platforms,
+    });
+    const signature =
+      signingPrivateKey === null
+        ? null
+        : (await signManifest(manifest, signingPrivateKey)).signature;
+    if (signature !== null) {
+      reporter.report(`Signed the manifest with key ${signature.keyId}.`);
+    }
+    const createdBundle = await hotCodePush.apps.bundles.create({
+      appId,
+      bundleVersion,
+      files: manifest.files,
+      fingerprint,
+      patches: patches.map(
+        ({ format, fromSha256, path, sizeBytes, toSha256 }) => ({
+          format,
+          fromSha256,
+          path,
+          sizeBytes,
+          toSha256,
+        }),
+      ),
+      platforms: manifest.platforms,
+      signature,
+      ...gitProvenance,
+    });
     const missingSha256s = createdBundle.uploads.files.map(
       ({ sha256 }) => sha256,
     );
@@ -132,6 +161,12 @@ export async function uploadBundle(
       compressedFiles,
       reporter,
     );
+    await uploadMissingPatches(
+      hotCodePush,
+      appId,
+      createdBundle.uploads.patches,
+      patches,
+    );
     const packFilePath = join(temporaryDirectoryPath, 'pack');
     await writePack(
       resolveCompressedFiles(files, compressedFiles),
@@ -143,16 +178,20 @@ export async function uploadBundle(
       { appId, bundleId: createdBundle.id },
       packFilePath,
     );
-    const deltaBaseBundleId = await uploadDeltaPackAgainstPreviousBundle(
-      hotCodePush,
-      appId,
-      createdBundle.id,
-      previousBundle,
-      files,
-      compressedFiles,
-      temporaryDirectoryPath,
-      reporter,
-    );
+    const deltaBaseBundleId =
+      previousBundle === undefined || previousFiles === null
+        ? null
+        : await uploadDeltaPackAgainstPreviousBundle(
+            hotCodePush,
+            appId,
+            createdBundle.id,
+            previousBundle,
+            previousFiles,
+            files,
+            compressedFiles,
+            temporaryDirectoryPath,
+            reporter,
+          );
     const completedBundle = await hotCodePush.apps.bundles.complete({
       appId,
       bundleId: createdBundle.id,
@@ -160,6 +199,7 @@ export async function uploadBundle(
     return {
       bundle: completedBundle,
       deltaBaseBundleId,
+      patchCount: patches.length,
       ...uploadedFiles,
       warnings: createdBundle.warnings,
     };
@@ -167,19 +207,23 @@ export async function uploadBundle(
 }
 
 /**
- * The manifest as the API rebuilds it from the bundle's rows before it checks the signature: the files by path and the
- * platforms sorted, each by UTF-16 code units, the order canonical JSON leaves to the writer.
+ * The manifest as the API rebuilds it from the bundle's rows before it checks the signature: the files by path, the
+ * patches by path then base and the platforms sorted, each by UTF-16 code units, the order canonical JSON leaves to the writer.
  */
 export function buildManifestToSign({
   appId,
   bundleVersion,
   files,
   fingerprint,
+  patches,
   platforms,
 }: Pick<
   UploadBundleOptions,
   'appId' | 'bundleVersion' | 'fingerprint' | 'platforms'
-> & { files: BundleFile[] }): ManifestToSign & { platforms: Platform[] } {
+> & {
+  files: BundleFile[];
+  patches: ComputedPatch[];
+}): ManifestToSign & { platforms: Platform[] } {
   return {
     appId,
     bundleVersion,
@@ -187,7 +231,18 @@ export function buildManifestToSign({
       .map(({ path, sha256, sizeBytes }) => ({ path, sha256, sizeBytes }))
       .sort((left, right) => compareCodeUnits(left.path, right.path)),
     fingerprint,
-    patches: [],
+    patches: patches
+      .map(({ format, fromSha256, path, toSha256 }) => ({
+        format,
+        fromSha256,
+        path,
+        toSha256,
+      }))
+      .sort(
+        (left, right) =>
+          compareCodeUnits(left.path, right.path) ||
+          compareCodeUnits(left.fromSha256, right.fromSha256),
+      ),
     platforms: [...platforms].sort(compareCodeUnits),
   };
 }
@@ -288,49 +343,44 @@ function resolveCompressedFiles(
 }
 
 /**
- * The hashes a bundle's manifest lists, read from the files host; unreachable is null, and the delta is then skipped —
- * a device on that base fetches the full pack, slower, never failed.
+ * The files a bundle's manifest lists, read from the files host; unreachable is null, said once, and neither a patch
+ * nor a delta pack is made against it — a device on that base fetches the full pack, slower, never failed.
  */
-async function fetchManifestSha256s(
+async function fetchManifestFiles(
   appId: string,
-  bundleId: string,
-): Promise<Set<string> | null> {
+  bundle: Bundle,
+  reporter: Reporter,
+): Promise<ManifestFile[] | null> {
   try {
     const response = await fetch(
-      `${resolveFilesBaseUrl(readApiUrl())}/apps/${appId}/bundles/${bundleId}/manifest.json`,
+      `${resolveFilesBaseUrl(readApiUrl())}/apps/${appId}/bundles/${bundle.id}/manifest.json`,
       { signal: AbortSignal.timeout(MANIFEST_FETCH_TIMEOUT_MS) },
     );
-    if (!response.ok) {
-      return null;
+    if (response.ok) {
+      const envelope = ManifestEnvelopeSchema.parse(await response.json());
+      return BundleManifestSchema.parse(JSON.parse(envelope.manifest)).files;
     }
-    const envelope = ManifestEnvelopeSchema.parse(await response.json());
-    const manifest = BundleManifestSchema.parse(JSON.parse(envelope.manifest));
-    return new Set(manifest.files.map(({ sha256 }) => sha256));
   } catch {
-    return null;
+    // an unreachable host and a manifest outside the wire shape are the same to the upload: no base
   }
+  reporter.report(
+    `The previous bundle's manifest is unreachable; no patches and no delta pack against #${bundle.number}.`,
+  );
+  return null;
 }
 
 async function uploadDeltaPackAgainstPreviousBundle(
   hotCodePush: HotCodePush,
   appId: string,
   bundleId: string,
-  previousBundle: Bundle | undefined,
+  previousBundle: Bundle,
+  previousFiles: ManifestFile[],
   files: BundleFile[],
   compressedFiles: Map<string, CompressedFile>,
   temporaryDirectoryPath: string,
   reporter: Reporter,
 ): Promise<string | null> {
-  if (previousBundle === undefined) {
-    return null;
-  }
-  const previousSha256s = await fetchManifestSha256s(appId, previousBundle.id);
-  if (previousSha256s === null) {
-    reporter.report(
-      `The previous bundle's manifest is unreachable; no delta pack against #${previousBundle.number}.`,
-    );
-    return null;
-  }
+  const previousSha256s = new Set(previousFiles.map(({ sha256 }) => sha256));
   const changedFiles = files.filter(
     ({ sha256 }) => !previousSha256s.has(sha256),
   );
@@ -363,4 +413,32 @@ async function uploadFile(
     body: await openAsBlob(compressedFilePath),
     sha256,
   });
+}
+
+/**
+ * The patches of the pairs the app lacks, from disk; a pair it holds already, from an earlier upload, moves nothing.
+ */
+async function uploadMissingPatches(
+  hotCodePush: HotCodePush,
+  appId: string,
+  missingPatches: { fromSha256: string; toSha256: string }[],
+  patches: ComputedPatch[],
+): Promise<void> {
+  for (const { fromSha256, toSha256 } of missingPatches) {
+    const patch = patches.find(
+      candidate =>
+        candidate.fromSha256 === fromSha256 && candidate.toSha256 === toSha256,
+    );
+    if (patch === undefined) {
+      throw new Error(
+        `The app lacks the patch ${fromSha256} to ${toSha256}, which the upload did not compute.`,
+      );
+    }
+    await hotCodePush.apps.patches.upload({
+      appId,
+      body: await openAsBlob(patch.patchFilePath),
+      fromSha256,
+      toSha256,
+    });
+  }
 }

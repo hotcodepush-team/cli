@@ -133,6 +133,7 @@ describe('release create', () => {
     vi.mocked(uploadBundle).mockResolvedValue({
       bundle: { ...READY_BUNDLE, fingerprint: CAPACITOR_FINGERPRINT },
       deltaBaseBundleId: null,
+      patchCount: 0,
       uploadedBytes: 0,
       uploadedFileCount: 0,
       warnings,
