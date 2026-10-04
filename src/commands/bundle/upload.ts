@@ -26,7 +26,7 @@ import type { ProjectConfig } from '../../utils/project-config.js';
 import { locateProjectConfig } from '../../utils/project-config.js';
 import { promptText } from '../../utils/prompts.js';
 import { fetchAppId } from '../../utils/resource-resolution.js';
-import { resolveSigningKeyPair } from '../../utils/signing-key-store.js';
+import { readSigningKeyPair } from '../../utils/signing-private-key.js';
 import type {
   Platform,
   UploadBundleOptions,
@@ -42,6 +42,7 @@ export interface BundleUploadOptions
   organization?: string;
   path?: string;
   platform?: Platform[];
+  privateKeyPath?: string;
 }
 
 const PLATFORMS: Platform[] = ['android', 'ios'];
@@ -87,6 +88,12 @@ export const bundleUploadOptionShape = {
   platform: platformListSchema
     .optional()
     .describe('The platforms the bundle serves, ios,android by default.'),
+  privateKeyPath: z
+    .string()
+    .optional()
+    .describe(
+      'The private key file to sign with, as signing-key create wrote it; HOTCODEPUSH_SIGNING_KEY holds its content in CI.',
+    ),
 };
 
 export default defineCommand({
@@ -202,7 +209,11 @@ export async function resolveUploadBundleOptions(
     gitProvenance: await resolveGitProvenance(directoryPath, options),
     reporter: createReporter(options),
     resolveMainBundlePath: framework.resolveMainBundlePath,
-    signingPrivateKey: await resolveSigningPrivateKey(appId, projectConfig),
+    signingPrivateKey: await readSigningPrivateKey(
+      appId,
+      projectConfig,
+      options.privateKeyPath,
+    ),
   };
   const packagedBundles =
     framework.packageBundles === undefined
@@ -233,16 +244,16 @@ export async function resolveUploadBundleOptions(
  * The private key the manifest is signed with, null where signing is off: `hotcodepush.json` lists no public key,
  * or it names another app than the one `--app` meant, whose keys it does not hold.
  */
-async function resolveSigningPrivateKey(
+async function readSigningPrivateKey(
   appId: string,
   projectConfig: ProjectConfig | undefined,
+  privateKeyPath: string | undefined,
 ): Promise<string | null> {
   const publicKeys =
     projectConfig?.appId === appId ? (projectConfig.publicKeys ?? []) : [];
-  if (publicKeys.length === 0) {
-    return null;
-  }
-  return (await resolveSigningKeyPair(appId, publicKeys)).privateKey;
+  return (
+    (await readSigningKeyPair(publicKeys, privateKeyPath))?.privateKey ?? null
+  );
 }
 
 /**

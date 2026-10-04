@@ -486,8 +486,8 @@ async function fetchDefaultChannelName(
 }
 
 /**
- * The signing key pair, for a person only: `signing-key create` in place, which prints the private key once.
- * Nobody to ask points at the command instead, since a private key in a CI log is a private key leaked.
+ * The signing key pair, for a person only: `signing-key create` in place, which writes the private key to a new file.
+ * Nobody to ask points at the command instead, since a key file written on a runner is lost with it.
  */
 async function createSigningKey(
   app: App | undefined,
@@ -521,7 +521,8 @@ async function createSigningKey(
     undefined,
   );
   return {
-    message: 'generated a signing key pair, its private key printed above',
+    message:
+      'generated a signing key pair, its private key in the file named above',
     status: 'done',
     value: undefined,
   };

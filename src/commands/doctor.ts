@@ -36,7 +36,7 @@ import { readInstalledPackageVersion } from '../utils/frameworks/sdk-package.js'
 import { defineCommandOptions } from '../utils/global-options.js';
 import { resolveFilesBaseUrl, resolveUpdatesBaseUrl } from '../utils/hosts.js';
 import { printOutcomeRows } from '../utils/outcome.js';
-import { printJson } from '../utils/output.js';
+import { printJson, resolveQuantityText } from '../utils/output.js';
 import type { ProjectConfig } from '../utils/project-config.js';
 import {
   locateProjectConfig,
@@ -45,8 +45,9 @@ import {
 import {
   fetchChannels,
   fetchResourceId,
+  fetchSigningKeys,
 } from '../utils/resource-resolution.js';
-import { resolveSigningKeyPair } from '../utils/signing-key-store.js';
+import { readSigningKeyPair } from '../utils/signing-private-key.js';
 import { readToken } from '../utils/token-store.js';
 import type { Platform } from '../utils/upload.js';
 import { readApiUrl } from '../utils/user-config.js';
@@ -293,44 +294,68 @@ async function checkApp(
 }
 
 /**
- * Whether the keys `hotcodepush.json` lists and the keys at hand let this machine upload: signing off is skipped, as is
- * signing on without a private key here, the developer whose CI holds it; a key the app has and the file does not list
- * fails, since a build from that file would verify nothing and an upload would go unsigned.
+ * Whether signing works for the project: the public keys `hotcodepush.json` lists are registered with the app, where a session
+ * lets the API be asked, and the private key `HOTCODEPUSH_SIGNING_KEY` holds, when set, belongs to one of them; no file is
+ * looked for, since an upload is told where its key is. A key the app has and the file does not list fails, since a build
+ * from that file would verify nothing and an upload would go unsigned.
  */
 async function checkSigningKey(
   { projectConfig }: Project,
   app: App | undefined,
 ): Promise<DoctorCheck> {
-  const appId = projectConfig?.appId;
-  const publicKeys = projectConfig?.publicKeys ?? [];
-  if (appId === undefined || publicKeys.length === 0) {
-    return app?.hasSigningKey
+  const publicKeys =
+    projectConfig?.appId === undefined ? [] : (projectConfig.publicKeys ?? []);
+  if (publicKeys.length === 0 && app?.hasSigningKey) {
+    return {
+      check: 'signing-key',
+      manualStep: `run hotcodepush signing-key list --json and add each publicKey to publicKeys in ${PROJECT_CONFIG_FILE_NAME}`,
+      message: `the app has a signing key and ${PROJECT_CONFIG_FILE_NAME} lists none`,
+      status: 'failed',
+    };
+  }
+  const unregisteredKeyCount =
+    app === undefined || publicKeys.length === 0
+      ? 0
+      : await fetchUnregisteredPublicKeyCount(app.id, publicKeys);
+  if (unregisteredKeyCount > 0) {
+    return {
+      check: 'signing-key',
+      manualStep:
+        'run hotcodepush signing-key list --json and keep in publicKeys only the keys it prints',
+      message: `${PROJECT_CONFIG_FILE_NAME} lists ${resolveQuantityText(unregisteredKeyCount, 'public key')} the app has not registered`,
+      status: 'failed',
+    };
+  }
+  return checkSigningPrivateKey(publicKeys);
+}
+
+/**
+ * The private key `HOTCODEPUSH_SIGNING_KEY` holds against the listed public keys: none set while keys are listed is fine,
+ * the upload being told where its key is.
+ */
+async function checkSigningPrivateKey(
+  publicKeys: string[],
+): Promise<DoctorCheck> {
+  try {
+    const signingKeyPair = await readSigningKeyPair(publicKeys, undefined);
+    return signingKeyPair === null
       ? {
-          check: 'signing-key',
-          manualStep: `run hotcodepush signing-key list --json and add each publicKey to publicKeys in ${PROJECT_CONFIG_FILE_NAME}`,
-          message: `the app has a signing key and ${PROJECT_CONFIG_FILE_NAME} lists none`,
-          status: 'failed',
-        }
-      : {
           check: 'signing-key',
           message: 'code signing is off; signing-key create turns it on',
           status: 'skipped',
+        }
+      : {
+          check: 'signing-key',
+          message: `HOTCODEPUSH_SIGNING_KEY signs with key ${resolveSigningKeyFingerprint(signingKeyPair.publicKey)}`,
+          status: 'ok',
         };
-  }
-  try {
-    const { publicKey } = await resolveSigningKeyPair(appId, publicKeys);
-    return {
-      check: 'signing-key',
-      message: `uploads are signed with key ${resolveSigningKeyFingerprint(publicKey)}`,
-      status: 'ok',
-    };
   } catch (error) {
     if (error instanceof SigningKeyUnavailableError) {
       return {
         check: 'signing-key',
         message:
-          'code signing is on; no private key on this machine, so uploads run where HOTCODEPUSH_SIGNING_KEY is set',
-        status: 'skipped',
+          'code signing is on; an upload signs with --private-key-path or HOTCODEPUSH_SIGNING_KEY',
+        status: 'ok',
       };
     }
     if (error instanceof InvalidParameterError) {
@@ -343,6 +368,22 @@ async function checkSigningKey(
     }
     throw error;
   }
+}
+
+/**
+ * How many of the listed public keys the app has not registered: an upload signed with one is refused.
+ */
+async function fetchUnregisteredPublicKeyCount(
+  appId: string,
+  publicKeys: string[],
+): Promise<number> {
+  const registeredPublicKeys = new Set(
+    (await fetchSigningKeys(createApiClient(), appId)).map(
+      ({ publicKey }) => publicKey,
+    ),
+  );
+  return publicKeys.filter(publicKey => !registeredPublicKeys.has(publicKey))
+    .length;
 }
 
 /**

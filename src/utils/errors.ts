@@ -255,16 +255,16 @@ export class ReportedFailureError extends CliError {
 }
 
 /**
- * `hotcodepush.json` lists public keys and no private key at hand belongs to one of them:
+ * `hotcodepush.json` lists public keys and neither `--private-key-path` nor `HOTCODEPUSH_SIGNING_KEY` gives the private key:
  * the app releases only signed bundles, so the upload stops before a byte moves.
  */
 export class SigningKeyUnavailableError extends CliError {
-  constructor(signingKeyFilePath: string) {
+  constructor() {
     super({
       code: 'E_SIGNING_KEY_UNAVAILABLE',
       exitCode: ExitCode.Error,
-      fix: `set HOTCODEPUSH_SIGNING_KEY to the private key, or restore ${signingKeyFilePath}; "hotcodepush signing-key create" makes a new pair.`,
-      message: `no private key at hand belongs to a public key ${PROJECT_CONFIG_FILE_NAME} lists`,
+      fix: 'pass --private-key-path with the file "hotcodepush signing-key create" wrote, or set HOTCODEPUSH_SIGNING_KEY to its content.',
+      message: `${PROJECT_CONFIG_FILE_NAME} lists public keys and no private key is given to sign with`,
     });
   }
 }
