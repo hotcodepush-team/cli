@@ -278,12 +278,16 @@ describe('init', () => {
     const configurationStep = result.steps.find(
       ({ step }) => step === 'configuration',
     );
+    const projectFilePath = join(
+      'ios',
+      'App',
+      'App.xcodeproj',
+      'project.pbxproj',
+    );
     expect(configurationStep).toEqual({
       code: 'E_CONFIRMATION_REQUIRED',
-      manualStep:
-        'run init --yes to change package.json, hotcodepush.json, ios/App/App.xcodeproj/project.pbxproj',
-      message:
-        'a confirmation is required: changes package.json, hotcodepush.json, ios/App/App.xcodeproj/project.pbxproj',
+      manualStep: `run init --yes to change package.json, hotcodepush.json, ${projectFilePath}`,
+      message: `a confirmation is required: changes package.json, hotcodepush.json, ${projectFilePath}`,
       status: 'stopped',
       step: 'configuration',
     });
