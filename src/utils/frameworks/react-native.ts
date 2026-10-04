@@ -91,6 +91,7 @@ export const reactNativeFramework: FrameworkModule = {
     throw new MissingParameterError('--binary-version');
   },
   readBuildDirectory: () => undefined,
+  resolveMainBundlePath,
   resolveNativeProjectPaths,
   resolveResourceFilePath: () => undefined,
   resolveWiring,
@@ -410,6 +411,19 @@ function resolveHermescFilePath(
     );
   }
   return hermescFilePath;
+}
+
+/**
+ * The platform's bundle as React Native's own builds name it, in an uploaded and an embedded bundle alike.
+ */
+function resolveMainBundlePath(
+  files: readonly { path: string }[],
+  platform: Platform,
+): string | undefined {
+  const bundleFileName = BUNDLE_FILE_NAMES[platform];
+  return files.some(({ path }) => path === bundleFileName)
+    ? bundleFileName
+    : undefined;
 }
 
 function resolveNativeProjectPaths(
