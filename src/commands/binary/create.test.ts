@@ -402,11 +402,10 @@ describe('binary create', () => {
       'it names no channel and takes no updates until it is built with a token, and no binary was created';
 
     function stubNoToken(): void {
+      const configHomePath = createTemporaryDirectory('hotcodepush-nohome-');
+      vi.stubEnv('APPDATA', configHomePath);
       vi.stubEnv('HOTCODEPUSH_TOKEN', undefined);
-      vi.stubEnv(
-        'XDG_CONFIG_HOME',
-        createTemporaryDirectory('hotcodepush-nohome-'),
-      );
+      vi.stubEnv('XDG_CONFIG_HOME', configHomePath);
     }
 
     function writeChannelById(): string {

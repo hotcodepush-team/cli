@@ -88,6 +88,7 @@ describe('login', () => {
 
   beforeEach(() => {
     configHomePath = mkdtempSync(join(tmpdir(), 'hotcodepush-'));
+    vi.stubEnv('APPDATA', configHomePath);
     vi.stubEnv('XDG_CONFIG_HOME', configHomePath);
     vi.stubEnv('CI', undefined);
     vi.stubGlobal('fetch', fetchMock);
