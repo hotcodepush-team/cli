@@ -175,6 +175,24 @@ describe('signing-key create', () => {
     expect(readFileSync(keyFilePath, 'utf8')).toBe('kept');
   });
 
+  it('should refuse a path into a folder that does not exist before any request', async () => {
+    respondWithRegistration();
+    const folderPath = join(workingDirectoryPath, 'keys');
+
+    await expect(
+      signingKeyCreateCommand.action(
+        { app: 'Demo', privateKeyPath: join('keys', 'demo-private-key.pem') },
+        undefined,
+      ),
+    ).rejects.toMatchObject({
+      code: 'E_INVALID_PARAMETER',
+      message: `--private-key-path: no folder at ${folderPath}`,
+    });
+
+    expect(harness.requests).toHaveLength(0);
+    expect(existsSync(folderPath)).toBe(false);
+  });
+
   it('should remove the private key file and leave hotcodepush.json alone when the registration fails', async () => {
     harness.routes[`POST ${SIGNING_KEYS_PATH}`] = () =>
       respondWithApiError(403, 'E_FORBIDDEN', 'Your role is too low.');

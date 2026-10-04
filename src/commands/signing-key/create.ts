@@ -1,5 +1,5 @@
-import { existsSync, rmSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, rmSync, statSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import { generateSigningKeyPair } from '@hotcodepush/protocol';
 import { z } from 'zod';
 import { defineCommand } from 'zodline';
@@ -38,7 +38,7 @@ export default defineCommand({
     const privateKeyPath = resolve(
       options.privateKeyPath ?? SIGNING_PRIVATE_KEY_FILE_NAME,
     );
-    assertNoFileAt(privateKeyPath);
+    assertNewFilePath(privateKeyPath);
     const hotCodePush = createApiClient();
     const projectConfigLocation = locateProjectConfig(options.config);
     const appId = await fetchAppId(
@@ -103,14 +103,23 @@ function addPublicKeyToProjectConfig(
 }
 
 /**
- * The private key goes to a new file, checked before any request: an existing one may hold the key a store build trusts.
+ * The private key goes to a new file in an existing folder, checked before any request: an existing file may hold the key
+ * a store build trusts, and no folder is made on the person's behalf.
  */
-function assertNoFileAt(filePath: string): void {
+function assertNewFilePath(filePath: string): void {
   if (existsSync(filePath)) {
     throw new InvalidParameterError(
       `--private-key-path: ${filePath} already exists`,
       undefined,
       'pass a path where no file is; signing-key create never overwrites a private key.',
+    );
+  }
+  const directoryPath = dirname(filePath);
+  if (!statSync(directoryPath, { throwIfNoEntry: false })?.isDirectory()) {
+    throw new InvalidParameterError(
+      `--private-key-path: no folder at ${directoryPath}`,
+      undefined,
+      'create the folder first, or pass a path in an existing one.',
     );
   }
 }
