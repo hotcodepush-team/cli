@@ -19,11 +19,13 @@ import {
   PREVIOUS_BUNDLE,
   READY_BUNDLE,
 } from '../../test/fixtures.js';
+import type { DeltaBase } from './delta-bases.js';
 import { BundleTooLargeError } from './errors.js';
 import {
   assertWithinBundleBytesLimit,
   buildManifestToSign,
   BUNDLE_BYTES_LIMIT,
+  resolveDeltaPack,
   resolveMissingSha256s,
   uploadDeltaPack,
   uploadMissingFiles,
@@ -195,14 +197,8 @@ describe('upload', () => {
     },
   );
 
-  it('should build the manifest with the files by path, the patches by path then base and the platforms sorted by code units, as the API rebuilds it', () => {
+  it('should build the manifest with the files by path and the platforms sorted by code units, as the API rebuilds it', () => {
     const file = { filePath: '/dist/a', sha256: SHA256, sizeBytes: 1 };
-    const patch = {
-      format: 'bsdiff',
-      patchFilePath: '/tmp/patch',
-      sizeBytes: 9,
-      toSha256: SHA256,
-    };
 
     expect(
       buildManifestToSign({
@@ -214,11 +210,6 @@ describe('upload', () => {
           { ...file, path: 'Z.js' },
         ],
         fingerprint: 'fp1:abc',
-        patches: [
-          { ...patch, fromSha256: 'c'.repeat(64), path: 'b.js' },
-          { ...patch, fromSha256: 'b'.repeat(64), path: 'b.js' },
-          { ...patch, fromSha256: 'd'.repeat(64), path: 'Z.js' },
-        ],
         platforms: ['ios', 'android'],
       }),
     ).toEqual({
@@ -230,27 +221,59 @@ describe('upload', () => {
         { path: 'b.js', sha256: SHA256, sizeBytes: 1 },
       ],
       fingerprint: 'fp1:abc',
-      patches: [
+      platforms: ['android', 'ios'],
+    });
+  });
+
+  describe('resolveDeltaPack', () => {
+    const PACK_FILES = ['a', 'b', 'c'].map(character => ({
+      compressedFilePath: `/tmp/${character}.gz`,
+      sha256: character.repeat(64),
+      sizeBytes: 1,
+    }));
+    const BASE: DeltaBase = {
+      bundleId: PREVIOUS_BUNDLE.id,
+      files: [{ path: 'index.html', sha256: 'a'.repeat(64), sizeBytes: 1 }],
+      isPatchable: true,
+      label: '#16 · 1.4.1',
+      platforms: ['ios'],
+    };
+    const PATCH = {
+      fromSha256: 'd'.repeat(64),
+      patchFilePath: '/tmp/patch',
+      sizeBytes: 1,
+      toSha256: 'c'.repeat(64),
+    };
+
+    it('should carry the files the base lacks', () => {
+      expect(resolveDeltaPack(BASE, PACK_FILES, [])).toEqual({
+        files: PACK_FILES.slice(1),
+        patches: [],
+      });
+    });
+
+    it('should carry a patch in place of the file it makes', () => {
+      expect(resolveDeltaPack(BASE, PACK_FILES, [PATCH])).toEqual({
+        files: PACK_FILES.slice(1, 2),
+        patches: [PATCH],
+      });
+    });
+
+    it.each([
+      ['when the base shares no file', { ...BASE, files: [] }],
+      [
+        'when the base holds every file',
         {
-          format: 'bsdiff',
-          fromSha256: 'd'.repeat(64),
-          path: 'Z.js',
-          toSha256: SHA256,
-        },
-        {
-          format: 'bsdiff',
-          fromSha256: 'b'.repeat(64),
-          path: 'b.js',
-          toSha256: SHA256,
-        },
-        {
-          format: 'bsdiff',
-          fromSha256: 'c'.repeat(64),
-          path: 'b.js',
-          toSha256: SHA256,
+          ...BASE,
+          files: PACK_FILES.map(({ sha256 }) => ({
+            path: sha256,
+            sha256,
+            sizeBytes: 1,
+          })),
         },
       ],
-      platforms: ['android', 'ios'],
+    ])('should make no delta pack %s', (_condition, base) => {
+      expect(resolveDeltaPack(base, PACK_FILES, [])).toBeUndefined();
     });
   });
 

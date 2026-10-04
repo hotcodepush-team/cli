@@ -4,119 +4,142 @@ import { stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
-import type { ManifestFile } from '@hotcodepush/protocol';
 import { writeBsdiffPatch } from './bsdiff.js';
 import type { BundleFile } from './bundle-files.js';
 import type { CompressedFile } from './compressed-files.js';
+import type { DeltaBase } from './delta-bases.js';
+import type { MainBundlePathResolver } from './frameworks/index.js';
 import { resolveFilesBaseUrl } from './hosts.js';
 import type { Reporter } from './progress.js';
 import { resolveByteText } from './progress.js';
+import type { Platform } from './upload.js';
 import { readApiUrl } from './user-config.js';
 
 /**
- * A patch as the bundle lists it, with the file its bytes lie in until they are uploaded.
+ * A patch a delta pack carries, from the file `fromSha256` to the file `toSha256`, with the file its bytes lie in.
  */
 export interface ComputedPatch {
-  format: string;
   fromSha256: string;
   patchFilePath: string;
-  path: string;
   sizeBytes: number;
   toSha256: string;
 }
 
+/**
+ * A base's main bundle and the new bundle's, paired by their role, where their contents differ.
+ */
+export interface PatchPair {
+  fromSha256: string;
+  toFile: BundleFile;
+}
+
 export interface ComputePatchesOptions {
   appId: string;
-  /** The files of the bundle devices come from, as its manifest lists them. */
-  baseFiles: ManifestFile[];
   compressedFiles: Map<string, CompressedFile>;
-  files: BundleFile[];
+  pairs: PatchPair[];
   reporter: Reporter;
   temporaryDirectoryPath: string;
 }
 
 const BASE_FILE_FETCH_TIMEOUT_MS = 60_000;
 
-/** A patch above this share of the file's stored bytes saves too little to be worth a device's work. */
-export const PATCH_CAP_RATIO = 0.7;
-
-/** A file below this size moves whole; in decimal bytes, as the limits are. */
-export const PATCH_FLOOR_BYTES = 16_000;
-
-const PATCH_FORMAT = 'bsdiff';
+const PATCH_CONCURRENCY = 3;
 
 /**
- * The patches of the files that changed against a base bundle: a file of the floor's size or more whose path the base
- * lists with other content, patched from the base's bytes, which are fetched by hash from the files host.
- * A base that cannot be fetched, a diff that fails and a patch above the cap each mean that file moves whole —
- * a patchless upload, never a failed one.
+ * The main bundles to patch against a base, one per platform the two share where the framework names a main bundle in
+ * both and its content changed; none against a base whose delta pack carries the whole file.
+ */
+export function resolvePatchPairs(
+  base: DeltaBase,
+  files: BundleFile[],
+  platforms: Platform[],
+  resolveMainBundlePath: MainBundlePathResolver | undefined,
+): PatchPair[] {
+  if (!base.isPatchable || resolveMainBundlePath === undefined) {
+    return [];
+  }
+  return platforms
+    .filter(platform => base.platforms.includes(platform))
+    .flatMap(platform => {
+      const toPath = resolveMainBundlePath(files, platform);
+      const fromPath = resolveMainBundlePath(base.files, platform);
+      const toFile = files.find(({ path }) => path === toPath);
+      const fromFile = base.files.find(({ path }) => path === fromPath);
+      return toFile === undefined ||
+        fromFile === undefined ||
+        fromFile.sha256 === toFile.sha256
+        ? []
+        : [{ fromSha256: fromFile.sha256, toFile }];
+    });
+}
+
+/**
+ * The patches of the pairs, each pair once and three at a time, each from the base's bytes fetched by hash from the
+ * files host; a patch is kept when it is smaller than the stored object it replaces. A base that cannot be fetched and
+ * a diff that fails each mean the file moves whole, said in one line — a patchless delta pack, never a failed upload.
  */
 export async function computePatches({
   appId,
-  baseFiles,
   compressedFiles,
-  files,
+  pairs,
   reporter,
   temporaryDirectoryPath,
 }: ComputePatchesOptions): Promise<ComputedPatch[]> {
-  const baseSha256sByPath = new Map(
-    baseFiles.map(({ path, sha256 }) => [path, sha256]),
-  );
-  const computedPatches: ComputedPatch[] = [];
-  for (const file of files) {
-    const baseSha256 = baseSha256sByPath.get(file.path);
-    if (
-      baseSha256 === undefined ||
-      baseSha256 === file.sha256 ||
-      file.sizeBytes < PATCH_FLOOR_BYTES
-    ) {
-      continue;
-    }
-    try {
-      const computedPatch = await computePatch(
-        appId,
-        file,
-        baseSha256,
-        temporaryDirectoryPath,
-      );
-      const storedSizeBytes =
-        compressedFiles.get(file.sha256)?.sizeBytes ?? file.sizeBytes;
-      if (computedPatch.sizeBytes > storedSizeBytes * PATCH_CAP_RATIO) {
-        continue;
+  const uniquePairs = [
+    ...new Map(
+      pairs.map(pair => [`${pair.fromSha256}/${pair.toFile.sha256}`, pair]),
+    ).values(),
+  ];
+  const computedPatches: (ComputedPatch | undefined)[] = [];
+  // the diff runs on this thread, so three at a time overlaps the fetches of the bases
+  const remainingPairs = uniquePairs.entries();
+  await Promise.all(
+    Array.from({ length: PATCH_CONCURRENCY }, async () => {
+      for (const [index, { fromSha256, toFile }] of remainingPairs) {
+        try {
+          const computedPatch = await computePatch(
+            appId,
+            fromSha256,
+            toFile,
+            temporaryDirectoryPath,
+          );
+          const storedSizeBytes =
+            compressedFiles.get(toFile.sha256)?.sizeBytes ?? toFile.sizeBytes;
+          if (computedPatch.sizeBytes < storedSizeBytes) {
+            reporter.report(
+              `Patched ${toFile.path} from ${fromSha256.slice(0, 12)}: ${resolveByteText(computedPatch.sizeBytes)} in place of ${resolveByteText(storedSizeBytes)}.`,
+            );
+            computedPatches[index] = computedPatch;
+          }
+        } catch (error) {
+          reporter.report(
+            `No patch for ${toFile.path} from ${fromSha256.slice(0, 12)}, which moves whole: ${error instanceof Error ? error.message : String(error)}.`,
+          );
+        }
       }
-      reporter.report(
-        `Patched ${file.path}: ${resolveByteText(computedPatch.sizeBytes)} in place of ${resolveByteText(storedSizeBytes)}.`,
-      );
-      computedPatches.push(computedPatch);
-    } catch (error) {
-      reporter.report(
-        `No patch for ${file.path}, which moves whole: ${error instanceof Error ? error.message : String(error)}.`,
-      );
-    }
-  }
-  return computedPatches;
+    }),
+  );
+  return computedPatches.filter(patch => patch !== undefined);
 }
 
 async function computePatch(
   appId: string,
-  file: BundleFile,
-  baseSha256: string,
+  fromSha256: string,
+  toFile: BundleFile,
   temporaryDirectoryPath: string,
 ): Promise<ComputedPatch> {
-  const baseFilePath = join(temporaryDirectoryPath, `${baseSha256}.base`);
-  await fetchBaseFile(appId, baseSha256, baseFilePath);
+  const baseFilePath = join(temporaryDirectoryPath, `${fromSha256}.base`);
+  await fetchBaseFile(appId, fromSha256, baseFilePath);
   const patchFilePath = join(
     temporaryDirectoryPath,
-    `${baseSha256}-${file.sha256}.patch`,
+    `${fromSha256}-${toFile.sha256}.patch`,
   );
-  await writeBsdiffPatch(baseFilePath, file.filePath, patchFilePath);
+  await writeBsdiffPatch(baseFilePath, toFile.filePath, patchFilePath);
   return {
-    format: PATCH_FORMAT,
-    fromSha256: baseSha256,
+    fromSha256,
     patchFilePath,
-    path: file.path,
     sizeBytes: (await stat(patchFilePath)).size,
-    toSha256: file.sha256,
+    toSha256: toFile.sha256,
   };
 }
 

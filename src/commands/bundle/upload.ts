@@ -16,7 +16,11 @@ import { resolveFrameworkModule } from '../../utils/frameworks/index.js';
 import type { GitProvenanceOptions } from '../../utils/git-provenance.js';
 import { resolveGitProvenance } from '../../utils/git-provenance.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson, printWarnings } from '../../utils/output.js';
+import {
+  printJson,
+  printWarnings,
+  resolveQuantityText,
+} from '../../utils/output.js';
 import { createReporter, resolveByteText } from '../../utils/progress.js';
 import type { ProjectConfig } from '../../utils/project-config.js';
 import { locateProjectConfig } from '../../utils/project-config.js';
@@ -87,7 +91,7 @@ export const bundleUploadOptionShape = {
 
 export default defineCommand({
   description:
-    'Upload a web build as a bundle, signed where a key is configured: only the files and patches the app lacks move, then the packs; nothing is released.',
+    'Upload a web build as a bundle, signed where a key is configured: only the files the app lacks move, then the packs; nothing is released.',
   examples: [
     'hotcodepush bundle upload',
     'hotcodepush bundle upload --path dist --bundle-version 1.4.2 --platform ios --json',
@@ -136,30 +140,37 @@ function printUploadedBundles(
 
 function resolveUploadedBundleJson({
   bundle,
-  deltaBaseBundleId,
+  deltaBaseBundleIds,
   patchCount,
   uploadedBytes,
   uploadedFileCount,
 }: UploadedBundle): object {
   return {
     ...bundle,
-    upload: { deltaBaseBundleId, patchCount, uploadedBytes, uploadedFileCount },
+    upload: {
+      deltaBaseBundleIds,
+      patchCount,
+      uploadedBytes,
+      uploadedFileCount,
+    },
   };
 }
 
 function printUploadedBundle({
   bundle,
-  deltaBaseBundleId,
+  deltaBaseBundleIds,
   patchCount,
   uploadedBytes,
   uploadedFileCount,
 }: UploadedBundle): void {
-  const previousBundleText = [
+  const deltaPackText = [
+    ...(deltaBaseBundleIds.length === 0
+      ? []
+      : [resolveQuantityText(deltaBaseBundleIds.length, 'delta pack')]),
     ...(patchCount === 0 ? [] : [resolvePatchCountText(patchCount)]),
-    ...(deltaBaseBundleId === null ? [] : ['a delta pack']),
   ].join(' and ');
   console.log(
-    `Uploaded bundle ${resolveBundleLabel(bundle)} (${bundle.id}): ${uploadedFileCount} files moved, ${resolveByteText(uploadedBytes)}${previousBundleText === '' ? '' : `, with ${previousBundleText} against the previous bundle`}.`,
+    `Uploaded bundle ${resolveBundleLabel(bundle)} (${bundle.id}): ${uploadedFileCount} files moved, ${resolveByteText(uploadedBytes)}${deltaPackText === '' ? '' : `, with ${deltaPackText}`}.`,
   );
 }
 
@@ -190,6 +201,7 @@ export async function resolveUploadBundleOptions(
     ),
     gitProvenance: await resolveGitProvenance(directoryPath, options),
     reporter: createReporter(options),
+    resolveMainBundlePath: framework.resolveMainBundlePath,
     signingPrivateKey: await resolveSigningPrivateKey(appId, projectConfig),
   };
   const packagedBundles =
