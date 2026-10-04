@@ -2,6 +2,8 @@ import { createHash } from 'node:crypto';
 import {
   mkdirSync,
   mkdtempSync,
+  readdirSync,
+  readFileSync,
   realpathSync,
   rmSync,
   writeFileSync,
@@ -158,10 +160,20 @@ describe('reactNativeFramework', () => {
   });
 
   describe('packageBundles', () => {
-    it('should bundle each platform with react-native bundle and compile it with Hermes, one bundle per platform', async () => {
+    it("should bundle and compile each platform as its release build does, the source maps beside the bundle's directory", async () => {
       const directoryPath = writeProject();
       const hermescFilePath = writeHermesc(directoryPath);
       const packagingDirectoryPath = join(directoryPath, 'packaging');
+      // Hermes writes the bytecode and, with -output-source-map, its map beside it
+      vi.mocked(runCommandLineVisibly).mockImplementation(({ args }) => {
+        const outFilePath = args[args.indexOf('-out') + 1];
+        if (args.includes('-out') && outFilePath !== undefined) {
+          writeFile(outFilePath, 'bytecode');
+          if (args.includes('-output-source-map')) {
+            writeFile(`${outFilePath}.map`, '{}');
+          }
+        }
+      });
 
       const packagedBundles = await reactNativeFramework.packageBundles?.({
         packagingDirectoryPath,
@@ -180,6 +192,14 @@ describe('reactNativeFramework', () => {
           platforms: ['ios'],
         },
       ]);
+      const androidIntermediatePath = join(
+        packagingDirectoryPath,
+        'android-intermediate',
+      );
+      const iosIntermediatePath = join(
+        packagingDirectoryPath,
+        'ios-intermediate',
+      );
       expect(vi.mocked(runCommandLineVisibly).mock.calls).toEqual([
         [
           {
@@ -193,9 +213,52 @@ describe('reactNativeFramework', () => {
               '--entry-file',
               'index.js',
               '--bundle-output',
-              join(packagingDirectoryPath, 'android.js'),
+              join(androidIntermediatePath, 'index.android.bundle'),
               '--assets-dest',
               join(packagingDirectoryPath, 'android'),
+              '--reset-cache',
+              '--sourcemap-output',
+              join(
+                androidIntermediatePath,
+                'index.android.bundle.packager.map',
+              ),
+              '--minify',
+              'false',
+            ],
+            command: 'npx',
+          },
+          directoryPath,
+        ],
+        [
+          {
+            args: [
+              '-emit-binary',
+              '-max-diagnostic-width=80',
+              '-O',
+              '-output-source-map',
+              '-out',
+              join(androidIntermediatePath, 'index.android.bundle.hbc'),
+              join(androidIntermediatePath, 'index.android.bundle'),
+            ],
+            command: hermescFilePath,
+          },
+          directoryPath,
+        ],
+        [
+          {
+            args: [
+              'react-native',
+              'bundle',
+              '--platform',
+              'ios',
+              '--dev',
+              'false',
+              '--entry-file',
+              'index.js',
+              '--bundle-output',
+              join(iosIntermediatePath, 'main.jsbundle'),
+              '--assets-dest',
+              join(packagingDirectoryPath, 'ios'),
               '--reset-cache',
               '--minify',
               'false',
@@ -211,37 +274,29 @@ describe('reactNativeFramework', () => {
               '-max-diagnostic-width=80',
               '-O',
               '-out',
-              join(packagingDirectoryPath, 'android', 'index.android.bundle'),
-              join(packagingDirectoryPath, 'android.js'),
+              join(iosIntermediatePath, 'main.jsbundle.hbc'),
+              join(iosIntermediatePath, 'main.jsbundle'),
             ],
             command: hermescFilePath,
           },
           directoryPath,
         ],
-        [
-          expect.objectContaining({
-            args: expect.arrayContaining([
-              '--platform',
-              'ios',
-              '--bundle-output',
-              join(packagingDirectoryPath, 'ios.js'),
-            ]),
-          }),
-          directoryPath,
-        ],
-        [
-          expect.objectContaining({
-            args: expect.arrayContaining([
-              join(packagingDirectoryPath, 'ios', 'main.jsbundle'),
-            ]),
-            command: hermescFilePath,
-          }),
-          directoryPath,
-        ],
+      ]);
+      expect(readdirSync(join(packagingDirectoryPath, 'android'))).toEqual([
+        'index.android.bundle',
+      ]);
+      expect(
+        readFileSync(
+          join(packagingDirectoryPath, 'android', 'index.android.bundle'),
+          'utf8',
+        ),
+      ).toBe('bytecode');
+      expect(readdirSync(join(packagingDirectoryPath, 'ios'))).toEqual([
+        'main.jsbundle',
       ]);
     });
 
-    it('should bundle the JavaScript as it is when the platform switched Hermes off, from index.<platform>.js where the project has one', async () => {
+    it("should bundle the JavaScript as it is with Gradle's source map when Android switched Hermes off, from index.android.js where the project has one", async () => {
       const directoryPath = writeProject();
       writeFile(
         join(directoryPath, 'android', 'gradle.properties'),
@@ -274,6 +329,12 @@ describe('reactNativeFramework', () => {
               '--assets-dest',
               join(packagingDirectoryPath, 'android'),
               '--reset-cache',
+              '--sourcemap-output',
+              join(
+                packagingDirectoryPath,
+                'android-intermediate',
+                'index.android.bundle.map',
+              ),
             ],
             command: 'npx',
           },

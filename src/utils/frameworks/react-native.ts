@@ -1,4 +1,10 @@
-import { existsSync, mkdirSync, readFileSync, statSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  statSync,
+} from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, relative, resolve } from 'node:path';
 import {
@@ -57,6 +63,15 @@ const BUNDLE_FILE_NAMES: Record<Platform, string> = {
 
 const BINARY_CREATE_PHASE_DESCRIPTION =
   'the Create HotCodePush binary phase in Xcode';
+
+/**
+ * Hermes' flags in React Native's release build by default: the Gradle plugin's `hermesFlags`, whose source map takes the
+ * debug information out of the bytecode, and react-native-xcode.sh's without `SOURCEMAP_FILE`, which keeps it inline.
+ */
+const HERMES_FLAGS: Record<Platform, string[]> = {
+  android: ['-O', '-output-source-map'],
+  ios: ['-O'],
+};
 
 const HERMESC_DIRECTORY_NAMES: Partial<Record<NodeJS.Platform, string>> = {
   darwin: 'osx-bin',
@@ -248,16 +263,20 @@ function isPodInstalled(iosProjectPath: string): boolean {
 }
 
 /**
- * One platform's bundle as React Native's own build makes it: `react-native bundle` for the JavaScript and its assets,
- * then Hermes' compiler over the JavaScript where the app runs Hermes.
+ * One platform's bundle as the platform's release build makes it: `react-native bundle` for the JavaScript and its
+ * assets, then Hermes' compiler over the JavaScript where the app runs Hermes. The JavaScript, the source maps and the
+ * bytecode are written beside the bundle's directory, never into it, and the bytecode then moves in as the bundle.
  */
 function packageBundle(
   projectDirectoryPath: string,
   platform: Platform,
   outputDirectoryPath: string,
 ): void {
+  const intermediateDirectoryPath = `${outputDirectoryPath}-intermediate`;
   mkdirSync(outputDirectoryPath, { recursive: true });
-  const bundleFilePath = join(outputDirectoryPath, BUNDLE_FILE_NAMES[platform]);
+  mkdirSync(intermediateDirectoryPath, { recursive: true });
+  const bundleFileName = BUNDLE_FILE_NAMES[platform];
+  const bundleFilePath = join(outputDirectoryPath, bundleFileName);
   const hermescFilePath = resolveHermescFilePath(
     projectDirectoryPath,
     platform,
@@ -265,7 +284,11 @@ function packageBundle(
   const javaScriptFilePath =
     hermescFilePath === undefined
       ? bundleFilePath
-      : `${outputDirectoryPath}.js`;
+      : join(intermediateDirectoryPath, bundleFileName);
+  const sourceMapFileName = resolvePackagerSourceMapFileName(
+    platform,
+    hermescFilePath !== undefined,
+  );
   runCommandLineVisibly(
     {
       args: [
@@ -282,6 +305,12 @@ function packageBundle(
         '--assets-dest',
         outputDirectoryPath,
         '--reset-cache',
+        ...(sourceMapFileName === undefined
+          ? []
+          : [
+              '--sourcemap-output',
+              join(intermediateDirectoryPath, sourceMapFileName),
+            ]),
         // Hermes compiles the JavaScript itself and needs no minification before it
         ...(hermescFilePath === undefined ? [] : ['--minify', 'false']),
       ],
@@ -290,20 +319,22 @@ function packageBundle(
     projectDirectoryPath,
   );
   if (hermescFilePath !== undefined) {
+    const bytecodeFilePath = `${javaScriptFilePath}.hbc`;
     runCommandLineVisibly(
       {
         args: [
           '-emit-binary',
           '-max-diagnostic-width=80',
-          '-O',
+          ...HERMES_FLAGS[platform],
           '-out',
-          bundleFilePath,
+          bytecodeFilePath,
           javaScriptFilePath,
         ],
         command: hermescFilePath,
       },
       projectDirectoryPath,
     );
+    renameSync(bytecodeFilePath, bundleFilePath);
   }
 }
 
@@ -451,6 +482,23 @@ function resolvePackageDirectoryPath(
   } catch {
     return undefined;
   }
+}
+
+/**
+ * The source map React Native's release build has the bundler write, by name, since the JavaScript ends with a comment
+ * naming it: Gradle always writes one, the packager's beside Hermes and the bundle's own without it; Xcode none by default.
+ */
+function resolvePackagerSourceMapFileName(
+  platform: Platform,
+  isHermesEnabledForPlatform: boolean,
+): string | undefined {
+  if (platform === 'ios') {
+    return undefined;
+  }
+  const bundleFileName = BUNDLE_FILE_NAMES[platform];
+  return isHermesEnabledForPlatform
+    ? `${bundleFileName}.packager.map`
+    : `${bundleFileName}.map`;
 }
 
 async function resolveWiring(
