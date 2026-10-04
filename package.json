@@ -43,7 +43,7 @@
     "@bsdiff-rust/node": "0.0.7",
     "@clack/prompts": "1.8.1",
     "@hotcodepush/node": "https://pkg.pr.new/hotcodepush-team/hotcodepush-node/@hotcodepush/node@9972b17",
-    "@hotcodepush/protocol": "https://pkg.pr.new/hotcodepush-team/protocol-js/@hotcodepush/protocol@526bcbf959178c5c0022251cd8efac7f51fdddbd",
+    "@hotcodepush/protocol": "https://pkg.pr.new/hotcodepush-team/protocol-js/@hotcodepush/protocol@29e9725d8fa89d586f702bb491f0856c65661184",
     "@napi-rs/keyring": "2.1.0",
     "better-auth": "1.7.6",
     "fast-xml-parser": "5.11.2",

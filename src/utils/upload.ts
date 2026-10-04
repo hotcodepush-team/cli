@@ -32,7 +32,7 @@ export interface UploadBundleOptions {
   gitProvenance: GitProvenance;
   platforms: Platform[];
   reporter: Reporter;
-  /** The private key the manifest is signed with, self-describing; null where signing is off. */
+  /** The private key the manifest is signed with, the base64 of its PKCS #8 DER; null where signing is off. */
   signingPrivateKey: string | null;
 }
 

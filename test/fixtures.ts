@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import type {
   App,
   Binary,
@@ -179,18 +180,45 @@ export const RUNNER_USER: User = {
   name: 'Anna Example',
 };
 
-// The key pair is the protocol fixtures' `ed25519-a`, a test key
+interface ProtocolSigningKey {
+  fingerprint: string;
+  name: string;
+  privateKey: string;
+  publicKey: string;
+}
+
+/**
+ * A test key pair of the protocol's signature fixtures by its name: `rsa-4096-a`, `rsa-4096-b`, `rsa-2048`,
+ * and `rsa-1024`, the one under the minimum size.
+ */
+export function resolveProtocolSigningKey(keyName: string): ProtocolSigningKey {
+  const { keys } = JSON.parse(
+    readFileSync(
+      new URL(
+        '../node_modules/@hotcodepush/protocol/fixtures/signatures.json',
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+  ) as { keys: ProtocolSigningKey[] };
+  const key = keys.find(({ name }) => name === keyName);
+  if (key === undefined) {
+    throw new Error(`The protocol's fixtures hold no key named ${keyName}.`);
+  }
+  return key;
+}
+
+const SIGNING_KEY_PAIR = resolveProtocolSigningKey('rsa-4096-a');
+
 export const SIGNING_KEY: SigningKey = {
   appId: DEMO_APP.id,
   createdAt: '2026-09-09T08:00:00.000Z',
-  fingerprint:
-    'sha256:c94659a0e65e23d4dbeb8c193e8053c8a8ad23598d3b7be1e6f10cbcc1c80081',
+  fingerprint: SIGNING_KEY_PAIR.fingerprint,
   id: '3b1f8e7a-5c2d-4f6b-9a0e-7d4c1b2a3f5e',
-  publicKey: 'ed25519:NYn5qxMGX39y0hB0UZzOG8KFtzCesZ+/dRZQBTFeCz4=',
+  publicKey: SIGNING_KEY_PAIR.publicKey,
 };
 
-export const SIGNING_PRIVATE_KEY =
-  'ed25519:MC4CAQAwBQYDK2VwBCIEIAjN1Scub3Am52jlsFBD2tRBZIaFbv1sMbNJipZMjOL0';
+export const SIGNING_PRIVATE_KEY = SIGNING_KEY_PAIR.privateKey;
 
 export const DEVICE: Device = {
   appId: DEMO_APP.id,

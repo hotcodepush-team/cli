@@ -12,12 +12,12 @@ import { SIGNING_KEY_DIRECTORY_NAME } from '../config/consts.js';
 import { InvalidParameterError, SigningKeyUnavailableError } from './errors.js';
 import { resolveConfigDirectoryPath } from './user-config.js';
 
-// One key per line in the file; a comma separates them as well, the form `HOTCODEPUSH_SIGNING_KEY` holds on its one line
-const PRIVATE_KEY_SEPARATOR_PATTERN = /[\s,]+/;
+// One key per line: the file gains a line with every key made, the variable holds one
+const PRIVATE_KEY_SEPARATOR_PATTERN = /\s+/;
 
 /**
- * The private keys at hand for an app, self-describing as `<scheme>:<base64>`: `HOTCODEPUSH_SIGNING_KEY` when set, the secret
- * a CI holds, otherwise `keys/{appId}.key` in the config directory, where `signing-key create` stores them outside CI.
+ * The private keys at hand for an app, each the base64 of its PKCS #8 DER on one line: `HOTCODEPUSH_SIGNING_KEY` when set,
+ * the secret a CI holds, otherwise `keys/{appId}.key` in the config directory, where `signing-key create` stores them outside CI.
  */
 export function readSigningPrivateKeys(appId: string): string[] {
   const privateKeysText =
@@ -93,7 +93,7 @@ async function resolvePublicKey(privateKey: string): Promise<string> {
     return await resolvePublicKeyOfPrivateKey(privateKey);
   } catch (error) {
     throw new InvalidParameterError(
-      'a signing private key is not one the CLI can read',
+      'a signing private key is not an RSA key of 2048 bits or more as signing-key create prints it',
       error,
       'set HOTCODEPUSH_SIGNING_KEY, or the key file, to the value "hotcodepush signing-key create" printed.',
     );

@@ -531,7 +531,7 @@ describe('init', () => {
       readJsonFile<{ publicKeys: string[] }>(
         join(directoryPath, 'hotcodepush.json'),
       ).publicKeys,
-    ).toEqual([expect.stringMatching(/^ed25519:/)]);
+    ).toEqual([expect.stringMatching(/^rsa-v1_5-sha256:/)]);
     expect(harness.readLines()).toContain(
       '✓ signing-key    generated a signing key pair, its private key printed above',
     );

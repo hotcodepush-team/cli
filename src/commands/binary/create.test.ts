@@ -32,6 +32,7 @@ import {
   BINARY,
   DEMO_APP,
   PRODUCTION_CHANNEL,
+  SIGNING_KEY,
   STAGING_CHANNEL,
 } from '../../../test/fixtures.js';
 import {
@@ -448,6 +449,43 @@ describe('binary create', () => {
           `Warning: HOTCODEPUSH_OFFLINE is set, so the build was made offline: ${NO_CHANNEL_TEXT}.\n`,
         ],
       ]);
+    });
+
+    it('should write the listed public keys for the platform it builds, PKCS #1 on iOS and SPKI on Android, each with its key id', async () => {
+      vi.stubEnv('HOTCODEPUSH_OFFLINE', '1');
+      const configPath = join(projectDirectoryPath, 'hotcodepush.json');
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          appId: DEMO_APP.id,
+          dir: 'dist',
+          publicKeys: [SIGNING_KEY.publicKey],
+        }),
+      );
+
+      await createIosBinary(configPath);
+      await binaryCreateCommand.action(
+        { config: configPath, platform: 'android' },
+        undefined,
+      );
+
+      const spkiDer = SIGNING_KEY.publicKey.slice('rsa-v1_5-sha256:'.length);
+      const [iosPublicKey] = ConfigurationSchema.parse(
+        readResourceFile('ios/App/App/hotcodepush.json'),
+      ).publicKeys;
+      expect(iosPublicKey?.keyId).toBe(SIGNING_KEY.fingerprint);
+      // PKCS #1 is the key inside the SPKI wrapper: shorter, and the tail of the same bytes
+      expect(Buffer.from(spkiDer, 'base64').subarray(-64).toString('hex')).toBe(
+        Buffer.from(iosPublicKey?.der ?? '', 'base64')
+          .subarray(-64)
+          .toString('hex'),
+      );
+      expect(iosPublicKey?.der).not.toBe(spkiDer);
+      expect(
+        ConfigurationSchema.parse(
+          readResourceFile('android/app/src/main/assets/hotcodepush.json'),
+        ).publicKeys,
+      ).toEqual([{ der: spkiDer, keyId: SIGNING_KEY.fingerprint }]);
     });
 
     it('should keep a channel given by id under HOTCODEPUSH_OFFLINE', async () => {

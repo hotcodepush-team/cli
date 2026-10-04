@@ -1,10 +1,10 @@
 import { mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { generateSigningKeyPair } from '@hotcodepush/protocol';
 import { describe, expect, it, vi } from 'vitest';
 import { useCommandHarness } from '../../test/command-harness.js';
 import {
   DEMO_APP,
+  resolveProtocolSigningKey,
   SIGNING_KEY,
   SIGNING_PRIVATE_KEY,
 } from '../../test/fixtures.js';
@@ -25,23 +25,19 @@ describe('signing key store', () => {
     writeFileSync(filePath, content);
   }
 
-  it('should read the keys of HOTCODEPUSH_SIGNING_KEY, separated by a comma, before the key file', () => {
-    writeKeyFile('ed25519:fromTheFile\n');
-    vi.stubEnv('HOTCODEPUSH_SIGNING_KEY', 'ed25519:one,rsa-v1_5-sha256:two');
+  it('should read the key of HOTCODEPUSH_SIGNING_KEY before the key file', () => {
+    writeKeyFile('ZnJvbVRoZUZpbGU=\n');
+    vi.stubEnv('HOTCODEPUSH_SIGNING_KEY', 'ZnJvbVRoZVNlY3JldA==\n');
 
     expect(readSigningPrivateKeys(DEMO_APP.id)).toEqual([
-      'ed25519:one',
-      'rsa-v1_5-sha256:two',
+      'ZnJvbVRoZVNlY3JldA==',
     ]);
   });
 
   it('should read the key file, one key per line, when the variable is unset', () => {
-    writeKeyFile('ed25519:one\nrsa-v1_5-sha256:two\n');
+    writeKeyFile('b25l\ndHdv\n');
 
-    expect(readSigningPrivateKeys(DEMO_APP.id)).toEqual([
-      'ed25519:one',
-      'rsa-v1_5-sha256:two',
-    ]);
+    expect(readSigningPrivateKeys(DEMO_APP.id)).toEqual(['b25l', 'dHdv']);
   });
 
   it('should read no key when neither the variable nor the file holds one', () => {
@@ -49,12 +45,9 @@ describe('signing key store', () => {
   });
 
   it('should resolve the pair of the first listed public key whose private half is at hand', async () => {
-    const newerKeyPair = await generateSigningKeyPair();
-    const absentKeyPair = await generateSigningKeyPair();
-    vi.stubEnv(
-      'HOTCODEPUSH_SIGNING_KEY',
-      `${newerKeyPair.privateKey},${SIGNING_PRIVATE_KEY}`,
-    );
+    const newerKeyPair = resolveProtocolSigningKey('rsa-2048');
+    const absentKeyPair = resolveProtocolSigningKey('rsa-4096-b');
+    writeKeyFile(`${newerKeyPair.privateKey}\n${SIGNING_PRIVATE_KEY}\n`);
 
     await expect(
       resolveSigningKeyPair(DEMO_APP.id, [
@@ -71,7 +64,7 @@ describe('signing key store', () => {
   it('should throw E_SIGNING_KEY_UNAVAILABLE naming the key file when no private key belongs to a listed public key', async () => {
     vi.stubEnv(
       'HOTCODEPUSH_SIGNING_KEY',
-      (await generateSigningKeyPair()).privateKey,
+      resolveProtocolSigningKey('rsa-4096-b').privateKey,
     );
 
     const error = await resolveSigningKeyPair(DEMO_APP.id, [
@@ -84,29 +77,39 @@ describe('signing key store', () => {
     );
   });
 
-  it('should refuse a private key it cannot read without repeating it', async () => {
-    vi.stubEnv('HOTCODEPUSH_SIGNING_KEY', 'ed25519:notAKey');
+  it.each([
+    ['is no key at all', 'bm90QUtleQ=='],
+    [
+      'is under the minimum size',
+      resolveProtocolSigningKey('rsa-1024').privateKey,
+    ],
+    [
+      'is in the form a key had before signing became RSA',
+      'ed25519:MC4CAQAwBQYDK2VwBCIEIAjN1Scub3Am52jlsFBD2tRBZIaFbv1sMbNJipZMjOL0',
+    ],
+  ])(
+    'should refuse a private key that %s, without repeating it',
+    async (_condition, privateKey) => {
+      vi.stubEnv('HOTCODEPUSH_SIGNING_KEY', privateKey);
 
-    const error = await resolveSigningKeyPair(DEMO_APP.id, [
-      SIGNING_KEY.publicKey,
-    ]).catch((reason: unknown) => reason);
+      const error = await resolveSigningKeyPair(DEMO_APP.id, [
+        SIGNING_KEY.publicKey,
+      ]).catch((reason: unknown) => reason);
 
-    expect(error).toBeInstanceOf(InvalidParameterError);
-    expect((error as InvalidParameterError).message).not.toContain('notAKey');
-  });
+      expect(error).toBeInstanceOf(InvalidParameterError);
+      expect((error as InvalidParameterError).message).not.toContain(
+        privateKey.slice(0, 24),
+      );
+    },
+  );
 
-  it('should add keys to the key file after the ones it holds, readable by its owner alone', () => {
-    writeSigningPrivateKeys(DEMO_APP.id, ['ed25519:one']);
+  it('should add a key to the key file after the ones it holds, readable by its owner alone', () => {
+    writeSigningPrivateKeys(DEMO_APP.id, ['b25l']);
 
-    const filePath = writeSigningPrivateKeys(DEMO_APP.id, [
-      'ed25519:two',
-      'rsa-v1_5-sha256:three',
-    ]);
+    const filePath = writeSigningPrivateKeys(DEMO_APP.id, ['dHdv']);
 
     expect(filePath).toBe(resolveSigningKeyFilePath(DEMO_APP.id));
-    expect(readFileSync(filePath, 'utf8')).toBe(
-      'ed25519:one\ned25519:two\nrsa-v1_5-sha256:three\n',
-    );
+    expect(readFileSync(filePath, 'utf8')).toBe('b25l\ndHdv\n');
     expect(statSync(filePath).mode & 0o777).toBe(0o600);
   });
 });

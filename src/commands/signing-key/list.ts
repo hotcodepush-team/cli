@@ -32,23 +32,13 @@ export default defineCommand({
     }
     printTable({
       emptyText: 'No signing keys; signing-key create enables code signing.',
-      headers: ['ID', 'FINGERPRINT', 'SCHEME', 'CREATED'],
+      headers: ['ID', 'FINGERPRINT', 'CREATED'],
       nextOffset,
-      rows: listedSigningKeys.map(
-        ({ createdAt, fingerprint, id, publicKey }) => [
-          id,
-          fingerprint,
-          resolveScheme(publicKey),
-          resolveDate(createdAt),
-        ],
-      ),
+      rows: listedSigningKeys.map(({ createdAt, fingerprint, id }) => [
+        id,
+        fingerprint,
+        resolveDate(createdAt),
+      ]),
     });
   },
 });
-
-/**
- * The scheme a self-describing key names before its colon, `ed25519` or `rsa-v1_5-sha256`.
- */
-function resolveScheme(publicKey: string): string {
-  return publicKey.slice(0, publicKey.indexOf(':'));
-}

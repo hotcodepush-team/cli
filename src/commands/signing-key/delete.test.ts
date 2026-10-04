@@ -5,7 +5,11 @@ import {
   stubInteractiveTerminal,
   useCommandHarness,
 } from '../../../test/command-harness.js';
-import { DEMO_APP, SIGNING_KEY } from '../../../test/fixtures.js';
+import {
+  DEMO_APP,
+  resolveProtocolSigningKey,
+  SIGNING_KEY,
+} from '../../../test/fixtures.js';
 import {
   ConfirmationRequiredError,
   InvalidParameterError,
@@ -16,7 +20,7 @@ vi.mock('@clack/prompts');
 
 const SIGNING_KEYS_PATH = `/v1/apps/${DEMO_APP.id}/signing-keys`;
 
-const OTHER_PUBLIC_KEY = 'ed25519:SV4Ctcb3oWnq+VIuN9A6Obd/H9VpDosTkk1z3PId9cA=';
+const OTHER_PUBLIC_KEY = resolveProtocolSigningKey('rsa-4096-b').publicKey;
 
 describe('signing-key delete', () => {
   const harness = useCommandHarness();
