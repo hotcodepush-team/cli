@@ -28,7 +28,7 @@ src/
                and the bsdiff binding behind one function, the store build's binary identity from the native projects, the resource file,
                the progress lines, the browser opener, the JSON, tables and details output,
                init's step runner, the outcome rows init and doctor print, the package manager and its visible runs,
-               the embed hook in package.json, the resource reference and the embed phase in the Xcode project,
+               the binary create hook in package.json, the resource reference and the binary create phase in the Xcode project,
                the lines a React Native project is wired with
   config/      consts: the API URL, the client id and header, the config file, the docs and issues URLs,
                the keyring entry, package.json, the project file
@@ -98,7 +98,7 @@ Its wiring is five edits, each recognised afterwards by what it wrote: the Xcode
 - **Commands call commands**: a command that needs what another does runs that command's action in place, never a copy of its logic.
 - **A command that reports several outcomes** — `init`'s steps, `doctor`'s checks — prints them itself and ends with `ReportedFailureError` when one failed,
   so the exit code is set without a second message; nothing else throws it.
-- **`init` and `bundle embed` edit only what they can recognise afterwards**: the hook script gains the embed command or is returned as the manual step,
+- **`init` and `binary create` edit only what they can recognise afterwards**: the hook script gains the `binary create` command or is returned as the manual step,
   the Xcode project gains one resource reference or one run-script phase through the `xcode` package, a React Native project's other files one line each,
   and `init` names the files it will change and asks once before touching them.
 - **The token** is `readToken()`: `HOTCODEPUSH_TOKEN` when set, then the keyring, then the `config.json` fallback that any keyring failure latches for the rest of the process.
@@ -114,9 +114,9 @@ Its wiring is five edits, each recognised afterwards by what it wrote: the Xcode
   and listed when the patch is at most 70 percent of the file's stored bytes.
   A base that cannot be fetched, a platform the binding has no build for and a diff that fails each mean the file moves whole and the upload goes on.
   bsdiff is `@bsdiff-rust/node`'s behind `utils/bsdiff.ts`, the BSDIFF40 format the SDKs apply, never written here.
-- **`bundle embed` resolves the channel's name before it writes anything**: the resource file carries the channel's id, which only the API knows, so a build without a token fails with `E_NOT_LOGGED_IN` and a name the app lacks fails with `E_INVALID_PARAMETER`, locally and in CI alike.
-  The registration is the lenient half: skipped with one warning when the API refuses locally, loud only in CI, where `E_EMBED_CONFLICT` under an unbumped build number is a pipeline mistake.
-  The fingerprint is the strict half too: a project the recipe cannot read is `E_FINGERPRINT_UNAVAILABLE` on embed and upload alike, never `null`, since a release targets it.
+- **`binary create` resolves the channel before it writes anything**: an id is taken as it is and a name is resolved through the API, which alone knows the id the resource file carries, so a build that names its channel fails without a token with `E_NOT_LOGGED_IN` and a name the app lacks fails with `E_INVALID_PARAMETER`, locally and in CI alike.
+  Creating the binary is the lenient half: skipped with one warning when the API refuses locally, loud only in CI, where `E_BINARY_CONFLICT` under an unbumped build number is a pipeline mistake.
+  The fingerprint is the strict half too: a project the recipe cannot read is `E_FINGERPRINT_UNAVAILABLE` on `binary create` and upload alike, never `null`, since a release targets it.
   The device hosts it writes derive from the API URL: none for production, the staging hosts for staging, `<apiUrl>/files` and `/updates` for any other, `HOTCODEPUSH_FILES_BASE_URL` and `HOTCODEPUSH_UPDATES_BASE_URL` overriding.
 - **Every login** keeps its device code, expiry, user code and verification URL in `config.json` until approved; the next `login` redeems the code first and, while it is pending, shows the same code again, so an agent sees one output until the person approves.
 
