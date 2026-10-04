@@ -77,12 +77,15 @@ describe('user config', () => {
   });
 
   it('should resolve the directory under XDG_CONFIG_HOME when on macOS or Linux', () => {
+    Object.defineProperty(process, 'platform', { value: 'linux' });
+
     expect(resolveConfigDirectoryPath()).toBe(
       join(configHomePath, 'hotcodepush'),
     );
   });
 
   it('should resolve the directory under ~/.config when XDG_CONFIG_HOME is unset', () => {
+    Object.defineProperty(process, 'platform', { value: 'linux' });
     vi.stubEnv('XDG_CONFIG_HOME', undefined);
 
     expect(resolveConfigDirectoryPath()).toBe(
