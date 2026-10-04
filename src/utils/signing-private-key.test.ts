@@ -22,6 +22,21 @@ import {
 
 const OTHER_PRIVATE_KEY = resolveProtocolSigningKey('rsa-4096-b').privateKey;
 
+// The signing key as PKCS #1, the PEM Expo's tool writes, and its DER on one line
+const SIGNING_KEY_OBJECT = createPrivateKey({
+  format: 'der',
+  key: Buffer.from(SIGNING_PRIVATE_KEY, 'base64'),
+  type: 'pkcs8',
+});
+const PKCS1_PEM = SIGNING_KEY_OBJECT.export({
+  format: 'pem',
+  type: 'pkcs1',
+}) as string;
+const PKCS1_DER = SIGNING_KEY_OBJECT.export({
+  format: 'der',
+  type: 'pkcs1',
+}).toString('base64');
+
 describe('signing private key', () => {
   let directoryPath = '';
 
@@ -100,12 +115,26 @@ describe('signing private key', () => {
     });
   });
 
+  it('should read the key pair from a PKCS #1 file, as Expo writes it', async () => {
+    const filePath = join(directoryPath, 'private-key.pem');
+    writeFileSync(filePath, PKCS1_PEM);
+
+    await expect(
+      readSigningKeyPair([SIGNING_KEY.publicKey], filePath),
+    ).resolves.toEqual({
+      privateKey: SIGNING_PRIVATE_KEY,
+      publicKey: SIGNING_KEY.publicKey,
+    });
+  });
+
   it.each([
     [
       'with the PEM lines',
       () => readFileSync(writeKeyFile(), 'utf8').replaceAll('\n', ' '),
     ],
     ['without the PEM lines', () => SIGNING_PRIVATE_KEY],
+    ['as PKCS #1 with the PEM lines', () => PKCS1_PEM.replaceAll('\n', ' ')],
+    ['as PKCS #1 without the PEM lines', () => PKCS1_DER],
   ])(
     'should read the key pair from HOTCODEPUSH_SIGNING_KEY on one line %s',
     async (_condition, readVariableText) => {
@@ -182,6 +211,32 @@ describe('signing private key', () => {
       `--private-key-path: cannot read ${filePath}`,
     );
   });
+
+  it.each([
+    ['PKCS #8', 'pkcs8'],
+    ['PKCS #1', 'pkcs1'],
+  ] as const)(
+    'should refuse an encrypted %s private key, saying so',
+    async (_encoding, type) => {
+      const filePath = join(directoryPath, 'private-key.pem');
+      writeFileSync(
+        filePath,
+        SIGNING_KEY_OBJECT.export({
+          cipher: 'aes-256-cbc',
+          format: 'pem',
+          passphrase: 'invented-passphrase',
+          type,
+        }),
+      );
+
+      const error = await readRejection([SIGNING_KEY.publicKey], filePath);
+
+      expect(error).toBeInstanceOf(InvalidParameterError);
+      expect((error as InvalidParameterError).message).toBe(
+        '--private-key-path: an encrypted private key is not supported',
+      );
+    },
+  );
 
   it.each([
     ['is no key at all', 'bm90QUtleQ=='],
