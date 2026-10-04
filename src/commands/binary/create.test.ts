@@ -484,7 +484,7 @@ describe('binary create', () => {
     harness.routes[`POST ${BINARIES_PATH}`] = () =>
       respondWithApiError(
         409,
-        'E_EMBED_CONFLICT',
+        'E_BINARY_CONFLICT',
         'The build is registered with another fingerprint.',
       );
     const options = {
@@ -496,7 +496,7 @@ describe('binary create', () => {
 
     await binaryCreateCommand.action(options, undefined);
     expect(stderrWrite).toHaveBeenCalledWith(
-      expect.stringContaining('E_EMBED_CONFLICT'),
+      expect.stringContaining('E_BINARY_CONFLICT'),
     );
     expect(readResourceFile('ios/App/App/hotcodepush.json')).toMatchObject({
       embeddedBundleId: null,
@@ -507,7 +507,7 @@ describe('binary create', () => {
     await expect(
       binaryCreateCommand.action(options, undefined),
     ).rejects.toMatchObject({
-      code: 'E_EMBED_CONFLICT',
+      code: 'E_BINARY_CONFLICT',
     });
   });
 
