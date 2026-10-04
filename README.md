@@ -25,6 +25,7 @@ npx hotcodepush channel pause --app "My App" --channel staging
 npx hotcodepush channel list --app "My App" --json
 npx hotcodepush bundle upload --path dist --bundle-version 1.4.2
 npx hotcodepush bundle list --json
+npx hotcodepush bundle list --type embedded
 npx hotcodepush binary list
 npx hotcodepush signing-key create
 npx hotcodepush signing-key list
@@ -50,6 +51,7 @@ An organization, app or channel is named by id or by name, `--app "My App"`; `--
 A command that changes what devices receive or cannot be undone — a release, a rollout, a pause, a revoke, a rollback, a delete — asks once with the consequence, `--yes` confirming in scripts.
 On React Native `bundle upload` and `release create` package the bundles themselves: `react-native bundle` per platform, compiled with Hermes where the app runs it, one bundle per platform and so one release per platform and channel; `--platform ios` limits both to one, and `--path` names a prepared bundle directory for the one platform `--platform` names.
 `bundle upload` hashes every file of the build, patches the large files that changed against the previous bundle, signs the manifest when `hotcodepush.json` lists a public key, uploads only the files and patches the app lacks and the packs, and records the commit it was built from.
+`bundle list` shows the bundles you uploaded; `--type embedded` shows the ones your binaries ship, which carry no number, and `--type all` both.
 `signing-key create` turns code signing on: it generates the key pair on this machine, registers the public key with the app, adds it to `publicKeys` in `hotcodepush.json` and prints the private key once — kept in `keys/{appId}.key` in the CLI's config directory, and in CI in `HOTCODEPUSH_SIGNING_KEY` — after which the app releases only signed bundles; `--expo-bridge` adds the RSA pair the Expo Updates bridge signs with, `signing-key list` shows the fingerprints, and `signing-key delete` unregisters a key, never the app's only one.
 `release create` uploads the web build unless `--bundle` names one already uploaded, releases it to every `--channel` named with the project's channel as the default, and waits until the release is live; a retried pipeline gets the same release back, the `Idempotency-Key` being derived from the bundle and the channel.
 A release carries its conditions as flags — `--binary`, `--os`, `--runtime`, `--attribute` and `--device` — and `--from-channel` releases what another channel serves; `--dry-run` publishes nothing and prints the audience the release would reach, the count `audience get` answers on its own.

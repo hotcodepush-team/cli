@@ -84,7 +84,8 @@ Its wiring is five edits, each recognised afterwards by what it wrote: the Xcode
   The message is lowercase without a closing period; the fix is one lowercase sentence carrying its own punctuation; a stack trace only with `--verbose`.
 - **API errors pass through verbatim**, their code, message and fix as received and never re-mapped; the CLI's catalog covers only what happens before or without the API.
 - **Exit codes**: `0` done, `1` an error, `2` a missing or invalid parameter, `3` not logged in, `4` a confirmation required without `--yes`.
-- **Parameters are the API's field names**, `--rollout-percentage`, `--bundle-version`: nothing is renamed between the console, the API and the terminal.
+- **Parameters are the API's field names**, `--rollout-percentage`, `--channel`: nothing is renamed between the console, the API and the terminal.
+  The one exception is a version: `--version` is the CLI's own flag, so a bundle's `version` is `--bundle-version` and a binary's `version` and `build` are `--binary-version` and `--binary-build`, the names a device's `binaryVersion` and `binaryBuild` already carry.
   The schema key is the camelCase field, and zodline takes the kebab-case flag.
 - **Options are optional in the schema.**
   A missing required parameter is a prompt when interactive and a `MissingParameterError` naming the flag otherwise, never a zod error.
