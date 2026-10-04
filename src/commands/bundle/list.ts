@@ -8,11 +8,14 @@ import { resolveByteText } from '../../utils/progress.js';
 import { readProjectConfig } from '../../utils/project-config.js';
 import { fetchAppId } from '../../utils/resource-resolution.js';
 
+const BUNDLE_TYPES = ['all', 'embedded', 'uploaded'] as const;
+
 export default defineCommand({
-  description: "List an app's uploaded bundles, newest first.",
+  description:
+    "List an app's bundles, newest first: the uploaded ones by default, the ones binaries ship with --type embedded, both with --type all.",
   examples: [
     'hotcodepush bundle list',
-    'hotcodepush bundle list --bundle-version 1.4.2 --json',
+    'hotcodepush bundle list --type all --bundle-version 1.4.2 --json',
   ],
   options: defineCommandOptions({
     ...paginationShape,
@@ -20,9 +23,16 @@ export default defineCommand({
       .string()
       .optional()
       .describe('Only the bundles carrying this version label.'),
+    type: z
+      .enum(BUNDLE_TYPES)
+      .optional()
+      .describe(
+        'uploaded, the bundles a release can carry, by default; embedded, the ones binaries ship, which have no number; or all.',
+      ),
   }),
   action: async options => {
     const hotCodePush = createApiClient();
+    const type = options.type ?? 'uploaded';
     const listedBundles = await hotCodePush.apps.bundles.list({
       appId: await fetchAppId(
         hotCodePush,
@@ -31,7 +41,7 @@ export default defineCommand({
       ),
       limit: options.limit,
       offset: options.offset,
-      type: 'uploaded',
+      type: type === 'all' ? undefined : type,
       version: options.bundleVersion,
     });
     const nextOffset = resolveNextOffset(listedBundles.length, options);
@@ -45,7 +55,7 @@ export default defineCommand({
       nextOffset,
       rows: listedBundles.map(
         ({ createdAt, number, platforms, sizeBytes, state, version }) => [
-          `#${number}`,
+          number === null ? '' : `#${number}`,
           version,
           state,
           platforms.join(','),
