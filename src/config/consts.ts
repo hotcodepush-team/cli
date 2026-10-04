@@ -4,7 +4,7 @@ import type { CliMeta } from '../utils/cli.js';
 // An SDK is installed from the pkg.pr.new build of one commit until its package is published; a bump is one edit of the sha
 export const CAPACITOR_PACKAGE_NAME = '@hotcodepush/capacitor-live-updates';
 export const CAPACITOR_PACKAGE_SPEC =
-  'https://pkg.pr.new/hotcodepush-team/capacitor-live-updates/@hotcodepush/capacitor-live-updates@93a9cc2';
+  'https://pkg.pr.new/hotcodepush-team/capacitor-live-updates/@hotcodepush/capacitor-live-updates@44e8758';
 export const CLI_CLIENT_ID = 'hotcodepush-cli';
 export const CORDOVA_PACKAGE_NAME = '@hotcodepush/cordova-code-push';
 export const CORDOVA_PACKAGE_SPEC =
