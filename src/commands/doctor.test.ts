@@ -243,9 +243,9 @@ describe('doctor', () => {
       '✗ hook                   capacitor:copy:after does not run binary create',
       '                         run hotcodepush init',
       '✓ ios-project            the app target copies hotcodepush.json into the bundle',
-      '✗ android-resource-file  no resource file at android/app/src/main/assets/hotcodepush.json',
+      `✗ android-resource-file  no resource file at ${join('android', 'app', 'src', 'main', 'assets', 'hotcodepush.json')}`,
       '                         run npx cap sync, which runs binary create',
-      '✓ ios-resource-file      ios/App/App/hotcodepush.json built at 2026-09-29T12:00:00.000Z',
+      `✓ ios-resource-file      ${join('ios', 'App', 'App', 'hotcodepush.json')} built at 2026-09-29T12:00:00.000Z`,
       '✗ hosts                  unreachable: api (https://api.example.com/health)',
       '                         check the network, the API URL in config.json and the HOTCODEPUSH_*_BASE_URL variables',
       '– signing-key            code signing is off; signing-key create turns it on',
@@ -286,8 +286,7 @@ describe('doctor', () => {
       check: 'ios-resource-file',
       manualStep:
         'log in or set HOTCODEPUSH_TOKEN, leave HOTCODEPUSH_OFFLINE unset, then run npx cap sync, which runs binary create',
-      message:
-        'ios/App/App/hotcodepush.json names no channel, so the build takes no updates: it was made offline or without a token',
+      message: `${join('ios', 'App', 'App', 'hotcodepush.json')} names no channel, so the build takes no updates: it was made offline or without a token`,
       status: 'failed',
     });
   });
