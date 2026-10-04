@@ -103,13 +103,17 @@ describe('signing key store', () => {
     },
   );
 
-  it('should add a key to the key file after the ones it holds, readable by its owner alone', () => {
-    writeSigningPrivateKeys(DEMO_APP.id, ['b25l']);
+  // Windows has no POSIX file mode: the user profile's access list protects the file there
+  it.skipIf(process.platform === 'win32')(
+    'should add a key to the key file after the ones it holds, readable by its owner alone',
+    () => {
+      writeSigningPrivateKeys(DEMO_APP.id, ['b25l']);
 
-    const filePath = writeSigningPrivateKeys(DEMO_APP.id, ['dHdv']);
+      const filePath = writeSigningPrivateKeys(DEMO_APP.id, ['dHdv']);
 
-    expect(filePath).toBe(resolveSigningKeyFilePath(DEMO_APP.id));
-    expect(readFileSync(filePath, 'utf8')).toBe('b25l\ndHdv\n');
-    expect(statSync(filePath).mode & 0o777).toBe(0o600);
-  });
+      expect(filePath).toBe(resolveSigningKeyFilePath(DEMO_APP.id));
+      expect(readFileSync(filePath, 'utf8')).toBe('b25l\ndHdv\n');
+      expect(statSync(filePath).mode & 0o777).toBe(0o600);
+    },
+  );
 });
