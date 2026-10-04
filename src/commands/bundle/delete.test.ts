@@ -19,8 +19,8 @@ describe('bundle delete', () => {
   it('should delete the bundle named by its number once confirmed', async () => {
     stubInteractiveTerminal();
     vi.mocked(confirm).mockResolvedValue(true);
-    harness.routes[`GET ${BUNDLES_PATH}?limit=100&offset=0`] = () =>
-      Response.json([READY_BUNDLE]);
+    harness.routes[`GET ${BUNDLES_PATH}?limit=100&offset=0&type=uploaded`] =
+      () => Response.json([READY_BUNDLE]);
     harness.routes[`DELETE ${BUNDLES_PATH}/${READY_BUNDLE.id}`] = () =>
       new Response(null, { status: 204 });
 

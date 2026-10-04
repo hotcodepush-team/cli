@@ -21,6 +21,7 @@ describe('bundle get', () => {
     expect(harness.readLines()).toEqual([
       `ID           ${READY_BUNDLE.id}`,
       'Number       #17',
+      'Type         uploaded',
       'Version      1.4.2',
       'State        ready',
       'Platforms    android, ios',
@@ -33,8 +34,8 @@ describe('bundle get', () => {
   });
 
   it('should find the bundle by its number in the list and print it as JSON', async () => {
-    harness.routes[`GET ${BUNDLES_PATH}?limit=100&offset=0`] = () =>
-      Response.json([READY_BUNDLE]);
+    harness.routes[`GET ${BUNDLES_PATH}?limit=100&offset=0&type=uploaded`] =
+      () => Response.json([READY_BUNDLE]);
 
     await bundleGetCommand.action(
       { app: DEMO_APP.id, bundle: '17', json: true },
@@ -45,8 +46,8 @@ describe('bundle get', () => {
   });
 
   it('should refuse a number the app has no bundle for', async () => {
-    harness.routes[`GET ${BUNDLES_PATH}?limit=100&offset=0`] = () =>
-      Response.json([READY_BUNDLE]);
+    harness.routes[`GET ${BUNDLES_PATH}?limit=100&offset=0&type=uploaded`] =
+      () => Response.json([READY_BUNDLE]);
 
     await expect(
       bundleGetCommand.action({ app: DEMO_APP.id, bundle: '99' }, undefined),

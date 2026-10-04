@@ -44,17 +44,17 @@ export default defineCommand({
       nextOffset,
       rows: listedBinaries.map(
         ({
-          binaryBuild,
-          binaryVersion,
+          build,
           bundleId,
           deviceCount,
           id,
           lastSeenAt,
           platform,
+          version,
         }) => [
           id,
-          binaryVersion,
-          binaryBuild,
+          version,
+          build,
           platform,
           bundleId,
           String(deviceCount),

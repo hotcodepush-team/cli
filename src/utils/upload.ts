@@ -97,6 +97,7 @@ export async function uploadBundle(
     appId,
     limit: 1,
     state: 'ready',
+    type: 'uploaded',
   });
   return withTemporaryDirectory(async temporaryDirectoryPath => {
     const compressedFiles = await compressFiles(files, temporaryDirectoryPath);
@@ -132,7 +133,6 @@ export async function uploadBundle(
     }
     const createdBundle = await hotCodePush.apps.bundles.create({
       appId,
-      bundleVersion,
       files: manifest.files,
       fingerprint,
       patches: patches.map(
@@ -146,6 +146,7 @@ export async function uploadBundle(
       ),
       platforms: manifest.platforms,
       signature,
+      version: bundleVersion,
       ...gitProvenance,
     });
     const missingSha256s = createdBundle.uploads.files.map(

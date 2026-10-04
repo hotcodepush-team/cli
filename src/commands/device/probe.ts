@@ -127,8 +127,8 @@ export default defineCommand({
     ).find(
       candidate =>
         candidate.platform === platform &&
-        candidate.binaryVersion === binaryVersion &&
-        candidate.binaryBuild === binaryBuild,
+        candidate.version === binaryVersion &&
+        candidate.build === binaryBuild,
     );
     const [servedIndex, databaseIndex] = await Promise.all([
       fetchServedIndex(appId, channel.id, platform),

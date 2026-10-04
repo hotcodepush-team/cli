@@ -23,15 +23,15 @@ describe('binary get', () => {
     );
 
     expect(harness.readLines()).toEqual([
-      `ID              ${BINARY.id}`,
-      'Platform        ios',
-      'Binary version  1.0',
-      'Binary build    1',
-      'Fingerprint     none',
-      `Bundle          ${BINARY.bundleId}`,
-      'Devices         12',
-      `Last seen       ${BINARY.lastSeenAt}`,
-      `Created         ${BINARY.createdAt}`,
+      `ID           ${BINARY.id}`,
+      'Platform     ios',
+      'Version      1.0',
+      'Build        1',
+      'Fingerprint  none',
+      `Bundle       ${BINARY.bundleId}`,
+      'Devices      12',
+      `Last seen    ${BINARY.lastSeenAt}`,
+      `Created      ${BINARY.createdAt}`,
     ]);
   });
 
@@ -55,6 +55,6 @@ describe('binary get', () => {
       message: 'Which store build?',
       options: [{ label: 'ios 1.0 (1)', value: BINARY.id }],
     });
-    expect(harness.readLines()[0]).toBe(`ID              ${BINARY.id}`);
+    expect(harness.readLines()[0]).toBe(`ID           ${BINARY.id}`);
   });
 });

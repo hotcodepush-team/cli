@@ -9,7 +9,7 @@ import { readProjectConfig } from '../../utils/project-config.js';
 import { fetchAppId } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
-  description: "List an app's bundles, newest first.",
+  description: "List an app's uploaded bundles, newest first.",
   examples: [
     'hotcodepush bundle list',
     'hotcodepush bundle list --bundle-version 1.4.2 --json',
@@ -29,9 +29,10 @@ export default defineCommand({
         options,
         readProjectConfig(options.config),
       ),
-      bundleVersion: options.bundleVersion,
       limit: options.limit,
       offset: options.offset,
+      type: 'uploaded',
+      version: options.bundleVersion,
     });
     const nextOffset = resolveNextOffset(listedBundles.length, options);
     if (options.json) {
@@ -43,9 +44,9 @@ export default defineCommand({
       headers: ['NUMBER', 'VERSION', 'STATE', 'PLATFORMS', 'SIZE', 'CREATED'],
       nextOffset,
       rows: listedBundles.map(
-        ({ bundleVersion, createdAt, number, platforms, sizeBytes, state }) => [
+        ({ createdAt, number, platforms, sizeBytes, state, version }) => [
           `#${number}`,
-          bundleVersion,
+          version,
           state,
           platforms.join(','),
           resolveByteText(sizeBytes),

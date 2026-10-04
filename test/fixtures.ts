@@ -85,7 +85,7 @@ export const STAGING_CHANNEL_WITH_DEVICE_COUNTS: ChannelWithDeviceCounts = {
 
 export const READY_BUNDLE: Bundle = {
   appId: DEMO_APP.id,
-  bundleVersion: '1.4.2',
+  version: '1.4.2',
   createdAt: '2026-09-05T08:00:00.000Z',
   expiresAt: null,
   fingerprint: null,
@@ -104,13 +104,14 @@ export const READY_BUNDLE: Bundle = {
   signatureKeyId: null,
   sizeBytes: 812331,
   state: 'ready',
+  type: 'uploaded',
   unusedSince: '2026-09-05T08:05:00.000Z',
   updatedAt: '2026-09-05T08:05:00.000Z',
 };
 
 export const PREVIOUS_BUNDLE: Bundle = {
   ...READY_BUNDLE,
-  bundleVersion: '1.4.1',
+  version: '1.4.1',
   createdAt: '2026-09-04T08:00:00.000Z',
   id: '2f1e0d9c-8b7a-4695-a483-72615049382a',
   number: 16,
@@ -119,8 +120,7 @@ export const PREVIOUS_BUNDLE: Bundle = {
 
 export const BINARY: Binary = {
   appId: DEMO_APP.id,
-  binaryBuild: '1',
-  binaryVersion: '1.0',
+  build: '1',
   bundleId: '4d3c2b1a-0f9e-4d8c-b7a6-59483726150e',
   createdAt: '2026-09-06T08:00:00.000Z',
   deviceCount: 12,
@@ -129,6 +129,7 @@ export const BINARY: Binary = {
   lastSeenAt: '2026-09-08T08:00:00.000Z',
   platform: 'ios',
   updatedAt: '2026-09-06T08:00:00.000Z',
+  version: '1.0',
 };
 
 export const LIVE_RELEASE: Release = {

@@ -25,7 +25,7 @@ export async function fetchBundle(
   options: BundleOptions,
 ): Promise<Bundle> {
   if (options.bundle === undefined) {
-    const bundles = await fetchBundles(hotCodePush, appId);
+    const bundles = await fetchUploadedBundles(hotCodePush, appId);
     const bundleId = await promptSelect(
       '--bundle',
       'Which bundle?',
@@ -47,7 +47,7 @@ export async function fetchBundle(
     );
   }
   const number = Number(options.bundle);
-  const bundle = (await fetchBundles(hotCodePush, appId)).find(
+  const bundle = (await fetchUploadedBundles(hotCodePush, appId)).find(
     candidate => candidate.number === number,
   );
   if (bundle === undefined) {
@@ -59,23 +59,27 @@ export async function fetchBundle(
   return bundle;
 }
 
-export function fetchBundles(
+/**
+ * The app's uploaded bundles, the ones a release or a delete names; a bundle a binary ships is never one of them.
+ */
+export function fetchUploadedBundles(
   hotCodePush: HotCodePush,
   appId: string,
 ): Promise<Bundle[]> {
   return fetchAllPages(page =>
-    hotCodePush.apps.bundles.list({ appId, ...page }),
+    hotCodePush.apps.bundles.list({ appId, ...page, type: 'uploaded' }),
   );
 }
 
 /**
- * The bundle as a person names it: the number with its prefix and the version label, `#42 · 1.4.2`.
+ * The bundle as a person names it: the number with its prefix and the version label, `#42 · 1.4.2`;
+ * a bundle a binary ships has no number, `embedded · 1.4.2`.
  */
 export function resolveBundleLabel({
-  bundleVersion,
   number,
-}: Pick<Bundle, 'bundleVersion' | 'number'>): string {
-  return `#${number} · ${bundleVersion}`;
+  version,
+}: Pick<Bundle, 'number' | 'version'>): string {
+  return `${number === null ? 'embedded' : `#${number}`} · ${version}`;
 }
 
 function resolveBundleById(bundles: Bundle[], bundleId: string): Bundle {

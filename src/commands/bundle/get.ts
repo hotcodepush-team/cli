@@ -31,8 +31,12 @@ export default defineCommand({
     }
     printDetails([
       ['ID', fetchedBundle.id],
-      ['Number', `#${fetchedBundle.number}`],
-      ['Version', fetchedBundle.bundleVersion],
+      [
+        'Number',
+        fetchedBundle.number === null ? 'none' : `#${fetchedBundle.number}`,
+      ],
+      ['Type', fetchedBundle.type],
+      ['Version', fetchedBundle.version],
       ['State', fetchedBundle.state],
       ['Platforms', fetchedBundle.platforms.join(', ')],
       ['Size', resolveByteText(fetchedBundle.sizeBytes)],

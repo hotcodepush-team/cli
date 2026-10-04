@@ -176,8 +176,8 @@ describe('binary create', () => {
     );
     expect(createRequests).toHaveLength(2);
     expect(await createRequests[0]?.json()).toEqual({
-      binaryBuild: '1',
-      binaryVersion: '1.0',
+      build: '1',
+      version: '1.0',
       files: [{ path: 'index.html', sha256: INDEX_SHA256, sizeBytes: 11 }],
       fingerprint: CAPACITOR_FINGERPRINT,
       force: false,
@@ -231,8 +231,8 @@ describe('binary create', () => {
         ({ method, url }) => method === 'POST' && url.endsWith('/binaries'),
       );
       expect(await createRequest?.json()).toMatchObject({
-        binaryBuild: '20401',
-        binaryVersion: '2.4.1',
+        build: '20401',
+        version: '2.4.1',
         platform: 'android',
       });
       const resourceFile = ConfigurationSchema.parse(
@@ -671,8 +671,8 @@ describe('binary create', () => {
         ({ method, url }) => method === 'POST' && url.endsWith('/binaries'),
       );
       expect(await createRequest?.json()).toEqual({
-        binaryBuild: '57',
-        binaryVersion: '2.4.1',
+        build: '57',
+        version: '2.4.1',
         files,
         fingerprint: CAPACITOR_FINGERPRINT,
         force: false,

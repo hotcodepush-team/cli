@@ -93,8 +93,8 @@ describe('bundle upload', () => {
     previousBundles = [] as (typeof READY_BUNDLE)[],
     warnings = [] as { code: string; details: unknown; message: string }[],
   ): void {
-    harness.routes[`GET ${BUNDLES_PATH}?limit=1&state=ready`] = () =>
-      Response.json(previousBundles);
+    harness.routes[`GET ${BUNDLES_PATH}?limit=1&state=ready&type=uploaded`] =
+      () => Response.json(previousBundles);
     harness.routes[`POST ${BUNDLES_PATH}`] = () =>
       Response.json(
         {
@@ -163,7 +163,7 @@ describe('bundle upload', () => {
 
     const createRequest = readRequest('POST', '/bundles');
     expect(await createRequest?.json()).toEqual({
-      bundleVersion: '1.4.2',
+      version: '1.4.2',
       files: [
         { path: 'assets/app.js', sha256: APP_JS_SHA256, sizeBytes: 14 },
         { path: 'index.html', sha256: INDEX_SHA256, sizeBytes: 11 },
@@ -424,13 +424,13 @@ describe('bundle upload', () => {
       undefined,
     );
 
-    const { bundleVersion, files, fingerprint, platforms, signature } =
+    const { files, fingerprint, platforms, signature, version } =
       (await readRequest('POST', '/bundles')?.json()) as {
-        bundleVersion: string;
         files: object[];
         fingerprint: string;
         platforms: string[];
         signature: { keyId: string; value: string };
+        version: string;
       };
     expect(platforms).toEqual(['android', 'ios']);
     expect(signature.keyId).toBe(SIGNING_KEY.fingerprint);
@@ -439,7 +439,7 @@ describe('bundle upload', () => {
         {
           manifest: stringifyCanonicalJson({
             appId: DEMO_APP.id,
-            bundleVersion,
+            bundleVersion: version,
             files,
             fingerprint,
             keyId: signature.keyId,
@@ -486,7 +486,7 @@ describe('bundle upload', () => {
       }),
     );
     expect(await readRequest('POST', '/bundles')?.json()).toMatchObject({
-      bundleVersion: '2.0.0',
+      version: '2.0.0',
     });
   });
 
@@ -557,8 +557,8 @@ describe('bundle upload', () => {
           writeFileSync(bundleFilePath, `bundle of ${bundleFilePath}`);
         }
       });
-      harness.routes[`GET ${BUNDLES_PATH}?limit=1&state=ready`] = () =>
-        Response.json([]);
+      harness.routes[`GET ${BUNDLES_PATH}?limit=1&state=ready&type=uploaded`] =
+        () => Response.json([]);
       harness.routes[`POST ${BUNDLES_PATH}`] = () =>
         Response.json(
           {

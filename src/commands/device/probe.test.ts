@@ -27,10 +27,10 @@ const INDEX_PATH = `/files/apps/${DEMO_APP.id}/channels/${STAGING_CHANNEL.id}/io
 
 const PROBED_BINARY: Binary = {
   ...BINARY,
-  binaryBuild: '57',
-  binaryVersion: '2.4.1',
+  build: '57',
   createdAt: '2026-09-01T00:00:00.000Z',
   fingerprint: FINGERPRINT,
+  version: '2.4.1',
 };
 
 const RELEASE = {
@@ -138,9 +138,9 @@ describe('device probe', () => {
         Response.json([
           {
             ...PROBED_BINARY,
-            binaryBuild: fixture.device.binaryBuild,
-            binaryVersion: fixture.device.binaryVersion,
+            build: fixture.device.binaryBuild,
             createdAt: fixture.device.builtAt,
+            version: fixture.device.binaryVersion,
           },
         ]);
       respondWithIndex({ ...fixture.index, platform: 'ios' });

@@ -318,13 +318,16 @@ async function registerWithUploads(
   files: BundleFile[],
   reporter: ReturnType<typeof createReporter>,
 ): Promise<UploadedFiles & { binary: Binary }> {
+  const { binaryBuild, binaryVersion, ...identityless } = request;
   const createOptions = {
-    ...request,
+    ...identityless,
+    build: binaryBuild,
     files: files.map(({ path, sha256, sizeBytes }) => ({
       path,
       sha256,
       sizeBytes,
     })),
+    version: binaryVersion,
   };
   try {
     const binary = await hotCodePush.apps.binaries.create(createOptions);

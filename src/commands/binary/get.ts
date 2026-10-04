@@ -41,8 +41,8 @@ export default defineCommand({
     printDetails([
       ['ID', fetchedBinary.id],
       ['Platform', fetchedBinary.platform],
-      ['Binary version', fetchedBinary.binaryVersion],
-      ['Binary build', fetchedBinary.binaryBuild],
+      ['Version', fetchedBinary.version],
+      ['Build', fetchedBinary.build],
       ['Fingerprint', fetchedBinary.fingerprint ?? 'none'],
       ['Bundle', fetchedBinary.bundleId],
       ['Devices', String(fetchedBinary.deviceCount)],
@@ -69,8 +69,8 @@ async function promptBinaryId(
   return promptSelect(
     '--binary',
     'Which store build?',
-    binaries.map(({ binaryBuild, binaryVersion, id, platform }) => ({
-      label: `${platform} ${binaryVersion} (${binaryBuild})`,
+    binaries.map(({ build, id, platform, version }) => ({
+      label: `${platform} ${version} (${build})`,
       value: id,
     })),
     options,
