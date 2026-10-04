@@ -1,4 +1,5 @@
 import { createPrivateKey } from 'node:crypto';
+import type { KeyObject } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import {
   resolvePublicKeyOfPrivateKey,
@@ -17,8 +18,14 @@ interface GivenPrivateKey {
   text: string;
 }
 
-// The PEM's first and last line, dropped with all whitespace so the key pasted on one line reads as the file does
-const PEM_BOUNDARY_PATTERN = /-----(BEGIN|END) PRIVATE KEY-----/g;
+type PrivateKeyEncoding = 'pkcs1' | 'pkcs8';
+
+// PKCS #8's encrypted PEM and PKCS #1's, whose header names its cipher
+const ENCRYPTED_KEY_PATTERN = /ENCRYPTED PRIVATE KEY|Proc-Type:/;
+
+// The PEM's first and last line, of PKCS #8 or of PKCS #1 as Expo's tool writes it, dropped with all whitespace so the key
+// pasted on one line reads as the file does
+const PEM_BOUNDARY_PATTERN = /-----(BEGIN|END) (RSA )?PRIVATE KEY-----/g;
 
 const WHITESPACE_PATTERN = /\s/g;
 
@@ -73,6 +80,25 @@ export function writeSigningPrivateKeyFile(
   writeFileSync(filePath, pem, { flag: 'wx', mode: 0o600 });
 }
 
+/**
+ * The key through Node's own import, in each encoding its PEM lines name, or without them PKCS #8 and then PKCS #1.
+ */
+function importPrivateKey(text: string): KeyObject {
+  const key = Buffer.from(
+    text.replace(PEM_BOUNDARY_PATTERN, '').replace(WHITESPACE_PATTERN, ''),
+    'base64',
+  );
+  let importError: unknown;
+  for (const type of resolvePrivateKeyEncodings(text)) {
+    try {
+      return createPrivateKey({ format: 'der', key, type });
+    } catch (error) {
+      importError = error;
+    }
+  }
+  throw importError;
+}
+
 function readGivenPrivateKey(
   privateKeyPath: string | undefined,
 ): GivenPrivateKey | undefined {
@@ -101,22 +127,32 @@ function readPrivateKeyFile(filePath: string): string {
   }
 }
 
+function resolvePrivateKeyEncodings(text: string): PrivateKeyEncoding[] {
+  if (text.includes('BEGIN RSA PRIVATE KEY')) {
+    return ['pkcs1'];
+  }
+  if (text.includes('BEGIN PRIVATE KEY')) {
+    return ['pkcs8'];
+  }
+  return ['pkcs8', 'pkcs1'];
+}
+
 /**
- * The private key in the form the protocol signs with, the base64 of its PKCS #8 DER, imported by Node, and its public half.
+ * The private key in the form the protocol signs with, the base64 of its PKCS #8 DER, and its public half.
  */
 async function resolveSigningKeyPair({
   source,
   text,
 }: GivenPrivateKey): Promise<SigningKeyPair> {
+  if (ENCRYPTED_KEY_PATTERN.test(text)) {
+    throw new InvalidParameterError(
+      `${source}: an encrypted private key is not supported`,
+      undefined,
+      'remove its passphrase first, as "openssl pkey -in <file> -out <new file>" does.',
+    );
+  }
   try {
-    const privateKey = createPrivateKey({
-      format: 'der',
-      key: Buffer.from(
-        text.replace(PEM_BOUNDARY_PATTERN, '').replace(WHITESPACE_PATTERN, ''),
-        'base64',
-      ),
-      type: 'pkcs8',
-    })
+    const privateKey = importPrivateKey(text)
       .export({ format: 'der', type: 'pkcs8' })
       .toString('base64');
     return {
