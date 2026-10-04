@@ -50,7 +50,9 @@ Every command prints its options and two examples with `--help`, and `--json` tu
 An organization, app or channel is named by id or by name, `--app "My App"`; `--app` defaults to the app id in the project's `hotcodepush.json` and `--channel` to the channel it names, `production` unless the file or `HOTCODEPUSH_CHANNEL` says otherwise.
 A command that changes what devices receive or cannot be undone — a release, a rollout, a pause, a revoke, a rollback, a delete — asks once with the consequence, `--yes` confirming in scripts.
 On React Native `bundle upload` and `release create` package the bundles themselves: `react-native bundle` per platform, compiled with Hermes where the app runs it, one bundle per platform and so one release per platform and channel; `--platform ios` limits both to one, and `--path` names a prepared bundle directory for the one platform `--platform` names.
-`bundle upload` hashes every file of the build, patches the large files that changed against the previous bundle, signs the manifest when `hotcodepush.json` lists a public key, uploads only the files and patches the app lacks and the packs, and records the commit it was built from.
+`bundle upload` hashes every file of the build, signs the manifest when `hotcodepush.json` lists a public key, uploads only the files the app lacks, then the full pack and one delta pack per base, and records the commit it was built from.
+The bases are the bundles a device may run before it asks for the new one: the three newest earlier bundles with the same fingerprint and a platform in common, and the bundles the binaries with that fingerprint ship on its platforms.
+On React Native the delta packs against the newest earlier bundle and the binaries carry the main JavaScript bundle as a patch in place of the whole file, where the patch is smaller.
 `bundle list` shows the bundles you uploaded; `--type embedded` shows the ones your binaries ship, which carry no number, and `--type all` both.
 `signing-key create` turns code signing on: it generates an RSA key pair of 4096 bits on this machine, registers the public key with the app, adds it to `publicKeys` in `hotcodepush.json` and prints the private key once, one line of base64 — kept in `keys/{appId}.key` in the CLI's config directory, and in CI in `HOTCODEPUSH_SIGNING_KEY` — after which the app releases only signed bundles; the one key signs for the SDKs and the Expo Updates bridge alike, `signing-key list` shows the fingerprints, and `signing-key delete` unregisters a key, never the app's only one.
 `release create` uploads the web build unless `--bundle` names one already uploaded, releases it to every `--channel` named with the project's channel as the default, and waits until the release is live; a retried pipeline gets the same release back, the `Idempotency-Key` being derived from the bundle and the channel.
@@ -77,7 +79,8 @@ npm run build
 ```
 
 `npm run fmt` formats the code with Prettier.
+`bsdiff-wasm/build.sh` rebuilds `bsdiff-wasm/bsdiff.wasm`, the module that writes the patches, in a Docker image pinned by digest; run it after a change in `bsdiff-wasm/` and commit the module, which CI rebuilds and compares byte for byte.
 
 ## License
 
-See [LICENSE](./LICENSE).
+See [LICENSE](./LICENSE), and [THIRD-PARTY-NOTICES](./THIRD-PARTY-NOTICES) for the code compiled into `bsdiff-wasm/bsdiff.wasm`.
