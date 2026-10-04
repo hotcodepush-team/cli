@@ -59,7 +59,7 @@ The one exception is Better Auth's `/v1/auth/*` slice, reached through `better-a
 | `npm run typecheck`    | `tsc --noEmit`, tests included                                           |
 
 Run `npm run fmt` before every commit; lint, typecheck, test and build must pass, as `ci.yml` checks on every push to `main` and every pull request, on Ubuntu, macOS and Windows, each on Node 22 and 24.
-A test of a POSIX file mode is skipped on Windows, which has none: the user profile's access list protects a file there.
+A test of a POSIX file mode is skipped on Windows, which has none: a file there is protected by the access list of its folder, the user profile's for `config.json` and the project's own for a private key file.
 Run `bsdiff-wasm/build.sh` after a change in `bsdiff-wasm/` and commit the module with it: the image is pinned by digest so the same sources yield the same bytes, and `ci.yml`'s `bsdiff-wasm` job rebuilds the module and fails when its bytes differ from the committed file.
 `node dist/index.js --help` runs the build locally.
 `ci.yml`'s `preview` job publishes every push to `main` and every pull request to pkg.pr.new, and consumers pin one build by its short commit hash: `npm install --save-dev https://pkg.pr.new/hotcodepush-team/cli/hotcodepush@<sha>`.
