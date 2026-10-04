@@ -1,6 +1,6 @@
+import type { PackageJson } from '../binary-create-hook.js';
 import type { BinaryIdentity } from '../binary-identity.js';
 import type { BundleFile } from '../bundle-files.js';
-import type { PackageJson } from '../embed-hook.js';
 import type { InteractivityOptions } from '../environment.js';
 import type { ConfirmationRequiredError } from '../errors.js';
 import { UnsupportedFrameworkError } from '../errors.js';
@@ -23,20 +23,20 @@ export interface FrameworkCheck {
 
 /**
  * What the CLI needs to know about a framework: where its build output and native projects lie, how the store build
- * names itself, and how its SDK package and embed step are wired and checked.
+ * names itself, and how its SDK package and binary create step are wired and checked.
  */
 export interface FrameworkModule {
   /**
-   * The step that runs the embed hook, as `doctor` names it for a missing or stale resource file.
+   * The step that runs binary create, as `doctor` names it for a missing or stale resource file.
    */
-  embedStep: string;
+  binaryCreateStep: string;
   packageName: string;
   /**
    * The packages whose installed versions a bug report needs.
    */
   versionedPackageNames: string[];
   /**
-   * The SDK package and the embed step as `doctor` reports them.
+   * The SDK package and the binary create step as `doctor` reports them.
    */
   checkWiring: (project: FrameworkProject) => FrameworkCheck[];
   /**
@@ -95,7 +95,7 @@ export interface FrameworkProject {
 export interface FrameworkWiring {
   isPackageInstalled: boolean;
   /**
-   * The native project files wiring the embed step would change, relative to the project root.
+   * The native project files wiring the binary create step would change, relative to the project root.
    */
   nativeFilePaths: string[];
   /**
@@ -107,9 +107,9 @@ export interface FrameworkWiring {
    */
   installPackage: () => string;
   /**
-   * Wires the embed step, or skips what is wired already; the blocker is thrown where a file would change.
+   * Wires the binary create step, or skips what is wired already; the blocker is thrown where a file would change.
    */
-  wireEmbedStep: (
+  wireBinaryCreateStep: (
     editBlocker: ConfirmationRequiredError | undefined,
   ) => Promise<StepOutcome<undefined>>;
 }

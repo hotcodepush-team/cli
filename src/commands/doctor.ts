@@ -10,13 +10,13 @@ import { z } from 'zod';
 import { defineCommand } from 'zodline';
 import { PACKAGE_JSON, PROJECT_CONFIG_FILE_NAME } from '../config/consts.js';
 import { createApiClient } from '../utils/api-client.js';
+import type { PackageJson } from '../utils/binary-create-hook.js';
+import { readPackageJson } from '../utils/binary-create-hook.js';
 import {
   fetchCurrentUser,
   isUnauthenticatedError,
   resolveCredentialText,
 } from '../utils/credential.js';
-import type { PackageJson } from '../utils/embed-hook.js';
-import { readPackageJson } from '../utils/embed-hook.js';
 import {
   CliError,
   InvalidParameterError,
@@ -346,7 +346,7 @@ async function checkSigningKey(
 }
 
 /**
- * The framework's SDK package and embed step, then the resource file of each platform; a project without a framework
+ * The framework's SDK package and binary create step, then the resource file of each platform; a project without a framework
  * the CLI packages gets the one row that says so.
  */
 function checkFramework(project: Project): DoctorCheck[] {
@@ -402,7 +402,7 @@ function checkResourceFile(
   if (!existsSync(filePath)) {
     return {
       check,
-      manualStep: framework.embedStep,
+      manualStep: framework.binaryCreateStep,
       message: `no resource file at ${relativeFilePath}`,
       status: 'failed',
     };
@@ -413,7 +413,7 @@ function checkResourceFile(
   if (!parsed.success) {
     return {
       check,
-      manualStep: framework.embedStep,
+      manualStep: framework.binaryCreateStep,
       message: `${relativeFilePath} is not a configuration the SDK reads`,
       status: 'failed',
     };
@@ -424,7 +424,7 @@ function checkResourceFile(
   ) {
     return {
       check,
-      manualStep: framework.embedStep,
+      manualStep: framework.binaryCreateStep,
       message: `${relativeFilePath} names another app`,
       status: 'failed',
     };

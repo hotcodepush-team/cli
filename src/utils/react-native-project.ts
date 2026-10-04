@@ -4,7 +4,7 @@ import { REACT_NATIVE_PACKAGE_NAME } from '../config/consts.js';
 import { NativeProjectError } from './errors.js';
 
 /**
- * One line of the React Native project the embed step or the bundle wiring lives in: whether it is there, and how it gets there.
+ * One line of the React Native project binary create or the bundle wiring lives in: whether it is there, and how it gets there.
  * Every edit is recognised afterwards by the marker it writes, and one the file has no place for is the manual step.
  */
 export interface ReactNativeEdit {
@@ -79,7 +79,7 @@ export function resolveBundleUrlEdit(
 }
 
 /**
- * The app's Gradle file applies the Gradle file the SDK ships, which holds the embed task: one line, resolved through Node
+ * The app's Gradle file applies the Gradle file the SDK ships, which holds the task that runs binary create: one line, resolved through Node
  * so it finds the package wherever `node_modules` lies, in the syntax of the file it joins.
  */
 export function resolveGradleEdit(

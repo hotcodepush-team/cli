@@ -3,15 +3,15 @@ import { join, relative } from 'node:path';
 import {
   CAPACITOR_PACKAGE_NAME,
   CAPACITOR_PACKAGE_SPEC,
-  EMBED_HOOK_COMMAND,
-  EMBED_HOOK_NAME,
+  BINARY_CREATE_HOOK_COMMAND,
+  BINARY_CREATE_HOOK_NAME,
 } from '../../config/consts.js';
-import { readBinaryIdentity as readNativeProjectBinaryIdentity } from '../binary-identity.js';
 import {
   readPackageJson,
-  resolveEmbedHookState,
-  wireEmbedHook,
-} from '../embed-hook.js';
+  resolveBinaryCreateHookState,
+  wireBinaryCreateHook,
+} from '../binary-create-hook.js';
+import { readBinaryIdentity as readNativeProjectBinaryIdentity } from '../binary-identity.js';
 import type { ConfirmationRequiredError } from '../errors.js';
 import type { StepOutcome } from '../init-steps.js';
 import {
@@ -45,11 +45,11 @@ export const CAPACITOR_CONFIG_FILE_NAMES = [
 const INIT_STEP = 'run hotcodepush init';
 
 /**
- * Capacitor: the web build at `webDir`, the native projects at `ios/` and `android/`, the embed step in the
+ * Capacitor: the web build at `webDir`, the native projects at `ios/` and `android/`, binary create in the
  * `capacitor:copy:after` script and the resource file referenced by the iOS project.
  */
 export const capacitorFramework: FrameworkModule = {
-  embedStep: 'run npx cap sync, which runs binary create',
+  binaryCreateStep: 'run npx cap sync, which runs binary create',
   packageName: CAPACITOR_PACKAGE_NAME,
   versionedPackageNames: ['@capacitor/core', CAPACITOR_PACKAGE_NAME],
   checkWiring: project => [
@@ -70,26 +70,28 @@ export const capacitorFramework: FrameworkModule = {
 
 function checkHook({ packageJson }: FrameworkProject): FrameworkCheck {
   const state =
-    packageJson === undefined ? 'absent' : resolveEmbedHookState(packageJson);
+    packageJson === undefined
+      ? 'absent'
+      : resolveBinaryCreateHookState(packageJson);
   switch (state) {
     case 'wired':
       return {
         check: 'hook',
-        message: `${EMBED_HOOK_NAME} runs binary create`,
+        message: `${BINARY_CREATE_HOOK_NAME} runs binary create`,
         status: 'ok',
       };
     case 'unparseable':
       return {
         check: 'hook',
-        manualStep: `add "${EMBED_HOOK_COMMAND}" to the ${EMBED_HOOK_NAME} script by hand`,
-        message: `${EMBED_HOOK_NAME} runs a script without binary create`,
+        manualStep: `add "${BINARY_CREATE_HOOK_COMMAND}" to the ${BINARY_CREATE_HOOK_NAME} script by hand`,
+        message: `${BINARY_CREATE_HOOK_NAME} runs a script without binary create`,
         status: 'failed',
       };
     default:
       return {
         check: 'hook',
         manualStep: INIT_STEP,
-        message: `${EMBED_HOOK_NAME} does not run binary create`,
+        message: `${BINARY_CREATE_HOOK_NAME} does not run binary create`,
         status: 'failed',
       };
   }
@@ -174,7 +176,7 @@ function readConfigValue(
 }
 
 /**
- * Capacitor's `webDir`, the web build the hook embeds.
+ * Capacitor's `webDir`, the web build binary create hashes.
  */
 function readWebDir(projectDirectoryPath: string): string | undefined {
   return readConfigValue(
@@ -251,12 +253,12 @@ async function resolveWiring(
         : [],
     packageFilePaths:
       !isPackageInstalled ||
-      resolveEmbedHookState(packageJson ?? {}) !== 'wired'
+      resolveBinaryCreateHookState(packageJson ?? {}) !== 'wired'
         ? ['package.json']
         : [],
     installPackage: () => installPackage(directoryPath),
-    wireEmbedStep: editBlocker =>
-      wireEmbedStep(
+    wireBinaryCreateStep: editBlocker =>
+      wireBinaryCreateStep(
         directoryPath,
         nativeProjects,
         xcodeProjectFilePath,
@@ -267,9 +269,9 @@ async function resolveWiring(
 }
 
 /**
- * The embed command in the `capacitor:copy:after` script and the resource reference in the iOS project, each left alone when present.
+ * The binary create command in the `capacitor:copy:after` script and the resource reference in the iOS project, each left alone when present.
  */
-async function wireEmbedStep(
+async function wireBinaryCreateStep(
   projectDirectoryPath: string,
   nativeProjects: NativeProjects,
   xcodeProjectFilePath: string | undefined,
@@ -280,13 +282,14 @@ async function wireEmbedStep(
     throw nativeProjects.missingError;
   }
   const isHookWired =
-    resolveEmbedHookState(readPackageJson(projectDirectoryPath)) === 'wired';
+    resolveBinaryCreateHookState(readPackageJson(projectDirectoryPath)) ===
+    'wired';
   const isReferencePresent =
     xcodeProjectFilePath === undefined ||
     hasReadableResourceReference(xcodeProjectFilePath);
   if (isHookWired && isReferencePresent) {
     return {
-      message: `${EMBED_HOOK_NAME} and the iOS resource reference already wired`,
+      message: `${BINARY_CREATE_HOOK_NAME} and the iOS resource reference already wired`,
       status: 'skipped',
       value: undefined,
     };
@@ -295,8 +298,8 @@ async function wireEmbedStep(
     throw editBlocker;
   }
   const wired: string[] = [];
-  if (wireEmbedHook(projectDirectoryPath) === 'wired') {
-    wired.push(EMBED_HOOK_NAME);
+  if (wireBinaryCreateHook(projectDirectoryPath) === 'wired') {
+    wired.push(BINARY_CREATE_HOOK_NAME);
   }
   if (
     xcodeProjectFilePath !== undefined &&

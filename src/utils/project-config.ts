@@ -3,7 +3,7 @@ import { dirname, join, resolve } from 'node:path';
 import { ProjectConfigurationSchema } from '@hotcodepush/protocol';
 import { z } from 'zod';
 import { PROJECT_CONFIG_FILE_NAME } from '../config/consts.js';
-import { stringifyLikeSource } from './embed-hook.js';
+import { stringifyLikeSource } from './binary-create-hook.js';
 import { InvalidParameterError } from './errors.js';
 
 /**

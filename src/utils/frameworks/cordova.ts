@@ -45,10 +45,10 @@ const WEB_DIRECTORY = 'www';
 
 /**
  * Cordova: the web build at `www`, the native projects under `platforms/`, the store build's identity in `config.xml`,
- * and the embed step as the plugin's own `after_prepare` hook, which writes the resource file into each platform's `www`.
+ * and binary create as the plugin's own `after_prepare` hook, which writes the resource file into each platform's `www`.
  */
 export const cordovaFramework: FrameworkModule = {
-  embedStep: 'run npx cordova prepare, which runs binary create',
+  binaryCreateStep: 'run npx cordova prepare, which runs binary create',
   packageName: CORDOVA_PACKAGE_NAME,
   versionedPackageNames: [
     'cordova',
@@ -206,7 +206,7 @@ function resolveWiring({
       runCommandLineVisibly(PLUGIN_ADD_COMMAND_LINE, directoryPath);
       return `installed ${CORDOVA_PACKAGE_NAME} from ${CORDOVA_PACKAGE_SPEC} through cordova plugin add`;
     },
-    wireEmbedStep: () =>
+    wireBinaryCreateStep: () =>
       Promise.resolve({
         message: 'the plugin brings its after_prepare hook; nothing to wire',
         status: 'skipped',

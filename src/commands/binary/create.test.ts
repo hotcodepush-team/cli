@@ -55,7 +55,9 @@ describe('binary create', () => {
   let stderrWrite: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    projectDirectoryPath = mkdtempSync(join(tmpdir(), 'hotcodepush-embed-'));
+    projectDirectoryPath = mkdtempSync(
+      join(tmpdir(), 'hotcodepush-binary-create-'),
+    );
     writeFileSync(
       join(projectDirectoryPath, 'package.json'),
       JSON.stringify({
@@ -546,7 +548,7 @@ describe('binary create', () => {
       writeFileSync(join(appDirectoryPath, 'assets', 'logo.png'), LOGO);
     }
 
-    async function embed(
+    async function createBinary(
       options: { binaryVersion?: string; out?: string } = {},
     ): Promise<void> {
       await binaryCreateCommand.action(
@@ -566,7 +568,7 @@ describe('binary create', () => {
     it('should hash the JavaScript and its assets out of the app, with the identity the build passes in, into the place --out names', async () => {
       writeBundledJavaScript();
 
-      await embed();
+      await createBinary();
 
       const files = [
         { path: 'assets/logo.png', sha256: LOGO_SHA256, sizeBytes: 3 },
@@ -596,7 +598,7 @@ describe('binary create', () => {
     });
 
     it('should create nothing and ask the API nothing when the build bundled no JavaScript', async () => {
-      await embed();
+      await createBinary();
 
       expect(harness.requests).toEqual([]);
       expect(existsSync(join(appDirectoryPath, 'hotcodepush.json'))).toBe(
@@ -610,7 +612,7 @@ describe('binary create', () => {
     it('should name --out when the build does not say where the resource file goes', async () => {
       writeBundledJavaScript();
 
-      await expect(embed({ out: undefined })).rejects.toThrow(
+      await expect(createBinary({ out: undefined })).rejects.toThrow(
         new MissingParameterError('--out'),
       );
       expect(
@@ -621,7 +623,7 @@ describe('binary create', () => {
     it('should name --binary-version when the build does not pass its identity in', async () => {
       writeBundledJavaScript();
 
-      await expect(embed({ binaryVersion: undefined })).rejects.toThrow(
+      await expect(createBinary({ binaryVersion: undefined })).rejects.toThrow(
         new MissingParameterError('--binary-version'),
       );
     });

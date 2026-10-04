@@ -5,13 +5,16 @@ import { z } from 'zod';
 import { defineCommand } from 'zodline';
 import { DOCS_URL, PROJECT_CONFIG_FILE_NAME } from '../config/consts.js';
 import { createApiClient } from '../utils/api-client.js';
+import type { PackageJson } from '../utils/binary-create-hook.js';
+import {
+  readPackageJson,
+  stringifyLikeSource,
+} from '../utils/binary-create-hook.js';
 import {
   fetchCurrentUser,
   isUnauthenticatedError,
   resolveCredentialText,
 } from '../utils/credential.js';
-import type { PackageJson } from '../utils/embed-hook.js';
-import { readPackageJson, stringifyLikeSource } from '../utils/embed-hook.js';
 import type { InteractivityOptions } from '../utils/environment.js';
 import { isInteractive } from '../utils/environment.js';
 import {
@@ -165,7 +168,9 @@ export default defineCommand({
         ),
       { dependsOn: ['app'] },
     );
-    await run.run('hook', () => projectFiles.wiring.wireEmbedStep(editBlocker));
+    await run.run('hook', () =>
+      projectFiles.wiring.wireBinaryCreateStep(editBlocker),
+    );
     await run.run('signing-key', () =>
       createSigningKey(app, projectFiles, options),
     );

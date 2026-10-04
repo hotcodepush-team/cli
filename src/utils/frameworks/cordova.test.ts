@@ -5,7 +5,7 @@ import {
   CORDOVA_CONFIG_XML,
   writeCordovaProject,
 } from '../../../test/cordova-project.js';
-import { readPackageJson } from '../embed-hook.js';
+import { readPackageJson } from '../binary-create-hook.js';
 import { InvalidParameterError } from '../errors.js';
 import type * as packageManagerModule from '../package-manager.js';
 import { runCommandLineVisibly } from '../package-manager.js';
@@ -186,7 +186,7 @@ describe('cordova', () => {
       },
       directoryPath,
     );
-    expect(await wiring.wireEmbedStep(undefined)).toEqual({
+    expect(await wiring.wireBinaryCreateStep(undefined)).toEqual({
       message: 'the plugin brings its after_prepare hook; nothing to wire',
       status: 'skipped',
       value: undefined,

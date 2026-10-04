@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { PackageJson } from '../embed-hook.js';
+import type { PackageJson } from '../binary-create-hook.js';
 import type { FrameworkCheck, FrameworkProject } from './index.js';
 
 const INIT_STEP = 'run hotcodepush init';

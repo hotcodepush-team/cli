@@ -445,7 +445,7 @@ describe('doctor', () => {
         },
         { yes: true },
       )
-    ).wireEmbedStep(undefined);
+    ).wireBinaryCreateStep(undefined);
     respondWithSessionAndApp();
 
     await doctorCommand.action(

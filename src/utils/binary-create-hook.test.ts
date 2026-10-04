@@ -3,13 +3,13 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { writeCapacitorProject } from '../../test/capacitor-project.js';
 import {
-  resolveEmbedHookState,
+  resolveBinaryCreateHookState,
   stringifyLikeSource,
-  wireEmbedHook,
-} from './embed-hook.js';
+  wireBinaryCreateHook,
+} from './binary-create-hook.js';
 import { HookOccupiedError } from './errors.js';
 
-describe('embed-hook', () => {
+describe('binary-create-hook', () => {
   const directoryPaths: string[] = [];
 
   function writeProject(hookScript?: string): string {
@@ -33,30 +33,34 @@ describe('embed-hook', () => {
   });
 
   it('should tell the states apart: absent, occupied by a command, wired, and a script it cannot parse', () => {
-    expect(resolveEmbedHookState({})).toBe('absent');
+    expect(resolveBinaryCreateHookState({})).toBe('absent');
     expect(
-      resolveEmbedHookState({
+      resolveBinaryCreateHookState({
         scripts: { 'capacitor:copy:after': 'node x.mjs' },
       }),
     ).toBe('occupied');
     expect(
-      resolveEmbedHookState({
+      resolveBinaryCreateHookState({
         scripts: {
           'capacitor:copy:after': 'node x.mjs && npx hotcodepush binary create',
         },
       }),
     ).toBe('wired');
     expect(
-      resolveEmbedHookState({ scripts: { 'capacitor:copy:after': 'a; b' } }),
+      resolveBinaryCreateHookState({
+        scripts: { 'capacitor:copy:after': 'a; b' },
+      }),
     ).toBe('unparseable');
     expect(
-      resolveEmbedHookState({ scripts: { 'capacitor:copy:after': 'a || b' } }),
+      resolveBinaryCreateHookState({
+        scripts: { 'capacitor:copy:after': 'a || b' },
+      }),
     ).toBe('unparseable');
   });
 
   it('should take a script still running bundle embed as occupied, since only binary create is the step', () => {
     expect(
-      resolveEmbedHookState({
+      resolveBinaryCreateHookState({
         scripts: { 'capacitor:copy:after': 'npx hotcodepush bundle embed' },
       }),
     ).toBe('occupied');
@@ -65,7 +69,7 @@ describe('embed-hook', () => {
   it('should set the script when there is none, keeping the indentation and the final newline', () => {
     const directoryPath = writeProject();
 
-    expect(wireEmbedHook(directoryPath)).toBe('wired');
+    expect(wireBinaryCreateHook(directoryPath)).toBe('wired');
 
     expect(readScripts(directoryPath)['capacitor:copy:after']).toBe(
       'npx hotcodepush binary create',
@@ -78,8 +82,8 @@ describe('embed-hook', () => {
   it('should append the command to an existing one and leave a wired script alone', () => {
     const directoryPath = writeProject('node scripts/write.mjs');
 
-    expect(wireEmbedHook(directoryPath)).toBe('wired');
-    expect(wireEmbedHook(directoryPath)).toBe('present');
+    expect(wireBinaryCreateHook(directoryPath)).toBe('wired');
+    expect(wireBinaryCreateHook(directoryPath)).toBe('present');
 
     expect(readScripts(directoryPath)['capacitor:copy:after']).toBe(
       'node scripts/write.mjs && npx hotcodepush binary create',
@@ -89,7 +93,9 @@ describe('embed-hook', () => {
   it('should refuse a script it cannot parse with E_HOOK_OCCUPIED', () => {
     const directoryPath = writeProject('a; b');
 
-    expect(() => wireEmbedHook(directoryPath)).toThrow(HookOccupiedError);
+    expect(() => wireBinaryCreateHook(directoryPath)).toThrow(
+      HookOccupiedError,
+    );
   });
 
   it('should write JSON the way the source was written', () => {
@@ -106,7 +112,7 @@ describe('embed-hook', () => {
       JSON.stringify({ name: 'x', scripts: { build: 'b' }, version: '1' }),
     );
 
-    wireEmbedHook(directoryPath);
+    wireBinaryCreateHook(directoryPath);
 
     expect(
       JSON.parse(readFileSync(join(directoryPath, 'package.json'), 'utf8')),

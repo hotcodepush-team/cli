@@ -29,8 +29,8 @@ import {
 } from '../react-native-project.js';
 import type { Platform } from '../upload.js';
 import {
-  addEmbedPhase,
-  hasEmbedPhase,
+  addBinaryCreatePhase,
+  hasBinaryCreatePhase,
   resolveXcodeProjectFilePath,
 } from '../xcode-project.js';
 import type { NativeProjects } from './native-projects.js';
@@ -55,7 +55,8 @@ const BUNDLE_FILE_NAMES: Record<Platform, string> = {
   ios: 'main.jsbundle',
 };
 
-const EMBED_PHASE_DESCRIPTION = 'the Create HotCodePush binary phase in Xcode';
+const BINARY_CREATE_PHASE_DESCRIPTION =
+  'the Create HotCodePush binary phase in Xcode';
 
 const HERMESC_DIRECTORY_NAMES: Partial<Record<NodeJS.Platform, string>> = {
   darwin: 'osx-bin',
@@ -71,16 +72,16 @@ const POD_NAME = 'HotcodepushReactNativeCodePush';
 
 /**
  * React Native: no build output in the project, since each platform's JavaScript is bundled when it is needed — by the
- * native build, whose Xcode phase and Gradle task run the embed step on what it bundled, and by the upload, one bundle
+ * native build, whose Xcode phase and Gradle task run binary create on what it bundled, and by the upload, one bundle
  * per platform. The app hands React Native the bundle the SDK serves, one line in `AppDelegate.swift` and one in `MainApplication.kt`.
  */
 export const reactNativeFramework: FrameworkModule = {
-  embedStep: 'build the app natively, which runs binary create',
+  binaryCreateStep: 'build the app natively, which runs binary create',
   packageName: REACT_NATIVE_PACKAGE_NAME,
   versionedPackageNames: ['react-native', REACT_NATIVE_PACKAGE_NAME],
   checkWiring: project => [
     checkSdkPackage(project, REACT_NATIVE_PACKAGE_NAME),
-    checkEmbedStep(project),
+    checkBinaryCreateStep(project),
     checkBundleWiring(project),
   ],
   collectEmbeddedFiles,
@@ -137,9 +138,11 @@ function checkEdits(
 }
 
 /**
- * `doctor`'s `hook` row: the Xcode phase and the Gradle line that run the embed step.
+ * `doctor`'s `hook` row: the Xcode phase and the Gradle line that run binary create.
  */
-function checkEmbedStep({ directoryPath }: FrameworkProject): FrameworkCheck {
+function checkBinaryCreateStep({
+  directoryPath,
+}: FrameworkProject): FrameworkCheck {
   const nativeProjectPaths = resolveNativeProjectPaths(directoryPath);
   const xcodeProjectFilePath = resolveXcodeProjectFilePath(
     nativeProjectPaths.ios,
@@ -157,14 +160,15 @@ function checkEmbedStep({ directoryPath }: FrameworkProject): FrameworkCheck {
     'the Xcode phase and the Gradle task run binary create',
     gradleEdit === undefined ? [] : [gradleEdit],
     directoryPath,
-    xcodeProjectFilePath !== undefined && !hasEmbedPhase(xcodeProjectFilePath),
+    xcodeProjectFilePath !== undefined &&
+      !hasBinaryCreatePhase(xcodeProjectFilePath),
   );
 }
 
 /**
  * The embedded bundle among the files under the embed step's `--path`: the staged bundle directory on Android,
  * and in the iOS app the JavaScript with React Native's `assets/` beside it, since the app holds far more.
- * A build that bundled nothing — a debug build Metro serves — embeds nothing.
+ * A build that bundled nothing — a debug build Metro serves — gives binary create nothing to hash.
  */
 async function collectEmbeddedFiles(
   platform: Platform,
@@ -454,7 +458,7 @@ async function resolveWiring(
     isPackageInstalled,
     nativeFilePaths: [
       ...(xcodeProjectFilePath === undefined ||
-      hasEmbedPhase(xcodeProjectFilePath)
+      hasBinaryCreatePhase(xcodeProjectFilePath)
         ? []
         : [xcodeProjectFilePath]),
       ...resolveEdits(directoryPath, nativeProjects)
@@ -463,8 +467,8 @@ async function resolveWiring(
     ].map(filePath => relative(directoryPath, filePath)),
     packageFilePaths: isPackageInstalled ? [] : ['package.json'],
     installPackage: () => installPackage(directoryPath),
-    wireEmbedStep: editBlocker =>
-      wireEmbedStep(
+    wireBinaryCreateStep: editBlocker =>
+      wireBinaryCreateStep(
         directoryPath,
         nativeProjects,
         xcodeProjectFilePath,
@@ -479,7 +483,7 @@ async function resolveWiring(
  * `pod install` where the SDK's pod is not installed yet. An edit a file has no place for does not hold the others back:
  * they are made, and the step stops with the first one's manual step.
  */
-async function wireEmbedStep(
+async function wireBinaryCreateStep(
   projectDirectoryPath: string,
   nativeProjects: NativeProjects,
   xcodeProjectFilePath: string | undefined,
@@ -490,7 +494,8 @@ async function wireEmbedStep(
     throw nativeProjects.missingError;
   }
   const isPhaseWired =
-    xcodeProjectFilePath === undefined || hasEmbedPhase(xcodeProjectFilePath);
+    xcodeProjectFilePath === undefined ||
+    hasBinaryCreatePhase(xcodeProjectFilePath);
   const pendingEdits = resolveEdits(
     projectDirectoryPath,
     nativeProjects,
@@ -510,8 +515,8 @@ async function wireEmbedStep(
   const wired: string[] = [];
   if (xcodeProjectFilePath !== undefined && !isPhaseWired) {
     try {
-      await addEmbedPhase(xcodeProjectFilePath, options);
-      wired.push(EMBED_PHASE_DESCRIPTION);
+      await addBinaryCreatePhase(xcodeProjectFilePath, options);
+      wired.push(BINARY_CREATE_PHASE_DESCRIPTION);
     } catch (error) {
       errors.push(assertEditError(error));
     }

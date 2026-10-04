@@ -20,7 +20,7 @@ interface ResourceFileInput {
 }
 
 /**
- * The resource file: the project's configuration with the channel as the id the embed step resolved, plus what only
+ * The resource file: the project's configuration with the channel as the id binary create resolved, plus what only
  * a build step can know — the floor, the fingerprint, the embedded bundle's manifest and id, and the device hosts outside production.
  * The manifest is the bundle manifest without patches, unsigned, the same whether the bundle was registered or not.
  */

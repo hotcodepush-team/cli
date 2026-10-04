@@ -372,7 +372,7 @@ describe('reactNativeFramework', () => {
       );
     });
 
-    describe('wireEmbedStep', () => {
+    describe('wireBinaryCreateStep', () => {
       it('should wire the phase, the Gradle line, both apps and the pod, then run pod install', async () => {
         const directoryPath = writeProject({ isPackageInstalled: true });
         writeInstalledSdk(directoryPath);
@@ -381,7 +381,7 @@ describe('reactNativeFramework', () => {
           { yes: true },
         );
 
-        const outcome = await wiring.wireEmbedStep(undefined);
+        const outcome = await wiring.wireBinaryCreateStep(undefined);
 
         expect(outcome).toEqual({
           message:
@@ -412,7 +412,7 @@ describe('reactNativeFramework', () => {
             readProject(directoryPath),
             options,
           )
-        ).wireEmbedStep(undefined);
+        ).wireBinaryCreateStep(undefined);
         writeFile(
           join(directoryPath, 'ios', 'Podfile.lock'),
           'PODS:\n  - HotcodepushReactNativeCodePush (0.1.0)\n',
@@ -424,7 +424,7 @@ describe('reactNativeFramework', () => {
             readProject(directoryPath),
             options,
           )
-        ).wireEmbedStep(undefined);
+        ).wireBinaryCreateStep(undefined);
 
         expect(outcome).toEqual({
           message: 'binary create and the bundle wiring already wired',
@@ -442,7 +442,7 @@ describe('reactNativeFramework', () => {
         );
         const editBlocker = new ConfirmationRequiredError('changes files');
 
-        await expect(wiring.wireEmbedStep(editBlocker)).rejects.toBe(
+        await expect(wiring.wireBinaryCreateStep(editBlocker)).rejects.toBe(
           editBlocker,
         );
         expect(
@@ -462,7 +462,7 @@ describe('reactNativeFramework', () => {
           { yes: true },
         );
 
-        await expect(wiring.wireEmbedStep(undefined)).rejects.toThrow(
+        await expect(wiring.wireBinaryCreateStep(undefined)).rejects.toThrow(
           NativeProjectError,
         );
 
@@ -484,7 +484,7 @@ describe('reactNativeFramework', () => {
           { yes: true },
         );
 
-        await expect(wiring.wireEmbedStep(undefined)).rejects.toThrow(
+        await expect(wiring.wireBinaryCreateStep(undefined)).rejects.toThrow(
           new MissingParameterError(
             '--ios-path',
             'pass --ios-path and --android-path; neither ios nor android exists.',
@@ -523,7 +523,7 @@ describe('reactNativeFramework', () => {
         await reactNativeFramework.resolveWiring(readProject(directoryPath), {
           yes: true,
         })
-      ).wireEmbedStep(undefined);
+      ).wireBinaryCreateStep(undefined);
 
       expect(
         reactNativeFramework.checkWiring(readProject(directoryPath)),

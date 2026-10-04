@@ -23,15 +23,15 @@ const APP_GROUP_NAME = 'App';
 
 const APPLICATION_PRODUCT_TYPE = 'com.apple.product-type.application';
 
-const EMBED_PHASE_FIX =
+const BINARY_CREATE_PHASE_FIX =
   'add a Run Script phase after "Bundle React Native code and images" that runs node_modules/@hotcodepush/react-native-code-push/scripts/embed-xcode.sh through React Native\'s with-environment.sh.';
 
-const EMBED_PHASE_MARKER = 'embed-xcode.sh';
+const BINARY_CREATE_PHASE_MARKER = 'embed-xcode.sh';
 
-const EMBED_PHASE_NAME = 'Create HotCodePush binary';
+const BINARY_CREATE_PHASE_NAME = 'Create HotCodePush binary';
 
 // the lines of the phase as a pbxproj string carries them, the line breaks escaped
-const EMBED_PHASE_SCRIPT = [
+const BINARY_CREATE_PHASE_SCRIPT = [
   'set -e',
   '',
   '# hotcodepush: writes hotcodepush.json into the app and registers the binary',
@@ -114,24 +114,26 @@ export async function addResourceReference(
 }
 
 /**
- * Whether the React Native project already runs the embed step: the phase is recognised by the script it runs.
+ * Whether the React Native project already runs binary create: the phase is recognised by the script it runs.
  */
-export function hasEmbedPhase(projectFilePath: string): boolean {
-  return readFileSync(projectFilePath, 'utf8').includes(EMBED_PHASE_MARKER);
+export function hasBinaryCreatePhase(projectFilePath: string): boolean {
+  return readFileSync(projectFilePath, 'utf8').includes(
+    BINARY_CREATE_PHASE_MARKER,
+  );
 }
 
 /**
- * Adds the run-script phase that runs the embed step to the app target, right after "Bundle React Native code and images",
+ * Adds the run-script phase that runs binary create to the app target, right after "Bundle React Native code and images",
  * whose output it hashes; the phase already there is left alone, and a project without that bundling phase is the manual step.
  */
-export async function addEmbedPhase(
+export async function addBinaryCreatePhase(
   projectFilePath: string,
   options: XcodeTargetOptions,
 ): Promise<'added' | 'present'> {
-  if (hasEmbedPhase(projectFilePath)) {
+  if (hasBinaryCreatePhase(projectFilePath)) {
     return 'present';
   }
-  const project = parseProject(projectFilePath, EMBED_PHASE_FIX);
+  const project = parseProject(projectFilePath, BINARY_CREATE_PHASE_FIX);
   const target = await resolveAppTarget(project, options);
   const nativeTarget = project.pbxNativeTargetSection()[target.key];
   const buildPhases =
@@ -144,20 +146,20 @@ export async function addEmbedPhase(
       `${projectFilePath} has no "${REACT_NATIVE_BUNDLE_PHASE_NAME}" phase to run binary create after`,
       undefined,
       projectFilePath,
-      EMBED_PHASE_FIX,
+      BINARY_CREATE_PHASE_FIX,
     );
   }
   project.addBuildPhase(
     [],
     'PBXShellScriptBuildPhase',
-    EMBED_PHASE_NAME,
+    BINARY_CREATE_PHASE_NAME,
     target.key,
-    { shellPath: '/bin/sh', shellScript: EMBED_PHASE_SCRIPT },
+    { shellPath: '/bin/sh', shellScript: BINARY_CREATE_PHASE_SCRIPT },
   );
-  // the package appends the phase to the target; the embed step belongs right after the bundling it reads
-  const embedPhase = buildPhases.pop();
-  if (embedPhase !== undefined) {
-    buildPhases.splice(bundlePhaseIndex + 1, 0, embedPhase);
+  // the package appends the phase to the target; binary create belongs right after the bundling it reads
+  const binaryCreatePhase = buildPhases.pop();
+  if (binaryCreatePhase !== undefined) {
+    buildPhases.splice(bundlePhaseIndex + 1, 0, binaryCreatePhase);
   }
   writeFileSync(projectFilePath, project.writeSync());
   return 'added';
