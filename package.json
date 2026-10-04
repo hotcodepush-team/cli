@@ -30,7 +30,9 @@
     "hotcodepush": "dist/index.js"
   },
   "files": [
-    "dist"
+    "bsdiff-wasm/bsdiff.wasm",
+    "dist",
+    "THIRD-PARTY-NOTICES"
   ],
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
@@ -40,7 +42,6 @@
     "typecheck": "tsc --noEmit --project tsconfig.json"
   },
   "dependencies": {
-    "@bsdiff-rust/node": "0.0.7",
     "@clack/prompts": "1.8.1",
     "@hotcodepush/node": "https://pkg.pr.new/hotcodepush-team/hotcodepush-node/@hotcodepush/node@9972b17",
     "@hotcodepush/protocol": "https://pkg.pr.new/hotcodepush-team/protocol-js/@hotcodepush/protocol@29e9725d8fa89d586f702bb491f0856c65661184",
