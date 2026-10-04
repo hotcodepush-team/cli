@@ -117,7 +117,7 @@ describe('xcode-project', () => {
         /\/\* Bundle React Native code and images \*\/,\n\t+[0-9A-F]+ \/\* Create HotCodePush binary \*\/,/,
       );
       expect(projectText).toContain(
-        'shellScript = "set -e\\n\\n# hotcodepush: writes hotcodepush.json into the app and registers the binary\\nWITH_ENVIRONMENT=\\"$REACT_NATIVE_PATH/scripts/xcode/with-environment.sh\\"\\nHOTCODEPUSH_BINARY_CREATE=\\"$REACT_NATIVE_PATH/../@hotcodepush/react-native-code-push/scripts/embed-xcode.sh\\"\\n\\n/bin/sh -c \\"$WITH_ENVIRONMENT $HOTCODEPUSH_BINARY_CREATE\\"\\n";',
+        'shellScript = "set -e\\n\\n# hotcodepush: writes hotcodepush.json into the app and registers the binary\\nWITH_ENVIRONMENT=\\"$REACT_NATIVE_PATH/scripts/xcode/with-environment.sh\\"\\nHOTCODEPUSH_BINARY_CREATE=\\"$REACT_NATIVE_PATH/../@hotcodepush/react-native-code-push/scripts/binary-create-xcode.sh\\"\\n\\n/bin/sh -c \\"$WITH_ENVIRONMENT $HOTCODEPUSH_BINARY_CREATE\\"\\n";',
       );
       expect(await addBinaryCreatePhase(reactNativeProjectFilePath, {})).toBe(
         'present',
@@ -129,7 +129,7 @@ describe('xcode-project', () => {
         addBinaryCreatePhase(projectFilePath, {}),
       ).rejects.toMatchObject({
         code: 'E_XCODE_PROJECT',
-        fix: expect.stringContaining('embed-xcode.sh'),
+        fix: expect.stringContaining('binary-create-xcode.sh'),
         message: `${projectFilePath} has no "Bundle React Native code and images" phase to run binary create after`,
       });
       expect(hasBinaryCreatePhase(projectFilePath)).toBe(false);

@@ -166,7 +166,7 @@ function checkBinaryCreateStep({
 }
 
 /**
- * The embedded bundle among the files under the embed step's `--path`: the staged bundle directory on Android,
+ * The embedded bundle among the files under binary create's `--path`: the staged bundle directory on Android,
  * and in the iOS app the JavaScript with React Native's `assets/` beside it, since the app holds far more.
  * A build that bundled nothing — a debug build Metro serves — gives binary create nothing to hash.
  */

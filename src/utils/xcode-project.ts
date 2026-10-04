@@ -24,9 +24,9 @@ const APP_GROUP_NAME = 'App';
 const APPLICATION_PRODUCT_TYPE = 'com.apple.product-type.application';
 
 const BINARY_CREATE_PHASE_FIX =
-  'add a Run Script phase after "Bundle React Native code and images" that runs node_modules/@hotcodepush/react-native-code-push/scripts/embed-xcode.sh through React Native\'s with-environment.sh.';
+  'add a Run Script phase after "Bundle React Native code and images" that runs node_modules/@hotcodepush/react-native-code-push/scripts/binary-create-xcode.sh through React Native\'s with-environment.sh.';
 
-const BINARY_CREATE_PHASE_MARKER = 'embed-xcode.sh';
+const BINARY_CREATE_PHASE_MARKER = 'binary-create-xcode.sh';
 
 const BINARY_CREATE_PHASE_NAME = 'Create HotCodePush binary';
 
@@ -36,7 +36,7 @@ const BINARY_CREATE_PHASE_SCRIPT = [
   '',
   '# hotcodepush: writes hotcodepush.json into the app and registers the binary',
   'WITH_ENVIRONMENT="$REACT_NATIVE_PATH/scripts/xcode/with-environment.sh"',
-  'HOTCODEPUSH_BINARY_CREATE="$REACT_NATIVE_PATH/../@hotcodepush/react-native-code-push/scripts/embed-xcode.sh"',
+  'HOTCODEPUSH_BINARY_CREATE="$REACT_NATIVE_PATH/../@hotcodepush/react-native-code-push/scripts/binary-create-xcode.sh"',
   '',
   '/bin/sh -c "$WITH_ENVIRONMENT $HOTCODEPUSH_BINARY_CREATE"',
   '',
