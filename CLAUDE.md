@@ -107,10 +107,11 @@ Its wiring is five edits, each recognised afterwards by what it wrote: the Xcode
   put as a `Blob` opened from disk so the client can retry it, and the Node client splits it into parts above its `SINGLE_UPLOAD_LIMIT_BYTES`; the packs go the same way.
   Only the hashes the API answers as missing move; the delta pack against the previous bundle needs that bundle's manifest from the files host and is skipped, never failed, when it is unreachable.
 - **An upload is signed when `hotcodepush.json` lists a public key**, with the first listed key whose private half is at hand:
-  `HOTCODEPUSH_SIGNING_KEY` first, a CI's secret holding one key or two separated by a comma, then `keys/{appId}.key` in the config directory, one key per line.
+  `HOTCODEPUSH_SIGNING_KEY` first, a CI's secret holding the one key, then `keys/{appId}.key` in the config directory, one key per line, each the base64 of an RSA key's PKCS #8 DER.
   None at hand is `E_SIGNING_KEY_UNAVAILABLE` before a byte moves, since the app would refuse the unsigned bundle; no listed key means no signature, and the API's `E_SIGNATURE_REQUIRED` passes through.
   The signed bytes are the manifest as the API rebuilds it — the files by path, the patches by path then base, the platforms sorted, by code units — so `buildManifestToSign` and the API's builder change together.
   `signing-key create` appends to `publicKeys` and to the key file, so the key that signs keeps signing until the file's order says otherwise; a private key never reaches a message, a progress line or an error.
+  Signing is RSA alone, `rsa-v1_5-sha256`, the keys of 4096 bits and none under 2048 taken; `binary create` writes each listed public key into the resource file in the encoding the platform's own API imports — PKCS #1 DER on iOS, SPKI DER on Android — beside its key id, through Node's key export in `utils/resource-file.ts`, never by hand.
 - **A patch is optional bytes**: a file of 16 KB or more whose path the previous bundle lists with other content is diffed from the base's bytes, fetched by hash from the files host,
   and listed when the patch is at most 70 percent of the file's stored bytes.
   A base that cannot be fetched, a platform the binding has no build for and a diff that fails each mean the file moves whole and the upload goes on.
