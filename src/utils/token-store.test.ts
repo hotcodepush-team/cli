@@ -36,6 +36,7 @@ describe('token store', () => {
 
   beforeEach(() => {
     configHomePath = mkdtempSync(join(tmpdir(), 'hotcodepush-'));
+    vi.stubEnv('APPDATA', configHomePath);
     vi.stubEnv('XDG_CONFIG_HOME', configHomePath);
     vi.stubEnv('HOTCODEPUSH_TOKEN', undefined);
     keyring.deletePassword.mockReset().mockReturnValue(true);

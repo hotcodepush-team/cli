@@ -22,6 +22,7 @@ describe('user config', () => {
 
   beforeEach(() => {
     configHomePath = mkdtempSync(join(tmpdir(), 'hotcodepush-'));
+    vi.stubEnv('APPDATA', configHomePath);
     vi.stubEnv('XDG_CONFIG_HOME', configHomePath);
   });
 

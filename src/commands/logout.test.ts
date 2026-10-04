@@ -37,6 +37,7 @@ describe('logout', () => {
 
   beforeEach(() => {
     configHomePath = mkdtempSync(join(tmpdir(), 'hotcodepush-'));
+    vi.stubEnv('APPDATA', configHomePath);
     vi.stubEnv('XDG_CONFIG_HOME', configHomePath);
     vi.stubEnv('HOTCODEPUSH_TOKEN', undefined);
     vi.stubGlobal('fetch', fetchMock);
