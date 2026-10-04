@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 `hotcodepush`, the HotCodePush CLI: the npm package and the binary that set up, release and manage live updates from the terminal and CI.
-The repo is public and MIT; this is the skeleton, and the commands arrive issue by issue on top of it.
+The repo is public and MIT; the commands in `src/index.ts`'s registry are built, for Capacitor, Cordova and React Native projects, and the rest of the spec arrives issue by issue.
 Stack: TypeScript compiled by `tsc` into ESM in `dist/`, zodline and zod for the commands, `@hotcodepush/node` for the API, `@clack/prompts` for the prompts, `@napi-rs/keyring` for the token, our own WebAssembly build of the Rust crate `qbsdiff` for the patches, ESLint, Prettier, Vitest, Node 22 as the floor, developed on 24.
 
 The plan is the private `handbook` repo, checked out beside this one: `../handbook/docs/`.
@@ -24,8 +24,9 @@ src/
                the framework and the build's directory, `frameworks/` with one module per framework behind one interface
                and the registry line that makes the CLI package it, the files of a build hashed, their gzip copies,
                the pack writer, the git provenance, the device hosts derived from the API URL,
-               the upload flow, the signing keys at hand and the pair that signs, the delta bases, the main bundle's patches
-               and the bsdiff module behind one function, the store build's binary identity from the native projects, the resource file,
+               the upload flow, the private key an upload is given, read into the pair that signs, and the writer of its file,
+               the delta bases, the main bundle's patches and the bsdiff module behind one function,
+               the store build's binary identity from the native projects, the resource file,
                the progress lines, the browser opener, the JSON, tables and details output,
                init's step runner, the outcome rows init and doctor print, the package manager and its visible runs,
                the binary create hook in package.json, the resource reference and the binary create phase in the Xcode project,
@@ -57,7 +58,8 @@ The one exception is Better Auth's `/v1/auth/*` slice, reached through `better-a
 | `npm test`             | Vitest                                                                   |
 | `npm run typecheck`    | `tsc --noEmit`, tests included                                           |
 
-Run `npm run fmt` before every commit; lint, typecheck, test and build must pass, as `ci.yml` checks on every push and pull request.
+Run `npm run fmt` before every commit; lint, typecheck, test and build must pass, as `ci.yml` checks on every push to `main` and every pull request, on Ubuntu, macOS and Windows, each on Node 22 and 24.
+A test of a POSIX file mode is skipped on Windows, which has none: the user profile's access list protects a file there.
 Run `bsdiff-wasm/build.sh` after a change in `bsdiff-wasm/` and commit the module with it: the image is pinned by digest so the same sources yield the same bytes, and `ci.yml`'s `bsdiff-wasm` job rebuilds the module and fails when its bytes differ from the committed file.
 `node dist/index.js --help` runs the build locally.
 `ci.yml`'s `preview` job publishes every push to `main` and every pull request to pkg.pr.new, and consumers pin one build by its short commit hash: `npm install --save-dev https://pkg.pr.new/hotcodepush-team/cli/hotcodepush@<sha>`.
@@ -112,12 +114,20 @@ Its wiring is five edits, each recognised afterwards by what it wrote: the Xcode
 - **The token** is `readToken()`: `HOTCODEPUSH_TOKEN` when set, then the keyring, then the `config.json` fallback that any keyring failure latches for the rest of the process.
 - **An upload never holds a file in memory**: every file is hashed and gzip-compressed through streams into a temporary directory,
   put as a `Blob` opened from disk so the client can retry it, and the Node client splits it into parts above its `SINGLE_UPLOAD_LIMIT_BYTES`; the packs go the same way.
+  The one exception is a patch: `utils/bsdiff.ts` reads the main bundle and its base whole into the module's memory while it computes one, and holds the patch until it is written.
   Only the hashes the API answers as missing move, then the full pack and one delta pack per base; the bases and their file lists are read from the API before the bundle is created, and an API that cannot be reached there fails the upload, nothing skipped.
-- **An upload is signed when `hotcodepush.json` lists a public key**, with the first listed key whose private half is at hand:
-  `HOTCODEPUSH_SIGNING_KEY` first, a CI's secret holding the one key, then `keys/{appId}.key` in the config directory, one key per line, each the base64 of an RSA key's PKCS #8 DER.
-  None at hand is `E_SIGNING_KEY_UNAVAILABLE` before a byte moves, since the app would refuse the unsigned bundle; no listed key means no signature, and the API's `E_SIGNATURE_REQUIRED` passes through.
+- **An upload is signed when `hotcodepush.json` lists a public key**, with the private key it is given:
+  the file `--private-key-path` names, otherwise the key's text in `HOTCODEPUSH_SIGNING_KEY`, which a CI sets from a secret; an empty variable is unset.
+  The CLI stores no private key and looks for none; `bundle upload` and `release create`, where it uploads, take both, and the key must belong to one of the listed public keys.
+  A key is read through Node's key import as PKCS #8 or as PKCS #1, the form Expo's tool writes, with its PEM lines or without them, on one line too.
+  Keys listed and no key given is `E_SIGNING_KEY_UNAVAILABLE` before a byte moves, since the app would refuse the unsigned bundle.
+  A key given while none is listed, a file that cannot be read, an encrypted key, a key that is no RSA key of at least 2048 bits and a key that belongs to no listed public key are `E_INVALID_PARAMETER`, the message naming the flag or the variable the key came through.
+  No listed key and no key given means no signature, and the API's `E_SIGNATURE_REQUIRED` passes through.
   The signed bytes are the manifest as the API rebuilds it — the files by path, the platforms sorted, by code units — so `buildManifestToSign` and the API's builder change together.
-  `signing-key create` appends to `publicKeys` and to the key file, so the key that signs keeps signing until the file's order says otherwise; a private key never reaches a message, a progress line or an error.
+  `signing-key create` writes the private key as a PEM file of PKCS #8 through Node's key export, to `--private-key-path` or to `hotcodepush-private-key.pem` in the working directory, mode `0600` on macOS and Linux.
+  It refuses an existing file and a missing folder before any request, writes the file before it registers the public key and removes it again when the registration fails, and appends the public key to `publicKeys` last; its `--json` carries `privateKeyPath`, never the key.
+  `doctor` looks for no key file: it checks that the app has registered the listed public keys and, where the variable is set, that its key belongs to one of them.
+  A private key never reaches a message, a progress line or an error.
   Signing is RSA alone, `rsa-v1_5-sha256`, the keys of 4096 bits and none under 2048 taken; `binary create` writes each listed public key into the resource file in the encoding the platform's own API imports — PKCS #1 DER on iOS, SPKI DER on Android — beside its key id, through Node's key export in `utils/resource-file.ts`, never by hand.
 - **A delta pack per base, a patch for the main bundle alone**: the bases are the three newest earlier complete uploaded bundles with the bundle's fingerprint that share a platform with it,
   and every binary with that fingerprint whose platform the bundle names, the base being the binary's embedded bundle.
