@@ -15,6 +15,13 @@ export function isColorEnabled(stream: NodeJS.WriteStream): boolean {
 }
 
 /**
+ * `HOTCODEPUSH_OFFLINE=1`: a build that never asks the API, for one that is never shipped.
+ */
+export function isOfflineBuild(): boolean {
+  return process.env.HOTCODEPUSH_OFFLINE === '1';
+}
+
+/**
  * Interactive means a TTY, no `CI` variable, and neither `--json` nor `--yes`:
  * every CI sets `CI`, and a prompt in a pipeline would hang the job even where a TTY exists.
  */

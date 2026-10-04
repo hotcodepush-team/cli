@@ -226,6 +226,20 @@ export class NotLoggedInError extends CliError {
 }
 
 /**
+ * A pipeline building a binary without a token: a shipped build must name its channel, so CI fails where a local build goes on offline.
+ */
+export class PipelineNotLoggedInError extends CliError {
+  constructor() {
+    super({
+      code: 'E_NOT_LOGGED_IN',
+      exitCode: ExitCode.NotLoggedIn,
+      fix: 'set HOTCODEPUSH_TOKEN in the pipeline, or HOTCODEPUSH_OFFLINE=1 for a build that is never shipped.',
+      message: 'you are not logged in, and a build in CI must name its channel',
+    });
+  }
+}
+
+/**
  * The outcome a command printed itself — `init`'s steps, `doctor`'s checks — ended in a failure:
  * only the exit code is left to set, and the entry point prints nothing more for it.
  */

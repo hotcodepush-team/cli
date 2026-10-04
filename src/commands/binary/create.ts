@@ -12,9 +12,12 @@ import {
   compressFiles,
   withTemporaryDirectory,
 } from '../../utils/compressed-files.js';
+import { isOfflineBuild } from '../../utils/environment.js';
 import {
+  CliError,
   InvalidParameterError,
   MissingParameterError,
+  PipelineNotLoggedInError,
 } from '../../utils/errors.js';
 import { readFingerprint } from '../../utils/fingerprint.js';
 import {
@@ -51,10 +54,28 @@ import {
 } from '../../utils/upload.js';
 import { readApiUrl } from '../../utils/user-config.js';
 
+/**
+ * What the API answered for the build: the channel's id, null when the build names none, and the binary created,
+ * or the one warning that says what was skipped and why.
+ */
 interface Registration extends UploadedFiles {
   binary: Binary | null;
+  channelId: string | null;
   skippedReason: string | null;
 }
+
+/**
+ * The channel the build follows as given, a name or an id, with where it came from for an error to name.
+ */
+interface ChannelReference {
+  reference: string;
+  source: string;
+}
+
+/**
+ * Why a local build does not ask the API: the offline switch, or no token to ask with.
+ */
+type OfflineCause = 'no-token' | 'offline-switch';
 
 /**
  * What registers the store build beside its files: the app, the platform, the version and build, and the native contract it was built on.
@@ -66,13 +87,15 @@ interface RegistrationRequest extends BinaryIdentity {
   platform: Platform;
 }
 
+const ID_SCHEMA = z.guid();
+
 const PLATFORMS = ['android', 'ios'] as const;
 
 const NO_UPLOAD: UploadedFiles = { uploadedBytes: 0, uploadedFileCount: 0 };
 
 export default defineCommand({
   description:
-    'The build step the native hook calls: writes the resource file the SDK reads and registers the store build, the binary, with the bundle it ships.',
+    'The build step the native hook calls: writes the resource file the SDK reads and creates the store build, the binary, with the bundle it ships; HOTCODEPUSH_OFFLINE=1 builds without the API, naming no channel unless it is given by id, for a build that is never shipped.',
   examples: [
     'hotcodepush binary create --platform ios',
     'hotcodepush binary create --platform android --binary-version 2.4.1 --binary-build 57 --force',
@@ -150,7 +173,6 @@ export default defineCommand({
       directoryPath,
       framework,
     );
-    const channelId = await fetchBuildChannelId(completeProjectConfig);
     const identity = resolveBinaryIdentity(
       options,
       platform,
@@ -162,7 +184,7 @@ export default defineCommand({
       completeProjectConfig.nativeSources ?? [],
     );
     const reporter = createReporter(options);
-    const registration = await registerBinary(
+    const registration = await registerBuild(
       {
         ...identity,
         appId: completeProjectConfig.appId,
@@ -170,6 +192,7 @@ export default defineCommand({
         force: options.force ?? false,
         platform,
       },
+      resolveChannelReference(completeProjectConfig),
       files,
       reporter,
     );
@@ -179,7 +202,7 @@ export default defineCommand({
       buildResourceFile({
         builtAt,
         bundleVersion: identity.binaryVersion,
-        channelId,
+        channelId: registration.channelId,
         embeddedBundleId: registration.binary?.bundleId ?? null,
         files,
         fingerprint,
@@ -223,54 +246,68 @@ function assertProjectConfig(
 }
 
 /**
- * The id of the channel the build follows: `HOTCODEPUSH_CHANNEL`, a build flavour's override, otherwise hotcodepush.json's.
- * A name is resolved through the API, so a name the app does not have fails the build with the source named; an id is taken as it is.
+ * Registers the build with the API: the channel's name resolved to its id, then the binary created on its identity,
+ * the files the API names as missing uploaded first. A local build never breaks: offline, without a token, or with an API
+ * that cannot be reached or refuses, it goes on with one warning, without a binary and with the channel only when given by id.
+ * A pipeline fails instead, since what it ships must name its channel; a channel name the app lacks fails everywhere.
  */
-function fetchBuildChannelId(
-  projectConfig: ProjectConfig & { appId: string },
-): Promise<string> {
-  const flavourChannel = process.env.HOTCODEPUSH_CHANNEL;
-  const [reference, source] = flavourChannel
-    ? [flavourChannel, 'HOTCODEPUSH_CHANNEL']
-    : [resolveProjectChannel(projectConfig), PROJECT_CONFIG_FILE_NAME];
-  return fetchResourceId(
-    'channel',
-    reference,
-    () => fetchChannels(createApiClient(), projectConfig.appId),
-    source,
-  );
-}
-
-/**
- * Registers the bundle create-only on its binary identity, uploading the files the API names as missing first.
- * Without a token the registration is skipped; a failure skips it too with one warning, except in CI, where a conflicting
- * fingerprint under an unbumped build number is a pipeline mistake someone must see — a build never breaks locally.
- */
-async function registerBinary(
+async function registerBuild(
   request: RegistrationRequest,
+  channelReference: ChannelReference,
   files: BundleFile[],
   reporter: ReturnType<typeof createReporter>,
 ): Promise<Registration> {
-  if (readToken() === undefined) {
+  const channelIdByShape = ID_SCHEMA.safeParse(channelReference.reference)
+    .success
+    ? channelReference.reference
+    : null;
+  const offlineCause = resolveOfflineCause();
+  if (offlineCause !== undefined) {
     return {
       ...NO_UPLOAD,
       binary: null,
-      skippedReason:
-        'not logged in, so the binary was not registered; run "hotcodepush login" or set HOTCODEPUSH_TOKEN.',
+      channelId: channelIdByShape,
+      skippedReason: resolveOfflineText(offlineCause, channelIdByShape),
     };
   }
   const hotCodePush = createApiClient();
+  let channelId: string;
   try {
-    return await registerWithUploads(hotCodePush, request, files, reporter);
+    channelId =
+      channelIdByShape ??
+      (await fetchResourceId(
+        'channel',
+        channelReference.reference,
+        () => fetchChannels(hotCodePush, request.appId),
+        channelReference.source,
+      ));
   } catch (error) {
-    // a build never breaks locally: a refused, conflicting or unreachable registration is one warning; CI fails with it
+    if (error instanceof CliError || process.env.CI) {
+      throw error;
+    }
+    return {
+      ...NO_UPLOAD,
+      binary: null,
+      channelId: null,
+      skippedReason: `the channel could not be resolved, so the build names none and takes no updates, and no binary was created: ${resolveFailureText(error)}`,
+    };
+  }
+  try {
+    return {
+      ...(await registerWithUploads(hotCodePush, request, files, reporter)),
+      channelId,
+      skippedReason: null,
+    };
+  } catch (error) {
+    // a build never breaks locally: a refused, conflicting or unreachable creation is one warning; CI fails with it
     if (process.env.CI) {
       throw error;
     }
     return {
       ...NO_UPLOAD,
       binary: null,
-      skippedReason: `the binary was not registered: ${resolveFailureText(error)}`,
+      channelId,
+      skippedReason: `the binary was not created: ${resolveFailureText(error)}`,
     };
   }
 }
@@ -280,7 +317,7 @@ async function registerWithUploads(
   request: RegistrationRequest,
   files: BundleFile[],
   reporter: ReturnType<typeof createReporter>,
-): Promise<Registration> {
+): Promise<UploadedFiles & { binary: Binary }> {
   const createOptions = {
     ...request,
     files: files.map(({ path, sha256, sizeBytes }) => ({
@@ -291,7 +328,7 @@ async function registerWithUploads(
   };
   try {
     const binary = await hotCodePush.apps.binaries.create(createOptions);
-    return { ...NO_UPLOAD, binary, skippedReason: null };
+    return { ...NO_UPLOAD, binary };
   } catch (error) {
     const missingSha256s = resolveMissingSha256s(error);
     if (missingSha256s === undefined) {
@@ -312,7 +349,7 @@ async function registerWithUploads(
         ),
     );
     const binary = await hotCodePush.apps.binaries.create(createOptions);
-    return { ...uploadedFiles, binary, skippedReason: null };
+    return { ...uploadedFiles, binary };
   }
 }
 
@@ -406,6 +443,60 @@ function resolvePlatformFromEnvironment(options: {
     PLATFORMS.map(platform => ({ label: platform, value: platform })),
     options,
   );
+}
+
+/**
+ * The channel the build follows: `HOTCODEPUSH_CHANNEL`, a build flavour's override, otherwise hotcodepush.json's.
+ */
+function resolveChannelReference(
+  projectConfig: ProjectConfig,
+): ChannelReference {
+  const flavourChannel = process.env.HOTCODEPUSH_CHANNEL;
+  return flavourChannel
+    ? { reference: flavourChannel, source: 'HOTCODEPUSH_CHANNEL' }
+    : {
+        reference: resolveProjectChannel(projectConfig),
+        source: PROJECT_CONFIG_FILE_NAME,
+      };
+}
+
+/**
+ * Whether the build goes on without the API: under `HOTCODEPUSH_OFFLINE`, or without a token on a local machine;
+ * a pipeline without a token fails, since what it ships must name its channel.
+ */
+function resolveOfflineCause(): OfflineCause | undefined {
+  if (isOfflineBuild()) {
+    return 'offline-switch';
+  }
+  if (readToken() !== undefined) {
+    return undefined;
+  }
+  if (process.env.CI) {
+    throw new PipelineNotLoggedInError();
+  }
+  return 'no-token';
+}
+
+/**
+ * The one warning of a build made offline: why, what it lacks, and for a missing token how to get one.
+ */
+function resolveOfflineText(
+  offlineCause: OfflineCause,
+  channelId: string | null,
+): string {
+  const causeText =
+    offlineCause === 'offline-switch'
+      ? 'HOTCODEPUSH_OFFLINE is set'
+      : 'not logged in';
+  const consequenceText =
+    channelId === null
+      ? ': it names no channel and takes no updates until it is built with a token, and no binary was created'
+      : ' and no binary was created';
+  const fixText =
+    offlineCause === 'offline-switch'
+      ? ''
+      : '; run "hotcodepush login" or set HOTCODEPUSH_TOKEN';
+  return `${causeText}, so the build was made offline${consequenceText}${fixText}.`;
 }
 
 function resolveFailureText(error: unknown): string {

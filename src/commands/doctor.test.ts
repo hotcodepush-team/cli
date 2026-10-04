@@ -253,6 +253,45 @@ describe('doctor', () => {
     ]);
   });
 
+  it('should fail a resource file that names no channel, a build made offline or without a token', async () => {
+    const directoryPath = await writeSetUpProject();
+    const resourceFilePath = join(
+      directoryPath,
+      'ios',
+      'App',
+      'App',
+      'hotcodepush.json',
+    );
+    writeFileSync(
+      resourceFilePath,
+      JSON.stringify({
+        ...JSON.parse(readFileSync(resourceFilePath, 'utf8')),
+        channelId: null,
+      }),
+    );
+    respondWithSessionAndApp();
+
+    await expect(
+      doctorCommand.action(
+        { config: join(directoryPath, 'hotcodepush.json'), json: true },
+        undefined,
+      ),
+    ).rejects.toBeInstanceOf(ReportedFailureError);
+
+    expect(
+      (harness.readJson() as DoctorResult).checks.find(
+        ({ check }) => check === 'ios-resource-file',
+      ),
+    ).toEqual({
+      check: 'ios-resource-file',
+      manualStep:
+        'log in or set HOTCODEPUSH_TOKEN, leave HOTCODEPUSH_OFFLINE unset, then run npx cap sync, which runs binary create',
+      message:
+        'ios/App/App/hotcodepush.json names no channel, so the build takes no updates: it was made offline or without a token',
+      status: 'failed',
+    });
+  });
+
   function listPublicKey(directoryPath: string): void {
     const configPath = join(directoryPath, 'hotcodepush.json');
     writeFileSync(

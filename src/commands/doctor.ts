@@ -429,6 +429,14 @@ function checkResourceFile(
       status: 'failed',
     };
   }
+  if (parsed.data.channelId === null) {
+    return {
+      check,
+      manualStep: `log in or set HOTCODEPUSH_TOKEN, leave HOTCODEPUSH_OFFLINE unset, then ${framework.binaryCreateStep}`,
+      message: `${relativeFilePath} names no channel, so the build takes no updates: it was made offline or without a token`,
+      status: 'failed',
+    };
+  }
   return {
     check,
     message: `${relativeFilePath} built at ${parsed.data.builtAt}`,

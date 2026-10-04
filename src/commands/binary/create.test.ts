@@ -34,7 +34,10 @@ import {
   PRODUCTION_CHANNEL,
   STAGING_CHANNEL,
 } from '../../../test/fixtures.js';
-import { respondWithChannels } from '../../../test/release-routes.js';
+import {
+  CHANNELS_PATH,
+  respondWithChannels,
+} from '../../../test/release-routes.js';
 import { MissingParameterError } from '../../utils/errors.js';
 import binaryCreateCommand from './create.js';
 
@@ -393,62 +396,151 @@ describe('binary create', () => {
     expect(harness.readJson()).toMatchObject({ resourceFilePath: outFilePath });
   });
 
-  it('should still write the resource file and warn when not logged in and hotcodepush.json names the channel by id', async () => {
-    vi.stubEnv('HOTCODEPUSH_TOKEN', undefined);
-    vi.stubEnv(
-      'XDG_CONFIG_HOME',
-      createTemporaryDirectory('hotcodepush-nohome-'),
-    );
-    const configPath = join(projectDirectoryPath, 'hotcodepush.json');
-    writeFileSync(
-      configPath,
-      JSON.stringify({
-        appId: DEMO_APP.id,
-        channel: PRODUCTION_CHANNEL.id,
-        dir: 'dist',
-      }),
-    );
+  describe('when the build does not reach the API', () => {
+    const NO_CHANNEL_TEXT =
+      'it names no channel and takes no updates until it is built with a token, and no binary was created';
 
-    await binaryCreateCommand.action(
-      { config: configPath, platform: 'ios' },
-      undefined,
-    );
+    function stubNoToken(): void {
+      vi.stubEnv('HOTCODEPUSH_TOKEN', undefined);
+      vi.stubEnv(
+        'XDG_CONFIG_HOME',
+        createTemporaryDirectory('hotcodepush-nohome-'),
+      );
+    }
 
-    expect(harness.requests).toEqual([]);
-    expect(readResourceFile('ios/App/App/hotcodepush.json')).toMatchObject({
-      channelId: PRODUCTION_CHANNEL.id,
-      embeddedBundleId: null,
-      embeddedBundleManifest: { platforms: ['ios'] },
-    });
-    expect(stderrWrite).toHaveBeenCalledWith(
-      expect.stringContaining('Warning: not logged in'),
-    );
-  });
+    function writeChannelById(): string {
+      const configPath = join(projectDirectoryPath, 'hotcodepush.json');
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          appId: DEMO_APP.id,
+          channel: PRODUCTION_CHANNEL.id,
+          dir: 'dist',
+        }),
+      );
+      return configPath;
+    }
 
-  it('should fail with E_NOT_LOGGED_IN when not logged in and the channel is a name only the API resolves', async () => {
-    vi.stubEnv('HOTCODEPUSH_TOKEN', undefined);
-    vi.stubEnv(
-      'XDG_CONFIG_HOME',
-      createTemporaryDirectory('hotcodepush-nohome-'),
-    );
-
-    await expect(
-      binaryCreateCommand.action(
+    async function createIosBinary(configPath?: string): Promise<void> {
+      await binaryCreateCommand.action(
         {
-          config: join(projectDirectoryPath, 'hotcodepush.json'),
+          config: configPath ?? join(projectDirectoryPath, 'hotcodepush.json'),
           platform: 'ios',
         },
         undefined,
-      ),
-    ).rejects.toMatchObject({ code: 'E_NOT_LOGGED_IN' });
-    expect(
-      existsSync(
-        join(projectDirectoryPath, 'ios', 'App', 'App', 'hotcodepush.json'),
-      ),
-    ).toBe(false);
+      );
+    }
+
+    it('should write the resource file without a channel and ask the API nothing under HOTCODEPUSH_OFFLINE, also in CI', async () => {
+      vi.stubEnv('HOTCODEPUSH_OFFLINE', '1');
+      vi.stubEnv('CI', 'true');
+
+      await createIosBinary();
+
+      expect(harness.requests).toEqual([]);
+      expect(readResourceFile('ios/App/App/hotcodepush.json')).toMatchObject({
+        channelId: null,
+        embeddedBundleId: null,
+        fingerprint: CAPACITOR_FINGERPRINT,
+      });
+      expect(stderrWrite.mock.calls).toEqual([
+        [
+          `Warning: HOTCODEPUSH_OFFLINE is set, so the build was made offline: ${NO_CHANNEL_TEXT}.\n`,
+        ],
+      ]);
+    });
+
+    it('should keep a channel given by id under HOTCODEPUSH_OFFLINE', async () => {
+      vi.stubEnv('HOTCODEPUSH_OFFLINE', '1');
+
+      await createIosBinary(writeChannelById());
+
+      expect(harness.requests).toEqual([]);
+      expect(readResourceFile('ios/App/App/hotcodepush.json')).toMatchObject({
+        channelId: PRODUCTION_CHANNEL.id,
+      });
+      expect(stderrWrite).toHaveBeenCalledWith(
+        'Warning: HOTCODEPUSH_OFFLINE is set, so the build was made offline and no binary was created.\n',
+      );
+    });
+
+    it('should write the same resource file when not logged in locally, the warning naming the login and HOTCODEPUSH_TOKEN', async () => {
+      stubNoToken();
+
+      await createIosBinary();
+
+      expect(harness.requests).toEqual([]);
+      expect(readResourceFile('ios/App/App/hotcodepush.json')).toMatchObject({
+        channelId: null,
+        embeddedBundleId: null,
+      });
+      expect(stderrWrite.mock.calls).toEqual([
+        [
+          `Warning: not logged in, so the build was made offline: ${NO_CHANNEL_TEXT}; run "hotcodepush login" or set HOTCODEPUSH_TOKEN.\n`,
+        ],
+      ]);
+    });
+
+    it('should fail with E_NOT_LOGGED_IN in CI without a token, naming HOTCODEPUSH_TOKEN and HOTCODEPUSH_OFFLINE, before writing anything', async () => {
+      stubNoToken();
+      vi.stubEnv('CI', 'true');
+
+      await expect(createIosBinary(writeChannelById())).rejects.toMatchObject({
+        code: 'E_NOT_LOGGED_IN',
+        exitCode: 3,
+        fix: 'set HOTCODEPUSH_TOKEN in the pipeline, or HOTCODEPUSH_OFFLINE=1 for a build that is never shipped.',
+      });
+      expect(
+        existsSync(
+          join(projectDirectoryPath, 'ios', 'App', 'App', 'hotcodepush.json'),
+        ),
+      ).toBe(false);
+    });
+
+    it('should write the resource file without a channel and create no binary when the API refuses to resolve the name, and fail only in CI', async () => {
+      harness.routes[`GET ${CHANNELS_PATH}`] = () =>
+        respondWithApiError(403, 'E_FORBIDDEN', 'You are not a member.');
+
+      await createIosBinary();
+
+      expect(readResourceFile('ios/App/App/hotcodepush.json')).toMatchObject({
+        channelId: null,
+        embeddedBundleId: null,
+      });
+      expect(stderrWrite.mock.calls).toEqual([
+        [
+          'Warning: the channel could not be resolved, so the build names none and takes no updates, and no binary was created: E_FORBIDDEN You are not a member.\n',
+        ],
+      ]);
+      expect(
+        harness.requests.filter(({ method }) => method === 'POST'),
+      ).toEqual([]);
+
+      vi.stubEnv('CI', 'true');
+      await expect(createIosBinary()).rejects.toMatchObject({
+        code: 'E_FORBIDDEN',
+      });
+    });
+
+    it('should take a channel given by id without asking the API for it', async () => {
+      harness.routes[`POST ${BINARIES_PATH}`] = () =>
+        Response.json(BINARY, { status: 201 });
+
+      await createIosBinary(writeChannelById());
+
+      expect(
+        harness.requests.filter(
+          ({ url }) => new URL(url).pathname === CHANNELS_PATH,
+        ),
+      ).toEqual([]);
+      expect(readResourceFile('ios/App/App/hotcodepush.json')).toMatchObject({
+        channelId: PRODUCTION_CHANNEL.id,
+        embeddedBundleId: BINARY.bundleId,
+      });
+    });
   });
 
-  it('should still write the resource file and warn when the API is unreachable, and fail only in CI', async () => {
+  it('should still write the resource file and warn when creating the binary fails, and fail only in CI', async () => {
     harness.routes[`POST ${BINARIES_PATH}`] = () => {
       throw new TypeError('fetch failed');
     };
@@ -462,10 +554,11 @@ describe('binary create', () => {
     );
 
     expect(readResourceFile('ios/App/App/hotcodepush.json')).toMatchObject({
+      channelId: PRODUCTION_CHANNEL.id,
       embeddedBundleId: null,
     });
     expect(stderrWrite).toHaveBeenCalledWith(
-      'Warning: the binary was not registered: fetch failed\n',
+      'Warning: the binary was not created: fetch failed\n',
     );
 
     vi.stubEnv('CI', 'true');
