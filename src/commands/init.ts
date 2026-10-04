@@ -98,7 +98,7 @@ const ID_SCHEMA = z.guid();
 
 export default defineCommand({
   description:
-    'Set a Capacitor or Cordova project up from sign-in to the first release, re-runnable at any step.',
+    'Set a Capacitor, Cordova or React Native project up from sign-in to the first release, re-runnable at any step.',
   examples: ['hotcodepush init', 'hotcodepush init --yes --json'],
   options: defineCommandOptions({
     androidPath: z
