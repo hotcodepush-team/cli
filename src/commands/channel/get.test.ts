@@ -63,14 +63,14 @@ describe('channel get', () => {
     expect(harness.readJson()).toEqual(STAGING_CHANNEL_WITH_DEVICE_COUNTS);
   });
 
-  it('should read the channel by id when hotcodepush.json still carries the deprecated channelId', async () => {
+  it('should read the channel by id without listing the channels when hotcodepush.json names it by id', async () => {
     respondWithChannel();
 
     await channelGetCommand.action(
       {
         config: harness.writeProjectConfig({
           appId: DEMO_APP.id,
-          channelId: STAGING_CHANNEL.id,
+          channel: STAGING_CHANNEL.id,
         }),
         json: true,
       },

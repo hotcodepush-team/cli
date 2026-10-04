@@ -8,13 +8,8 @@ import { InvalidParameterError } from './errors.js';
 
 /**
  * `hotcodepush.json`, the project's configuration, as written: `init` writes it and completes a partial one, so every key is optional.
- * `channelId`, the channel by id, is the key `channel` replaced, read for one more release.
  */
-export type ProjectConfig = Partial<
-  z.input<typeof ProjectConfigurationSchema>
-> & {
-  channelId?: string;
-};
+export type ProjectConfig = Partial<z.input<typeof ProjectConfigurationSchema>>;
 
 /**
  * The project's configuration with the directory it lies in, the project root every path is relative to.
@@ -27,8 +22,6 @@ export interface ProjectConfigLocation {
 }
 
 const ID_SCHEMA = z.guid();
-
-let isChannelIdNoticePrinted = false;
 
 /**
  * The app id of the file, checked before a command uses it without asking the API:
@@ -45,13 +38,11 @@ export function assertProjectConfigAppId(appId: string): void {
 }
 
 /**
- * The channel the project follows: `channel` by name, `production`, the schema's default, when the file names none,
- * or the deprecated `channelId` by id while a file still carries it alone.
+ * The channel the project follows, by name or by id: `channel`, or `production`, the schema's default, when the file names none.
  */
 export function resolveProjectChannel(projectConfig: ProjectConfig): string {
   return (
     projectConfig.channel ??
-    projectConfig.channelId ??
     ProjectConfigurationSchema.shape.channel.parse(undefined)
   );
 }
@@ -68,7 +59,6 @@ export function readProjectConfig(
 
 /**
  * The configuration and its directory; without a file the working directory is the project root.
- * A file still carrying `channelId` gets one deprecation notice on stderr per run.
  */
 export function locateProjectConfig(
   configPath: string | undefined,
@@ -93,9 +83,6 @@ export function locateProjectConfig(
   const projectConfig = JSON.parse(
     readFileSync(filePath, 'utf8'),
   ) as ProjectConfig;
-  if (projectConfig.channelId !== undefined) {
-    printChannelIdNotice();
-  }
   return { directoryPath: dirname(filePath), filePath, projectConfig };
 }
 
@@ -121,14 +108,4 @@ function findProjectConfigFilePath(directoryPath: string): string | undefined {
   return parentDirectoryPath === directoryPath
     ? undefined
     : findProjectConfigFilePath(parentDirectoryPath);
-}
-
-function printChannelIdNotice(): void {
-  if (isChannelIdNoticePrinted) {
-    return;
-  }
-  isChannelIdNoticePrinted = true;
-  process.stderr.write(
-    `Warning: ${PROJECT_CONFIG_FILE_NAME}'s channelId is deprecated and read for one more release; replace it with "channel", the channel's name.\n`,
-  );
 }

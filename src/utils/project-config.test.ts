@@ -14,8 +14,6 @@ const PROJECT_CONFIG = {
   channel: 'staging',
 };
 
-const LEGACY_CHANNEL_ID = '6ba7b810-9dad-41d1-80b4-00c04fd430c8';
-
 describe('project config', () => {
   let projectPath: string;
 
@@ -72,29 +70,5 @@ describe('project config', () => {
     expect(resolveProjectChannel({ appId: PROJECT_CONFIG.appId })).toBe(
       'production',
     );
-  });
-
-  it('should read a deprecated channelId with one notice per run when the file carries it', () => {
-    const stderrWrite = vi
-      .spyOn(process.stderr, 'write')
-      .mockImplementation(() => true);
-    const configPath = join(projectPath, 'hotcodepush.json');
-    writeFileSync(
-      configPath,
-      JSON.stringify({
-        appId: PROJECT_CONFIG.appId,
-        channelId: LEGACY_CHANNEL_ID,
-      }),
-    );
-
-    const projectConfig = readProjectConfig(configPath);
-    readProjectConfig(configPath);
-
-    expect(resolveProjectChannel(projectConfig ?? {})).toBe(LEGACY_CHANNEL_ID);
-    expect(stderrWrite.mock.calls).toEqual([
-      [
-        `Warning: hotcodepush.json's channelId is deprecated and read for one more release; replace it with "channel", the channel's name.\n`,
-      ],
-    ]);
   });
 });

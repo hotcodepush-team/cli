@@ -238,11 +238,11 @@ describe('init', () => {
     ]);
   });
 
-  it('should complete a hotcodepush.json that still carries the deprecated channelId without naming another channel', async () => {
+  it('should complete a hotcodepush.json that names its channel by id without naming another channel', async () => {
     const directoryPath = writeProject({
       hookScript: 'npx hotcodepush binary create',
       isPackageInstalled: true,
-      projectConfig: { appId: DEMO_APP.id, channelId: PRODUCTION_CHANNEL.id },
+      projectConfig: { appId: DEMO_APP.id, channel: PRODUCTION_CHANNEL.id },
     });
     rmSync(join(directoryPath, 'ios'), { force: true, recursive: true });
     respondWithSession([ACME_ORGANIZATION]);
@@ -259,7 +259,7 @@ describe('init', () => {
 
     expect(readJsonFile(join(directoryPath, 'hotcodepush.json'))).toEqual({
       appId: DEMO_APP.id,
-      channelId: PRODUCTION_CHANNEL.id,
+      channel: PRODUCTION_CHANNEL.id,
       dir: 'www',
     });
   });

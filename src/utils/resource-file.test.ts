@@ -66,7 +66,7 @@ describe('resource file', () => {
     });
   });
 
-  it('should keep the configured SDK options, drop a deprecated channelId and write no hosts for production', () => {
+  it('should keep the configured SDK options, replace the channel by the resolved id and write no hosts for production', () => {
     const resourceFile = buildResourceFile({
       builtAt: '2026-09-29T12:00:00.000Z',
       bundleVersion: '1.0',
@@ -78,12 +78,13 @@ describe('resource file', () => {
       platform: 'android',
       projectConfig: {
         appId: 'ec266350-15f9-44c6-9d85-82f1363ede75',
-        channelId: '9b2f4d1e-3c5a-4e6f-8a7b-1c2d3e4f5a6b',
+        channel: 'staging',
         installStrategy: 'next-resume',
       },
     });
 
     expect(resourceFile.channelId).toBe(CHANNEL_ID);
+    expect(resourceFile).not.toHaveProperty('channel');
     expect(resourceFile.installStrategy).toBe('next-resume');
     expect(resourceFile.embeddedBundleId).toBe(
       'c56a4180-65aa-42ec-a945-5fd21dec0538',

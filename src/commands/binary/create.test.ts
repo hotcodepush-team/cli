@@ -393,7 +393,7 @@ describe('binary create', () => {
     expect(harness.readJson()).toMatchObject({ resourceFilePath: outFilePath });
   });
 
-  it('should still write the resource file and warn when not logged in and hotcodepush.json still names the channel by id', async () => {
+  it('should still write the resource file and warn when not logged in and hotcodepush.json names the channel by id', async () => {
     vi.stubEnv('HOTCODEPUSH_TOKEN', undefined);
     vi.stubEnv(
       'XDG_CONFIG_HOME',
@@ -404,7 +404,7 @@ describe('binary create', () => {
       configPath,
       JSON.stringify({
         appId: DEMO_APP.id,
-        channelId: PRODUCTION_CHANNEL.id,
+        channel: PRODUCTION_CHANNEL.id,
         dir: 'dist',
       }),
     );

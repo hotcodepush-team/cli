@@ -453,7 +453,7 @@ async function writeConfiguration(
       {
         ...projectConfig,
         appId: projectConfig?.appId ?? app.id,
-        ...(hasChannel(projectConfig)
+        ...(projectConfig?.channel !== undefined
           ? {}
           : { channel: await fetchDefaultChannelName(hotCodePush, app) }),
         ...(dir === undefined ? {} : { dir }),
@@ -657,16 +657,6 @@ function findNamed<TResource extends { id: string; name: string }>(
 }
 
 /**
- * The file names a channel: by name, or by the deprecated `channelId`, which it keeps for one more release.
- */
-function hasChannel(projectConfig: ProjectConfig | undefined): boolean {
-  return (
-    projectConfig?.channel !== undefined ||
-    projectConfig?.channelId !== undefined
-  );
-}
-
-/**
  * The file names the app, the channel and, where the upload reads a build from the project, that build's directory.
  */
 function isConfigurationComplete(
@@ -675,7 +665,7 @@ function isConfigurationComplete(
 ): boolean {
   return (
     projectConfig?.appId !== undefined &&
-    hasChannel(projectConfig) &&
+    projectConfig?.channel !== undefined &&
     (framework.packageBundles !== undefined || projectConfig.dir !== undefined)
   );
 }

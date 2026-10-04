@@ -71,11 +71,10 @@ export function writeResourceFile(
 }
 
 /**
- * The project's configuration without its channel by name or by the deprecated id, which the resolved id replaces.
+ * The project's configuration without its channel, which the resolved id replaces.
  */
 function omitChannel(projectConfig: ProjectConfig): ProjectConfig {
   const configuration = { ...projectConfig };
   delete configuration.channel;
-  delete configuration.channelId;
   return configuration;
 }
