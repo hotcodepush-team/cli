@@ -74,8 +74,8 @@ export default defineCommand({
   description:
     'The build step the native hook calls: writes the resource file the SDK reads and registers the store build, the binary, with the bundle it ships.',
   examples: [
-    'hotcodepush bundle embed --platform ios',
-    'hotcodepush bundle embed --platform android --binary-version 2.4.1 --binary-build 57 --force',
+    'hotcodepush binary create --platform ios',
+    'hotcodepush binary create --platform android --binary-version 2.4.1 --binary-build 57 --force',
   ],
   options: defineCommandOptions({
     binaryBuild: z
@@ -139,7 +139,7 @@ export default defineCommand({
     if (files === undefined) {
       // a build that bundled nothing runs the development server's JavaScript: no API call, no resource file, no failure
       process.stderr.write(
-        `Nothing is embedded: the ${platform} build bundled no JavaScript, as a debug build served by the development server does.\n`,
+        `No binary created: the ${platform} build bundled no JavaScript, as a debug build served by the development server does.\n`,
       );
       return;
     }

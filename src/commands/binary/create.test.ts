@@ -36,7 +36,7 @@ import {
 } from '../../../test/fixtures.js';
 import { respondWithChannels } from '../../../test/release-routes.js';
 import { MissingParameterError } from '../../utils/errors.js';
-import bundleEmbedCommand from './embed.js';
+import binaryCreateCommand from './create.js';
 
 // the not-logged-in case must not find a token in the machine's keyring
 vi.mock('@napi-rs/keyring', () => ({
@@ -49,7 +49,7 @@ const BINARIES_PATH = `/v1/apps/${DEMO_APP.id}/binaries`;
 const INDEX_HTML = '<h1>v1</h1>';
 const INDEX_SHA256 = createHash('sha256').update(INDEX_HTML).digest('hex');
 
-describe('bundle embed', () => {
+describe('binary create', () => {
   const harness = useCommandHarness();
   let projectDirectoryPath = '';
   let stderrWrite: ReturnType<typeof vi.spyOn>;
@@ -158,7 +158,7 @@ describe('bundle embed', () => {
         );
       };
 
-    await bundleEmbedCommand.action(
+    await binaryCreateCommand.action(
       {
         config: join(projectDirectoryPath, 'hotcodepush.json'),
         platform: 'ios',
@@ -214,7 +214,7 @@ describe('bundle embed', () => {
       Response.json(BINARY, { status: 201 });
 
     try {
-      await bundleEmbedCommand.action(
+      await binaryCreateCommand.action(
         {
           config: join(cordovaDirectoryPath, 'hotcodepush.json'),
           platform: 'android',
@@ -255,7 +255,7 @@ describe('bundle embed', () => {
     rmSync(join(projectDirectoryPath, 'hotcodepush.json'));
     vi.spyOn(process, 'cwd').mockReturnValue(projectDirectoryPath);
 
-    await bundleEmbedCommand.action({}, undefined);
+    await binaryCreateCommand.action({}, undefined);
 
     expect(harness.requests).toEqual([]);
     expect(harness.readLines()).toEqual([]);
@@ -274,7 +274,7 @@ describe('bundle embed', () => {
     );
 
     await expect(
-      bundleEmbedCommand.action(
+      binaryCreateCommand.action(
         { config: configPath, platform: 'ios' },
         undefined,
       ),
@@ -296,7 +296,7 @@ describe('bundle embed', () => {
     rmSync(join(projectDirectoryPath, 'package-lock.json'));
 
     await expect(
-      bundleEmbedCommand.action(
+      binaryCreateCommand.action(
         {
           config: join(projectDirectoryPath, 'hotcodepush.json'),
           platform: 'ios',
@@ -319,7 +319,7 @@ describe('bundle embed', () => {
     harness.routes[`POST ${BINARIES_PATH}`] = () =>
       Response.json(BINARY, { status: 201 });
 
-    await bundleEmbedCommand.action(
+    await binaryCreateCommand.action(
       {
         config: join(projectDirectoryPath, 'hotcodepush.json'),
         platform: 'ios',
@@ -337,7 +337,7 @@ describe('bundle embed', () => {
     harness.routes[`POST ${BINARIES_PATH}`] = () =>
       Response.json({ ...BINARY, platform: 'android' });
 
-    await bundleEmbedCommand.action(
+    await binaryCreateCommand.action(
       { config: join(projectDirectoryPath, 'hotcodepush.json'), json: true },
       undefined,
     );
@@ -377,7 +377,7 @@ describe('bundle embed', () => {
     harness.routes[`POST ${BINARIES_PATH}`] = () =>
       Response.json(BINARY, { status: 201 });
 
-    await bundleEmbedCommand.action(
+    await binaryCreateCommand.action(
       {
         config: join(projectDirectoryPath, 'hotcodepush.json'),
         json: true,
@@ -407,7 +407,7 @@ describe('bundle embed', () => {
       }),
     );
 
-    await bundleEmbedCommand.action(
+    await binaryCreateCommand.action(
       { config: configPath, platform: 'ios' },
       undefined,
     );
@@ -431,7 +431,7 @@ describe('bundle embed', () => {
     );
 
     await expect(
-      bundleEmbedCommand.action(
+      binaryCreateCommand.action(
         {
           config: join(projectDirectoryPath, 'hotcodepush.json'),
           platform: 'ios',
@@ -451,7 +451,7 @@ describe('bundle embed', () => {
       throw new TypeError('fetch failed');
     };
 
-    await bundleEmbedCommand.action(
+    await binaryCreateCommand.action(
       {
         config: join(projectDirectoryPath, 'hotcodepush.json'),
         platform: 'ios',
@@ -468,7 +468,7 @@ describe('bundle embed', () => {
 
     vi.stubEnv('CI', 'true');
     await expect(
-      bundleEmbedCommand.action(
+      binaryCreateCommand.action(
         {
           config: join(projectDirectoryPath, 'hotcodepush.json'),
           platform: 'ios',
@@ -492,7 +492,7 @@ describe('bundle embed', () => {
       platform: 'ios' as const,
     };
 
-    await bundleEmbedCommand.action(options, undefined);
+    await binaryCreateCommand.action(options, undefined);
     expect(stderrWrite).toHaveBeenCalledWith(
       expect.stringContaining('E_EMBED_CONFLICT'),
     );
@@ -503,7 +503,7 @@ describe('bundle embed', () => {
 
     vi.stubEnv('CI', 'true');
     await expect(
-      bundleEmbedCommand.action(options, undefined),
+      binaryCreateCommand.action(options, undefined),
     ).rejects.toMatchObject({
       code: 'E_EMBED_CONFLICT',
     });
@@ -549,7 +549,7 @@ describe('bundle embed', () => {
     async function embed(
       options: { binaryVersion?: string; out?: string } = {},
     ): Promise<void> {
-      await bundleEmbedCommand.action(
+      await binaryCreateCommand.action(
         {
           binaryBuild: '57',
           binaryVersion: '2.4.1',
@@ -563,7 +563,7 @@ describe('bundle embed', () => {
       );
     }
 
-    it('should embed the JavaScript and its assets out of the app, with the identity the build passes in, into the place --out names', async () => {
+    it('should hash the JavaScript and its assets out of the app, with the identity the build passes in, into the place --out names', async () => {
       writeBundledJavaScript();
 
       await embed();
@@ -595,7 +595,7 @@ describe('bundle embed', () => {
       });
     });
 
-    it('should embed nothing and ask the API nothing when the build bundled no JavaScript', async () => {
+    it('should create nothing and ask the API nothing when the build bundled no JavaScript', async () => {
       await embed();
 
       expect(harness.requests).toEqual([]);
@@ -603,7 +603,7 @@ describe('bundle embed', () => {
         false,
       );
       expect(stderrWrite).toHaveBeenCalledWith(
-        'Nothing is embedded: the ios build bundled no JavaScript, as a debug build served by the development server does.\n',
+        'No binary created: the ios build bundled no JavaScript, as a debug build served by the development server does.\n',
       );
     });
 

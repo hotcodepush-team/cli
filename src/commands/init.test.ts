@@ -161,7 +161,7 @@ describe('init', () => {
       readJsonFile<{ scripts: Record<string, string> }>(
         join(directoryPath, 'package.json'),
       ).scripts['capacitor:copy:after'],
-    ).toBe('npx hotcodepush bundle embed');
+    ).toBe('npx hotcodepush binary create');
     expect(
       hasResourceReference(
         join(directoryPath, 'ios', 'App', 'App.xcodeproj', 'project.pbxproj'),
@@ -195,7 +195,7 @@ describe('init', () => {
 
   it('should skip what a set-up project already has, the app and its organization from hotcodepush.json, whatever --organization would need', async () => {
     const directoryPath = writeProject({
-      hookScript: 'npx hotcodepush bundle embed',
+      hookScript: 'npx hotcodepush binary create',
       isPackageInstalled: true,
       projectConfig: {
         appId: DEMO_APP.id,
@@ -240,7 +240,7 @@ describe('init', () => {
 
   it('should complete a hotcodepush.json that still carries the deprecated channelId without naming another channel', async () => {
     const directoryPath = writeProject({
-      hookScript: 'npx hotcodepush bundle embed',
+      hookScript: 'npx hotcodepush binary create',
       isPackageInstalled: true,
       projectConfig: { appId: DEMO_APP.id, channelId: PRODUCTION_CHANNEL.id },
     });
@@ -301,7 +301,7 @@ describe('init', () => {
 
   it('should skip the sign-in under HOTCODEPUSH_TOKEN, an API token no session answers for, and never start a device login', async () => {
     const directoryPath = writeProject({
-      hookScript: 'npx hotcodepush bundle embed',
+      hookScript: 'npx hotcodepush binary create',
       isPackageInstalled: true,
       projectConfig: {
         appId: DEMO_APP.id,
@@ -338,7 +338,7 @@ describe('init', () => {
 
   it('should log in in place with the kept device code and keep --json stdout to the result', async () => {
     const directoryPath = writeProject({
-      hookScript: 'npx hotcodepush bundle embed',
+      hookScript: 'npx hotcodepush binary create',
       isPackageInstalled: true,
       projectConfig: {
         appId: DEMO_APP.id,
@@ -416,7 +416,7 @@ describe('init', () => {
     expect(result.steps.find(({ step }) => step === 'hook')).toEqual({
       code: 'E_HOOK_OCCUPIED',
       manualStep:
-        'append " && npx hotcodepush bundle embed" to the capacitor:copy:after script in package.json.',
+        'append " && npx hotcodepush binary create" to the capacitor:copy:after script in package.json.',
       message: 'capacitor:copy:after runs a script the CLI cannot parse',
       status: 'stopped',
       step: 'hook',
@@ -539,7 +539,7 @@ describe('init', () => {
 
   it('should skip the signing key for an app that has one', async () => {
     const directoryPath = writeProject({
-      hookScript: 'npx hotcodepush bundle embed',
+      hookScript: 'npx hotcodepush binary create',
       isPackageInstalled: true,
       projectConfig: {
         appId: DEMO_APP.id,
@@ -750,7 +750,7 @@ describe('init', () => {
         "pod 'HotCodePushProtocol'",
       );
       expect(readProjectFile(directoryPath, XCODE_PROJECT_FILE_PATH)).toContain(
-        'Embed HotCodePush',
+        'Create HotCodePush binary',
       );
       expect(runCommandLineVisibly).toHaveBeenLastCalledWith(
         { args: ['install'], command: 'pod' },
@@ -763,7 +763,7 @@ describe('init', () => {
           /^installed @hotcodepush\/react-native-code-push from https:\/\/pkg\.pr\.new\//,
         ),
         'wrote hotcodepush.json',
-        'wired the Embed HotCodePush phase in Xcode, the embed task in the Gradle build, HotCodePush.bundleURL() in AppDelegate.swift, HotCodePushReactHost in MainApplication.kt, the HotCodePushProtocol pod in the Podfile, the pods through pod install',
+        'wired the Create HotCodePush binary phase in Xcode, the Gradle task that runs binary create, HotCodePush.bundleURL() in AppDelegate.swift, HotCodePushReactHost in MainApplication.kt, the HotCodePushProtocol pod in the Podfile, the pods through pod install',
         'run signing-key create to enable code signing',
         'release create packages the bundles itself',
         'run release create to publish the first release',

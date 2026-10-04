@@ -385,7 +385,7 @@ describe('reactNativeFramework', () => {
 
         expect(outcome).toEqual({
           message:
-            'wired the Embed HotCodePush phase in Xcode, the embed task in the Gradle build, HotCodePush.bundleURL() in AppDelegate.swift, HotCodePushReactHost in MainApplication.kt, the HotCodePushProtocol pod in the Podfile, the pods through pod install',
+            'wired the Create HotCodePush binary phase in Xcode, the Gradle task that runs binary create, HotCodePush.bundleURL() in AppDelegate.swift, HotCodePushReactHost in MainApplication.kt, the HotCodePushProtocol pod in the Podfile, the pods through pod install',
           status: 'done',
           value: undefined,
         });
@@ -427,7 +427,7 @@ describe('reactNativeFramework', () => {
         ).wireEmbedStep(undefined);
 
         expect(outcome).toEqual({
-          message: 'the embed step and the bundle wiring already wired',
+          message: 'binary create and the bundle wiring already wired',
           status: 'skipped',
           value: undefined,
         });
@@ -535,7 +535,7 @@ describe('reactNativeFramework', () => {
         },
         {
           check: 'hook',
-          message: 'the Xcode phase and the Gradle task run the embed step',
+          message: 'the Xcode phase and the Gradle task run binary create',
           status: 'ok',
         },
         {

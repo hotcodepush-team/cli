@@ -48,7 +48,7 @@ const WEB_DIRECTORY = 'www';
  * and the embed step as the plugin's own `after_prepare` hook, which writes the resource file into each platform's `www`.
  */
 export const cordovaFramework: FrameworkModule = {
-  embedStep: 'run npx cordova prepare, which runs the embed hook',
+  embedStep: 'run npx cordova prepare, which runs binary create',
   packageName: CORDOVA_PACKAGE_NAME,
   versionedPackageNames: [
     'cordova',
@@ -74,7 +74,7 @@ function checkHook({ packageJson }: FrameworkProject): FrameworkCheck {
   return isPluginListed(packageJson)
     ? {
         check: 'hook',
-        message: "the plugin's after_prepare hook runs the embed step",
+        message: "the plugin's after_prepare hook runs binary create",
         status: 'ok',
       }
     : {

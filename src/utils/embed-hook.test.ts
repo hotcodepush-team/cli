@@ -42,7 +42,7 @@ describe('embed-hook', () => {
     expect(
       resolveEmbedHookState({
         scripts: {
-          'capacitor:copy:after': 'node x.mjs && npx hotcodepush bundle embed',
+          'capacitor:copy:after': 'node x.mjs && npx hotcodepush binary create',
         },
       }),
     ).toBe('wired');
@@ -54,13 +54,21 @@ describe('embed-hook', () => {
     ).toBe('unparseable');
   });
 
+  it('should take a script still running bundle embed as occupied, since only binary create is the step', () => {
+    expect(
+      resolveEmbedHookState({
+        scripts: { 'capacitor:copy:after': 'npx hotcodepush bundle embed' },
+      }),
+    ).toBe('occupied');
+  });
+
   it('should set the script when there is none, keeping the indentation and the final newline', () => {
     const directoryPath = writeProject();
 
     expect(wireEmbedHook(directoryPath)).toBe('wired');
 
     expect(readScripts(directoryPath)['capacitor:copy:after']).toBe(
-      'npx hotcodepush bundle embed',
+      'npx hotcodepush binary create',
     );
     expect(readFileSync(join(directoryPath, 'package.json'), 'utf8')).toMatch(
       /^\{\n {2}"dependencies"[\s\S]*\}\n$/,
@@ -74,7 +82,7 @@ describe('embed-hook', () => {
     expect(wireEmbedHook(directoryPath)).toBe('present');
 
     expect(readScripts(directoryPath)['capacitor:copy:after']).toBe(
-      'node scripts/write.mjs && npx hotcodepush bundle embed',
+      'node scripts/write.mjs && npx hotcodepush binary create',
     );
   });
 
@@ -106,7 +114,7 @@ describe('embed-hook', () => {
       name: 'x',
       scripts: {
         'build': 'b',
-        'capacitor:copy:after': 'npx hotcodepush bundle embed',
+        'capacitor:copy:after': 'npx hotcodepush binary create',
       },
       version: '1',
     });

@@ -164,7 +164,7 @@ describe('cordova', () => {
     });
   });
 
-  it('should install the plugin through cordova plugin add and leave the embed step to its hook', async () => {
+  it('should install the plugin through cordova plugin add and leave binary create to its hook', async () => {
     const directoryPath = writeProject();
     const wiring = await cordovaFramework.resolveWiring(
       { directoryPath, packageJson: readPackageJson(directoryPath) },

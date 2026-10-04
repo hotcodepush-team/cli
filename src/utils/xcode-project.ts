@@ -28,7 +28,7 @@ const EMBED_PHASE_FIX =
 
 const EMBED_PHASE_MARKER = 'embed-xcode.sh';
 
-const EMBED_PHASE_NAME = 'Embed HotCodePush';
+const EMBED_PHASE_NAME = 'Create HotCodePush binary';
 
 // the lines of the phase as a pbxproj string carries them, the line breaks escaped
 const EMBED_PHASE_SCRIPT = [
@@ -36,9 +36,9 @@ const EMBED_PHASE_SCRIPT = [
   '',
   '# hotcodepush: writes hotcodepush.json into the app and registers the binary',
   'WITH_ENVIRONMENT="$REACT_NATIVE_PATH/scripts/xcode/with-environment.sh"',
-  'HOTCODEPUSH_EMBED="$REACT_NATIVE_PATH/../@hotcodepush/react-native-code-push/scripts/embed-xcode.sh"',
+  'HOTCODEPUSH_BINARY_CREATE="$REACT_NATIVE_PATH/../@hotcodepush/react-native-code-push/scripts/embed-xcode.sh"',
   '',
-  '/bin/sh -c "$WITH_ENVIRONMENT $HOTCODEPUSH_EMBED"',
+  '/bin/sh -c "$WITH_ENVIRONMENT $HOTCODEPUSH_BINARY_CREATE"',
   '',
 ].join('\\n');
 
@@ -141,7 +141,7 @@ export async function addEmbedPhase(
   );
   if (bundlePhaseIndex === -1) {
     throw new XcodeProjectError(
-      `${projectFilePath} has no "${REACT_NATIVE_BUNDLE_PHASE_NAME}" phase to run the embed step after`,
+      `${projectFilePath} has no "${REACT_NATIVE_BUNDLE_PHASE_NAME}" phase to run binary create after`,
       undefined,
       projectFilePath,
       EMBED_PHASE_FIX,

@@ -92,7 +92,7 @@ export function resolveGradleEdit(
     return undefined;
   }
   return {
-    description: 'the embed task in the Gradle build',
+    description: 'the Gradle task that runs binary create',
     filePath,
     isApplied: () =>
       readFileSync(filePath, 'utf8').includes(GRADLE_FILE_MARKER),

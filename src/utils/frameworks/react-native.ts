@@ -55,7 +55,7 @@ const BUNDLE_FILE_NAMES: Record<Platform, string> = {
   ios: 'main.jsbundle',
 };
 
-const EMBED_PHASE_DESCRIPTION = 'the Embed HotCodePush phase in Xcode';
+const EMBED_PHASE_DESCRIPTION = 'the Create HotCodePush binary phase in Xcode';
 
 const HERMESC_DIRECTORY_NAMES: Partial<Record<NodeJS.Platform, string>> = {
   darwin: 'osx-bin',
@@ -75,7 +75,7 @@ const POD_NAME = 'HotcodepushReactNativeCodePush';
  * per platform. The app hands React Native the bundle the SDK serves, one line in `AppDelegate.swift` and one in `MainApplication.kt`.
  */
 export const reactNativeFramework: FrameworkModule = {
-  embedStep: 'build the app natively, which runs the embed step',
+  embedStep: 'build the app natively, which runs binary create',
   packageName: REACT_NATIVE_PACKAGE_NAME,
   versionedPackageNames: ['react-native', REACT_NATIVE_PACKAGE_NAME],
   checkWiring: project => [
@@ -154,7 +154,7 @@ function checkEmbedStep({ directoryPath }: FrameworkProject): FrameworkCheck {
   }
   return checkEdits(
     'hook',
-    'the Xcode phase and the Gradle task run the embed step',
+    'the Xcode phase and the Gradle task run binary create',
     gradleEdit === undefined ? [] : [gradleEdit],
     directoryPath,
     xcodeProjectFilePath !== undefined && !hasEmbedPhase(xcodeProjectFilePath),
@@ -498,7 +498,7 @@ async function wireEmbedStep(
   const arePodsInstalled = isPodInstalled(nativeProjects.ios);
   if (isPhaseWired && pendingEdits.length === 0 && arePodsInstalled) {
     return {
-      message: 'the embed step and the bundle wiring already wired',
+      message: 'binary create and the bundle wiring already wired',
       status: 'skipped',
       value: undefined,
     };

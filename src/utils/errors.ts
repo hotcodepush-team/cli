@@ -136,7 +136,7 @@ export class HookOccupiedError extends CliError {
     super({
       code: 'E_HOOK_OCCUPIED',
       exitCode: ExitCode.Error,
-      fix: `append " && npx hotcodepush bundle embed" to the ${hookName} script in package.json.`,
+      fix: `append " && npx hotcodepush binary create" to the ${hookName} script in package.json.`,
       message: `${hookName} runs a script the CLI cannot parse`,
     });
   }

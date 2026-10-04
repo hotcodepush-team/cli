@@ -51,7 +51,7 @@ describe('doctor', () => {
 
   async function writeSetUpProject(): Promise<string> {
     const directoryPath = writeCapacitorProject({
-      hookScript: 'npx hotcodepush bundle embed',
+      hookScript: 'npx hotcodepush binary create',
       isPackageInstalled: true,
       projectConfig: {
         appId: DEMO_APP.id,
@@ -195,7 +195,7 @@ describe('doctor', () => {
       'ios-resource-file:skipped',
     ]);
     expect(result.checks[5]?.manualStep).toBe(
-      'run npx cordova prepare, which runs the embed hook',
+      'run npx cordova prepare, which runs binary create',
     );
     expect(result.checks.at(-1)?.message).toMatch(
       /, cordova 13\.0\.0, cordova-android 15\.1\.0, cordova-ios missing, @hotcodepush\/cordova-code-push 0\.1\.0$/,
@@ -240,11 +240,11 @@ describe('doctor', () => {
       '✓ app                    app Demo, channel production',
       '✗ package                @hotcodepush/capacitor-live-updates is not in package.json',
       '                         run hotcodepush init',
-      '✗ hook                   capacitor:copy:after does not run the embed step',
+      '✗ hook                   capacitor:copy:after does not run binary create',
       '                         run hotcodepush init',
       '✓ ios-project            the app target copies hotcodepush.json into the bundle',
       '✗ android-resource-file  no resource file at android/app/src/main/assets/hotcodepush.json',
-      '                         run npx cap sync, which runs the embed hook',
+      '                         run npx cap sync, which runs binary create',
       '✓ ios-resource-file      ios/App/App/hotcodepush.json built at 2026-09-29T12:00:00.000Z',
       '✗ hosts                  unreachable: api (https://api.example.com/health)',
       '                         check the network, the API URL in config.json and the HOTCODEPUSH_*_BASE_URL variables',

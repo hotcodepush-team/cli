@@ -8,7 +8,7 @@ import { fetchAppId } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
   description:
-    'List the store builds the embed step registered, with the bundle each ships and the devices running it.',
+    'List the store builds binary create registered, with the bundle each ships and the devices running it.',
   examples: [
     'hotcodepush binary list',
     'hotcodepush binary list --app "My App" --json',

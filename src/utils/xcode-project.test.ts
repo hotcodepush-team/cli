@@ -88,7 +88,7 @@ describe('xcode-project', () => {
     );
   });
 
-  describe('the embed phase of a React Native project', () => {
+  describe('the binary create phase of a React Native project', () => {
     let reactNativeDirectoryPath = '';
     let reactNativeProjectFilePath = '';
 
@@ -104,7 +104,7 @@ describe('xcode-project', () => {
       rmSync(reactNativeDirectoryPath, { force: true, recursive: true });
     });
 
-    it('should add the phase right after the bundling phase once, running the embed script through with-environment.sh', async () => {
+    it('should add the phase right after the bundling phase once, running the SDK package script through with-environment.sh', async () => {
       expect(hasEmbedPhase(reactNativeProjectFilePath)).toBe(false);
 
       expect(await addEmbedPhase(reactNativeProjectFilePath, {})).toBe('added');
@@ -112,10 +112,10 @@ describe('xcode-project', () => {
       expect(hasEmbedPhase(reactNativeProjectFilePath)).toBe(true);
       const projectText = readFileSync(reactNativeProjectFilePath, 'utf8');
       expect(projectText).toMatch(
-        /\/\* Bundle React Native code and images \*\/,\n\t+[0-9A-F]+ \/\* Embed HotCodePush \*\/,/,
+        /\/\* Bundle React Native code and images \*\/,\n\t+[0-9A-F]+ \/\* Create HotCodePush binary \*\/,/,
       );
       expect(projectText).toContain(
-        'shellScript = "set -e\\n\\n# hotcodepush: writes hotcodepush.json into the app and registers the binary\\nWITH_ENVIRONMENT=\\"$REACT_NATIVE_PATH/scripts/xcode/with-environment.sh\\"\\nHOTCODEPUSH_EMBED=\\"$REACT_NATIVE_PATH/../@hotcodepush/react-native-code-push/scripts/embed-xcode.sh\\"\\n\\n/bin/sh -c \\"$WITH_ENVIRONMENT $HOTCODEPUSH_EMBED\\"\\n";',
+        'shellScript = "set -e\\n\\n# hotcodepush: writes hotcodepush.json into the app and registers the binary\\nWITH_ENVIRONMENT=\\"$REACT_NATIVE_PATH/scripts/xcode/with-environment.sh\\"\\nHOTCODEPUSH_BINARY_CREATE=\\"$REACT_NATIVE_PATH/../@hotcodepush/react-native-code-push/scripts/embed-xcode.sh\\"\\n\\n/bin/sh -c \\"$WITH_ENVIRONMENT $HOTCODEPUSH_BINARY_CREATE\\"\\n";',
       );
       expect(await addEmbedPhase(reactNativeProjectFilePath, {})).toBe(
         'present',
@@ -126,7 +126,7 @@ describe('xcode-project', () => {
       await expect(addEmbedPhase(projectFilePath, {})).rejects.toMatchObject({
         code: 'E_XCODE_PROJECT',
         fix: expect.stringContaining('embed-xcode.sh'),
-        message: `${projectFilePath} has no "Bundle React Native code and images" phase to run the embed step after`,
+        message: `${projectFilePath} has no "Bundle React Native code and images" phase to run binary create after`,
       });
       expect(hasEmbedPhase(projectFilePath)).toBe(false);
     });

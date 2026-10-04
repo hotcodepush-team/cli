@@ -3,6 +3,7 @@ import { join, relative } from 'node:path';
 import {
   CAPACITOR_PACKAGE_NAME,
   CAPACITOR_PACKAGE_SPEC,
+  EMBED_HOOK_COMMAND,
   EMBED_HOOK_NAME,
 } from '../../config/consts.js';
 import { readBinaryIdentity as readNativeProjectBinaryIdentity } from '../binary-identity.js';
@@ -48,7 +49,7 @@ const INIT_STEP = 'run hotcodepush init';
  * `capacitor:copy:after` script and the resource file referenced by the iOS project.
  */
 export const capacitorFramework: FrameworkModule = {
-  embedStep: 'run npx cap sync, which runs the embed hook',
+  embedStep: 'run npx cap sync, which runs binary create',
   packageName: CAPACITOR_PACKAGE_NAME,
   versionedPackageNames: ['@capacitor/core', CAPACITOR_PACKAGE_NAME],
   checkWiring: project => [
@@ -74,21 +75,21 @@ function checkHook({ packageJson }: FrameworkProject): FrameworkCheck {
     case 'wired':
       return {
         check: 'hook',
-        message: `${EMBED_HOOK_NAME} runs the embed step`,
+        message: `${EMBED_HOOK_NAME} runs binary create`,
         status: 'ok',
       };
     case 'unparseable':
       return {
         check: 'hook',
-        manualStep: `add "npx hotcodepush bundle embed" to the ${EMBED_HOOK_NAME} script by hand`,
-        message: `${EMBED_HOOK_NAME} runs a script without the embed step`,
+        manualStep: `add "${EMBED_HOOK_COMMAND}" to the ${EMBED_HOOK_NAME} script by hand`,
+        message: `${EMBED_HOOK_NAME} runs a script without binary create`,
         status: 'failed',
       };
     default:
       return {
         check: 'hook',
         manualStep: INIT_STEP,
-        message: `${EMBED_HOOK_NAME} does not run the embed step`,
+        message: `${EMBED_HOOK_NAME} does not run binary create`,
         status: 'failed',
       };
   }
