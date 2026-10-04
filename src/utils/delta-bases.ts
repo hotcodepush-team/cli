@@ -22,6 +22,9 @@ export interface FetchDeltaBasesOptions {
   platforms: Platform[];
 }
 
+/** The bundle files list allows ten times the other lists' page, so a base at the file limit takes ten reads. */
+export const BASE_FILES_PAGE_SIZE = 1000;
+
 const EARLIER_BUNDLE_BASE_COUNT = 3;
 
 /**
@@ -66,12 +69,14 @@ export async function fetchDeltaBases(
   return Promise.all(
     bases.map(async base => ({
       ...base,
-      files: await fetchAllPages(page =>
-        hotCodePush.apps.bundles.files.list({
-          appId,
-          bundleId: base.bundleId,
-          ...page,
-        }),
+      files: await fetchAllPages(
+        page =>
+          hotCodePush.apps.bundles.files.list({
+            appId,
+            bundleId: base.bundleId,
+            ...page,
+          }),
+        BASE_FILES_PAGE_SIZE,
       ),
     })),
   );

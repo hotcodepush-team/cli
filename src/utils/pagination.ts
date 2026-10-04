@@ -25,16 +25,18 @@ export const paginationShape = {
 };
 
 /**
- * Every item of a list, fetched page by page at the largest limit: a page shorter than the limit is the last one.
+ * Every item of a list, fetched page by page at the largest limit, the lists' own unless one allows more: a page
+ * shorter than the limit is the last one.
  */
 export async function fetchAllPages<TItem>(
   fetchPage: (page: Required<Page>) => Promise<TItem[]>,
+  limit = MAX_LIMIT,
 ): Promise<TItem[]> {
   const fetchedItems: TItem[] = [];
-  for (let offset = 0; ; offset += MAX_LIMIT) {
-    const fetchedPage = await fetchPage({ limit: MAX_LIMIT, offset });
+  for (let offset = 0; ; offset += limit) {
+    const fetchedPage = await fetchPage({ limit, offset });
     fetchedItems.push(...fetchedPage);
-    if (fetchedPage.length < MAX_LIMIT) {
+    if (fetchedPage.length < limit) {
       return fetchedItems;
     }
   }

@@ -11,7 +11,7 @@ import {
   PREVIOUS_BUNDLE,
   READY_BUNDLE,
 } from '../../test/fixtures.js';
-import { fetchDeltaBases } from './delta-bases.js';
+import { BASE_FILES_PAGE_SIZE, fetchDeltaBases } from './delta-bases.js';
 import type { Platform } from './upload.js';
 
 const APP_PATH = `/v1/apps/${DEMO_APP.id}`;
@@ -123,21 +123,32 @@ describe('fetchDeltaBases', () => {
     ]);
   });
 
-  it("should read a base's files page by page", async () => {
+  it("should read a base's files page by page, a thousand at a time", async () => {
     harness.routes[`GET ${APP_PATH}/bundles`] = () =>
       Response.json([READY_BUNDLE]);
     harness.routes[`GET ${APP_PATH}/binaries`] = () => Response.json([]);
-    const files = Array.from({ length: 101 }, (_, index) =>
-      buildFile(`file-${String(index).padStart(3, '0')}`),
+    const files = Array.from({ length: BASE_FILES_PAGE_SIZE + 1 }, (_, index) =>
+      buildFile(`file-${String(index).padStart(4, '0')}`),
     );
-    harness.routes[`GET ${APP_PATH}/bundles/${READY_BUNDLE.id}/files`] =
-      request => {
-        const offset = Number(new URL(request.url).searchParams.get('offset'));
-        return Response.json(files.slice(offset, offset + 100));
-      };
+    const filesPath = `${APP_PATH}/bundles/${READY_BUNDLE.id}/files`;
+    harness.routes[`GET ${filesPath}`] = request => {
+      const { searchParams } = new URL(request.url);
+      const offset = Number(searchParams.get('offset'));
+      return Response.json(
+        files.slice(offset, offset + Number(searchParams.get('limit'))),
+      );
+    };
 
     const [deltaBase] = await fetchDeltaBasesFor(['ios']);
 
     expect(deltaBase?.files).toEqual(files);
+    expect(
+      harness.requests
+        .filter(({ url }) => new URL(url).pathname === filesPath)
+        .map(({ url }) => Object.fromEntries(new URL(url).searchParams)),
+    ).toEqual([
+      { limit: '1000', offset: '0' },
+      { limit: '1000', offset: '1000' },
+    ]);
   });
 });
