@@ -27,4 +27,4 @@ export const PROJECT_CONFIG_FILE_NAME = 'hotcodepush.json';
 export const REACT_NATIVE_PACKAGE_NAME = '@hotcodepush/react-native-code-push';
 export const REACT_NATIVE_PACKAGE_SPEC =
   'https://pkg.pr.new/hotcodepush-team/react-native-code-push/@hotcodepush/react-native-code-push@e8e3bc9';
-export const SIGNING_KEY_DIRECTORY_NAME = 'keys';
+export const SIGNING_PRIVATE_KEY_FILE_NAME = 'hotcodepush-private-key.pem';

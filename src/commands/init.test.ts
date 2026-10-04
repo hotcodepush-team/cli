@@ -537,7 +537,10 @@ describe('init', () => {
       ).publicKeys,
     ).toEqual([expect.stringMatching(/^rsa-v1_5-sha256:/)]);
     expect(harness.readLines()).toContain(
-      '✓ signing-key    generated a signing key pair, its private key printed above',
+      '✓ signing-key    generated a signing key pair, its private key in the file named above',
+    );
+    expect(existsSync(join(directoryPath, 'hotcodepush-private-key.pem'))).toBe(
+      true,
     );
   });
 

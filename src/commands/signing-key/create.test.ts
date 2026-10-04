@@ -1,25 +1,29 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { createPrivateKey } from 'node:crypto';
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import {
   resolvePublicKeyOfPrivateKey,
   resolveSigningKeyFingerprint,
 } from '@hotcodepush/protocol';
-import { describe, expect, it, vi } from 'vitest';
-import { useCommandHarness } from '../../../test/command-harness.js';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  respondWithApiError,
+  useCommandHarness,
+} from '../../../test/command-harness.js';
 import {
   DEMO_APP,
   PRODUCTION_CHANNEL,
   SIGNING_KEY,
 } from '../../../test/fixtures.js';
 import type { ProjectConfig } from '../../utils/project-config.js';
-import { resolveSigningKeyFilePath } from '../../utils/signing-key-store.js';
 import signingKeyCreateCommand from './create.js';
-
-interface CreateResult {
-  fingerprint: string;
-  id: string;
-  privateKey: string;
-  publicKey: string;
-}
 
 const CREATED_AT = '2026-10-04T08:00:00.000Z';
 
@@ -27,11 +31,18 @@ const SIGNING_KEY_ID = '7d4c1b2a-3f5e-4b1f-8e7a-5c2d4f6b9a0e';
 
 const SIGNING_KEYS_PATH = `/v1/apps/${DEMO_APP.id}/signing-keys`;
 
-// One line of base64, the PKCS #8 DER of an RSA key
-const PRIVATE_KEY_PATTERN = /^[A-Za-z0-9+/]{1000,}=*$/;
-
 describe('signing-key create', () => {
   const harness = useCommandHarness();
+  let workingDirectoryPath = '';
+
+  beforeEach(() => {
+    workingDirectoryPath = mkdtempSync(join(tmpdir(), 'hotcodepush-'));
+    vi.spyOn(process, 'cwd').mockReturnValue(workingDirectoryPath);
+  });
+
+  afterEach(() => {
+    rmSync(workingDirectoryPath, { force: true, recursive: true });
+  });
 
   // The API as it answers a registration: the key it was sent, with its fingerprint
   function respondWithRegistration(): void {
@@ -54,7 +65,21 @@ describe('signing-key create', () => {
     return JSON.parse(readFileSync(configPath, 'utf8')) as ProjectConfig;
   }
 
-  it('should register the public key of an RSA pair, add it to publicKeys in hotcodepush.json after the keys there, store the private key and print it once', async () => {
+  // The key file's private key as the protocol signs with it, and the PEM body no output may repeat
+  async function readKeyFile(
+    filePath: string,
+  ): Promise<{ pemBody: string; publicKey: string }> {
+    const pem = readFileSync(filePath, 'utf8');
+    const privateKey = createPrivateKey(pem)
+      .export({ format: 'der', type: 'pkcs8' })
+      .toString('base64');
+    return {
+      pemBody: pem.split('\n')[1] ?? '',
+      publicKey: await resolvePublicKeyOfPrivateKey(privateKey),
+    };
+  }
+
+  it('should write the private key to hotcodepush-private-key.pem in the working directory, register its public key and add it to publicKeys after the keys there', async () => {
     respondWithRegistration();
     const configPath = harness.writeProjectConfig({
       appId: DEMO_APP.id,
@@ -64,10 +89,11 @@ describe('signing-key create', () => {
 
     await signingKeyCreateCommand.action({ config: configPath }, undefined);
 
-    const keyFilePath = resolveSigningKeyFilePath(DEMO_APP.id);
-    const privateKey = readFileSync(keyFilePath, 'utf8').trim();
-    const publicKey = await resolvePublicKeyOfPrivateKey(privateKey);
-    expect(privateKey).toMatch(PRIVATE_KEY_PATTERN);
+    const keyFilePath = join(
+      workingDirectoryPath,
+      'hotcodepush-private-key.pem',
+    );
+    const { pemBody, publicKey } = await readKeyFile(keyFilePath);
     expect(publicKey).toMatch(/^rsa-v1_5-sha256:/);
     expect(await harness.requests.at(-1)?.json()).toEqual({ publicKey });
     expect(readProjectConfig(configPath)).toEqual({
@@ -78,13 +104,33 @@ describe('signing-key create', () => {
     expect(harness.readLines()).toEqual([
       `Created signing key ${resolveSigningKeyFingerprint(publicKey)} (${SIGNING_KEY_ID}).`,
       'Added to publicKeys in hotcodepush.json.',
-      'The private key, shown once; set it as HOTCODEPUSH_SIGNING_KEY in CI:',
-      privateKey,
-      `Stored in ${keyFilePath}.`,
+      `Wrote the private key to ${keyFilePath}.`,
+      "Keep the file out of version control: whoever holds it can sign the app's bundles.",
+      "Uploads sign with it through --private-key-path; in CI, set HOTCODEPUSH_SIGNING_KEY to the file's content.",
     ]);
+    expect(harness.readLines().join('\n')).not.toContain(pemBody);
   });
 
-  it('should print the registered key with its private half as JSON', async () => {
+  it('should write the private key to the file --private-key-path names', async () => {
+    respondWithRegistration();
+    const keyFilePath = join(workingDirectoryPath, 'demo-private-key.pem');
+
+    await signingKeyCreateCommand.action(
+      {
+        config: harness.writeProjectConfig({ appId: DEMO_APP.id }),
+        privateKeyPath: 'demo-private-key.pem',
+      },
+      undefined,
+    );
+
+    const { publicKey } = await readKeyFile(keyFilePath);
+    expect(await harness.requests.at(-1)?.json()).toEqual({ publicKey });
+    expect(harness.readLines()).toContain(
+      `Wrote the private key to ${keyFilePath}.`,
+    );
+  });
+
+  it("should print the registered key with the private key file's path as JSON, never the key", async () => {
     respondWithRegistration();
     const configPath = harness.writeProjectConfig({ appId: DEMO_APP.id });
 
@@ -93,36 +139,55 @@ describe('signing-key create', () => {
       undefined,
     );
 
-    const result = harness.readJson() as CreateResult;
-    expect(result).toEqual({
+    const keyFilePath = join(
+      workingDirectoryPath,
+      'hotcodepush-private-key.pem',
+    );
+    const { pemBody, publicKey } = await readKeyFile(keyFilePath);
+    expect(harness.readJson()).toEqual({
       appId: DEMO_APP.id,
       createdAt: CREATED_AT,
-      fingerprint: resolveSigningKeyFingerprint(result.publicKey),
+      fingerprint: resolveSigningKeyFingerprint(publicKey),
       id: SIGNING_KEY_ID,
-      privateKey: expect.stringMatching(PRIVATE_KEY_PATTERN),
-      publicKey: await resolvePublicKeyOfPrivateKey(result.privateKey),
+      privateKeyPath: keyFilePath,
+      publicKey,
     });
-    expect(readProjectConfig(configPath).publicKeys).toEqual([
-      result.publicKey,
-    ]);
+    expect(JSON.stringify(harness.readJson())).not.toContain(pemBody);
+    expect(readProjectConfig(configPath).publicKeys).toEqual([publicKey]);
   });
 
-  it('should store no key file in CI, where the key lives in a secret', async () => {
-    vi.stubEnv('CI', 'true');
+  it('should refuse a file that exists at the path before any request', async () => {
     respondWithRegistration();
-
-    await signingKeyCreateCommand.action(
-      { config: harness.writeProjectConfig({ appId: DEMO_APP.id }) },
-      undefined,
+    const keyFilePath = join(
+      workingDirectoryPath,
+      'hotcodepush-private-key.pem',
     );
+    writeFileSync(keyFilePath, 'kept');
 
-    expect(existsSync(resolveSigningKeyFilePath(DEMO_APP.id))).toBe(false);
-    expect(harness.readLines()).toEqual([
-      expect.stringMatching(/^Created signing key sha256:/),
-      'Added to publicKeys in hotcodepush.json.',
-      'The private key, shown once; set it as HOTCODEPUSH_SIGNING_KEY in CI:',
-      expect.stringMatching(PRIVATE_KEY_PATTERN),
-    ]);
+    await expect(
+      signingKeyCreateCommand.action({ app: 'Demo' }, undefined),
+    ).rejects.toMatchObject({
+      code: 'E_INVALID_PARAMETER',
+      message: `--private-key-path: ${keyFilePath} already exists`,
+    });
+
+    expect(harness.requests).toHaveLength(0);
+    expect(readFileSync(keyFilePath, 'utf8')).toBe('kept');
+  });
+
+  it('should remove the private key file and leave hotcodepush.json alone when the registration fails', async () => {
+    harness.routes[`POST ${SIGNING_KEYS_PATH}`] = () =>
+      respondWithApiError(403, 'E_FORBIDDEN', 'Your role is too low.');
+    const configPath = harness.writeProjectConfig({ appId: DEMO_APP.id });
+
+    await expect(
+      signingKeyCreateCommand.action({ config: configPath }, undefined),
+    ).rejects.toThrow('Your role is too low.');
+
+    expect(
+      existsSync(join(workingDirectoryPath, 'hotcodepush-private-key.pem')),
+    ).toBe(false);
+    expect(readProjectConfig(configPath)).toEqual({ appId: DEMO_APP.id });
   });
 
   it('should leave a hotcodepush.json of another app alone and print the public key to add', async () => {
