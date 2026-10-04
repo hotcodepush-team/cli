@@ -4,6 +4,7 @@ import type {
   ChannelWithDeviceCounts,
   HotCodePush,
   Organization,
+  SigningKey,
 } from '@hotcodepush/node';
 import { z } from 'zod';
 import { PROJECT_CONFIG_FILE_NAME } from '../config/consts.js';
@@ -157,6 +158,15 @@ export async function fetchResourceId(
   }
   return resolveNamedResource(noun, reference, await fetchResources(), source)
     .id;
+}
+
+export function fetchSigningKeys(
+  hotCodePush: HotCodePush,
+  appId: string,
+): Promise<SigningKey[]> {
+  return fetchAllPages(page =>
+    hotCodePush.apps.signingKeys.list({ appId, ...page }),
+  );
 }
 
 export function promptResourceId(

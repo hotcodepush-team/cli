@@ -1,18 +1,20 @@
-import type { HotCodePush, SigningKey } from '@hotcodepush/node';
+import type { SigningKey } from '@hotcodepush/node';
 import { z } from 'zod';
 import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
 import { InvalidParameterError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
-import { fetchAllPages } from '../../utils/pagination.js';
 import type { ProjectConfigLocation } from '../../utils/project-config.js';
 import {
   locateProjectConfig,
   writeProjectConfig,
 } from '../../utils/project-config.js';
 import { confirmConsequence, promptSelect } from '../../utils/prompts.js';
-import { fetchAppId } from '../../utils/resource-resolution.js';
+import {
+  fetchAppId,
+  fetchSigningKeys,
+} from '../../utils/resource-resolution.js';
 
 export default defineCommand({
   description:
@@ -74,15 +76,6 @@ export default defineCommand({
     }
   },
 });
-
-function fetchSigningKeys(
-  hotCodePush: HotCodePush,
-  appId: string,
-): Promise<SigningKey[]> {
-  return fetchAllPages(page =>
-    hotCodePush.apps.signingKeys.list({ appId, ...page }),
-  );
-}
 
 /**
  * The key `hotcodepush.json` of the app still lists leaves its `publicKeys`, so the file and the app agree again.
