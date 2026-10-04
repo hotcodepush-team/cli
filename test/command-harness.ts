@@ -63,6 +63,7 @@ export function useCommandHarness(): CommandHarness {
     temporaryDirectoryPath = mkdtempSync(join(tmpdir(), 'hotcodepush-'));
     vi.stubEnv('APPDATA', temporaryDirectoryPath);
     vi.stubEnv('CI', undefined);
+    vi.stubEnv('HOTCODEPUSH_SIGNING_KEY', undefined);
     vi.stubEnv('HOTCODEPUSH_TOKEN', TOKEN);
     vi.stubEnv('XDG_CONFIG_HOME', temporaryDirectoryPath);
     writeUserConfig({ apiUrl: API_URL });

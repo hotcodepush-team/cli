@@ -7,6 +7,7 @@ import { writeCordovaProject } from '../../test/cordova-project.js';
 import {
   DEMO_APP,
   PRODUCTION_CHANNEL,
+  resolveProtocolSigningKey,
   RUNNER_USER,
   SIGNING_KEY,
   SIGNING_PRIVATE_KEY,
@@ -302,6 +303,11 @@ describe('doctor', () => {
     );
   }
 
+  function respondWithSigningKeys(signingKeys: object[]): void {
+    harness.routes[`GET /v1/apps/${DEMO_APP.id}/signing-keys`] = () =>
+      Response.json(signingKeys);
+  }
+
   async function readSigningKeyCheck(
     directoryPath: string,
   ): Promise<DoctorResult['checks'][number] | undefined> {
@@ -321,29 +327,66 @@ describe('doctor', () => {
     );
   }
 
-  it('should name the key uploads are signed with when its private half is at hand', async () => {
+  it('should name the key HOTCODEPUSH_SIGNING_KEY signs with when it belongs to a registered listed key', async () => {
     const directoryPath = await writeSetUpProject();
     listPublicKey(directoryPath);
     vi.stubEnv('HOTCODEPUSH_SIGNING_KEY', SIGNING_PRIVATE_KEY);
     respondWithSessionAndApp();
+    respondWithSigningKeys([SIGNING_KEY]);
 
     expect(await readSigningKeyCheck(directoryPath)).toEqual({
       check: 'signing-key',
-      message: `uploads are signed with key ${SIGNING_KEY.fingerprint}`,
+      message: `HOTCODEPUSH_SIGNING_KEY signs with key ${SIGNING_KEY.fingerprint}`,
       status: 'ok',
     });
   });
 
-  it('should skip the signing key when the configuration lists a key and this machine holds no private half', async () => {
+  it('should pass the signing key without HOTCODEPUSH_SIGNING_KEY when the listed keys are registered, looking for no file', async () => {
     const directoryPath = await writeSetUpProject();
     listPublicKey(directoryPath);
     respondWithSessionAndApp();
+    respondWithSigningKeys([SIGNING_KEY]);
 
     expect(await readSigningKeyCheck(directoryPath)).toEqual({
       check: 'signing-key',
       message:
-        'code signing is on; no private key on this machine, so uploads run where HOTCODEPUSH_SIGNING_KEY is set',
-      status: 'skipped',
+        'code signing is on; an upload signs with --private-key-path or HOTCODEPUSH_SIGNING_KEY',
+      status: 'ok',
+    });
+  });
+
+  it('should fail the signing key when HOTCODEPUSH_SIGNING_KEY belongs to no listed key', async () => {
+    const directoryPath = await writeSetUpProject();
+    listPublicKey(directoryPath);
+    vi.stubEnv(
+      'HOTCODEPUSH_SIGNING_KEY',
+      resolveProtocolSigningKey('rsa-4096-b').privateKey,
+    );
+    respondWithSessionAndApp();
+    respondWithSigningKeys([SIGNING_KEY]);
+
+    expect(await readSigningKeyCheck(directoryPath)).toEqual({
+      check: 'signing-key',
+      manualStep:
+        'give the private key of a public key hotcodepush.json lists; "hotcodepush signing-key create" makes a new pair.',
+      message:
+        'HOTCODEPUSH_SIGNING_KEY: the private key belongs to no public key hotcodepush.json lists',
+      status: 'failed',
+    });
+  });
+
+  it('should fail the signing key when the configuration lists a key the app has not registered', async () => {
+    const directoryPath = await writeSetUpProject();
+    listPublicKey(directoryPath);
+    respondWithSessionAndApp();
+    respondWithSigningKeys([]);
+
+    expect(await readSigningKeyCheck(directoryPath)).toEqual({
+      check: 'signing-key',
+      manualStep:
+        'run hotcodepush signing-key list --json and keep in publicKeys only the keys it prints',
+      message: 'hotcodepush.json lists 1 public key the app has not registered',
+      status: 'failed',
     });
   });
 

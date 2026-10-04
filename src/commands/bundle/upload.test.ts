@@ -31,12 +31,14 @@ import { PACKAGE_JSON } from '../../config/consts.js';
 import { applyBsdiffPatch } from '../../utils/bsdiff.js';
 import { runCli } from '../../utils/cli.js';
 import {
+  InvalidParameterError,
   SigningKeyUnavailableError,
   UnknownFrameworkError,
   UnsupportedFrameworkError,
 } from '../../utils/errors.js';
 import type * as packageManagerModule from '../../utils/package-manager.js';
 import { runCommandLineVisibly } from '../../utils/package-manager.js';
+import { writeSigningPrivateKeyFile } from '../../utils/signing-private-key.js';
 import bundleUploadCommand from './upload.js';
 
 vi.mock('@clack/prompts');
@@ -371,7 +373,7 @@ describe('bundle upload', () => {
     return configPath;
   }
 
-  it('should sign the manifest the API rebuilds, the platforms sorted, when the private key of a listed public key is at hand', async () => {
+  it('should sign the manifest the API rebuilds, the platforms sorted, when HOTCODEPUSH_SIGNING_KEY holds the private key of a listed public key', async () => {
     respondWithUploadRoutes();
     vi.stubEnv('HOTCODEPUSH_SIGNING_KEY', SIGNING_PRIVATE_KEY);
 
@@ -413,7 +415,23 @@ describe('bundle upload', () => {
     ).toBe(true);
   });
 
-  it('should stop with E_SIGNING_KEY_UNAVAILABLE before any request when no private key belongs to a listed public key', async () => {
+  it('should sign the manifest with the private key file --private-key-path names', async () => {
+    respondWithUploadRoutes();
+    const privateKeyPath = join(projectDirectoryPath, 'private-key.pem');
+    writeSigningPrivateKeyFile(privateKeyPath, SIGNING_PRIVATE_KEY);
+
+    await bundleUploadCommand.action(
+      { config: listPublicKey(), json: true, noGit: true, privateKeyPath },
+      undefined,
+    );
+
+    const { signature } = (await readRequest('POST', '/bundles')?.json()) as {
+      signature: { keyId: string };
+    };
+    expect(signature.keyId).toBe(SIGNING_KEY.fingerprint);
+  });
+
+  it('should stop with E_SIGNING_KEY_UNAVAILABLE before any request when hotcodepush.json lists a public key and no private key is given', async () => {
     respondWithUploadRoutes();
 
     await expect(
@@ -422,6 +440,20 @@ describe('bundle upload', () => {
         undefined,
       ),
     ).rejects.toBeInstanceOf(SigningKeyUnavailableError);
+
+    expect(harness.requests).toHaveLength(0);
+  });
+
+  it('should stop with E_INVALID_PARAMETER before any request when a private key is given and hotcodepush.json lists no public key', async () => {
+    respondWithUploadRoutes();
+    vi.stubEnv('HOTCODEPUSH_SIGNING_KEY', SIGNING_PRIVATE_KEY);
+
+    await expect(
+      bundleUploadCommand.action(
+        { config: join(projectDirectoryPath, 'hotcodepush.json'), noGit: true },
+        undefined,
+      ),
+    ).rejects.toBeInstanceOf(InvalidParameterError);
 
     expect(harness.requests).toHaveLength(0);
   });
