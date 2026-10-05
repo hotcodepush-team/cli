@@ -83,7 +83,7 @@ export const bundleUploadOptionShape = {
     .string()
     .optional()
     .describe(
-      "The web build to upload; hotcodepush.json's dir, otherwise Capacitor's webDir, by default.",
+      "The web build to upload, hotcodepush.json's dir or the framework's output by default; on React Native and Expo one platform's prepared bundle.",
     ),
   platform: platformListSchema
     .optional()
@@ -98,7 +98,7 @@ export const bundleUploadOptionShape = {
 
 export default defineCommand({
   description:
-    'Upload a web build as a bundle, signed where a key is configured: only the files the app lacks move, then the packs; nothing is released.',
+    'Upload a build as a bundle, signed where a key is configured: only the files the app lacks move, then the packs; nothing is released.',
   examples: [
     'hotcodepush bundle upload',
     'hotcodepush bundle upload --path dist --bundle-version 1.4.2 --platform ios --json',

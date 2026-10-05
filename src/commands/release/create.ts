@@ -97,7 +97,7 @@ interface ReleaseCreateOptions
 
 export default defineCommand({
   description:
-    'Release a bundle to a channel, uploading the web build first unless --bundle or --from-channel names one, and wait until it is live.',
+    'Release a bundle to a channel, uploading the build first unless --bundle or --from-channel names one, and wait until it is live.',
   examples: [
     'hotcodepush release create --path dist',
     'hotcodepush release create --from-channel staging --channel production --binary ">=2.3.0" --rollout-percentage 10 --dry-run',
@@ -110,7 +110,7 @@ export default defineCommand({
       .string()
       .optional()
       .describe(
-        'A bundle already uploaded, by number or id; without it the web build is uploaded first.',
+        'A bundle already uploaded, by number or id; without it the build is uploaded first.',
       ),
     channel: z
       .array(z.string())
@@ -128,7 +128,7 @@ export default defineCommand({
       .string()
       .optional()
       .describe(
-        'Release what this channel serves, by id or name, instead of a bundle or a web build.',
+        'Release what this channel serves, by id or name, instead of a bundle or a build.',
       ),
     mandatory: booleanFlagSchema
       .optional()
