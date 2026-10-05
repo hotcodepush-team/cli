@@ -26,5 +26,5 @@ export const PACKAGE_JSON: CliMeta = createRequire(import.meta.url)(
 export const PROJECT_CONFIG_FILE_NAME = 'hotcodepush.json';
 export const REACT_NATIVE_PACKAGE_NAME = '@hotcodepush/react-native-code-push';
 export const REACT_NATIVE_PACKAGE_SPEC =
-  'https://pkg.pr.new/hotcodepush-team/react-native-code-push/@hotcodepush/react-native-code-push@0dc41e3';
+  'https://pkg.pr.new/hotcodepush-team/react-native-code-push/@hotcodepush/react-native-code-push@21b0474';
 export const SIGNING_PRIVATE_KEY_FILE_NAME = 'hotcodepush-private-key.pem';
