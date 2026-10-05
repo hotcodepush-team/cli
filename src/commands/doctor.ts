@@ -22,13 +22,11 @@ import {
   resolveCredentialText,
 } from '../utils/credential.js';
 import {
-  CliError,
   InvalidParameterError,
   NotLoggedInError,
   ReportedFailureError,
   SigningKeyUnavailableError,
   UnknownFrameworkError,
-  UnsupportedFrameworkError,
 } from '../utils/errors.js';
 import { detectFramework } from '../utils/framework.js';
 import type {
@@ -68,11 +66,11 @@ type DoctorCheck = FrameworkCheck;
 
 /**
  * What every check reads: the project, its configuration, its `package.json` and its framework, located once;
- * a project whose framework the CLI cannot name or does not package carries the error that says so.
+ * a project whose framework the CLI cannot name carries the error that says so.
  */
 interface Project {
   directoryPath: string;
-  framework: CliError | FrameworkModule;
+  framework: FrameworkModule | UnknownFrameworkError;
   packageJson: PackageJson | undefined;
   projectConfig: ProjectConfig | undefined;
 }
@@ -390,11 +388,11 @@ async function fetchUnregisteredPublicKeyCount(
 
 /**
  * The framework's SDK package and binary create step, then the resource file of each platform; a project without a framework
- * the CLI packages gets the one row that says so.
+ * the CLI knows gets the one row that says so.
  */
 function checkFramework(project: Project): DoctorCheck[] {
   const { framework } = project;
-  if (framework instanceof CliError) {
+  if (framework instanceof UnknownFrameworkError) {
     return [
       {
         check: 'framework',
@@ -526,7 +524,9 @@ function checkVersions({
   packageJson,
 }: Project): DoctorCheck {
   const packageNames =
-    framework instanceof CliError ? [] : framework.versionedPackageNames;
+    framework instanceof UnknownFrameworkError
+      ? []
+      : framework.versionedPackageNames;
   const versions = [
     `${PACKAGE_JSON.name} ${PACKAGE_JSON.version}`,
     `node ${process.version}`,
@@ -552,14 +552,11 @@ async function isReachable(url: string): Promise<boolean> {
  */
 function resolveProjectFramework(
   directoryPath: string,
-): CliError | FrameworkModule {
+): FrameworkModule | UnknownFrameworkError {
   try {
     return resolveFrameworkModule(detectFramework(directoryPath));
   } catch (error) {
-    if (
-      error instanceof UnknownFrameworkError ||
-      error instanceof UnsupportedFrameworkError
-    ) {
+    if (error instanceof UnknownFrameworkError) {
       return error;
     }
     throw error;

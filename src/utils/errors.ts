@@ -328,20 +328,6 @@ export class UnknownFrameworkError extends CliError {
   }
 }
 
-/**
- * A framework the CLI knows but does not package yet; its packaging arrives with its SDK.
- */
-export class UnsupportedFrameworkError extends CliError {
-  constructor(framework: string) {
-    super({
-      code: 'E_UNSUPPORTED_FRAMEWORK',
-      exitCode: ExitCode.Error,
-      fix: 'Capacitor is packaged today; the other frameworks arrive with their SDKs.',
-      message: `${framework} projects are not packaged yet`,
-    });
-  }
-}
-
 export class UnknownCommandError extends CliError {
   constructor(typedCommand: string, closestCommandName: string | undefined) {
     super({

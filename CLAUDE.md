@@ -81,7 +81,7 @@ No releases yet: the version stays `0.0.0`, and release-please and npm provenanc
 1. `src/utils/frameworks/<framework>.ts` exports a `FrameworkModule`: the build output, the native projects, the resource file's place,
    the store build's identity, what `init` installs and wires, what `doctor` checks, and, where the framework has one,
    the optional `resolveMainBundlePath`, which names the main JavaScript bundle among a bundle's files for the delta packs to carry as a patch.
-2. One line joins the registry in `src/utils/frameworks/index.ts`; a framework without a line is `E_UNSUPPORTED_FRAMEWORK`.
+2. One line joins the registry in `src/utils/frameworks/index.ts`.
 3. Nothing outside the module names the framework: a command asks the module, never a config file or a path of its own.
 
 Capacitor's module reads `capacitor.config` as text and the native projects' own files; Cordova's reads `config.xml` through `fast-xml-parser` and derives the store build's identity as Cordova's prepare does.

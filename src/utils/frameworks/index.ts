@@ -3,7 +3,6 @@ import type { BinaryIdentity } from '../binary-identity.js';
 import type { BundleFile } from '../bundle-files.js';
 import type { InteractivityOptions } from '../environment.js';
 import type { ConfirmationRequiredError } from '../errors.js';
-import { UnsupportedFrameworkError } from '../errors.js';
 import type { Framework } from '../framework.js';
 import type { StepOutcome } from '../init-steps.js';
 import type { Platform } from '../upload.js';
@@ -159,20 +158,13 @@ export interface WiringOptions extends InteractivityOptions {
   xcodeTarget?: string;
 }
 
-const FRAMEWORK_MODULES: Partial<Record<Framework, FrameworkModule>> = {
+const FRAMEWORK_MODULES: Record<Framework, FrameworkModule> = {
   'capacitor': capacitorFramework,
   'cordova': cordovaFramework,
   'expo': expoFramework,
   'react-native': reactNativeFramework,
 };
 
-/**
- * The module of a framework the CLI packages; a framework it knows but does not package yet is refused.
- */
 export function resolveFrameworkModule(framework: Framework): FrameworkModule {
-  const frameworkModule = FRAMEWORK_MODULES[framework];
-  if (frameworkModule === undefined) {
-    throw new UnsupportedFrameworkError(framework);
-  }
-  return frameworkModule;
+  return FRAMEWORK_MODULES[framework];
 }
