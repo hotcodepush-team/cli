@@ -17,6 +17,9 @@ export const DOCS_URL = 'https://hotcodepush.com/docs';
 export const BINARY_CREATE_HOOK_COMMAND = 'npx hotcodepush binary create';
 export const BINARY_CREATE_HOOK_NAME = 'capacitor:copy:after';
 export const ERRORS_DOCS_URL = 'https://hotcodepush.com/docs/cli/errors';
+export const EXPO_PACKAGE_NAME = '@hotcodepush/expo-ota-updates';
+export const EXPO_PACKAGE_SPEC =
+  'https://pkg.pr.new/hotcodepush-team/expo-ota-updates/@hotcodepush/expo-ota-updates@1e126a1';
 export const ISSUES_URL = 'https://github.com/hotcodepush-team/cli/issues';
 export const KEYRING_ACCOUNT_NAME = 'token';
 export const KEYRING_SERVICE_NAME = 'hotcodepush-cli';

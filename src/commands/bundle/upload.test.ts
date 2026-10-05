@@ -34,7 +34,6 @@ import {
   InvalidParameterError,
   SigningKeyUnavailableError,
   UnknownFrameworkError,
-  UnsupportedFrameworkError,
 } from '../../utils/errors.js';
 import type * as packageManagerModule from '../../utils/package-manager.js';
 import { runCommandLineVisibly } from '../../utils/package-manager.js';
@@ -504,18 +503,6 @@ describe('bundle upload', () => {
     expect(stderrWrite).toHaveBeenCalledWith(
       expect.stringMatching(/^E_INVALID_PARAMETER --platform: /),
     );
-  });
-
-  it('should refuse a project whose framework is not packaged yet', async () => {
-    writeProject({ expo: '55.0.0' });
-
-    await expect(
-      bundleUploadCommand.action(
-        { config: join(projectDirectoryPath, 'hotcodepush.json') },
-        undefined,
-      ),
-    ).rejects.toThrow(UnsupportedFrameworkError);
-    expect(harness.requests).toEqual([]);
   });
 
   describe('in a React Native project', () => {

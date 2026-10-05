@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { UnsupportedFrameworkError } from '../errors.js';
 import { resolveFrameworkModule } from './index.js';
 
 describe('frameworks', () => {
@@ -10,11 +9,8 @@ describe('frameworks', () => {
     expect(resolveFrameworkModule('cordova').packageName).toBe(
       '@hotcodepush/cordova-code-push',
     );
-  });
-
-  it('should refuse a framework whose packaging has not arrived', () => {
-    expect(() => resolveFrameworkModule('expo')).toThrow(
-      new UnsupportedFrameworkError('expo'),
+    expect(resolveFrameworkModule('expo').packageName).toBe(
+      '@hotcodepush/expo-ota-updates',
     );
   });
 });

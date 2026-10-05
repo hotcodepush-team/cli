@@ -1,0 +1,391 @@
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ConfirmationRequiredError, NativeProjectError } from '../errors.js';
+import type * as packageManagerModule from '../package-manager.js';
+import { runCommandLineVisibly } from '../package-manager.js';
+import { expoFramework } from './expo.js';
+
+vi.mock('../package-manager.js', async importOriginal => ({
+  ...(await importOriginal<typeof packageManagerModule>()),
+  runCommandLineVisibly: vi.fn(),
+}));
+
+const APP_JSON = `{
+    "expo": {
+        "name": "Demo",
+        "plugins": [
+            "expo-router"
+        ]
+    }
+}
+`;
+
+const HERMESC_DIRECTORY_NAME = {
+  darwin: 'osx-bin',
+  linux: 'linux64-bin',
+  win32: 'win64-bin',
+}[process.platform as 'darwin' | 'linux' | 'win32'];
+
+describe('expoFramework', () => {
+  const directoryPaths: string[] = [];
+
+  function writeFile(filePath: string, content: string): void {
+    mkdirSync(dirname(filePath), { recursive: true });
+    writeFileSync(filePath, content);
+  }
+
+  function writeProject(
+    appConfig: { appJson?: string; codeFileName?: string } = {
+      appJson: APP_JSON,
+    },
+  ): string {
+    const directoryPath = mkdtempSync(join(tmpdir(), 'hotcodepush-expo-'));
+    directoryPaths.push(directoryPath);
+    writeFile(
+      join(directoryPath, 'package.json'),
+      JSON.stringify({
+        dependencies: { 'expo': '~55.0.31', 'react-native': '0.83.10' },
+        name: 'demo',
+      }),
+    );
+    if (appConfig.appJson !== undefined) {
+      writeFile(join(directoryPath, 'app.json'), appConfig.appJson);
+    }
+    if (appConfig.codeFileName !== undefined) {
+      writeFile(
+        join(directoryPath, appConfig.codeFileName),
+        'export default ({ config }) => ({ ...config, plugins: [] });\n',
+      );
+    }
+    return directoryPath;
+  }
+
+  function writeHermesc(directoryPath: string): string {
+    const packagePath = join(directoryPath, 'node_modules', 'hermes-compiler');
+    writeFile(
+      join(packagePath, 'package.json'),
+      JSON.stringify({ name: 'hermes-compiler', version: '0.15.0' }),
+    );
+    const hermescFilePath = join(
+      packagePath,
+      'hermesc',
+      HERMESC_DIRECTORY_NAME,
+      process.platform === 'win32' ? 'hermesc.exe' : 'hermesc',
+    );
+    writeFile(hermescFilePath, '');
+    // the project resolves the package through Node, which answers the real path
+    return realpathSync(hermescFilePath);
+  }
+
+  function readProject(directoryPath: string) {
+    return {
+      directoryPath,
+      packageJson: JSON.parse(
+        readFileSync(join(directoryPath, 'package.json'), 'utf8'),
+      ),
+    };
+  }
+
+  beforeEach(() => {
+    vi.mocked(runCommandLineVisibly).mockReset();
+  });
+
+  afterEach(() => {
+    for (const directoryPath of directoryPaths.splice(0)) {
+      rmSync(directoryPath, { force: true, recursive: true });
+    }
+  });
+
+  describe('packageBundles', () => {
+    it('should bundle each platform with Expo export:embed as its release build does, then compile it with Hermes', async () => {
+      const directoryPath = writeProject();
+      const hermescFilePath = writeHermesc(directoryPath);
+      const packagingDirectoryPath = join(directoryPath, 'packaging');
+      vi.mocked(runCommandLineVisibly).mockImplementation(({ args }) => {
+        const outFilePath = args[args.indexOf('-out') + 1];
+        if (args.includes('-out') && outFilePath !== undefined) {
+          writeFile(outFilePath, 'bytecode');
+        }
+      });
+
+      const packagedBundles = await expoFramework.packageBundles?.({
+        packagingDirectoryPath,
+        path: undefined,
+        platforms: undefined,
+        projectDirectoryPath: directoryPath,
+      });
+
+      expect(packagedBundles).toEqual([
+        {
+          directoryPath: join(packagingDirectoryPath, 'android'),
+          platforms: ['android'],
+        },
+        {
+          directoryPath: join(packagingDirectoryPath, 'ios'),
+          platforms: ['ios'],
+        },
+      ]);
+      const androidIntermediatePath = join(
+        packagingDirectoryPath,
+        'android-intermediate',
+      );
+      const iosIntermediatePath = join(
+        packagingDirectoryPath,
+        'ios-intermediate',
+      );
+      expect(
+        vi
+          .mocked(runCommandLineVisibly)
+          .mock.calls.map(([{ args, command }]) => [command, ...args]),
+      ).toEqual([
+        [
+          'npx',
+          'expo',
+          'export:embed',
+          '--platform',
+          'android',
+          '--dev',
+          'false',
+          '--bundle-output',
+          join(androidIntermediatePath, 'index.android.bundle'),
+          '--assets-dest',
+          join(packagingDirectoryPath, 'android'),
+          '--reset-cache',
+          '--sourcemap-output',
+          join(androidIntermediatePath, 'index.android.bundle.packager.map'),
+          '--minify',
+          'false',
+        ],
+        [
+          hermescFilePath,
+          '-emit-binary',
+          '-max-diagnostic-width=80',
+          '-O',
+          '-output-source-map',
+          '-out',
+          join(androidIntermediatePath, 'index.android.bundle.hbc'),
+          join(androidIntermediatePath, 'index.android.bundle'),
+        ],
+        [
+          'npx',
+          'expo',
+          'export:embed',
+          '--platform',
+          'ios',
+          '--dev',
+          'false',
+          '--bundle-output',
+          join(iosIntermediatePath, 'main.jsbundle'),
+          '--assets-dest',
+          join(packagingDirectoryPath, 'ios'),
+          '--reset-cache',
+          '--minify',
+          'false',
+        ],
+        [
+          hermescFilePath,
+          '-emit-binary',
+          '-max-diagnostic-width=80',
+          '-O',
+          '-out',
+          join(iosIntermediatePath, 'main.jsbundle.hbc'),
+          join(iosIntermediatePath, 'main.jsbundle'),
+        ],
+      ]);
+    });
+  });
+
+  describe('resolveWiring', () => {
+    it('should name package.json and app.json for a fresh project and no native file, which prebuild owns', async () => {
+      const wiring = await expoFramework.resolveWiring(
+        readProject(writeProject()),
+        { yes: true },
+      );
+
+      expect(wiring.isPackageInstalled).toBe(false);
+      expect(wiring.packageFilePaths).toEqual(['package.json', 'app.json']);
+      expect(wiring.nativeFilePaths).toEqual([]);
+    });
+
+    it('should install the package from its pinned build with the package manager of the project', async () => {
+      const directoryPath = writeProject();
+      const wiring = await expoFramework.resolveWiring(
+        readProject(directoryPath),
+        { yes: true },
+      );
+
+      expect(wiring.installPackage()).toMatch(
+        /^installed @hotcodepush\/expo-ota-updates from https:\/\/pkg\.pr\.new\/hotcodepush-team\/expo-ota-updates\/@hotcodepush\/expo-ota-updates@[0-9a-f]{7}$/,
+      );
+      expect(runCommandLineVisibly).toHaveBeenCalledWith(
+        expect.objectContaining({ command: 'npm' }),
+        directoryPath,
+      );
+    });
+
+    describe('wireBinaryCreateStep', () => {
+      it("should add the config plugin to app.json's plugins, keeping the file's other keys and indentation", async () => {
+        const directoryPath = writeProject();
+        const wiring = await expoFramework.resolveWiring(
+          readProject(directoryPath),
+          { yes: true },
+        );
+
+        const outcome = await wiring.wireBinaryCreateStep(undefined);
+
+        expect(outcome).toEqual({
+          message:
+            'added the config plugin @hotcodepush/expo-ota-updates to app.json',
+          status: 'done',
+          value: undefined,
+        });
+        expect(readFileSync(join(directoryPath, 'app.json'), 'utf8')).toBe(
+          APP_JSON.replace(
+            '"expo-router"',
+            '"expo-router",\n            "@hotcodepush/expo-ota-updates"',
+          ),
+        );
+      });
+
+      it('should skip when app.json lists the config plugin with its options', async () => {
+        const directoryPath = writeProject({
+          appJson: JSON.stringify({
+            expo: { plugins: [['@hotcodepush/expo-ota-updates', {}]] },
+          }),
+        });
+        const wiring = await expoFramework.resolveWiring(
+          readProject(directoryPath),
+          { yes: true },
+        );
+
+        expect(await wiring.wireBinaryCreateStep(undefined)).toEqual({
+          message: 'app.json already lists the config plugin',
+          status: 'skipped',
+          value: undefined,
+        });
+        expect(wiring.packageFilePaths).toEqual(['package.json']);
+      });
+
+      it('should add the config plugin at the top of an app.json without the expo key, where Expo reads it', async () => {
+        const directoryPath = writeProject({
+          appJson: JSON.stringify({ name: 'Demo' }),
+        });
+        const wiring = await expoFramework.resolveWiring(
+          readProject(directoryPath),
+          { yes: true },
+        );
+
+        await wiring.wireBinaryCreateStep(undefined);
+
+        expect(
+          JSON.parse(readFileSync(join(directoryPath, 'app.json'), 'utf8')),
+        ).toEqual({
+          name: 'Demo',
+          plugins: ['@hotcodepush/expo-ota-updates'],
+        });
+      });
+
+      it('should change no file when the edit is not confirmed', async () => {
+        const directoryPath = writeProject();
+        const editBlocker = new ConfirmationRequiredError(
+          'changes app.json',
+          'run init --yes to change app.json',
+        );
+        const wiring = await expoFramework.resolveWiring(
+          readProject(directoryPath),
+          {},
+        );
+
+        await expect(wiring.wireBinaryCreateStep(editBlocker)).rejects.toBe(
+          editBlocker,
+        );
+        expect(readFileSync(join(directoryPath, 'app.json'), 'utf8')).toBe(
+          APP_JSON,
+        );
+      });
+
+      it('should stop with the entry to add when the app config is code', async () => {
+        const directoryPath = writeProject({
+          appJson: APP_JSON,
+          codeFileName: 'app.config.ts',
+        });
+        const wiring = await expoFramework.resolveWiring(
+          readProject(directoryPath),
+          { yes: true },
+        );
+
+        await expect(wiring.wireBinaryCreateStep(undefined)).rejects.toThrow(
+          new NativeProjectError(
+            'app.config.ts is code the CLI does not edit',
+            'add "@hotcodepush/expo-ota-updates" to the plugins in app.config.ts.',
+          ),
+        );
+        expect(wiring.packageFilePaths).toEqual(['package.json']);
+        expect(readFileSync(join(directoryPath, 'app.json'), 'utf8')).toBe(
+          APP_JSON,
+        );
+      });
+    });
+  });
+
+  describe('checkWiring', () => {
+    it('should fail the hook of a project whose app.json lacks the config plugin, naming init', () => {
+      expect(
+        expoFramework.checkWiring(readProject(writeProject())).slice(1),
+      ).toEqual([
+        {
+          check: 'hook',
+          manualStep: 'run hotcodepush init',
+          message:
+            'app.json does not list the config plugin @hotcodepush/expo-ota-updates',
+          status: 'failed',
+        },
+      ]);
+    });
+
+    it('should name the entry to add when an app config that is code lacks the config plugin', () => {
+      const directoryPath = writeProject({ codeFileName: 'app.config.js' });
+
+      expect(
+        expoFramework.checkWiring(readProject(directoryPath)).slice(1),
+      ).toEqual([
+        {
+          check: 'hook',
+          manualStep:
+            'add "@hotcodepush/expo-ota-updates" to the plugins in app.config.js',
+          message:
+            'app.config.js does not list the config plugin @hotcodepush/expo-ota-updates',
+          status: 'failed',
+        },
+      ]);
+    });
+
+    it('should report the hook of an app config that is code and names the config plugin', () => {
+      const directoryPath = writeProject({ codeFileName: 'app.config.ts' });
+      writeFile(
+        join(directoryPath, 'app.config.ts'),
+        "export default { plugins: ['@hotcodepush/expo-ota-updates'] };\n",
+      );
+
+      expect(
+        expoFramework.checkWiring(readProject(directoryPath)).slice(1),
+      ).toEqual([
+        {
+          check: 'hook',
+          message:
+            'app.config.ts lists the config plugin, which wires binary create at prebuild',
+          status: 'ok',
+        },
+      ]);
+    });
+  });
+});
