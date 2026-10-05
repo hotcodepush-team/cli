@@ -97,7 +97,7 @@ function addPluginEntry(projectDirectoryPath: string): void {
  * `doctor`'s `hook` row: the app config lists the plugin, which wires binary create into the native builds at prebuild.
  */
 function checkPluginEntry({ directoryPath }: FrameworkProject): FrameworkCheck {
-  const appConfigFileName = resolveAppConfigFileName(directoryPath);
+  const appConfigFileName = findAppConfigFileName(directoryPath);
   if (hasPluginEntry(directoryPath, appConfigFileName)) {
     return {
       check: 'hook',
@@ -114,6 +114,17 @@ function checkPluginEntry({ directoryPath }: FrameworkProject): FrameworkCheck {
     message: `${appConfigFileName} does not list the config plugin ${EXPO_PACKAGE_NAME}`,
     status: 'failed',
   };
+}
+
+/**
+ * The app config Expo reads: the first one that is code, `app.json` otherwise.
+ */
+function findAppConfigFileName(projectDirectoryPath: string): string {
+  return (
+    CODE_APP_CONFIG_FILE_NAMES.find(fileName =>
+      existsSync(join(projectDirectoryPath, fileName)),
+    ) ?? APP_JSON_FILE_NAME
+  );
 }
 
 /**
@@ -139,17 +150,6 @@ function hasPluginEntry(
   );
 }
 
-/**
- * The app config Expo reads: the first one that is code, `app.json` otherwise.
- */
-function resolveAppConfigFileName(projectDirectoryPath: string): string {
-  return (
-    CODE_APP_CONFIG_FILE_NAMES.find(fileName =>
-      existsSync(join(projectDirectoryPath, fileName)),
-    ) ?? APP_JSON_FILE_NAME
-  );
-}
-
 function resolvePluginEntryStep(appConfigFileName: string): string {
   return `add "${EXPO_PACKAGE_NAME}" to the plugins in ${appConfigFileName}`;
 }
@@ -162,7 +162,7 @@ function resolveWiring({
     packageJson,
     EXPO_PACKAGE_NAME,
   );
-  const appConfigFileName = resolveAppConfigFileName(directoryPath);
+  const appConfigFileName = findAppConfigFileName(directoryPath);
   const isAppJsonToEdit =
     appConfigFileName === APP_JSON_FILE_NAME &&
     !hasPluginEntry(directoryPath, appConfigFileName);
