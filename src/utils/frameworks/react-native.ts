@@ -7,11 +7,7 @@ import {
 import type { CliError, ConfirmationRequiredError } from '../errors.js';
 import { NativeProjectError, XcodeProjectError } from '../errors.js';
 import type { StepOutcome } from '../init-steps.js';
-import {
-  resolveInstallCommandLine,
-  resolvePackageManager,
-  runCommandLineVisibly,
-} from '../package-manager.js';
+import { runCommandLineVisibly } from '../package-manager.js';
 import type { ReactNativeEdit } from '../react-native-project.js';
 import {
   resolveBundleUrlEdit,
@@ -34,7 +30,11 @@ import {
   resolveMainBundlePath,
   resolveNativeProjectPaths,
 } from './react-native-build.js';
-import { checkSdkPackage, isSdkPackageDeclared } from './sdk-package.js';
+import {
+  checkSdkPackage,
+  installSdkPackage,
+  isSdkPackageDeclared,
+} from './sdk-package.js';
 import type {
   FrameworkCheck,
   FrameworkModule,
@@ -145,17 +145,6 @@ function checkBinaryCreateStep({
   );
 }
 
-function installPackage(projectDirectoryPath: string): string {
-  runCommandLineVisibly(
-    resolveInstallCommandLine(
-      resolvePackageManager(projectDirectoryPath),
-      REACT_NATIVE_PACKAGE_SPEC,
-    ),
-    projectDirectoryPath,
-  );
-  return `installed ${REACT_NATIVE_PACKAGE_NAME} from ${REACT_NATIVE_PACKAGE_SPEC}`;
-}
-
 /**
  * Whether the SDK's pod is among the installed ones; without a Podfile there is nothing to install.
  */
@@ -242,7 +231,12 @@ async function resolveWiring(
         .map(({ filePath }) => filePath),
     ].map(filePath => relative(directoryPath, filePath)),
     packageFilePaths: isPackageInstalled ? [] : ['package.json'],
-    installPackage: () => installPackage(directoryPath),
+    installPackage: () =>
+      installSdkPackage(
+        directoryPath,
+        REACT_NATIVE_PACKAGE_NAME,
+        REACT_NATIVE_PACKAGE_SPEC,
+      ),
     wireBinaryCreateStep: editBlocker =>
       wireBinaryCreateStep(
         directoryPath,

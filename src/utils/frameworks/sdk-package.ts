@@ -1,6 +1,11 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { PackageJson } from '../binary-create-hook.js';
+import {
+  resolveInstallCommandLine,
+  resolvePackageManager,
+  runCommandLineVisibly,
+} from '../package-manager.js';
 import type { FrameworkCheck, FrameworkProject } from './index.js';
 
 const INIT_STEP = 'run hotcodepush init';
@@ -37,6 +42,24 @@ export function checkSdkPackage(
     message: `${packageName} ${installedVersion} installed`,
     status: 'ok',
   };
+}
+
+/**
+ * Installs the SDK package from its pinned build with the project's package manager, visibly, and answers the sentence the step prints.
+ */
+export function installSdkPackage(
+  projectDirectoryPath: string,
+  packageName: string,
+  packageSpec: string,
+): string {
+  runCommandLineVisibly(
+    resolveInstallCommandLine(
+      resolvePackageManager(projectDirectoryPath),
+      packageSpec,
+    ),
+    projectDirectoryPath,
+  );
+  return `installed ${packageName} from ${packageSpec}`;
 }
 
 export function isSdkPackageDeclared(

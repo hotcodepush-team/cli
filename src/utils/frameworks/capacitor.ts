@@ -14,11 +14,6 @@ import {
 import { readBinaryIdentity as readNativeProjectBinaryIdentity } from '../binary-identity.js';
 import type { ConfirmationRequiredError } from '../errors.js';
 import type { StepOutcome } from '../init-steps.js';
-import {
-  resolveInstallCommandLine,
-  resolvePackageManager,
-  runCommandLineVisibly,
-} from '../package-manager.js';
 import type { Platform } from '../upload.js';
 import {
   addResourceReference,
@@ -27,7 +22,11 @@ import {
 } from '../xcode-project.js';
 import type { NativeProjects } from './native-projects.js';
 import { resolveNativeProjects } from './native-projects.js';
-import { checkSdkPackage, isSdkPackageDeclared } from './sdk-package.js';
+import {
+  checkSdkPackage,
+  installSdkPackage,
+  isSdkPackageDeclared,
+} from './sdk-package.js';
 import type {
   FrameworkCheck,
   FrameworkModule,
@@ -144,17 +143,6 @@ function hasReadableResourceReference(xcodeProjectFilePath: string): boolean {
   }
 }
 
-function installPackage(projectDirectoryPath: string): string {
-  runCommandLineVisibly(
-    resolveInstallCommandLine(
-      resolvePackageManager(projectDirectoryPath),
-      CAPACITOR_PACKAGE_SPEC,
-    ),
-    projectDirectoryPath,
-  );
-  return `installed ${CAPACITOR_PACKAGE_NAME} from ${CAPACITOR_PACKAGE_SPEC}`;
-}
-
 /**
  * The text of `capacitor.config.json` or `.ts`, read as text since the TypeScript form is code: the values are matched, never evaluated.
  */
@@ -256,7 +244,12 @@ async function resolveWiring(
       resolveBinaryCreateHookState(packageJson ?? {}) !== 'wired'
         ? ['package.json']
         : [],
-    installPackage: () => installPackage(directoryPath),
+    installPackage: () =>
+      installSdkPackage(
+        directoryPath,
+        CAPACITOR_PACKAGE_NAME,
+        CAPACITOR_PACKAGE_SPEC,
+      ),
     wireBinaryCreateStep: editBlocker =>
       wireBinaryCreateStep(
         directoryPath,
