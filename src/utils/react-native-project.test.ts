@@ -122,6 +122,26 @@ describe('react-native-project', () => {
       );
     });
 
+    it('should pin the pod when the Podfile names it outside a pod line', () => {
+      writeInstalledSdk(directoryPath);
+      const filePath = join(directoryPath, PODFILE_PATH);
+      writeFileSync(
+        filePath,
+        `${readProjectFile(directoryPath, PODFILE_PATH)}\npost_install do |installer|\n  # HotCodePushProtocol's resource bundle\nend\n`,
+      );
+      const edit = resolveProtocolPodEdit(
+        join(directoryPath, 'ios'),
+        directoryPath,
+      );
+      expect(edit?.isApplied()).toBe(false);
+
+      edit?.apply();
+
+      expect(readProjectFile(directoryPath, PODFILE_PATH)).toContain(
+        "  config = use_native_modules!\n  pod 'HotCodePushProtocol', :git =>",
+      );
+    });
+
     it('should stop with the manual step when the SDK is not installed yet', () => {
       expect(() =>
         resolveProtocolPodEdit(

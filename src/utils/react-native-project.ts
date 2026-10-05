@@ -26,6 +26,8 @@ const GRADLE_FILE_NAMES = ['build.gradle', 'build.gradle.kts'];
 
 const PROTOCOL_POD_NAME = 'HotCodePushProtocol';
 
+const PROTOCOL_POD_LINE_START = `pod '${PROTOCOL_POD_NAME}'`;
+
 const PROTOCOL_POD_REPOSITORY_URL =
   'https://github.com/hotcodepush-team/protocol-ios.git';
 
@@ -124,7 +126,8 @@ export function resolveProtocolPodEdit(
   return {
     description: 'the HotCodePushProtocol pod in the Podfile',
     filePath,
-    isApplied: () => readFileSync(filePath, 'utf8').includes(PROTOCOL_POD_NAME),
+    isApplied: () =>
+      readFileSync(filePath, 'utf8').includes(PROTOCOL_POD_LINE_START),
     apply: () => {
       const source = readFileSync(filePath, 'utf8');
       const commit = readProtocolPodCommit(projectDirectoryPath);
@@ -144,7 +147,7 @@ export function resolveProtocolPodEdit(
         filePath,
         source.replace(
           nativeModulesLine,
-          `${nativeModulesLine}\n${indentation}pod '${PROTOCOL_POD_NAME}', :git => '${PROTOCOL_POD_REPOSITORY_URL}', :commit => '${commit}'`,
+          `${nativeModulesLine}\n${indentation}${PROTOCOL_POD_LINE_START}, :git => '${PROTOCOL_POD_REPOSITORY_URL}', :commit => '${commit}'`,
         ),
       );
     },
