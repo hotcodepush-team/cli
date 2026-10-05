@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { createRequire } from 'node:module';
+import { dirname, join } from 'node:path';
 import { INIT_MANUAL_STEP } from '../../config/consts.js';
 import type { PackageJson } from '../binary-create-hook.js';
 import {
@@ -87,6 +88,36 @@ export function readInstalledPackageVersion(
   if (!existsSync(packageJsonPath)) {
     return undefined;
   }
+  return readPackageJsonVersion(packageJsonPath);
+}
+
+function readPackageJsonVersion(packageJsonPath: string): string | undefined {
   return (JSON.parse(readFileSync(packageJsonPath, 'utf8')) as PackageJson)
     .version;
+}
+
+/**
+ * The version of a package the SDK package depends on, resolved from the SDK package as Node resolves it, since an
+ * isolated install such as pnpm's keeps it out of the project's `node_modules`; none when either is not installed.
+ */
+export function readSdkDependencyVersion(
+  projectDirectoryPath: string,
+  sdkPackageName: string,
+  packageName: string,
+): string | undefined {
+  try {
+    const projectRequire = createRequire(
+      join(projectDirectoryPath, 'package.json'),
+    );
+    const sdkPackageJsonPath = projectRequire.resolve(
+      `${sdkPackageName}/package.json`,
+    );
+    return readPackageJsonVersion(
+      projectRequire.resolve(`${packageName}/package.json`, {
+        paths: [dirname(sdkPackageJsonPath)],
+      }),
+    );
+  } catch {
+    return undefined;
+  }
 }

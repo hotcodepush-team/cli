@@ -36,6 +36,11 @@ export interface FrameworkModule {
    */
   versionedPackageNames: string[];
   /**
+   * The SDK package's dependencies whose installed versions a bug report needs, read where the SDK package resolves
+   * them, since an isolated install keeps them out of the project's `node_modules`.
+   */
+  versionedSdkDependencyNames?: string[];
+  /**
    * The SDK package and the binary create step as `doctor` reports them.
    */
   checkWiring: (project: FrameworkProject) => FrameworkCheck[];

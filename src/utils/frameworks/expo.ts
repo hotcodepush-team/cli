@@ -84,12 +84,8 @@ export const expoFramework: FrameworkModule = {
   binaryCreateStep:
     'run npx expo prebuild and build the app natively, which runs binary create',
   packageName: EXPO_PACKAGE_NAME,
-  versionedPackageNames: [
-    'expo',
-    'react-native',
-    EXPO_PACKAGE_NAME,
-    REACT_NATIVE_PACKAGE_NAME,
-  ],
+  versionedPackageNames: ['expo', 'react-native', EXPO_PACKAGE_NAME],
+  versionedSdkDependencyNames: [REACT_NATIVE_PACKAGE_NAME],
   checkWiring: project => [
     checkSdkPackage(project, EXPO_PACKAGE_NAME),
     checkPluginEntry(project),

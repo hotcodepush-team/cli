@@ -34,7 +34,10 @@ import type {
   FrameworkModule,
 } from '../utils/frameworks/index.js';
 import { resolveFrameworkModule } from '../utils/frameworks/index.js';
-import { readInstalledPackageVersion } from '../utils/frameworks/sdk-package.js';
+import {
+  readInstalledPackageVersion,
+  readSdkDependencyVersion,
+} from '../utils/frameworks/sdk-package.js';
 import { defineCommandOptions } from '../utils/global-options.js';
 import { resolveFilesBaseUrl, resolveUpdatesBaseUrl } from '../utils/hosts.js';
 import { printOutcomeRows } from '../utils/outcome.js';
@@ -523,18 +526,22 @@ function checkVersions({
   framework,
   packageJson,
 }: Project): DoctorCheck {
-  const packageNames =
-    framework instanceof UnknownFrameworkError
-      ? []
-      : framework.versionedPackageNames;
   const versions = [
     `${PACKAGE_JSON.name} ${PACKAGE_JSON.version}`,
     `node ${process.version}`,
-    ...packageNames.map(
-      packageName =>
-        `${packageName} ${readInstalledPackageVersion(directoryPath, packageName) ?? packageJson?.dependencies?.[packageName] ?? 'missing'}`,
-    ),
   ];
+  if (!(framework instanceof UnknownFrameworkError)) {
+    versions.push(
+      ...framework.versionedPackageNames.map(
+        packageName =>
+          `${packageName} ${readInstalledPackageVersion(directoryPath, packageName) ?? packageJson?.dependencies?.[packageName] ?? 'missing'}`,
+      ),
+      ...(framework.versionedSdkDependencyNames ?? []).map(
+        packageName =>
+          `${packageName} ${readSdkDependencyVersion(directoryPath, framework.packageName, packageName) ?? 'missing'}`,
+      ),
+    );
+  }
   return { check: 'versions', message: versions.join(', '), status: 'ok' };
 }
 
