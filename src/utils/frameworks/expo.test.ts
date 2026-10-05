@@ -188,6 +188,29 @@ describe('expoFramework', () => {
         });
       });
 
+      it('should add the config plugin to app.config.json, which Expo reads before app.json', async () => {
+        const directoryPath = writeProject({});
+        writeFile(join(directoryPath, 'app.config.json'), APP_JSON);
+        const wiring = await expoFramework.resolveWiring(
+          readProject(directoryPath),
+          { yes: true },
+        );
+
+        expect(await wiring.wireBinaryCreateStep(undefined)).toEqual({
+          message:
+            'added the config plugin @hotcodepush/expo-ota-updates to app.config.json',
+          status: 'done',
+          value: undefined,
+        });
+        expect(wiring.packageFilePaths).toEqual([
+          'package.json',
+          'app.config.json',
+        ]);
+        expect(
+          readFileSync(join(directoryPath, 'app.config.json'), 'utf8'),
+        ).toContain('"@hotcodepush/expo-ota-updates"');
+      });
+
       it('should change no file when the edit is not confirmed', async () => {
         const directoryPath = writeProject();
         const editBlocker = new ConfirmationRequiredError(
@@ -259,6 +282,26 @@ describe('expoFramework', () => {
           message:
             'app.config.js does not list the config plugin @hotcodepush/expo-ota-updates',
           status: 'failed',
+        },
+      ]);
+    });
+
+    it('should report the hook when app.json lists the config plugin beside an app config that is code', () => {
+      const directoryPath = writeProject({
+        appJson: JSON.stringify({
+          expo: { plugins: ['@hotcodepush/expo-ota-updates'] },
+        }),
+        codeFileName: 'app.config.js',
+      });
+
+      expect(
+        expoFramework.checkWiring(readProject(directoryPath)).slice(1),
+      ).toEqual([
+        {
+          check: 'hook',
+          message:
+            'app.json lists the config plugin, which wires binary create at prebuild',
+          status: 'ok',
         },
       ]);
     });
