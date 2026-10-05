@@ -1,6 +1,10 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { EXPO_PACKAGE_NAME, EXPO_PACKAGE_SPEC } from '../../config/consts.js';
+import {
+  EXPO_PACKAGE_NAME,
+  EXPO_PACKAGE_SPEC,
+  INIT_MANUAL_STEP,
+} from '../../config/consts.js';
 import { stringifyLikeSource } from '../binary-create-hook.js';
 import type { ConfirmationRequiredError } from '../errors.js';
 import { NativeProjectError } from '../errors.js';
@@ -109,7 +113,7 @@ function checkPluginEntry({ directoryPath }: FrameworkProject): FrameworkCheck {
     check: 'hook',
     manualStep:
       appConfigFileName === APP_JSON_FILE_NAME
-        ? 'run hotcodepush init'
+        ? INIT_MANUAL_STEP
         : resolvePluginEntryStep(appConfigFileName),
     message: `${appConfigFileName} does not list the config plugin ${EXPO_PACKAGE_NAME}`,
     status: 'failed',

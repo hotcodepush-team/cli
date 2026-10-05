@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import {
+  INIT_MANUAL_STEP,
   REACT_NATIVE_PACKAGE_NAME,
   REACT_NATIVE_PACKAGE_SPEC,
 } from '../../config/consts.js';
@@ -46,8 +47,6 @@ import type {
 
 const BINARY_CREATE_PHASE_DESCRIPTION =
   'the Create HotCodePush binary phase in Xcode';
-
-const INIT_STEP = 'run hotcodepush init';
 
 const POD_NAME = 'HotcodepushReactNativeCodePush';
 
@@ -109,7 +108,7 @@ function checkEdits(
   if (missingFilePaths.length > 0 || isPhaseMissing) {
     return {
       check,
-      manualStep: INIT_STEP,
+      manualStep: INIT_MANUAL_STEP,
       message: `not wired in ${[...(isPhaseMissing ? ['the Xcode project'] : []), ...missingFilePaths].join(' and ')}`,
       status: 'failed',
     };

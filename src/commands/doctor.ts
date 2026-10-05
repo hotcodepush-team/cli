@@ -8,7 +8,11 @@ import {
 } from '@hotcodepush/protocol';
 import { z } from 'zod';
 import { defineCommand } from 'zodline';
-import { PACKAGE_JSON, PROJECT_CONFIG_FILE_NAME } from '../config/consts.js';
+import {
+  INIT_MANUAL_STEP,
+  PACKAGE_JSON,
+  PROJECT_CONFIG_FILE_NAME,
+} from '../config/consts.js';
 import { createApiClient } from '../utils/api-client.js';
 import type { PackageJson } from '../utils/binary-create-hook.js';
 import { readPackageJson } from '../utils/binary-create-hook.js';
@@ -82,8 +86,6 @@ const CHANNEL_NAME_SCHEMA = ProjectConfigurationSchema.shape.channel;
 
 const ID_SCHEMA = z.guid();
 
-const INIT_STEP = 'run hotcodepush init';
-
 const PLATFORMS: Platform[] = ['android', 'ios'];
 
 const PROBE_TIMEOUT_MS = 5000;
@@ -144,7 +146,7 @@ function checkConfiguration({
   if (projectConfig === undefined) {
     return {
       check: 'configuration',
-      manualStep: INIT_STEP,
+      manualStep: INIT_MANUAL_STEP,
       message: `no ${PROJECT_CONFIG_FILE_NAME} up from ${directoryPath}`,
       status: 'failed',
     };
@@ -156,7 +158,7 @@ function checkConfiguration({
   if (problems.length > 0) {
     return {
       check: 'configuration',
-      manualStep: INIT_STEP,
+      manualStep: INIT_MANUAL_STEP,
       message: `${PROJECT_CONFIG_FILE_NAME} ${problems.join(', ')}`,
       status: 'failed',
     };
@@ -285,7 +287,7 @@ async function checkApp(
       app: undefined,
       check: {
         check: 'app',
-        manualStep: INIT_STEP,
+        manualStep: INIT_MANUAL_STEP,
         message: `the API does not know the app or the channel: ${error instanceof Error ? error.message : String(error)}`,
         status: 'failed',
       },

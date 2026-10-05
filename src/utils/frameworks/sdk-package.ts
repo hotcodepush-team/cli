@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { INIT_MANUAL_STEP } from '../../config/consts.js';
 import type { PackageJson } from '../binary-create-hook.js';
 import {
   resolveInstallCommandLine,
@@ -7,8 +8,6 @@ import {
   runCommandLineVisibly,
 } from '../package-manager.js';
 import type { FrameworkCheck, FrameworkProject } from './index.js';
-
-const INIT_STEP = 'run hotcodepush init';
 
 /**
  * The SDK package as `doctor` reports it: declared in `package.json` and present in `node_modules`.
@@ -20,7 +19,7 @@ export function checkSdkPackage(
   if (!isSdkPackageDeclared(packageJson, packageName)) {
     return {
       check: 'package',
-      manualStep: INIT_STEP,
+      manualStep: INIT_MANUAL_STEP,
       message: `${packageName} is not in package.json`,
       status: 'failed',
     };

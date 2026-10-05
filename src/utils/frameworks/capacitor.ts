@@ -5,6 +5,7 @@ import {
   CAPACITOR_PACKAGE_SPEC,
   BINARY_CREATE_HOOK_COMMAND,
   BINARY_CREATE_HOOK_NAME,
+  INIT_MANUAL_STEP,
 } from '../../config/consts.js';
 import {
   readPackageJson,
@@ -40,8 +41,6 @@ export const CAPACITOR_CONFIG_FILE_NAMES = [
   'capacitor.config.json',
   'capacitor.config.ts',
 ];
-
-const INIT_STEP = 'run hotcodepush init';
 
 /**
  * Capacitor: the web build at `webDir`, the native projects at `ios/` and `android/`, binary create in the
@@ -89,7 +88,7 @@ function checkHook({ packageJson }: FrameworkProject): FrameworkCheck {
     default:
       return {
         check: 'hook',
-        manualStep: INIT_STEP,
+        manualStep: INIT_MANUAL_STEP,
         message: `${BINARY_CREATE_HOOK_NAME} does not run binary create`,
         status: 'failed',
       };
@@ -117,7 +116,7 @@ function checkXcodeProject({
         }
       : {
           check: 'ios-project',
-          manualStep: INIT_STEP,
+          manualStep: INIT_MANUAL_STEP,
           message: 'the app target does not copy hotcodepush.json',
           status: 'failed',
         };
