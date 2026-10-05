@@ -1,25 +1,11 @@
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  renameSync,
-  statSync,
-} from 'node:fs';
-import { createRequire } from 'node:module';
-import { dirname, join, relative, resolve } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { join, relative } from 'node:path';
 import {
   REACT_NATIVE_PACKAGE_NAME,
   REACT_NATIVE_PACKAGE_SPEC,
 } from '../../config/consts.js';
-import type { BundleFile } from '../bundle-files.js';
-import { collectBundleFiles, computeFileSha256 } from '../bundle-files.js';
 import type { CliError, ConfirmationRequiredError } from '../errors.js';
-import {
-  InvalidParameterError,
-  MissingParameterError,
-  NativeProjectError,
-  XcodeProjectError,
-} from '../errors.js';
+import { NativeProjectError, XcodeProjectError } from '../errors.js';
 import type { StepOutcome } from '../init-steps.js';
 import {
   resolveInstallCommandLine,
@@ -41,6 +27,13 @@ import {
 } from '../xcode-project.js';
 import type { NativeProjects } from './native-projects.js';
 import { resolveNativeProjects } from './native-projects.js';
+import {
+  collectEmbeddedFiles,
+  packageReactNativeBundles,
+  readBinaryIdentity,
+  resolveMainBundlePath,
+  resolveNativeProjectPaths,
+} from './react-native-build.js';
 import { checkSdkPackage, isSdkPackageDeclared } from './sdk-package.js';
 import type {
   FrameworkCheck,
@@ -48,40 +41,13 @@ import type {
   FrameworkProject,
   FrameworkWiring,
   NativeProjectPaths,
-  PackagedBundle,
-  PackagingRequest,
   WiringOptions,
 } from './index.js';
-
-/**
- * The JavaScript of a platform as React Native's own builds name it, in the app and in an uploaded bundle alike.
- */
-const BUNDLE_FILE_NAMES: Record<Platform, string> = {
-  android: 'index.android.bundle',
-  ios: 'main.jsbundle',
-};
 
 const BINARY_CREATE_PHASE_DESCRIPTION =
   'the Create HotCodePush binary phase in Xcode';
 
-/**
- * Hermes' flags in React Native's release build by default: the Gradle plugin's `hermesFlags`, whose source map takes the
- * debug information out of the bytecode, and react-native-xcode.sh's without `SOURCEMAP_FILE`, which keeps it inline.
- */
-const HERMES_FLAGS: Record<Platform, string[]> = {
-  android: ['-O', '-output-source-map'],
-  ios: ['-O'],
-};
-
-const HERMESC_DIRECTORY_NAMES: Partial<Record<NodeJS.Platform, string>> = {
-  darwin: 'osx-bin',
-  linux: 'linux64-bin',
-  win32: 'win64-bin',
-};
-
 const INIT_STEP = 'run hotcodepush init';
-
-const PLATFORMS: Platform[] = ['android', 'ios'];
 
 const POD_NAME = 'HotcodepushReactNativeCodePush';
 
@@ -100,11 +66,9 @@ export const reactNativeFramework: FrameworkModule = {
     checkBundleWiring(project),
   ],
   collectEmbeddedFiles,
-  packageBundles,
-  readBinaryIdentity: () => {
-    // the Xcode phase and the Gradle task pass the identity in from the build's own variables
-    throw new MissingParameterError('--binary-version');
-  },
+  packageBundles: request =>
+    packageReactNativeBundles(request, resolveBundlerArgs),
+  readBinaryIdentity,
   readBuildDirectory: () => undefined,
   resolveMainBundlePath,
   resolveNativeProjectPaths,
@@ -181,38 +145,6 @@ function checkBinaryCreateStep({
   );
 }
 
-/**
- * The embedded bundle among the files under binary create's `--path`: the staged bundle directory on Android,
- * and in the iOS app the JavaScript with React Native's `assets/` beside it, since the app holds far more.
- * A build that bundled nothing — a debug build Metro serves — gives binary create nothing to hash.
- */
-async function collectEmbeddedFiles(
-  platform: Platform,
-  inputDirectoryPath: string,
-): Promise<BundleFile[] | undefined> {
-  const bundleFileName = BUNDLE_FILE_NAMES[platform];
-  const bundleFilePath = join(inputDirectoryPath, bundleFileName);
-  if (!existsSync(bundleFilePath)) {
-    return undefined;
-  }
-  if (platform === 'android') {
-    return collectBundleFiles(inputDirectoryPath);
-  }
-  const assetsDirectoryPath = join(inputDirectoryPath, 'assets');
-  const assetFiles = existsSync(assetsDirectoryPath)
-    ? await collectBundleFiles(assetsDirectoryPath)
-    : [];
-  return [
-    ...assetFiles.map(file => ({ ...file, path: `assets/${file.path}` })),
-    {
-      filePath: bundleFilePath,
-      path: bundleFileName,
-      sha256: await computeFileSha256(bundleFilePath),
-      sizeBytes: statSync(bundleFilePath).size,
-    },
-  ];
-}
-
 function installPackage(projectDirectoryPath: string): string {
   runCommandLineVisibly(
     resolveInstallCommandLine(
@@ -222,30 +154,6 @@ function installPackage(projectDirectoryPath: string): string {
     projectDirectoryPath,
   );
   return `installed ${REACT_NATIVE_PACKAGE_NAME} from ${REACT_NATIVE_PACKAGE_SPEC}`;
-}
-
-/**
- * Hermes compiles the JavaScript to bytecode in React Native's own builds, so an uploaded bundle is compiled the same;
- * a project that switched Hermes off in `gradle.properties` or the Podfile ships the JavaScript as it is.
- */
-function isHermesEnabled(
-  platform: Platform,
-  nativeProjectPaths: NativeProjectPaths,
-): boolean {
-  const [filePath, disabledPattern] =
-    platform === 'android'
-      ? [
-          join(nativeProjectPaths.android, 'gradle.properties'),
-          /^\s*hermesEnabled\s*=\s*false\s*$/m,
-        ]
-      : [
-          join(nativeProjectPaths.ios, 'Podfile'),
-          /:hermes_enabled\s*=>\s*false/,
-        ];
-  return (
-    !existsSync(filePath) ||
-    !disabledPattern.test(readFileSync(filePath, 'utf8'))
-  );
 }
 
 /**
@@ -263,111 +171,6 @@ function isPodInstalled(iosProjectPath: string): boolean {
 }
 
 /**
- * One platform's bundle as the platform's release build makes it: `react-native bundle` for the JavaScript and its
- * assets, then Hermes' compiler over the JavaScript where the app runs Hermes. The JavaScript, the source maps and the
- * bytecode are written beside the bundle's directory, never into it, and the bytecode then moves in as the bundle.
- */
-function packageBundle(
-  projectDirectoryPath: string,
-  platform: Platform,
-  outputDirectoryPath: string,
-): void {
-  const intermediateDirectoryPath = `${outputDirectoryPath}-intermediate`;
-  mkdirSync(outputDirectoryPath, { recursive: true });
-  mkdirSync(intermediateDirectoryPath, { recursive: true });
-  const bundleFileName = BUNDLE_FILE_NAMES[platform];
-  const bundleFilePath = join(outputDirectoryPath, bundleFileName);
-  const hermescFilePath = resolveHermescFilePath(
-    projectDirectoryPath,
-    platform,
-  );
-  const javaScriptFilePath =
-    hermescFilePath === undefined
-      ? bundleFilePath
-      : join(intermediateDirectoryPath, bundleFileName);
-  const sourceMapFileName = resolvePackagerSourceMapFileName(
-    platform,
-    hermescFilePath !== undefined,
-  );
-  runCommandLineVisibly(
-    {
-      args: [
-        'react-native',
-        'bundle',
-        '--platform',
-        platform,
-        '--dev',
-        'false',
-        '--entry-file',
-        resolveEntryFileName(projectDirectoryPath, platform),
-        '--bundle-output',
-        javaScriptFilePath,
-        '--assets-dest',
-        outputDirectoryPath,
-        '--reset-cache',
-        ...(sourceMapFileName === undefined
-          ? []
-          : [
-              '--sourcemap-output',
-              join(intermediateDirectoryPath, sourceMapFileName),
-            ]),
-        // Hermes compiles the JavaScript itself and needs no minification before it
-        ...(hermescFilePath === undefined ? [] : ['--minify', 'false']),
-      ],
-      command: 'npx',
-    },
-    projectDirectoryPath,
-  );
-  if (hermescFilePath !== undefined) {
-    const bytecodeFilePath = `${javaScriptFilePath}.hbc`;
-    runCommandLineVisibly(
-      {
-        args: [
-          '-emit-binary',
-          '-max-diagnostic-width=80',
-          ...HERMES_FLAGS[platform],
-          '-out',
-          bytecodeFilePath,
-          javaScriptFilePath,
-        ],
-        command: hermescFilePath,
-      },
-      projectDirectoryPath,
-    );
-    renameSync(bytecodeFilePath, bundleFilePath);
-  }
-}
-
-/**
- * One bundle per platform, since each has its own JavaScript: bundled into the packaging directory, or `--path` as the
- * prepared bundle directory of the one platform `--platform` names.
- */
-function packageBundles({
-  packagingDirectoryPath,
-  path,
-  platforms = PLATFORMS,
-  projectDirectoryPath,
-}: PackagingRequest): Promise<PackagedBundle[]> {
-  if (path !== undefined) {
-    if (platforms.length !== 1) {
-      throw new InvalidParameterError(
-        '--path: a prepared React Native bundle serves one platform',
-        undefined,
-        'name it with --platform ios or --platform android.',
-      );
-    }
-    return Promise.resolve([{ directoryPath: resolve(path), platforms }]);
-  }
-  return Promise.resolve(
-    platforms.map(platform => {
-      const directoryPath = join(packagingDirectoryPath, platform);
-      packageBundle(projectDirectoryPath, platform, directoryPath);
-      return { directoryPath, platforms: [platform] };
-    }),
-  );
-}
-
-/**
  * The edits that make both native apps ask the SDK for their bundle, for the native projects that exist.
  */
 function resolveBundleWiringEdits(
@@ -377,6 +180,25 @@ function resolveBundleWiringEdits(
     resolveBundleUrlEdit(nativeProjectPaths.ios),
     resolveReactHostEdit(nativeProjectPaths.android),
   ].filter(edit => edit !== undefined);
+}
+
+/**
+ * `react-native bundle` from `index.<platform>.js` where the project has one, `index.js` otherwise, the rule of React
+ * Native's own builds.
+ */
+function resolveBundlerArgs(
+  projectDirectoryPath: string,
+  platform: Platform,
+): string[] {
+  const platformEntryFileName = `index.${platform}.js`;
+  return [
+    'react-native',
+    'bundle',
+    '--entry-file',
+    existsSync(join(projectDirectoryPath, platformEntryFileName))
+      ? platformEntryFileName
+      : 'index.js',
+  ];
 }
 
 /**
@@ -391,114 +213,6 @@ function resolveEdits(
     ...resolveBundleWiringEdits(nativeProjectPaths),
     resolveProtocolPodEdit(nativeProjectPaths.ios, projectDirectoryPath),
   ].filter(edit => edit !== undefined);
-}
-
-/**
- * `index.<platform>.js` where the project has one, `index.js` otherwise, the rule of React Native's own builds.
- */
-function resolveEntryFileName(
-  projectDirectoryPath: string,
-  platform: Platform,
-): string {
-  const platformEntryFileName = `index.${platform}.js`;
-  return existsSync(join(projectDirectoryPath, platformEntryFileName))
-    ? platformEntryFileName
-    : 'index.js';
-}
-
-/**
- * Hermes' compiler as the project's React Native ships it for this machine, none where the app does not run Hermes;
- * an app on Hermes without the compiler cannot be bundled the way its native build bundles it.
- */
-function resolveHermescFilePath(
-  projectDirectoryPath: string,
-  platform: Platform,
-): string | undefined {
-  if (
-    !isHermesEnabled(platform, resolveNativeProjectPaths(projectDirectoryPath))
-  ) {
-    return undefined;
-  }
-  const directoryName = HERMESC_DIRECTORY_NAMES[process.platform];
-  const fileName = process.platform === 'win32' ? 'hermesc.exe' : 'hermesc';
-  const hermescFilePath = [
-    ['react-native', 'sdks', 'hermesc'],
-    ['hermes-compiler', 'hermesc'],
-  ]
-    .map(([packageName = '', ...segments]) =>
-      resolvePackageDirectoryPath(projectDirectoryPath, packageName, segments),
-    )
-    .map(directoryPath =>
-      directoryPath === undefined || directoryName === undefined
-        ? undefined
-        : join(directoryPath, directoryName, fileName),
-    )
-    .find(filePath => filePath !== undefined && existsSync(filePath));
-  if (hermescFilePath === undefined) {
-    throw new InvalidParameterError(
-      "Hermes' compiler was not found in the project's react-native",
-      undefined,
-      'install the dependencies, or pass --path with a bundle directory prepared for one --platform.',
-    );
-  }
-  return hermescFilePath;
-}
-
-/**
- * The platform's bundle as React Native's own builds name it, in an uploaded and an embedded bundle alike.
- */
-function resolveMainBundlePath(
-  files: readonly { path: string }[],
-  platform: Platform,
-): string | undefined {
-  const bundleFileName = BUNDLE_FILE_NAMES[platform];
-  return files.some(({ path }) => path === bundleFileName)
-    ? bundleFileName
-    : undefined;
-}
-
-function resolveNativeProjectPaths(
-  projectDirectoryPath: string,
-): NativeProjectPaths {
-  return {
-    android: join(projectDirectoryPath, 'android'),
-    ios: join(projectDirectoryPath, 'ios'),
-  };
-}
-
-/**
- * A directory inside a package as the project resolves the package, wherever `node_modules` lies.
- */
-function resolvePackageDirectoryPath(
-  projectDirectoryPath: string,
-  packageName: string,
-  segments: string[],
-): string | undefined {
-  try {
-    const packageJsonPath = createRequire(
-      join(projectDirectoryPath, 'package.json'),
-    ).resolve(`${packageName}/package.json`);
-    return join(dirname(packageJsonPath), ...segments);
-  } catch {
-    return undefined;
-  }
-}
-
-/**
- * The source map React Native's release build has the bundler write, by name, since the JavaScript ends with a comment
- * naming it: Gradle always writes one, the packager's beside Hermes and the bundle's own without it; Xcode none by default.
- */
-function resolvePackagerSourceMapFileName(
-  platform: Platform,
-  isHermesEnabledForPlatform: boolean,
-): string | undefined {
-  if (platform === 'ios') {
-    return undefined;
-  }
-  const bundleFileName = BUNDLE_FILE_NAMES[platform];
-  return isHermesEnabledForPlatform
-    ? `${bundleFileName}.packager.map`
-    : `${bundleFileName}.map`;
 }
 
 async function resolveWiring(
