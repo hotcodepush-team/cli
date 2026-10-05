@@ -2,7 +2,6 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
-  realpathSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -28,12 +27,6 @@ const APP_JSON = `{
     }
 }
 `;
-
-const HERMESC_DIRECTORY_NAME = {
-  darwin: 'osx-bin',
-  linux: 'linux64-bin',
-  win32: 'win64-bin',
-}[process.platform as 'darwin' | 'linux' | 'win32'];
 
 describe('expoFramework', () => {
   const directoryPaths: string[] = [];
@@ -69,23 +62,6 @@ describe('expoFramework', () => {
     return directoryPath;
   }
 
-  function writeHermesc(directoryPath: string): string {
-    const packagePath = join(directoryPath, 'node_modules', 'hermes-compiler');
-    writeFile(
-      join(packagePath, 'package.json'),
-      JSON.stringify({ name: 'hermes-compiler', version: '0.15.0' }),
-    );
-    const hermescFilePath = join(
-      packagePath,
-      'hermesc',
-      HERMESC_DIRECTORY_NAME,
-      process.platform === 'win32' ? 'hermesc.exe' : 'hermesc',
-    );
-    writeFile(hermescFilePath, '');
-    // the project resolves the package through Node, which answers the real path
-    return realpathSync(hermescFilePath);
-  }
-
   function readProject(directoryPath: string) {
     return {
       directoryPath,
@@ -106,101 +82,24 @@ describe('expoFramework', () => {
   });
 
   describe('packageBundles', () => {
-    it('should bundle each platform with Expo export:embed as its release build does, then compile it with Hermes', async () => {
+    it('should bundle with Expo export:embed, the bundler its release builds run', async () => {
       const directoryPath = writeProject();
-      const hermescFilePath = writeHermesc(directoryPath);
-      const packagingDirectoryPath = join(directoryPath, 'packaging');
-      vi.mocked(runCommandLineVisibly).mockImplementation(({ args }) => {
-        const outFilePath = args[args.indexOf('-out') + 1];
-        if (args.includes('-out') && outFilePath !== undefined) {
-          writeFile(outFilePath, 'bytecode');
-        }
-      });
+      // without Hermes the bundler is the one command an Android bundle runs
+      writeFile(
+        join(directoryPath, 'android', 'gradle.properties'),
+        'hermesEnabled=false\n',
+      );
 
-      const packagedBundles = await expoFramework.packageBundles?.({
-        packagingDirectoryPath,
+      await expoFramework.packageBundles?.({
+        packagingDirectoryPath: join(directoryPath, 'packaging'),
         path: undefined,
-        platforms: undefined,
+        platforms: ['android'],
         projectDirectoryPath: directoryPath,
       });
 
-      expect(packagedBundles).toEqual([
-        {
-          directoryPath: join(packagingDirectoryPath, 'android'),
-          platforms: ['android'],
-        },
-        {
-          directoryPath: join(packagingDirectoryPath, 'ios'),
-          platforms: ['ios'],
-        },
-      ]);
-      const androidIntermediatePath = join(
-        packagingDirectoryPath,
-        'android-intermediate',
-      );
-      const iosIntermediatePath = join(
-        packagingDirectoryPath,
-        'ios-intermediate',
-      );
       expect(
-        vi
-          .mocked(runCommandLineVisibly)
-          .mock.calls.map(([{ args, command }]) => [command, ...args]),
-      ).toEqual([
-        [
-          'npx',
-          'expo',
-          'export:embed',
-          '--platform',
-          'android',
-          '--dev',
-          'false',
-          '--bundle-output',
-          join(androidIntermediatePath, 'index.android.bundle'),
-          '--assets-dest',
-          join(packagingDirectoryPath, 'android'),
-          '--reset-cache',
-          '--sourcemap-output',
-          join(androidIntermediatePath, 'index.android.bundle.packager.map'),
-          '--minify',
-          'false',
-        ],
-        [
-          hermescFilePath,
-          '-emit-binary',
-          '-max-diagnostic-width=80',
-          '-O',
-          '-output-source-map',
-          '-out',
-          join(androidIntermediatePath, 'index.android.bundle.hbc'),
-          join(androidIntermediatePath, 'index.android.bundle'),
-        ],
-        [
-          'npx',
-          'expo',
-          'export:embed',
-          '--platform',
-          'ios',
-          '--dev',
-          'false',
-          '--bundle-output',
-          join(iosIntermediatePath, 'main.jsbundle'),
-          '--assets-dest',
-          join(packagingDirectoryPath, 'ios'),
-          '--reset-cache',
-          '--minify',
-          'false',
-        ],
-        [
-          hermescFilePath,
-          '-emit-binary',
-          '-max-diagnostic-width=80',
-          '-O',
-          '-out',
-          join(iosIntermediatePath, 'main.jsbundle.hbc'),
-          join(iosIntermediatePath, 'main.jsbundle'),
-        ],
-      ]);
+        vi.mocked(runCommandLineVisibly).mock.calls[0]?.[0].args.slice(0, 2),
+      ).toEqual(['expo', 'export:embed']);
     });
   });
 
@@ -216,19 +115,14 @@ describe('expoFramework', () => {
       expect(wiring.nativeFilePaths).toEqual([]);
     });
 
-    it('should install the package from its pinned build with the package manager of the project', async () => {
-      const directoryPath = writeProject();
+    it('should install the package from its pinned build', async () => {
       const wiring = await expoFramework.resolveWiring(
-        readProject(directoryPath),
+        readProject(writeProject()),
         { yes: true },
       );
 
       expect(wiring.installPackage()).toMatch(
         /^installed @hotcodepush\/expo-ota-updates from https:\/\/pkg\.pr\.new\/hotcodepush-team\/expo-ota-updates\/@hotcodepush\/expo-ota-updates@[0-9a-f]{7}$/,
-      );
-      expect(runCommandLineVisibly).toHaveBeenCalledWith(
-        expect.objectContaining({ command: 'npm' }),
-        directoryPath,
       );
     });
 

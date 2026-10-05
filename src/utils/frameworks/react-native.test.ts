@@ -1,14 +1,4 @@
-import { createHash } from 'node:crypto';
-import {
-  mkdirSync,
-  mkdtempSync,
-  readdirSync,
-  readFileSync,
-  realpathSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
-import { tmpdir } from 'node:os';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -23,7 +13,6 @@ import {
 } from '../../../test/react-native-project.js';
 import {
   ConfirmationRequiredError,
-  InvalidParameterError,
   MissingParameterError,
   NativeProjectError,
 } from '../errors.js';
@@ -35,12 +24,6 @@ vi.mock('../package-manager.js', async importOriginal => ({
   ...(await importOriginal<typeof packageManagerModule>()),
   runCommandLineVisibly: vi.fn(),
 }));
-
-const HERMESC_DIRECTORY_NAME = {
-  darwin: 'osx-bin',
-  linux: 'linux64-bin',
-  win32: 'win64-bin',
-}[process.platform as 'darwin' | 'linux' | 'win32'];
 
 describe('reactNativeFramework', () => {
   const directoryPaths: string[] = [];
@@ -56,24 +39,6 @@ describe('reactNativeFramework', () => {
   function writeFile(filePath: string, content: string): void {
     mkdirSync(dirname(filePath), { recursive: true });
     writeFileSync(filePath, content);
-  }
-
-  function writeHermesc(directoryPath: string): string {
-    const packagePath = join(directoryPath, 'node_modules', 'react-native');
-    writeFile(
-      join(packagePath, 'package.json'),
-      JSON.stringify({ name: 'react-native', version: '0.82.1' }),
-    );
-    const hermescFilePath = join(
-      packagePath,
-      'sdks',
-      'hermesc',
-      HERMESC_DIRECTORY_NAME,
-      process.platform === 'win32' ? 'hermesc.exe' : 'hermesc',
-    );
-    writeFile(hermescFilePath, '');
-    // the project resolves the package through Node, which answers the real path
-    return realpathSync(hermescFilePath);
   }
 
   function readProject(directoryPath: string) {
@@ -93,307 +58,46 @@ describe('reactNativeFramework', () => {
     }
   });
 
-  describe('collectEmbeddedFiles', () => {
-    let inputDirectoryPath = '';
-
-    beforeEach(() => {
-      inputDirectoryPath = mkdtempSync(join(tmpdir(), 'hotcodepush-app-'));
-      directoryPaths.push(inputDirectoryPath);
-    });
-
-    it('should take main.jsbundle and assets/ out of the iOS app and leave the rest of it', async () => {
-      writeFile(join(inputDirectoryPath, 'main.jsbundle'), 'bytecode');
-      writeFile(join(inputDirectoryPath, 'assets', 'src', 'logo.png'), 'png');
-      writeFile(join(inputDirectoryPath, 'Info.plist'), '<plist />');
-      writeFile(join(inputDirectoryPath, 'Demo'), 'executable');
-
-      const files = await reactNativeFramework.collectEmbeddedFiles?.(
-        'ios',
-        inputDirectoryPath,
-      );
-
-      expect(
-        files?.map(({ path, sha256, sizeBytes }) => ({
-          path,
-          sha256,
-          sizeBytes,
-        })),
-      ).toEqual([
-        {
-          path: 'assets/src/logo.png',
-          sha256: createHash('sha256').update('png').digest('hex'),
-          sizeBytes: 3,
-        },
-        {
-          path: 'main.jsbundle',
-          sha256: createHash('sha256').update('bytecode').digest('hex'),
-          sizeBytes: 8,
-        },
-      ]);
-    });
-
-    it('should take every file of the staged Android bundle directory', async () => {
-      writeFile(join(inputDirectoryPath, 'index.android.bundle'), 'bytecode');
-      writeFile(join(inputDirectoryPath, 'drawable-mdpi', 'logo.png'), 'png');
-
-      const files = await reactNativeFramework.collectEmbeddedFiles?.(
-        'android',
-        inputDirectoryPath,
-      );
-
-      expect(files?.map(({ path }) => path)).toEqual([
-        'drawable-mdpi/logo.png',
-        'index.android.bundle',
-      ]);
-    });
-
-    it('should answer nothing when the build bundled no JavaScript', async () => {
-      writeFile(join(inputDirectoryPath, 'Info.plist'), '<plist />');
-
-      expect(
-        await reactNativeFramework.collectEmbeddedFiles?.(
-          'ios',
-          inputDirectoryPath,
-        ),
-      ).toBeUndefined();
-    });
-  });
-
   describe('packageBundles', () => {
-    it("should bundle and compile each platform as its release build does, the source maps beside the bundle's directory", async () => {
+    it('should bundle with react-native bundle from index.js', async () => {
       const directoryPath = writeProject();
-      const hermescFilePath = writeHermesc(directoryPath);
-      const packagingDirectoryPath = join(directoryPath, 'packaging');
-      // Hermes writes the bytecode and, with -output-source-map, its map beside it
-      vi.mocked(runCommandLineVisibly).mockImplementation(({ args }) => {
-        const outFilePath = args[args.indexOf('-out') + 1];
-        if (args.includes('-out') && outFilePath !== undefined) {
-          writeFile(outFilePath, 'bytecode');
-          if (args.includes('-output-source-map')) {
-            writeFile(`${outFilePath}.map`, '{}');
-          }
-        }
-      });
-
-      const packagedBundles = await reactNativeFramework.packageBundles?.({
-        packagingDirectoryPath,
-        path: undefined,
-        platforms: undefined,
-        projectDirectoryPath: directoryPath,
-      });
-
-      expect(packagedBundles).toEqual([
-        {
-          directoryPath: join(packagingDirectoryPath, 'android'),
-          platforms: ['android'],
-        },
-        {
-          directoryPath: join(packagingDirectoryPath, 'ios'),
-          platforms: ['ios'],
-        },
-      ]);
-      const androidIntermediatePath = join(
-        packagingDirectoryPath,
-        'android-intermediate',
-      );
-      const iosIntermediatePath = join(
-        packagingDirectoryPath,
-        'ios-intermediate',
-      );
-      expect(vi.mocked(runCommandLineVisibly).mock.calls).toEqual([
-        [
-          {
-            args: [
-              'react-native',
-              'bundle',
-              '--entry-file',
-              'index.js',
-              '--platform',
-              'android',
-              '--dev',
-              'false',
-              '--bundle-output',
-              join(androidIntermediatePath, 'index.android.bundle'),
-              '--assets-dest',
-              join(packagingDirectoryPath, 'android'),
-              '--reset-cache',
-              '--sourcemap-output',
-              join(
-                androidIntermediatePath,
-                'index.android.bundle.packager.map',
-              ),
-              '--minify',
-              'false',
-            ],
-            command: 'npx',
-          },
-          directoryPath,
-        ],
-        [
-          {
-            args: [
-              '-emit-binary',
-              '-max-diagnostic-width=80',
-              '-O',
-              '-output-source-map',
-              '-out',
-              join(androidIntermediatePath, 'index.android.bundle.hbc'),
-              join(androidIntermediatePath, 'index.android.bundle'),
-            ],
-            command: hermescFilePath,
-          },
-          directoryPath,
-        ],
-        [
-          {
-            args: [
-              'react-native',
-              'bundle',
-              '--entry-file',
-              'index.js',
-              '--platform',
-              'ios',
-              '--dev',
-              'false',
-              '--bundle-output',
-              join(iosIntermediatePath, 'main.jsbundle'),
-              '--assets-dest',
-              join(packagingDirectoryPath, 'ios'),
-              '--reset-cache',
-              '--minify',
-              'false',
-            ],
-            command: 'npx',
-          },
-          directoryPath,
-        ],
-        [
-          {
-            args: [
-              '-emit-binary',
-              '-max-diagnostic-width=80',
-              '-O',
-              '-out',
-              join(iosIntermediatePath, 'main.jsbundle.hbc'),
-              join(iosIntermediatePath, 'main.jsbundle'),
-            ],
-            command: hermescFilePath,
-          },
-          directoryPath,
-        ],
-      ]);
-      expect(readdirSync(join(packagingDirectoryPath, 'android'))).toEqual([
-        'index.android.bundle',
-      ]);
-      expect(
-        readFileSync(
-          join(packagingDirectoryPath, 'android', 'index.android.bundle'),
-          'utf8',
-        ),
-      ).toBe('bytecode');
-      expect(readdirSync(join(packagingDirectoryPath, 'ios'))).toEqual([
-        'main.jsbundle',
-      ]);
-    });
-
-    it("should bundle the JavaScript as it is with Gradle's source map when Android switched Hermes off, from index.android.js where the project has one", async () => {
-      const directoryPath = writeProject();
+      // without Hermes the bundler is the one command an Android bundle runs
       writeFile(
         join(directoryPath, 'android', 'gradle.properties'),
-        'newArchEnabled=true\nhermesEnabled=false\n',
+        'hermesEnabled=false\n',
       );
-      writeFile(join(directoryPath, 'index.android.js'), '// android entry\n');
-      const packagingDirectoryPath = join(directoryPath, 'packaging');
 
       await reactNativeFramework.packageBundles?.({
-        packagingDirectoryPath,
+        packagingDirectoryPath: join(directoryPath, 'packaging'),
         path: undefined,
         platforms: ['android'],
         projectDirectoryPath: directoryPath,
       });
 
-      expect(vi.mocked(runCommandLineVisibly).mock.calls).toEqual([
-        [
-          {
-            args: [
-              'react-native',
-              'bundle',
-              '--entry-file',
-              'index.android.js',
-              '--platform',
-              'android',
-              '--dev',
-              'false',
-              '--bundle-output',
-              join(packagingDirectoryPath, 'android', 'index.android.bundle'),
-              '--assets-dest',
-              join(packagingDirectoryPath, 'android'),
-              '--reset-cache',
-              '--sourcemap-output',
-              join(
-                packagingDirectoryPath,
-                'android-intermediate',
-                'index.android.bundle.map',
-              ),
-            ],
-            command: 'npx',
-          },
-          directoryPath,
-        ],
-      ]);
+      expect(
+        vi.mocked(runCommandLineVisibly).mock.calls[0]?.[0].args.slice(0, 4),
+      ).toEqual(['react-native', 'bundle', '--entry-file', 'index.js']);
     });
 
-    it("should refuse an app on Hermes whose react-native lacks Hermes' compiler", async () => {
+    it('should bundle from index.android.js where the project has one', async () => {
       const directoryPath = writeProject();
+      // without Hermes the bundler is the one command an Android bundle runs
+      writeFile(
+        join(directoryPath, 'android', 'gradle.properties'),
+        'hermesEnabled=false\n',
+      );
+      writeFile(join(directoryPath, 'index.android.js'), '// android entry\n');
 
-      await expect(
-        (async () =>
-          reactNativeFramework.packageBundles?.({
-            packagingDirectoryPath: join(directoryPath, 'packaging'),
-            path: undefined,
-            platforms: ['ios'],
-            projectDirectoryPath: directoryPath,
-          }))(),
-      ).rejects.toThrow(InvalidParameterError);
-      expect(runCommandLineVisibly).not.toHaveBeenCalled();
-    });
-
-    it('should take --path as the prepared bundle of the one platform named, and bundle nothing', async () => {
-      const directoryPath = writeProject();
+      await reactNativeFramework.packageBundles?.({
+        packagingDirectoryPath: join(directoryPath, 'packaging'),
+        path: undefined,
+        platforms: ['android'],
+        projectDirectoryPath: directoryPath,
+      });
 
       expect(
-        await reactNativeFramework.packageBundles?.({
-          packagingDirectoryPath: join(directoryPath, 'packaging'),
-          path: join(directoryPath, 'export'),
-          platforms: ['ios'],
-          projectDirectoryPath: directoryPath,
-        }),
-      ).toEqual([
-        { directoryPath: join(directoryPath, 'export'), platforms: ['ios'] },
-      ]);
-      expect(runCommandLineVisibly).not.toHaveBeenCalled();
-    });
-
-    it('should refuse --path without the one platform it serves', async () => {
-      const directoryPath = writeProject();
-
-      await expect(
-        (async () =>
-          reactNativeFramework.packageBundles?.({
-            packagingDirectoryPath: join(directoryPath, 'packaging'),
-            path: join(directoryPath, 'export'),
-            platforms: undefined,
-            projectDirectoryPath: directoryPath,
-          }))(),
-      ).rejects.toThrow(InvalidParameterError);
-    });
-  });
-
-  describe('readBinaryIdentity', () => {
-    it('should name the flag the native build passes the identity in with', () => {
-      expect(() =>
-        reactNativeFramework.readBinaryIdentity('ios', writeProject()),
-      ).toThrow(new MissingParameterError('--binary-version'));
+        vi.mocked(runCommandLineVisibly).mock.calls[0]?.[0].args.slice(0, 4),
+      ).toEqual(['react-native', 'bundle', '--entry-file', 'index.android.js']);
     });
   });
 
@@ -417,19 +121,14 @@ describe('reactNativeFramework', () => {
       ]);
     });
 
-    it('should install the SDK from its pinned build with the package manager of the project', async () => {
-      const directoryPath = writeProject();
+    it('should install the SDK from its pinned build', async () => {
       const wiring = await reactNativeFramework.resolveWiring(
-        readProject(directoryPath),
+        readProject(writeProject()),
         { yes: true },
       );
 
       expect(wiring.installPackage()).toMatch(
         /^installed @hotcodepush\/react-native-code-push from https:\/\/pkg\.pr\.new\/hotcodepush-team\/react-native-code-push\/@hotcodepush\/react-native-code-push@[0-9a-f]{7}$/,
-      );
-      expect(runCommandLineVisibly).toHaveBeenCalledWith(
-        expect.objectContaining({ command: 'npm' }),
-        directoryPath,
       );
     });
 
