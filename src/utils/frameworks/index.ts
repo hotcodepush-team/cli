@@ -40,7 +40,7 @@ export interface FrameworkModule {
    */
   checkWiring: (project: FrameworkProject) => FrameworkCheck[];
   /**
-   * The embedded bundle among the files under the embed step's `--path`, where a native build's output holds more than
+   * The embedded bundle among the files under the build step's `--path`, where a native build's output holds more than
    * the bundle; none when the build bundled nothing. Without the member every file under the path is the bundle.
    */
   collectEmbeddedFiles?: (
