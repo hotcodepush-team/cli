@@ -372,7 +372,13 @@ describe('react-native-build', () => {
             },
             resolveBundlerArgs,
           ))(),
-      ).rejects.toThrow(InvalidParameterError);
+      ).rejects.toThrow(
+        new InvalidParameterError(
+          '--path: a prepared bundle serves one platform',
+          undefined,
+          'name it with --platform ios or --platform android.',
+        ),
+      );
     });
   });
 

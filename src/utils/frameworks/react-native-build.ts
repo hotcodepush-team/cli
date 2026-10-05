@@ -100,7 +100,7 @@ export function packageReactNativeBundles(
     const [platform] = platforms;
     if (platform === undefined || platforms.length > 1) {
       throw new InvalidParameterError(
-        '--path: a prepared React Native bundle serves one platform',
+        '--path: a prepared bundle serves one platform',
         undefined,
         'name it with --platform ios or --platform android.',
       );
