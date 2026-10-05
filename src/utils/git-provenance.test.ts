@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resolveGitProvenance, resolveRemoteSlug } from './git-provenance.js';
 
 describe('git provenance', () => {
@@ -10,6 +10,12 @@ describe('git provenance', () => {
 
   beforeEach(() => {
     directoryPath = mkdtempSync(join(tmpdir(), 'hotcodepush-git-'));
+    // An inherited GIT_DIR, as `git rebase --exec` sets, would send every git process here to the enclosing repository.
+    for (const name of Object.keys(process.env)) {
+      if (name.startsWith('GIT_')) {
+        vi.stubEnv(name, undefined);
+      }
+    }
   });
 
   afterEach(() => {
