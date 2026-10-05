@@ -28,6 +28,15 @@ const APP_JSON = `{
 }
 `;
 
+// the comment and the trailing commas Expo's JSON5 reading allows
+const APP_JSON5 = `{
+  // the name on the home screen
+  "expo": {
+    "name": "Demo",
+  },
+}
+`;
+
 describe('expoFramework', () => {
   const directoryPaths: string[] = [];
 
@@ -230,6 +239,25 @@ describe('expoFramework', () => {
         );
       });
 
+      it('should stop with the entry to add when app.json is not JSON the CLI can parse', async () => {
+        const directoryPath = writeProject({ appJson: APP_JSON5 });
+        const wiring = await expoFramework.resolveWiring(
+          readProject(directoryPath),
+          { yes: true },
+        );
+
+        await expect(wiring.wireBinaryCreateStep(undefined)).rejects.toThrow(
+          new NativeProjectError(
+            'app.json is not JSON the CLI can parse',
+            'add "@hotcodepush/expo-ota-updates" to the plugins in app.json.',
+          ),
+        );
+        expect(wiring.packageFilePaths).toEqual(['package.json']);
+        expect(readFileSync(join(directoryPath, 'app.json'), 'utf8')).toBe(
+          APP_JSON5,
+        );
+      });
+
       it('should stop with the entry to add when the app config is code', async () => {
         const directoryPath = writeProject({
           appJson: APP_JSON,
@@ -262,6 +290,23 @@ describe('expoFramework', () => {
         {
           check: 'hook',
           manualStep: 'run hotcodepush init',
+          message:
+            'app.json does not list the config plugin @hotcodepush/expo-ota-updates',
+          status: 'failed',
+        },
+      ]);
+    });
+
+    it('should name the entry to add when app.json is not JSON the CLI can parse and lacks the config plugin', () => {
+      const directoryPath = writeProject({ appJson: APP_JSON5 });
+
+      expect(
+        expoFramework.checkWiring(readProject(directoryPath)).slice(1),
+      ).toEqual([
+        {
+          check: 'hook',
+          manualStep:
+            'add "@hotcodepush/expo-ota-updates" to the plugins in app.json',
           message:
             'app.json does not list the config plugin @hotcodepush/expo-ota-updates',
           status: 'failed',

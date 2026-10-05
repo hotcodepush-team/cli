@@ -133,13 +133,13 @@ function checkPluginEntry({ directoryPath }: FrameworkProject): FrameworkCheck {
     };
   }
   const { codeFileName, jsonFileName } = appConfigFileNames;
+  const appConfigFileName = codeFileName ?? jsonFileName;
   return {
     check: 'hook',
-    manualStep:
-      codeFileName === undefined
-        ? INIT_MANUAL_STEP
-        : resolvePluginEntryStep(codeFileName),
-    message: `${codeFileName ?? jsonFileName} does not list the config plugin ${EXPO_PACKAGE_NAME}`,
+    manualStep: isPluginEntryEditable(directoryPath, appConfigFileNames)
+      ? INIT_MANUAL_STEP
+      : resolvePluginEntryStep(appConfigFileName),
+    message: `${appConfigFileName} does not list the config plugin ${EXPO_PACKAGE_NAME}`,
     status: 'failed',
   };
 }
@@ -171,8 +171,8 @@ function findPluginEntryFileName(
 }
 
 /**
- * Whether an app config lists the plugin: by name or with its options in a JSON config's plugins, and in a config that
- * is code by the package's name in its text, matched and never evaluated.
+ * Whether an app config lists the plugin: by name or with its options in the plugins of a JSON config the CLI parses,
+ * and otherwise — a config that is code, a JSON5 one — by the package's name in its text, matched and never evaluated.
  */
 function hasPluginEntry(
   projectDirectoryPath: string,
@@ -183,14 +183,40 @@ function hasPluginEntry(
     return false;
   }
   const appConfigText = readFileSync(filePath, 'utf8');
-  if (!JSON_APP_CONFIG_FILE_NAMES.includes(appConfigFileName)) {
+  const appJson = JSON_APP_CONFIG_FILE_NAMES.includes(appConfigFileName)
+    ? parseAppJson(appConfigText)
+    : undefined;
+  if (appJson === undefined) {
     return appConfigText.includes(EXPO_PACKAGE_NAME);
   }
-  const appJson = JSON.parse(appConfigText) as AppJson;
   return ((appJson.expo ?? appJson).plugins ?? []).some(
     plugin =>
       (Array.isArray(plugin) ? plugin[0] : plugin) === EXPO_PACKAGE_NAME,
   );
+}
+
+/**
+ * Whether `init` adds the entry itself, to the JSON app config it creates or parses; beside a config that is code, and
+ * in a JSON one that does not parse, such as the JSON5 Expo reads too, the entry is the person's to add.
+ */
+function isPluginEntryEditable(
+  projectDirectoryPath: string,
+  { codeFileName, jsonFileName }: AppConfigFileNames,
+): boolean {
+  const jsonFilePath = join(projectDirectoryPath, jsonFileName);
+  return (
+    codeFileName === undefined &&
+    (!existsSync(jsonFilePath) ||
+      parseAppJson(readFileSync(jsonFilePath, 'utf8')) !== undefined)
+  );
+}
+
+function parseAppJson(appJsonText: string): AppJson | undefined {
+  try {
+    return JSON.parse(appJsonText) as AppJson;
+  } catch {
+    return undefined;
+  }
 }
 
 function resolvePluginEntryStep(appConfigFileName: string): string {
@@ -207,7 +233,7 @@ function resolveWiring({
   );
   const appConfigFileNames = findAppConfigFileNames(directoryPath);
   const isAppJsonToEdit =
-    appConfigFileNames.codeFileName === undefined &&
+    isPluginEntryEditable(directoryPath, appConfigFileNames) &&
     findPluginEntryFileName(directoryPath, appConfigFileNames) === undefined;
   return {
     isPackageInstalled,
@@ -224,8 +250,8 @@ function resolveWiring({
 }
 
 /**
- * The plugin entry in the JSON app config, left alone when either app config lists it; a config that is code is the
- * person's to edit, so its entry is the manual step.
+ * The plugin entry in the JSON app config, left alone when either app config lists it; a config that is code and a
+ * JSON one that does not parse are the person's to edit, so their entry is the manual step.
  */
 async function wirePluginEntry(
   projectDirectoryPath: string,
@@ -248,6 +274,12 @@ async function wirePluginEntry(
     throw new NativeProjectError(
       `${codeFileName} is code the CLI does not edit`,
       `${resolvePluginEntryStep(codeFileName)}.`,
+    );
+  }
+  if (!isPluginEntryEditable(projectDirectoryPath, appConfigFileNames)) {
+    throw new NativeProjectError(
+      `${jsonFileName} is not JSON the CLI can parse`,
+      `${resolvePluginEntryStep(jsonFileName)}.`,
     );
   }
   if (editBlocker !== undefined) {
