@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 `hotcodepush`, the HotCodePush CLI: the npm package and the binary that set up, release and manage live updates from the terminal and CI.
-The repo is public and MIT; the commands in `src/index.ts`'s registry are built, for Capacitor, Cordova and React Native projects, and the rest of the spec arrives issue by issue.
+The repo is public and MIT; the commands in `src/index.ts`'s registry are built, for Capacitor, Cordova, Expo and React Native projects, and the rest of the spec arrives issue by issue.
 Stack: TypeScript compiled by `tsc` into ESM in `dist/`, zodline and zod for the commands, `@hotcodepush/node` for the API, `@clack/prompts` for the prompts, `@napi-rs/keyring` for the token, our own WebAssembly build of the Rust crate `qbsdiff` for the patches, ESLint, Prettier, Vitest, Node 22 as the floor, developed on 24.
 
 The plan is the private `handbook` repo, checked out beside this one: `../handbook/docs/`.
@@ -22,7 +22,9 @@ src/
                the released line, the prompts and the confirmation, the pages of a list, the boolean flag, the channel fields,
                the release conditions from their flags, the audience in one clause, a device by id, a duration as a time bound,
                the framework and the build's directory, `frameworks/` with one module per framework behind one interface
-               and the registry line that makes the CLI package it, the files of a build hashed, their gzip copies,
+               and the registry line that makes the CLI package it, beside them React Native's release build, which
+               Expo's module runs too, the SDK package's install and check and the native projects as named or asked for,
+               the files of a build hashed, their gzip copies,
                the pack writer, the git provenance, the device hosts derived from the API URL,
                the upload flow, the private key an upload is given, read into the pair that signs, and the writer of its file,
                the delta bases, the main bundle's patches and the bsdiff module behind one function,
@@ -32,10 +34,12 @@ src/
                the binary create hook in package.json, the resource reference and the binary create phase in the Xcode project,
                the lines a React Native project is wired with
   config/      consts: the API URL, the client id and header, the config file, the docs and issues URLs,
-               the keyring entry, package.json, the project file
+               the keyring entry, package.json, the project file, the SDK packages' names and pinned specs,
+               the manual step that runs `init`
 test/          the command tests' harness, the API faked behind fetch, their fixtures, the release routes
                and the Capacitor project a test writes, with the pbxproj of `cap add ios`, the fingerprint inputs,
-               the Cordova project with its `config.xml`, the protocol's fixtures read from the installed package; never built
+               the Cordova project with its `config.xml`, the React Native project with its pbxproj,
+               the protocol's fixtures read from the installed package; never built
 bsdiff-wasm/   the bsdiff module, our build of the Rust crate `qbsdiff`: the crate that wraps it, its `Cargo.lock`,
                the pure-Rust stand-in for `cdivsufsort` under `patches/`, `build.sh`, and the built `bsdiff.wasm`,
                committed and shipped in the package; `THIRD-PARTY-NOTICES` at the root carries the notices and licences
@@ -81,8 +85,13 @@ No releases yet: the version stays `0.0.0`, and release-please and npm provenanc
 3. Nothing outside the module names the framework: a command asks the module, never a config file or a path of its own.
 
 Capacitor's module reads `capacitor.config` as text and the native projects' own files; Cordova's reads `config.xml` through `fast-xml-parser` and derives the store build's identity as Cordova's prepare does.
-React Native's has no build output to read: `packageBundles` runs `react-native bundle` and Hermes' compiler per platform into the command's packaging directory, one bundle each, `collectEmbeddedFiles` takes `main.jsbundle` and `assets/` out of the app the Xcode phase points at, the native build passes the identity and `--out` in, and `resolveMainBundlePath` answers `main.jsbundle` on iOS and `index.android.bundle` on Android where a bundle's files hold it.
-Its wiring is five edits, each recognised afterwards by what it wrote: the Xcode phase through the `xcode` package, and one line each in `build.gradle`, `AppDelegate.swift`, `MainApplication.kt` and the Podfile, in `utils/react-native-project.ts`.
+React Native's and Expo's have no build output to read and share React Native's release build in `frameworks/react-native-build.ts`: `packageReactNativeBundles` runs the module's bundler and Hermes' compiler per platform into the command's packaging directory, one bundle each, `collectEmbeddedFiles` takes `main.jsbundle` and `assets/` out of the app the Xcode phase points at, the native build passes the identity and `--out` in, and `resolveMainBundlePath` answers `main.jsbundle` on iOS and `index.android.bundle` on Android where a bundle's files hold it.
+The bundler is all the two differ in there: `react-native bundle` with the project's entry file for React Native, `expo export:embed`, which resolves the entry file itself, for Expo.
+`--path` is the prepared bundle directory of the one platform `--platform` names, refused without the JavaScript under the name that platform's app loads.
+React Native's wiring is five edits, each recognised afterwards by what it wrote: the Xcode phase through the `xcode` package, and one line each in `build.gradle`, `AppDelegate.swift`, `MainApplication.kt` and the Podfile, in `utils/react-native-project.ts`.
+Expo's wiring is one entry, the SDK's config plugin in the plugins of the JSON app config, `app.config.json` before `app.json`, and a project without an app config gets an `app.json`; the plugin makes React Native's five edits at prebuild, so the module names no native file and `init` runs no prebuild.
+A project with an app config that is code, or with a JSON one that does not parse, gets no edit: the entry to add is the manual step.
+`doctor`'s `hook` row finds the entry in either app config: among the plugins of a JSON config it parses, otherwise by the package's name in the text, never by evaluating code.
 
 ## Rules the code does not show
 
@@ -110,6 +119,7 @@ Its wiring is five edits, each recognised afterwards by what it wrote: the Xcode
   so the exit code is set without a second message; nothing else throws it.
 - **`init` and `binary create` edit only what they can recognise afterwards**: the hook script gains the `binary create` command or is returned as the manual step,
   the Xcode project gains one resource reference or one run-script phase through the `xcode` package, a React Native project's other files one line each,
+  an Expo project's JSON app config one plugin entry,
   and `init` names the files it will change and asks once before touching them.
 - **The token** is `readToken()`: `HOTCODEPUSH_TOKEN` when set, then the keyring, then the `config.json` fallback that any keyring failure latches for the rest of the process.
 - **An upload never holds a file in memory**: every file is hashed and gzip-compressed through streams into a temporary directory,
