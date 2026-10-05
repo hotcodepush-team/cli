@@ -4,6 +4,7 @@ import {
   EXPO_PACKAGE_NAME,
   EXPO_PACKAGE_SPEC,
   INIT_MANUAL_STEP,
+  REACT_NATIVE_PACKAGE_NAME,
 } from '../../config/consts.js';
 import { stringifyLikeSource } from '../binary-create-hook.js';
 import type { ConfirmationRequiredError } from '../errors.js';
@@ -69,7 +70,12 @@ export const expoFramework: FrameworkModule = {
   binaryCreateStep:
     'run npx expo prebuild and build the app natively, which runs binary create',
   packageName: EXPO_PACKAGE_NAME,
-  versionedPackageNames: ['expo', 'react-native', EXPO_PACKAGE_NAME],
+  versionedPackageNames: [
+    'expo',
+    'react-native',
+    EXPO_PACKAGE_NAME,
+    REACT_NATIVE_PACKAGE_NAME,
+  ],
   checkWiring: project => [
     checkSdkPackage(project, EXPO_PACKAGE_NAME),
     checkPluginEntry(project),
