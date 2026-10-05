@@ -316,6 +316,8 @@ describe('react-native-build', () => {
     });
 
     it('should take --path as the prepared bundle of the one platform named, and bundle nothing', async () => {
+      writeFile(join(directoryPath, 'export', 'main.jsbundle'), 'bytecode');
+
       expect(
         await packageReactNativeBundles(
           {
@@ -330,6 +332,32 @@ describe('react-native-build', () => {
         { directoryPath: join(directoryPath, 'export'), platforms: ['ios'] },
       ]);
       expect(runCommandLineVisibly).not.toHaveBeenCalled();
+    });
+
+    it('should refuse --path when the directory holds no bundle under the name the app loads', async () => {
+      writeFile(
+        join(directoryPath, 'export', 'index-0123abcd.hbc'),
+        'bytecode',
+      );
+
+      await expect(
+        (async () =>
+          packageReactNativeBundles(
+            {
+              packagingDirectoryPath: join(directoryPath, 'packaging'),
+              path: join(directoryPath, 'export'),
+              platforms: ['android'],
+              projectDirectoryPath: directoryPath,
+            },
+            resolveBundlerArgs,
+          ))(),
+      ).rejects.toThrow(
+        new InvalidParameterError(
+          `--path: ${join(directoryPath, 'export')} holds no index.android.bundle, the JavaScript the android app loads`,
+          undefined,
+          "pass the android bundle's directory, with index.android.bundle in it, or leave out --path to bundle the project.",
+        ),
+      );
     });
 
     it('should refuse --path without the one platform it serves', async () => {

@@ -85,7 +85,7 @@ export async function collectEmbeddedFiles(
 
 /**
  * One bundle per platform, since each has its own JavaScript: bundled into the packaging directory, or `--path` as the
- * prepared bundle directory of the one platform `--platform` names.
+ * prepared bundle directory of the one platform `--platform` names, which holds the JavaScript under the name the app loads.
  */
 export function packageReactNativeBundles(
   {
@@ -97,14 +97,24 @@ export function packageReactNativeBundles(
   resolveBundlerArgs: BundlerArgsResolver,
 ): Promise<PackagedBundle[]> {
   if (path !== undefined) {
-    if (platforms.length !== 1) {
+    const [platform] = platforms;
+    if (platform === undefined || platforms.length > 1) {
       throw new InvalidParameterError(
         '--path: a prepared React Native bundle serves one platform',
         undefined,
         'name it with --platform ios or --platform android.',
       );
     }
-    return Promise.resolve([{ directoryPath: resolve(path), platforms }]);
+    const directoryPath = resolve(path);
+    const bundleFileName = BUNDLE_FILE_NAMES[platform];
+    if (!existsSync(join(directoryPath, bundleFileName))) {
+      throw new InvalidParameterError(
+        `--path: ${directoryPath} holds no ${bundleFileName}, the JavaScript the ${platform} app loads`,
+        undefined,
+        `pass the ${platform} bundle's directory, with ${bundleFileName} in it, or leave out --path to bundle the project.`,
+      );
+    }
+    return Promise.resolve([{ directoryPath, platforms }]);
   }
   return Promise.resolve(
     platforms.map(platform => {
