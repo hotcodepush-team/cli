@@ -197,6 +197,21 @@ describe('expoFramework', () => {
         });
       });
 
+      it('should write app.json with the config plugin when the project has no app config, as Expo writes one', async () => {
+        const directoryPath = writeProject({});
+        const wiring = await expoFramework.resolveWiring(
+          readProject(directoryPath),
+          { yes: true },
+        );
+
+        await wiring.wireBinaryCreateStep(undefined);
+
+        expect(wiring.packageFilePaths).toEqual(['package.json', 'app.json']);
+        expect(
+          JSON.parse(readFileSync(join(directoryPath, 'app.json'), 'utf8')),
+        ).toEqual({ plugins: ['@hotcodepush/expo-ota-updates'] });
+      });
+
       it('should add the config plugin to app.config.json, which Expo reads before app.json', async () => {
         const directoryPath = writeProject({});
         writeFile(join(directoryPath, 'app.config.json'), APP_JSON);

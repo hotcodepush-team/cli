@@ -12,5 +12,8 @@ describe('frameworks', () => {
     expect(resolveFrameworkModule('expo').packageName).toBe(
       '@hotcodepush/expo-ota-updates',
     );
+    expect(resolveFrameworkModule('react-native').packageName).toBe(
+      '@hotcodepush/react-native-code-push',
+    );
   });
 });
