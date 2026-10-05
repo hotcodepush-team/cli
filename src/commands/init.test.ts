@@ -146,7 +146,7 @@ describe('init', () => {
         args: [
           'install',
           '--save-exact',
-          'https://pkg.pr.new/hotcodepush-team/capacitor-live-updates/@hotcodepush/capacitor-live-updates@62345aa',
+          'https://pkg.pr.new/hotcodepush-team/capacitor-live-updates/@hotcodepush/capacitor-live-updates@fda14f7',
         ],
         command: 'npm',
       },
@@ -184,7 +184,7 @@ describe('init', () => {
       'logged in as Anna Example (anna@example.com)',
       'used organization Acme',
       'created app Demo',
-      'installed @hotcodepush/capacitor-live-updates from https://pkg.pr.new/hotcodepush-team/capacitor-live-updates/@hotcodepush/capacitor-live-updates@62345aa',
+      'installed @hotcodepush/capacitor-live-updates from https://pkg.pr.new/hotcodepush-team/capacitor-live-updates/@hotcodepush/capacitor-live-updates@fda14f7',
       'wrote hotcodepush.json',
       'wired capacitor:copy:after and the iOS resource reference',
       'run signing-key create to enable code signing',
