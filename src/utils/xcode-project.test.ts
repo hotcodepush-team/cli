@@ -124,6 +124,14 @@ describe('xcode-project', () => {
       );
     });
 
+    it('should mark the phase to run on every build, since the resource file carries the build time', async () => {
+      await addBinaryCreatePhase(reactNativeProjectFilePath, {});
+
+      expect(readFileSync(reactNativeProjectFilePath, 'utf8')).toMatch(
+        /\/\* Create HotCodePush binary \*\/ = \{[^}]*\balwaysOutOfDate = 1;/,
+      );
+    });
+
     it('should stop with the manual step when the project has no bundling phase to run after', async () => {
       await expect(
         addBinaryCreatePhase(projectFilePath, {}),

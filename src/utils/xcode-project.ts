@@ -149,13 +149,16 @@ export async function addBinaryCreatePhase(
       BINARY_CREATE_PHASE_FIX,
     );
   }
-  project.addBuildPhase(
+  const { buildPhase } = project.addBuildPhase(
     [],
     'PBXShellScriptBuildPhase',
     BINARY_CREATE_PHASE_NAME,
     target.key,
     { shellPath: '/bin/sh', shellScript: BINARY_CREATE_PHASE_SCRIPT },
   );
+  // binary create writes hotcodepush.json, which carries the build's time, on every build; a phase without outputs
+  // that is not marked so makes Xcode warn
+  buildPhase.alwaysOutOfDate = 1;
   // the package appends the phase to the target; binary create belongs right after the bundling it reads
   const binaryCreatePhase = buildPhases.pop();
   if (binaryCreatePhase !== undefined) {
