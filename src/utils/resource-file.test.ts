@@ -9,14 +9,18 @@ import type { Platform } from './upload.js';
 
 const CHANNEL_ID = '83ae07ef-2539-4c88-8380-17a56e24a82f';
 
-const FILES = [
-  {
-    filePath: '/build/index.html',
-    path: 'index.html',
-    sha256: 'a'.repeat(64),
-    sizeBytes: 11,
-  },
-];
+const UNREGISTERED_BUNDLE = {
+  bundleVersion: '1.0',
+  files: [
+    {
+      filePath: '/build/index.html',
+      path: 'index.html',
+      sha256: 'a'.repeat(64),
+      sizeBytes: 11,
+    },
+  ],
+  id: null,
+};
 
 interface DevicePublicKeysCase {
   devicePublicKeys: Record<Platform, { der: string; keyId: string }[]>;
@@ -42,10 +46,8 @@ function buildResourceFileWithPublicKeys(
 ): ReturnType<typeof buildResourceFile> {
   return buildResourceFile({
     builtAt: '2026-09-29T12:00:00.000Z',
-    bundleVersion: '1.0',
     channelId: CHANNEL_ID,
-    embeddedBundleId: null,
-    files: FILES,
+    embeddedBundle: UNREGISTERED_BUNDLE,
     fingerprint: CAPACITOR_FINGERPRINT,
     hosts: { filesBaseUrl: undefined, updatesBaseUrl: undefined },
     platform,
@@ -60,10 +62,8 @@ describe('resource file', () => {
   it('should carry the configuration with its defaults and the resolved channel id, the floor, the fingerprint, the files-only manifest and the hosts', () => {
     const resourceFile = buildResourceFile({
       builtAt: '2026-09-29T12:00:00.000Z',
-      bundleVersion: '1.0',
       channelId: CHANNEL_ID,
-      embeddedBundleId: null,
-      files: FILES,
+      embeddedBundle: UNREGISTERED_BUNDLE,
       fingerprint: CAPACITOR_FINGERPRINT,
       hosts: {
         filesBaseUrl: 'http://localhost:8787/files',
@@ -111,10 +111,11 @@ describe('resource file', () => {
   it('should keep the configured SDK options, replace the channel by the resolved id and write no hosts for production', () => {
     const resourceFile = buildResourceFile({
       builtAt: '2026-09-29T12:00:00.000Z',
-      bundleVersion: '1.0',
       channelId: CHANNEL_ID,
-      embeddedBundleId: 'c56a4180-65aa-42ec-a945-5fd21dec0538',
-      files: FILES,
+      embeddedBundle: {
+        ...UNREGISTERED_BUNDLE,
+        id: 'c56a4180-65aa-42ec-a945-5fd21dec0538',
+      },
       fingerprint: CAPACITOR_FINGERPRINT,
       hosts: { filesBaseUrl: undefined, updatesBaseUrl: undefined },
       platform: 'android',
@@ -133,6 +134,25 @@ describe('resource file', () => {
     );
     expect(resourceFile).not.toHaveProperty('filesBaseUrl');
   });
+
+  it('should write a null manifest and a null bundle id when the build embeds no bundle', () => {
+    const resourceFile = buildResourceFile({
+      builtAt: '2026-09-29T12:00:00.000Z',
+      channelId: null,
+      embeddedBundle: null,
+      fingerprint: CAPACITOR_FINGERPRINT,
+      hosts: { filesBaseUrl: undefined, updatesBaseUrl: undefined },
+      platform: 'ios',
+      projectConfig: { appId: 'ec266350-15f9-44c6-9d85-82f1363ede75' },
+    });
+
+    expect(resourceFile).toMatchObject({
+      embeddedBundleId: null,
+      embeddedBundleManifest: null,
+      fingerprint: CAPACITOR_FINGERPRINT,
+    });
+  });
+
   it.each<[Platform, string]>([
     ['ios', 'PKCS #1'],
     ['android', 'SPKI'],

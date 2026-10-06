@@ -159,22 +159,8 @@ export default defineCommand({
         framework,
       ),
     );
-    if (files === undefined) {
-      // a build that bundled nothing runs the development server's JavaScript: no API call, no resource file, no failure
-      process.stderr.write(
-        `No binary created: the ${platform} build bundled no JavaScript, as a debug build served by the development server does.\n`,
-      );
-      return;
-    }
-    assertWithinBundleBytesLimit(files);
     const resourceFilePath = resolveResourceFilePath(
       options.out,
-      platform,
-      directoryPath,
-      framework,
-    );
-    const identity = resolveBinaryIdentity(
-      options,
       platform,
       directoryPath,
       framework,
@@ -182,6 +168,36 @@ export default defineCommand({
     const fingerprint = await readFingerprint(
       directoryPath,
       completeProjectConfig.nativeSources ?? [],
+    );
+    const channelReference = resolveChannelReference(completeProjectConfig);
+    if (files === undefined) {
+      // a build that bundled nothing runs the development server's JavaScript: its resource file turns live updates off, and the API is asked nothing
+      writeResourceFile(
+        resourceFilePath,
+        buildResourceFile({
+          builtAt: new Date().toISOString(),
+          channelId: resolveChannelIdByShape(channelReference),
+          embeddedBundle: null,
+          fingerprint,
+          hosts: resolveDeviceHosts(readApiUrl()),
+          platform,
+          projectConfig: completeProjectConfig,
+        }),
+      );
+      process.stderr.write(
+        `No binary created: the ${platform} build bundled no JavaScript, as a debug build served by the development server does. Wrote ${resourceFilePath} without an embedded bundle: live updates are off in this build.\n`,
+      );
+      if (options.json) {
+        printJson({ binary: null, resourceFilePath, ...NO_UPLOAD });
+      }
+      return;
+    }
+    assertWithinBundleBytesLimit(files);
+    const identity = resolveBinaryIdentity(
+      options,
+      platform,
+      directoryPath,
+      framework,
     );
     const reporter = createReporter(options);
     const registration = await registerBuild(
@@ -192,19 +208,20 @@ export default defineCommand({
         force: options.force ?? false,
         platform,
       },
-      resolveChannelReference(completeProjectConfig),
+      channelReference,
       files,
       reporter,
     );
-    const builtAt = new Date().toISOString();
     writeResourceFile(
       resourceFilePath,
       buildResourceFile({
-        builtAt,
-        bundleVersion: identity.binaryVersion,
+        builtAt: new Date().toISOString(),
         channelId: registration.channelId,
-        embeddedBundleId: registration.binary?.bundleId ?? null,
-        files,
+        embeddedBundle: {
+          bundleVersion: identity.binaryVersion,
+          files,
+          id: registration.binary?.bundleId ?? null,
+        },
         fingerprint,
         hosts: resolveDeviceHosts(readApiUrl()),
         platform,
@@ -257,10 +274,7 @@ async function registerBuild(
   files: BundleFile[],
   reporter: ReturnType<typeof createReporter>,
 ): Promise<Registration> {
-  const channelIdByShape = ID_SCHEMA.safeParse(channelReference.reference)
-    .success
-    ? channelReference.reference
-    : null;
+  const channelIdByShape = resolveChannelIdByShape(channelReference);
   const offlineCause = resolveOfflineCause();
   if (offlineCause !== undefined) {
     return {
@@ -461,6 +475,17 @@ function resolveChannelReference(
         reference: resolveProjectChannel(projectConfig),
         source: PROJECT_CONFIG_FILE_NAME,
       };
+}
+
+/**
+ * The channel's id when the build names it by id, which needs no API; null for a name, which only the API resolves.
+ */
+function resolveChannelIdByShape(
+  channelReference: ChannelReference,
+): string | null {
+  return ID_SCHEMA.safeParse(channelReference.reference).success
+    ? channelReference.reference
+    : null;
 }
 
 /**

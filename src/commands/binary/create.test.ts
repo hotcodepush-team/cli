@@ -401,13 +401,6 @@ describe('binary create', () => {
     const NO_CHANNEL_TEXT =
       'it names no channel and takes no updates until it is built with a token, and no binary was created';
 
-    function stubNoToken(): void {
-      const configHomePath = createTemporaryDirectory('hotcodepush-nohome-');
-      vi.stubEnv('APPDATA', configHomePath);
-      vi.stubEnv('HOTCODEPUSH_TOKEN', undefined);
-      vi.stubEnv('XDG_CONFIG_HOME', configHomePath);
-    }
-
     function writeChannelById(): string {
       const configPath = join(projectDirectoryPath, 'hotcodepush.json');
       writeFileSync(
@@ -679,7 +672,7 @@ describe('binary create', () => {
     }
 
     async function createBinary(
-      options: { binaryVersion?: string; out?: string } = {},
+      options: { binaryVersion?: string; json?: boolean; out?: string } = {},
     ): Promise<void> {
       await binaryCreateCommand.action(
         {
@@ -727,16 +720,72 @@ describe('binary create', () => {
       });
     });
 
-    it('should create nothing and ask the API nothing when the build bundled no JavaScript', async () => {
-      await createBinary();
+    describe('when the build bundled no JavaScript', () => {
+      function readAppResourceFile(): unknown {
+        return ConfigurationSchema.parse(
+          readResourceFile('build/Demo.app/hotcodepush.json'),
+        );
+      }
 
-      expect(harness.requests).toEqual([]);
-      expect(existsSync(join(appDirectoryPath, 'hotcodepush.json'))).toBe(
-        false,
-      );
-      expect(stderrWrite).toHaveBeenCalledWith(
-        'No binary created: the ios build bundled no JavaScript, as a debug build served by the development server does.\n',
-      );
+      it('should write the resource file without an embedded bundle or the channel it names by name, and ask the API nothing', async () => {
+        await createBinary();
+
+        expect(harness.requests).toEqual([]);
+        expect(readAppResourceFile()).toMatchObject({
+          appId: DEMO_APP.id,
+          builtAt: expect.any(String),
+          channelId: null,
+          embeddedBundleId: null,
+          embeddedBundleManifest: null,
+          fingerprint: CAPACITOR_FINGERPRINT,
+        });
+        expect(stderrWrite.mock.calls).toEqual([
+          [
+            `No binary created: the ios build bundled no JavaScript, as a debug build served by the development server does. Wrote ${join(appDirectoryPath, 'hotcodepush.json')} without an embedded bundle: live updates are off in this build.\n`,
+          ],
+        ]);
+      });
+
+      it('should name the channel in it when the project names it by id', async () => {
+        writeFileSync(
+          join(projectDirectoryPath, 'hotcodepush.json'),
+          JSON.stringify({
+            appId: DEMO_APP.id,
+            channel: PRODUCTION_CHANNEL.id,
+          }),
+        );
+
+        await createBinary();
+
+        expect(harness.requests).toEqual([]);
+        expect(readAppResourceFile()).toMatchObject({
+          channelId: PRODUCTION_CHANNEL.id,
+          embeddedBundleManifest: null,
+        });
+      });
+
+      it('should write it without a token when CI is set', async () => {
+        stubNoToken();
+        vi.stubEnv('CI', 'true');
+
+        await createBinary();
+
+        expect(harness.requests).toEqual([]);
+        expect(readAppResourceFile()).toMatchObject({
+          embeddedBundleManifest: null,
+        });
+      });
+
+      it('should print the binary as null with --json', async () => {
+        await createBinary({ json: true });
+
+        expect(harness.readJson()).toEqual({
+          binary: null,
+          resourceFilePath: join(appDirectoryPath, 'hotcodepush.json'),
+          uploadedBytes: 0,
+          uploadedFileCount: 0,
+        });
+      });
     });
 
     it('should name --out when the build does not say where the resource file goes', async () => {
@@ -759,6 +808,16 @@ describe('binary create', () => {
     });
   });
 });
+
+/**
+ * No token anywhere: none in the environment, and a config home of the test's own.
+ */
+function stubNoToken(): void {
+  const configHomePath = createTemporaryDirectory('hotcodepush-nohome-');
+  vi.stubEnv('APPDATA', configHomePath);
+  vi.stubEnv('HOTCODEPUSH_TOKEN', undefined);
+  vi.stubEnv('XDG_CONFIG_HOME', configHomePath);
+}
 
 /**
  * A temporary directory of the running test's own, removed when the test finishes however it finishes.

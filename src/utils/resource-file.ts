@@ -15,13 +15,21 @@ import type { DeviceHosts } from './hosts.js';
 import type { ProjectConfig } from './project-config.js';
 import type { Platform } from './upload.js';
 
+/**
+ * The bundle a build embeds: its files, the version its manifest carries, and its id, null while the API has not registered it.
+ */
+interface EmbeddedBundle {
+  bundleVersion: string;
+  files: BundleFile[];
+  id: string | null;
+}
+
 interface ResourceFileInput {
   builtAt: string;
-  bundleVersion: string;
-  /** Null for a build made offline, which names no channel. */
+  /** Null for a build whose channel name was not resolved, made offline or bundling nothing. */
   channelId: string | null;
-  embeddedBundleId: string | null;
-  files: BundleFile[];
+  /** Null for a build that bundled no JavaScript, which takes no updates. */
+  embeddedBundle: EmbeddedBundle | null;
   fingerprint: string;
   hosts: DeviceHosts;
   platform: Platform;
@@ -30,16 +38,15 @@ interface ResourceFileInput {
 
 /**
  * The resource file: the project's configuration with the channel as the id binary create resolved, null offline, plus what only
- * a build step can know — the floor, the fingerprint, the embedded bundle's manifest and id, and the device hosts outside production.
+ * a build step can know — the floor, the fingerprint, the embedded bundle's manifest and id, both null without an embedded bundle,
+ * and the device hosts outside production.
  * The manifest is the bundle manifest without patches, unsigned, the same whether the bundle was registered or not.
  * The public keys leave their project form for the one the platform's own API imports.
  */
 export function buildResourceFile({
   builtAt,
-  bundleVersion,
   channelId,
-  embeddedBundleId,
-  files,
+  embeddedBundle,
   fingerprint,
   hosts,
   platform,
@@ -49,19 +56,22 @@ export function buildResourceFile({
     ...omitChannel(projectConfig),
     builtAt,
     channelId,
-    embeddedBundleId,
-    embeddedBundleManifest: {
-      appId: projectConfig.appId,
-      bundleVersion,
-      files: files.map(({ path, sha256, sizeBytes }) => ({
-        path,
-        sha256,
-        sizeBytes,
-      })),
-      fingerprint,
-      keyId: null,
-      platforms: [platform],
-    },
+    embeddedBundleId: embeddedBundle?.id ?? null,
+    embeddedBundleManifest:
+      embeddedBundle === null
+        ? null
+        : {
+            appId: projectConfig.appId,
+            bundleVersion: embeddedBundle.bundleVersion,
+            files: embeddedBundle.files.map(({ path, sha256, sizeBytes }) => ({
+              path,
+              sha256,
+              sizeBytes,
+            })),
+            fingerprint,
+            keyId: null,
+            platforms: [platform],
+          },
     fingerprint,
     publicKeys: (projectConfig.publicKeys ?? []).map(publicKey =>
       resolveDevicePublicKey(publicKey, platform),
