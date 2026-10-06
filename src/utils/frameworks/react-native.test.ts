@@ -145,7 +145,7 @@ describe('reactNativeFramework', () => {
 
         expect(outcome).toEqual({
           message:
-            'wired the Create HotCodePush binary phase in Xcode, the Gradle task that runs binary create, HotCodePush.bundleURL() in AppDelegate.swift, HotCodePushReactHost in MainApplication.kt, the HotCodePushProtocol pod in the Podfile, the pods through pod install',
+            'wired the Create HotCodePush binary phase in Xcode, the Gradle task that runs binary create, HotCodePush.bundleURL() in AppDelegate.swift, HotCodePushReactHost in MainApplication.kt, the HotCodePushCore pod in the Podfile, the pods through pod install',
           status: 'done',
           value: undefined,
         });

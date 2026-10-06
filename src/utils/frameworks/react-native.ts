@@ -12,8 +12,8 @@ import { runCommandLineVisibly } from '../package-manager.js';
 import type { ReactNativeEdit } from '../react-native-project.js';
 import {
   resolveBundleUrlEdit,
+  resolveCorePodEdit,
   resolveGradleEdit,
-  resolveProtocolPodEdit,
   resolveReactHostEdit,
 } from '../react-native-project.js';
 import type { Platform } from '../upload.js';
@@ -199,7 +199,7 @@ function resolveEdits(
   return [
     resolveGradleEdit(nativeProjectPaths.android),
     ...resolveBundleWiringEdits(nativeProjectPaths),
-    resolveProtocolPodEdit(nativeProjectPaths.ios, projectDirectoryPath),
+    resolveCorePodEdit(nativeProjectPaths.ios, projectDirectoryPath),
   ].filter(edit => edit !== undefined);
 }
 

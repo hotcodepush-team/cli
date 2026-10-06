@@ -14,6 +14,8 @@ export const APP_DELEGATE_FILE_PATH = join('ios', 'Demo', 'AppDelegate.swift');
 
 export const APP_GRADLE_FILE_PATH = join('android', 'app', 'build.gradle');
 
+export const CORE_POD_COMMIT = '0123456789abcdef0123456789abcdef01234567';
+
 export const MAIN_APPLICATION_FILE_PATH = join(
   'android',
   'app',
@@ -27,8 +29,6 @@ export const MAIN_APPLICATION_FILE_PATH = join(
 );
 
 export const PODFILE_PATH = join('ios', 'Podfile');
-
-export const PROTOCOL_POD_COMMIT = '0123456789abcdef0123456789abcdef01234567';
 
 export const XCODE_PROJECT_FILE_PATH = join(
   'ios',
@@ -152,7 +152,7 @@ export function writeInstalledSdk(directoryPath: string): void {
       'package.json',
     ),
     {
-      hotcodepush: { protocolIos: PROTOCOL_POD_COMMIT },
+      hotcodepush: { coreIos: CORE_POD_COMMIT },
       name: '@hotcodepush/react-native-code-push',
       version: '0.1.0',
     },

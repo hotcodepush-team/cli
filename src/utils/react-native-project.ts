@@ -17,19 +17,19 @@ export interface ReactNativeEdit {
 
 const BUNDLE_URL_CALL = 'HotCodePush.bundleURL()';
 
+const CORE_POD_NAME = 'HotCodePushCore';
+
+const CORE_POD_LINE_START = `pod '${CORE_POD_NAME}'`;
+
+const CORE_POD_REPOSITORY_URL =
+  'https://github.com/hotcodepush-team/core-ios.git';
+
 const EMBEDDED_BUNDLE_URL_CALL =
   'Bundle.main.url(forResource: "main", withExtension: "jsbundle")';
 
 const GRADLE_FILE_MARKER = 'hotcodepush.gradle';
 
 const GRADLE_FILE_NAMES = ['build.gradle', 'build.gradle.kts'];
-
-const PROTOCOL_POD_NAME = 'HotCodePushProtocol';
-
-const PROTOCOL_POD_LINE_START = `pod '${PROTOCOL_POD_NAME}'`;
-
-const PROTOCOL_POD_REPOSITORY_URL =
-  'https://github.com/hotcodepush-team/protocol-ios.git';
 
 const REACT_HOST_IMPORT =
   'import com.hotcodepush.reactnative.HotCodePushReactHost.getDefaultReactHost';
@@ -81,6 +81,49 @@ export function resolveBundleUrlEdit(
 }
 
 /**
+ * Until `HotCodePushCore` is published, the Podfile pins the pod at the commit the installed SDK names in its
+ * `package.json`, read when the edit is made, since `init` installs the SDK first; the pin falls away at publish.
+ */
+export function resolveCorePodEdit(
+  iosProjectPath: string,
+  projectDirectoryPath: string,
+): ReactNativeEdit | undefined {
+  const filePath = join(iosProjectPath, 'Podfile');
+  if (!existsSync(filePath)) {
+    return undefined;
+  }
+  return {
+    description: 'the HotCodePushCore pod in the Podfile',
+    filePath,
+    isApplied: () =>
+      readFileSync(filePath, 'utf8').includes(CORE_POD_LINE_START),
+    apply: () => {
+      const source = readFileSync(filePath, 'utf8');
+      const commit = readCorePodCommit(projectDirectoryPath);
+      const nativeModulesLine = source
+        .split('\n')
+        .find(line => line.includes('use_native_modules!'));
+      if (commit === undefined || nativeModulesLine === undefined) {
+        throw new NativeProjectError(
+          commit === undefined
+            ? `${REACT_NATIVE_PACKAGE_NAME} in node_modules names no ${CORE_POD_NAME} commit to pin`
+            : `${filePath} has no use_native_modules! line to add the pod after`,
+          `add "pod '${CORE_POD_NAME}', :git => '${CORE_POD_REPOSITORY_URL}', :commit => '<sha>'" to the app target in ${filePath}, the commit the SDK's README names.`,
+        );
+      }
+      const indentation = /^\s*/.exec(nativeModulesLine)?.[0] ?? '';
+      writeFileSync(
+        filePath,
+        source.replace(
+          nativeModulesLine,
+          `${nativeModulesLine}\n${indentation}${CORE_POD_LINE_START}, :git => '${CORE_POD_REPOSITORY_URL}', :commit => '${commit}'`,
+        ),
+      );
+    },
+  };
+}
+
+/**
  * The app's Gradle file applies the Gradle file the SDK ships, which holds the task that runs binary create: one line, resolved through Node
  * so it finds the package wherever `node_modules` lies, in the syntax of the file it joins.
  */
@@ -106,49 +149,6 @@ export function resolveGradleEdit(
       writeFileSync(
         filePath,
         `${source}${source.endsWith('\n') ? '' : '\n'}\n${applyLine}\n`,
-      );
-    },
-  };
-}
-
-/**
- * Until `HotCodePushProtocol` is published, the Podfile pins the pod at the commit the installed SDK names in its
- * `package.json`, read when the edit is made, since `init` installs the SDK first; the pin falls away at publish.
- */
-export function resolveProtocolPodEdit(
-  iosProjectPath: string,
-  projectDirectoryPath: string,
-): ReactNativeEdit | undefined {
-  const filePath = join(iosProjectPath, 'Podfile');
-  if (!existsSync(filePath)) {
-    return undefined;
-  }
-  return {
-    description: 'the HotCodePushProtocol pod in the Podfile',
-    filePath,
-    isApplied: () =>
-      readFileSync(filePath, 'utf8').includes(PROTOCOL_POD_LINE_START),
-    apply: () => {
-      const source = readFileSync(filePath, 'utf8');
-      const commit = readProtocolPodCommit(projectDirectoryPath);
-      const nativeModulesLine = source
-        .split('\n')
-        .find(line => line.includes('use_native_modules!'));
-      if (commit === undefined || nativeModulesLine === undefined) {
-        throw new NativeProjectError(
-          commit === undefined
-            ? `${REACT_NATIVE_PACKAGE_NAME} in node_modules names no ${PROTOCOL_POD_NAME} commit to pin`
-            : `${filePath} has no use_native_modules! line to add the pod after`,
-          `add "pod '${PROTOCOL_POD_NAME}', :git => '${PROTOCOL_POD_REPOSITORY_URL}', :commit => '<sha>'" to the app target in ${filePath}, the commit the SDK's README names.`,
-        );
-      }
-      const indentation = /^\s*/.exec(nativeModulesLine)?.[0] ?? '';
-      writeFileSync(
-        filePath,
-        source.replace(
-          nativeModulesLine,
-          `${nativeModulesLine}\n${indentation}${PROTOCOL_POD_LINE_START}, :git => '${PROTOCOL_POD_REPOSITORY_URL}', :commit => '${commit}'`,
-        ),
       );
     },
   };
@@ -223,9 +223,7 @@ function findFilePath(
   return undefined;
 }
 
-function readProtocolPodCommit(
-  projectDirectoryPath: string,
-): string | undefined {
+function readCorePodCommit(projectDirectoryPath: string): string | undefined {
   const packageJsonPath = join(
     projectDirectoryPath,
     'node_modules',
@@ -236,7 +234,7 @@ function readProtocolPodCommit(
     return undefined;
   }
   const { hotcodepush } = JSON.parse(readFileSync(packageJsonPath, 'utf8')) as {
-    hotcodepush?: { protocolIos?: string };
+    hotcodepush?: { coreIos?: string };
   };
-  return hotcodepush?.protocolIos;
+  return hotcodepush?.coreIos;
 }
