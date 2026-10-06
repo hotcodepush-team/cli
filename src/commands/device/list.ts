@@ -58,10 +58,6 @@ export default defineCommand({
       .enum(['android', 'ios'])
       .optional()
       .describe('The platform, ios or android.'),
-    runtimeVersion: z
-      .string()
-      .optional()
-      .describe('The runtime version a bridge reports.'),
     sdkVersion: z
       .string()
       .optional()
@@ -92,7 +88,6 @@ export default defineCommand({
       offset: options.offset,
       platform: options.platform,
       relations: ['channel'],
-      runtimeVersion: options.runtimeVersion,
       sdkVersion: options.sdkVersion,
     });
     const nextOffset = resolveNextOffset(listedDevices.length, options);

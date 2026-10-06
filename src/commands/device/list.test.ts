@@ -46,7 +46,6 @@ describe('device list', () => {
         lastSeenSince: '2h',
         lastSeenUntil: '2026-09-10T00:00:00.000Z',
         platform: 'ios',
-        runtimeVersion: '1.0.0',
         sdkVersion: '0.1.0',
       },
       undefined,
@@ -62,7 +61,6 @@ describe('device list', () => {
       lastSeenUntil: '2026-09-10T00:00:00.000Z',
       platform: 'ios',
       relations: 'channel',
-      runtimeVersion: '1.0.0',
       sdkVersion: '0.1.0',
     });
     expect(harness.readLines()).toEqual([

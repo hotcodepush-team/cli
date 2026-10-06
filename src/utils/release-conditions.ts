@@ -19,7 +19,6 @@ export interface ConditionOptions {
   binary?: string;
   device?: string[];
   os?: string;
-  runtime?: string;
 }
 
 type AudienceQuery = Omit<GetAudienceOptions, 'appId' | 'channelId'>;
@@ -47,12 +46,6 @@ export const conditionOptionShape = {
     .string()
     .optional()
     .describe('The OS versions served, a range such as ">=17".'),
-  runtime: z
-    .string()
-    .optional()
-    .describe(
-      "The Expo runtime version served, for the Expo Updates bridge's clients.",
-    ),
 };
 
 /**
@@ -72,7 +65,6 @@ export function buildAudienceQuery(
     fingerprint: resolveList(fingerprint ?? undefined),
     os: resolveList(options.os),
     rollout: rolloutPercentage,
-    runtime: resolveList(options.runtime),
   };
 }
 
@@ -112,10 +104,6 @@ export function buildReleaseConditions(
     ...resolveList(options.os).map((range): ReleaseCondition => ({
       range,
       type: 'os',
-    })),
-    ...resolveList(options.runtime).map((version): ReleaseCondition => ({
-      type: 'runtime',
-      version,
     })),
   ];
 }

@@ -62,7 +62,7 @@ const UNSUPPORTED_CONDITION_SHARE_WARNING: Audience['warnings'][number] = {
   code: 'UNSUPPORTED_CONDITION_SHARE',
   details: null,
   message:
-    "12 of the channel's 120 active devices run an SDK that does not know the condition type runtime and will not see this release until the app ships a newer SDK.",
+    "12 of the channel's 120 active devices run an SDK that does not know the condition type attribute and will not see this release until the app ships a newer SDK.",
 };
 
 const UPLOAD_BUNDLE_OPTIONS: UploadBundleOptions = {
@@ -242,7 +242,6 @@ describe('release create', () => {
       channel: [STAGING_CHANNEL.id],
       device: [DEVICE_ID],
       os: '>=17',
-      runtime: '1.0.0',
       yes: true,
     };
 
@@ -268,7 +267,6 @@ describe('release create', () => {
           { hashedIds: [hashDeviceId(DEVICE_ID)], type: 'device' },
           { hash: CAPACITOR_FINGERPRINT, type: 'fingerprint' },
           { range: '>=17', type: 'os' },
-          { type: 'runtime', version: '1.0.0' },
         ],
       });
     });
@@ -284,7 +282,6 @@ describe('release create', () => {
         fingerprint: CAPACITOR_FINGERPRINT,
         os: '>=17',
         rollout: '100',
-        runtime: '1.0.0',
       });
     });
 
@@ -463,9 +460,9 @@ describe('release create', () => {
     await releaseCreateCommand.action(
       {
         app: DEMO_APP.id,
+        attribute: ['tier=beta'],
         channel: [STAGING_CHANNEL.id],
         path: 'dist',
-        runtime: '1.0.0',
         yes: true,
       },
       undefined,

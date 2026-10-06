@@ -40,7 +40,6 @@ describe('audience get', () => {
         device: [DEVICE_ID],
         os: '>=17',
         rolloutPercentage: 10,
-        runtime: '1.0.0',
       },
       undefined,
     );
@@ -51,7 +50,6 @@ describe('audience get', () => {
       device: DEVICE_ID,
       os: '>=17',
       rollout: '10',
-      runtime: '1.0.0',
     });
     expect(harness.readLines()).toEqual([
       'Reaches 100 of 120 active devices in staging; about 10 at a 10 percent rollout.',
@@ -89,7 +87,7 @@ describe('audience get', () => {
       code: 'UNSUPPORTED_CONDITION_SHARE',
       details: null,
       message:
-        "12 of the channel's 120 active devices run an SDK that does not know the condition type runtime and will not see this release until the app ships a newer SDK.",
+        "12 of the channel's 120 active devices run an SDK that does not know the condition type attribute and will not see this release until the app ships a newer SDK.",
     };
     harness.routes[`GET ${CHANNEL_PATH}/audience`] = () =>
       Response.json({ ...STAGING_AUDIENCE, warnings: [warning] });
@@ -97,9 +95,9 @@ describe('audience get', () => {
     await audienceGetCommand.action(
       {
         app: DEMO_APP.id,
+        attribute: ['tier=beta'],
         channel: STAGING_CHANNEL.name,
         json: true,
-        runtime: '1.0.0',
       },
       undefined,
     );

@@ -45,7 +45,6 @@ describe('device get', () => {
       'Channel      staging (config)',
       `Release      ${LIVE_RELEASE.id}`,
       'SDK          0.1.0',
-      'Runtime      none',
       'Attributes   tier=beta',
       'Country      DE',
       `Last seen    ${DEVICE.lastSeenAt}`,

@@ -33,7 +33,6 @@ const FLEET_DIMENSIONS = [
   ['RELEASE', 'release'],
   ['BINARY VERSION', 'binaryVersion'],
   ['SDK VERSION', 'sdkVersion'],
-  ['RUNTIME VERSION', 'runtimeVersion'],
   ['PLATFORM', 'platform'],
   ['OS VERSION', 'osVersion'],
   ['COUNTRY', 'country'],

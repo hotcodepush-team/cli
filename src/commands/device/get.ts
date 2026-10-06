@@ -42,7 +42,6 @@ export default defineCommand({
       ],
       ['Release', fetchedDevice.currentReleaseId ?? 'the embedded bundle'],
       ['SDK', fetchedDevice.sdkVersion],
-      ['Runtime', fetchedDevice.runtimeVersion ?? 'none'],
       [
         'Attributes',
         Object.entries(fetchedDevice.attributes)

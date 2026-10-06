@@ -82,8 +82,6 @@ describe('statistics get', () => {
       '2.4.1           70',
       'SDK VERSION  DEVICES',
       '0.1.0        70',
-      'RUNTIME VERSION  DEVICES',
-      'none             70',
       'PLATFORM  DEVICES',
       'ios       70',
       'OS VERSION  DEVICES',
