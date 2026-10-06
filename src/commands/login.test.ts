@@ -151,6 +151,19 @@ describe('login', () => {
     );
   });
 
+  it('should send the cli as the user agent on every request', async () => {
+    fetchMock
+      .mockResolvedValueOnce(Response.json(DEVICE_AUTHORIZATION))
+      .mockResolvedValueOnce(Response.json(TOKEN))
+      .mockResolvedValueOnce(Response.json(SESSION));
+
+    await loginCommand.action({}, undefined);
+
+    expect(
+      readRequests().map(request => request.headers.get('User-Agent')),
+    ).toEqual(Array(3).fill(`hotcodepush-cli/${PACKAGE_JSON.version}`));
+  });
+
   it("should poll at the server's interval", async () => {
     fetchMock
       .mockResolvedValueOnce(

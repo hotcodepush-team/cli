@@ -26,13 +26,17 @@ type AuthResponseData<TResponse> = TResponse extends {
 /**
  * Better Auth's client over the API's `/v1/auth` slice, the bearer only when a token is given:
  * a stale stored token would fail the requests of a login that is about to replace it.
+ * The User-Agent names the CLI too: the session row keeps that header, not the client header.
  */
 export function createApiAuthClient(token?: string) {
   return createAuthClient({
     baseURL: `${readApiUrl()}/v1/auth`,
     fetchOptions: {
       auth: token === undefined ? undefined : { token, type: 'Bearer' },
-      headers: { [CLIENT_HEADER_NAME]: `cli/${PACKAGE_JSON.version}` },
+      headers: {
+        'User-Agent': `hotcodepush-cli/${PACKAGE_JSON.version}`,
+        [CLIENT_HEADER_NAME]: `cli/${PACKAGE_JSON.version}`,
+      },
     },
     plugins: [deviceAuthorizationClient(), organizationClient()],
   });
