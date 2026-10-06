@@ -169,7 +169,6 @@ export default defineCommand({
       fingerprint: registryDevice?.fingerprint ?? binary?.fingerprint ?? null,
       osVersion: registryDevice?.osVersion ?? '',
       reportedAt: registryDevice?.lastSeenAt ?? null,
-      runtimeVersion: registryDevice?.runtimeVersion ?? null,
     };
     const evaluation =
       servedIndex.index === null

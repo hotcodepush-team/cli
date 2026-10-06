@@ -80,7 +80,6 @@ const REGISTRY_FIXTURES = [
   'conditions-device',
   'conditions-fingerprint',
   'conditions-os',
-  'conditions-runtime',
   'conditions-unknown',
   'floor',
   'rollout',
@@ -129,7 +128,6 @@ describe('device probe', () => {
         id: fixture.device.deviceId,
         osVersion: fixture.device.osVersion,
         platform: 'ios',
-        runtimeVersion: fixture.device.runtimeVersion,
       };
       harness.routes[
         `GET /v1/apps/${DEMO_APP.id}/devices/${registryDevice.id}`

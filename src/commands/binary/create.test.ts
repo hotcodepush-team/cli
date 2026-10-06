@@ -247,10 +247,10 @@ describe('binary create', () => {
           ),
         ),
       );
-      expect(resourceFile.embeddedBundleManifest.bundleVersion).toBe('2.4.1');
-      expect(resourceFile.embeddedBundleManifest.files).toEqual([
-        { path: 'index.html', sha256: INDEX_SHA256, sizeBytes: 11 },
-      ]);
+      expect(resourceFile.embeddedBundleManifest).toMatchObject({
+        bundleVersion: '2.4.1',
+        files: [{ path: 'index.html', sha256: INDEX_SHA256, sizeBytes: 11 }],
+      });
     } finally {
       rmSync(cordovaDirectoryPath, { force: true, recursive: true });
     }

@@ -29,6 +29,7 @@ import {
   writeInstalledSdk,
   writeReactNativeProject,
 } from '../../test/react-native-project.js';
+import { CAPACITOR_PACKAGE_SPEC } from '../config/consts.js';
 import {
   ReportedFailureError,
   UnknownFrameworkError,
@@ -143,11 +144,7 @@ describe('init', () => {
     });
     expect(runCommandLineVisibly).toHaveBeenCalledWith(
       {
-        args: [
-          'install',
-          '--save-exact',
-          'https://pkg.pr.new/hotcodepush-team/capacitor-live-updates/@hotcodepush/capacitor-live-updates@fda14f7',
-        ],
+        args: ['install', '--save-exact', CAPACITOR_PACKAGE_SPEC],
         command: 'npm',
       },
       directoryPath,
@@ -184,7 +181,7 @@ describe('init', () => {
       'logged in as Anna Example (anna@example.com)',
       'used organization Acme',
       'created app Demo',
-      'installed @hotcodepush/capacitor-live-updates from https://pkg.pr.new/hotcodepush-team/capacitor-live-updates/@hotcodepush/capacitor-live-updates@fda14f7',
+      `installed @hotcodepush/capacitor-live-updates from ${CAPACITOR_PACKAGE_SPEC}`,
       'wrote hotcodepush.json',
       'wired capacitor:copy:after and the iOS resource reference',
       'run signing-key create to enable code signing',
