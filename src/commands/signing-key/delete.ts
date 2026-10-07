@@ -68,7 +68,8 @@ export default defineCommand({
       signingKey.publicKey,
     );
     if (options.json) {
-      printJson({ fingerprint: signingKey.fingerprint, id: signingKey.id });
+      // every delete prints { id, name }, and a key's name is its fingerprint, as a bundle's is its label
+      printJson({ id: signingKey.id, name: signingKey.fingerprint });
     } else {
       console.log(
         `Deleted signing key ${signingKey.fingerprint} (${signingKey.id}).`,

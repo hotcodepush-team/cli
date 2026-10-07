@@ -64,7 +64,7 @@ describe('signing-key delete', () => {
     ]);
   });
 
-  it('should print the id and the fingerprint as JSON under --yes', async () => {
+  it('should print the id and the fingerprint as the name, the shape of every delete, as JSON under --yes', async () => {
     respondWithSigningKey();
 
     await signingKeyDeleteCommand.action(
@@ -73,8 +73,8 @@ describe('signing-key delete', () => {
     );
 
     expect(harness.readJson()).toEqual({
-      fingerprint: SIGNING_KEY.fingerprint,
       id: SIGNING_KEY.id,
+      name: SIGNING_KEY.fingerprint,
     });
   });
 
