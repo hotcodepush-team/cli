@@ -64,7 +64,7 @@ type FingerprintFile = z.infer<typeof FingerprintFileSchema>;
 
 export default defineCommand({
   description:
-    'Print the packages and native sources added, removed or moved between two files written by fingerprint --json, the earlier first; local, no login.',
+    'Print the packages and native sources added, removed or moved between <file-a> and <file-b>, two files written by fingerprint --json, the earlier first; local, no login.',
   examples: [
     'hotcodepush fingerprint diff store-build.json current.json',
     'hotcodepush fingerprint diff store-build.json current.json --json',
