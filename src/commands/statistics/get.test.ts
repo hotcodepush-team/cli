@@ -33,7 +33,15 @@ const FLEET_STATISTICS: FleetStatistics = {
 };
 
 const UPDATE_STATISTICS: UpdateStatistics = {
-  days: [{ day: '2026-09-01', failed: 1, installed: 9, rolledBack: 0 }],
+  days: [
+    {
+      activeDevices: 70,
+      day: '2026-09-01',
+      failed: 1,
+      installed: 9,
+      rolledBack: 0,
+    },
+  ],
   failureReasons: [{ count: 1, reason: 'READINESS_TIMED_OUT' }],
   releases: [
     {
