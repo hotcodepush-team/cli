@@ -167,7 +167,7 @@ describe('release revoke', () => {
     );
   });
 
-  it('should revoke from the number --release-from names, inclusive, through the bulk route, and print the releases as JSON', async () => {
+  it('should send the ids of the releases from the number --release-from names, inclusive, to the bulk route without asking, and print the releases as JSON when --yes and --json are passed', async () => {
     respondWithBulkRevocation(CHANNEL_PATH);
     harness.routes[`GET ${CHANNEL_PATH}/releases`] = () =>
       Response.json([
@@ -191,14 +191,17 @@ describe('release revoke', () => {
     expect(new URL(revokeRequest?.url ?? '').pathname).toBe(
       `${CHANNEL_PATH}/releases/revoke`,
     );
-    expect(await revokeRequest?.json()).toEqual({ fromNumber: 42 });
+    expect(await revokeRequest?.json()).toEqual({
+      releaseIds: [PREVIOUS_RELEASE.id, LIVE_RELEASE.id],
+    });
+    expect(confirm).not.toHaveBeenCalled();
     expect(harness.readJson()).toEqual([
       REVOKED_RELEASE,
       { ...PREVIOUS_RELEASE, state: 'revoked' },
     ]);
   });
 
-  it('should revoke every release of the channel with --all, every device returning to the embedded bundle', async () => {
+  it('should revoke every release of the channel listed with --all by its id once confirmed, every device returning to the embedded bundle', async () => {
     stubInteractiveTerminal();
     vi.mocked(confirm).mockResolvedValue(true);
     respondWithBulkRevocation(CHANNEL_PATH);
@@ -214,10 +217,62 @@ describe('release revoke', () => {
         'This revokes releases #43 and #42 of staging for good: 100 devices return to the embedded bundle; revoked is final, and "release create --bundle <number>" releases a bundle again. Continue?',
     });
     const [revokeRequest] = readRevokeRequests();
-    expect(await revokeRequest?.json()).toEqual({ fromNumber: 1 });
+    expect(await revokeRequest?.json()).toEqual({
+      releaseIds: [PREVIOUS_RELEASE.id, LIVE_RELEASE.id],
+    });
     expect(harness.readLines()).toEqual([
       'Revoked releases #43 and #42 of staging.',
     ]);
+  });
+
+  it('should send the ids to the bulk route in pages of 100, the oldest page first, when more than 100 releases are revoked', async () => {
+    const releaseLog = Array.from({ length: 101 }, (_, index) => ({
+      ...LIVE_RELEASE,
+      bundle: READY_BUNDLE,
+      id: `00000000-0000-4000-8000-${String(101 - index).padStart(12, '0')}`,
+      number: 101 - index,
+    }));
+    harness.routes[`GET ${CHANNEL_PATH}/releases`] = ({ url }) => {
+      const { searchParams } = new URL(url);
+      const offset = Number(searchParams.get('offset'));
+      return Response.json(
+        releaseLog.slice(offset, offset + Number(searchParams.get('limit'))),
+      );
+    };
+    harness.routes[`POST ${CHANNEL_PATH}/releases/revoke`] = async request => {
+      const { releaseIds } = (await request.json()) as { releaseIds: string[] };
+      return Response.json(
+        releaseLog
+          .filter(({ id }) => releaseIds.includes(id))
+          .map(release => ({ ...release, state: 'revoked' })),
+      );
+    };
+
+    await releaseRevokeCommand.action(
+      {
+        all: true,
+        app: DEMO_APP.id,
+        channel: STAGING_CHANNEL.id,
+        json: true,
+        yes: true,
+      },
+      undefined,
+    );
+
+    expect(
+      await Promise.all(readRevokeRequests().map(request => request.json())),
+    ).toEqual([
+      {
+        releaseIds: releaseLog
+          .slice(1)
+          .map(({ id }) => id)
+          .toReversed(),
+      },
+      { releaseIds: [releaseLog[0]?.id] },
+    ]);
+    expect(harness.readJson()).toEqual(
+      releaseLog.map(release => ({ ...release, state: 'revoked' })),
+    );
   });
 
   it("should revoke every release of the bundle --bundle names in each channel serving it, the channel's own ids through the bulk route", async () => {

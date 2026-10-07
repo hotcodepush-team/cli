@@ -22,6 +22,11 @@ import {
 } from '../../utils/resource-resolution.js';
 
 /**
+ * The most ids the bulk route takes in one request.
+ */
+const MAX_RELEASE_IDS_PER_REVOCATION = 100;
+
+/**
  * What one channel loses: the releases revoked, newest first, beside the channel's whole log they move devices along,
  * and the request that revokes them.
  */
@@ -47,11 +52,10 @@ interface ReleaseRevokeOptions extends ReleaseOptions {
 }
 
 /**
- * The single route for `--release`, the bulk route with the ids of `--bundle`'s releases or from the number of
- * `--release-from` and `--all`.
+ * The single route for `--release`, the bulk route for every other form with the ids of the releases confirmed,
+ * newest first, so a release published after the confirmation is never revoked unseen.
  */
-type RevocationRequest =
-  { fromNumber: number } | { releaseId: string } | { releaseIds: string[] };
+type RevocationRequest = { releaseId: string } | { releaseIds: string[] };
 
 export default defineCommand({
   description:
@@ -130,7 +134,8 @@ export default defineCommand({
 });
 
 /**
- * Sends one channel's revocation: the single route answers the release, the bulk route the releases it names.
+ * Sends one channel's revocation: the single route answers the release, the bulk route the releases it names,
+ * newest first.
  */
 async function fetchRevocation(
   hotCodePush: HotCodePush,
@@ -145,11 +150,17 @@ async function fetchRevocation(
       }),
     ];
   }
-  return hotCodePush.apps.channels.releases.revoke({
-    ...request,
-    appId: channel.appId,
-    channelId: channel.id,
-  });
+  const revokedReleases: Release[] = [];
+  for (const releaseIds of resolveReleaseIdPages(request.releaseIds)) {
+    revokedReleases.push(
+      ...(await hotCodePush.apps.channels.releases.revoke({
+        appId: channel.appId,
+        channelId: channel.id,
+        releaseIds,
+      })),
+    );
+  }
+  return revokedReleases.sort((left, right) => right.number - left.number);
 }
 
 /**
@@ -184,14 +195,15 @@ async function fetchRevocations(
     const fromNumber = options.releaseFrom ?? 1;
     const channel = await fetchChannel(hotCodePush, options);
     const releaseLog = await fetchReleaseLog(hotCodePush, channel);
+    const revokedReleases = releaseLog.filter(
+      ({ number, state }) => number >= fromNumber && state !== 'revoked',
+    );
     return [
       {
         channel,
         releaseLog,
-        request: { fromNumber },
-        revokedReleases: releaseLog.filter(
-          ({ number, state }) => number >= fromNumber && state !== 'revoked',
-        ),
+        request: { releaseIds: revokedReleases.map(({ id }) => id) },
+        revokedReleases,
       },
     ];
   }
@@ -372,6 +384,28 @@ function resolveRevocationConsequence(
       ? `"release create --bundle ${bundleNumber}" releases its bundle again`
       : '"release create --bundle <number>" releases a bundle again';
   return `revokes ${releasesText} for good: ${movesText}; revoked is final, and ${reReleaseText}`;
+}
+
+/**
+ * The ids of releases listed newest first, in the pages the bulk route takes, the oldest page sent first:
+ * a page's devices then land past every older release, never on a newer one the next page revokes.
+ */
+function resolveReleaseIdPages(newestFirstReleaseIds: string[]): string[][] {
+  const oldestFirstReleaseIds = newestFirstReleaseIds.toReversed();
+  const pages: string[][] = [];
+  for (
+    let start = 0;
+    start < oldestFirstReleaseIds.length;
+    start += MAX_RELEASE_IDS_PER_REVOCATION
+  ) {
+    pages.push(
+      oldestFirstReleaseIds.slice(
+        start,
+        start + MAX_RELEASE_IDS_PER_REVOCATION,
+      ),
+    );
+  }
+  return pages;
 }
 
 /**
