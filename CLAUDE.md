@@ -16,7 +16,7 @@ src/
   commands/    a folder per noun and a file per verb, channel/create.ts; the standalone commands flat, login.ts, init.ts, doctor.ts, open.ts
   utils/       the runner, command resolution and did-you-mean, the E_ catalog and its one mapping,
                the global options, environment detection, config.json, the token store,
-               the auth client, the API client, hotcodepush.json and its directory, a resource by id or name,
+               the auth client, the API client, hotcodepush.json and its directory, the JSON files a person edits read as `E_INVALID_JSON` when they do not parse, a resource by id or name,
                the project's fingerprint through the protocol's recipe,
                a bundle by number or id, a release by number or id in its channel with the wait until it is live,
                the released line, the prompts and the confirmation, the pages of a list, the boolean flag, the channel fields,
@@ -131,6 +131,7 @@ A project with an app config that is code, or with a JSON one that does not pars
   The CLI stores no private key and looks for none; `bundle upload` and `release create`, where it uploads, take both, and the key must belong to one of the listed public keys.
   A key is read through Node's key import as PKCS #8 or as PKCS #1, the form Expo's tool writes, with its PEM lines or without them, on one line too.
   Keys listed and no key given is `E_SIGNING_KEY_UNAVAILABLE` before a byte moves, since the app would refuse the unsigned bundle.
+  A dry run requires no key, since it signs nothing; a key it is given is still checked.
   A key given while none is listed, a file that cannot be read, an encrypted key, a key that is no RSA key of at least 2048 bits and a key that belongs to no listed public key are `E_INVALID_PARAMETER`, the message naming the flag or the variable the key came through.
   No listed key and no key given means no signature, and the API's `E_SIGNATURE_REQUIRED` passes through.
   The signed bytes are the manifest as the API rebuilds it — the files by path, the platforms sorted, by code units — so `buildManifestToSign` and the API's builder change together.
