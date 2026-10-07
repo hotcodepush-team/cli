@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { relative } from 'node:path';
 import type { App, User } from '@hotcodepush/node';
 import {
@@ -42,6 +42,7 @@ import {
 } from '../utils/frameworks/sdk-package.js';
 import { defineCommandOptions } from '../utils/global-options.js';
 import { resolveFilesBaseUrl, resolveUpdatesBaseUrl } from '../utils/hosts.js';
+import { readJsonFile } from '../utils/json-file.js';
 import { printOutcomeRows } from '../utils/outcome.js';
 import { printJson, resolveQuantityText } from '../utils/output.js';
 import type { ProjectConfig } from '../utils/project-config.js';
@@ -435,7 +436,8 @@ function checkFramework(project: Project): DoctorCheck[] {
 }
 
 /**
- * The resource file the hook wrote into the native project, parsed as the SDK parses it and naming the configured app.
+ * The resource file the hook wrote into the native project, parsed as the SDK parses it and naming the configured app;
+ * one that is no JSON, a write cut short, is rebuilt rather than corrected.
  */
 function checkResourceFile(
   { directoryPath, projectConfig }: Project,
@@ -472,9 +474,21 @@ function checkResourceFile(
       status: 'failed',
     };
   }
-  const parsed = ConfigurationSchema.safeParse(
-    JSON.parse(readFileSync(filePath, 'utf8')),
-  );
+  let resourceFile: unknown;
+  try {
+    resourceFile = readJsonFile(filePath);
+  } catch (error) {
+    if (!(error instanceof InvalidJsonError)) {
+      throw error;
+    }
+    return {
+      check,
+      manualStep: framework.binaryCreateStep,
+      message: error.message,
+      status: 'failed',
+    };
+  }
+  const parsed = ConfigurationSchema.safeParse(resourceFile);
   if (!parsed.success) {
     return {
       check,

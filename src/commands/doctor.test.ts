@@ -379,6 +379,39 @@ describe('doctor', () => {
     ]);
   });
 
+  it('should fail a resource file that does not parse with where its parse stopped, and still run every other check', async () => {
+    const directoryPath = await writeSetUpProject();
+    const resourceFilePath = join(
+      directoryPath,
+      'android',
+      'app',
+      'src',
+      'main',
+      'assets',
+      'hotcodepush.json',
+    );
+    writeFileSync(resourceFilePath, '{ "appId": ');
+    respondWithSessionAndApp();
+
+    await expect(
+      doctorCommand.action(
+        { config: join(directoryPath, 'hotcodepush.json'), json: true },
+        undefined,
+      ),
+    ).rejects.toBeInstanceOf(ReportedFailureError);
+
+    const result = harness.readJson() as DoctorResult;
+    expect(result.checks.filter(({ status }) => status === 'failed')).toEqual([
+      {
+        check: 'android-resource-file',
+        manualStep: 'run npx cap sync, which runs binary create',
+        message: `${resourceFilePath} is no valid JSON: unexpected end of JSON input`,
+        status: 'failed',
+      },
+    ]);
+    expect(result.checks.at(-1)?.check).toBe('versions');
+  });
+
   it('should fail a resource file that names no channel, a build made offline or without a token', async () => {
     const directoryPath = await writeSetUpProject();
     const resourceFilePath = join(
