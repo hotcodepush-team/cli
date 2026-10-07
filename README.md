@@ -41,6 +41,7 @@ npx hotcodepush device list --attribute userId=42
 npx hotcodepush device probe --platform ios --binary-version 2.4.1 --binary-build 57
 npx hotcodepush statistics get --type fleet
 npx hotcodepush fingerprint
+npx hotcodepush fingerprint diff store-build.json fingerprint.json
 ```
 
 `init` takes a Capacitor, Cordova, Expo or React Native project from sign-in to the first release — the organization, the app, the SDK package from its pkg.pr.new build until it is published, `hotcodepush.json` and the build step — re-runnable at any step, each step `done`, `skipped` or `stopped` with the manual step; `doctor` is the read-only check of the same, and `open` opens the app's console page.
@@ -67,7 +68,7 @@ The CLI keeps no copy and HotCodePush receives only the public key, so a lost pr
 A release carries its conditions as flags — `--binary`, `--os`, `--attribute` and `--device` — and `--from-channel` releases what another channel serves; `--dry-run` publishes nothing and prints the audience the release would reach, the count `audience get` answers on its own.
 `release revoke` takes one release, every release from a number on with `--release-from`, a channel's whole log with `--all`, or every release of a bundle with `--bundle`; revoked is final, and the confirmation says how many releases move and where their devices land.
 `device probe` answers why a device did not update: it reads the live index as a device would, evaluates every release in the frontier for the facts given, or for a registered device with `--device`, and marks each condition passed, failed or unknown.
-`statistics get` reads the fleet, the updates or the usage of an app, chosen with `--type`, and `fingerprint` prints the native contract's hash with the packages and native sources behind it, without a login.
+`statistics get` reads the fleet, the updates or the usage of an app, chosen with `--type`, and `fingerprint` prints the native contract's hash with the packages and native sources behind it, without a login; `fingerprint diff` takes two files `fingerprint --json` wrote, the store build's first, and prints the packages and native sources added, removed or moved between them, so a release the store build cannot take names the package that moved.
 `binary create` is the build step the native hook runs — `npx hotcodepush binary create` from Capacitor's `capacitor:copy:after`, the Cordova plugin's `after_prepare`, or the Xcode phase and the Gradle task of a React Native or Expo build, which pass in the version, the build number and where the file goes — writing the resource file the SDK reads and creating the store build's binary in HotCodePush, with the bundle it ships and its fingerprint; a Cordova build takes its version and build number from `config.xml`, as Cordova itself derives them.
 A React Native or Expo build that bundled nothing, a debug build Metro serves, gets the file without an embedded bundle and with the channel only where `hotcodepush.json` names it by id, no binary, no request and no login, so every check in that build answers `SKIPPED` with `BUILD_DEBUG`.
 Without a token, or with `HOTCODEPUSH_OFFLINE=1` for a build that is never shipped, it writes the file without a channel and creates no binary, so the build takes no updates; in CI a missing token fails the build instead.
