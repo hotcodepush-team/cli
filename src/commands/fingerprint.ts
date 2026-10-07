@@ -8,7 +8,10 @@ import { locateProjectConfig } from '../utils/project-config.js';
 export default defineCommand({
   description:
     "Print the project's native fingerprint with the packages and native sources that contribute to it; local, no login.",
-  examples: ['hotcodepush fingerprint', 'hotcodepush fingerprint --json'],
+  examples: [
+    'hotcodepush fingerprint',
+    'hotcodepush fingerprint --json > fingerprint.json',
+  ],
   options: defineCommandOptions({}),
   action: async options => {
     const { directoryPath, projectConfig } = locateProjectConfig(

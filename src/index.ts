@@ -31,6 +31,7 @@ const commandRegistry: CommandRegistry = {
   'device probe': () => import('./commands/device/probe.js'),
   'doctor': () => import('./commands/doctor.js'),
   'fingerprint': () => import('./commands/fingerprint.js'),
+  'fingerprint diff': () => import('./commands/fingerprint/diff.js'),
   'init': () => import('./commands/init.js'),
   'login': () => import('./commands/login.js'),
   'logout': () => import('./commands/logout.js'),
