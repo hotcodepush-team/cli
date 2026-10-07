@@ -1,4 +1,11 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  CAPACITOR_FINGERPRINT,
+  writeFingerprintInputs,
+} from '../../../test/capacitor-project.js';
 import { useCommandHarness } from '../../../test/command-harness.js';
 import { DEMO_APP, STAGING_CHANNEL } from '../../../test/fixtures.js';
 import {
@@ -13,12 +20,20 @@ const DEVICE_ID = '6b1e9d37-2f5c-4a80-9c46-d8e3a1f7b259';
 describe('audience get', () => {
   const harness = useCommandHarness();
   let stderrWrite: ReturnType<typeof vi.spyOn>;
+  let workingDirectoryPath = '';
 
   beforeEach(() => {
     stderrWrite = vi
       .spyOn(process.stderr, 'write')
       .mockImplementation(() => true);
     respondWithStagingReleases(harness);
+    // outside a project: no lockfile, so no fingerprint, unless a test writes one
+    workingDirectoryPath = mkdtempSync(join(tmpdir(), 'hotcodepush-cwd-'));
+    vi.spyOn(process, 'cwd').mockReturnValue(workingDirectoryPath);
+  });
+
+  afterEach(() => {
+    rmSync(workingDirectoryPath, { force: true, recursive: true });
   });
 
   function readAudienceUrl(): URL | undefined {
@@ -60,6 +75,22 @@ describe('audience get', () => {
       '2.4.1           70',
       '2.3.0           30',
     ]);
+  });
+
+  it("should add the project's fingerprint as a condition when the project has a lockfile, as release create does", async () => {
+    writeFingerprintInputs(workingDirectoryPath);
+    harness.routes[`GET ${CHANNEL_PATH}/audience`] = () =>
+      Response.json(STAGING_AUDIENCE);
+
+    await audienceGetCommand.action(
+      { app: DEMO_APP.id, channel: STAGING_CHANNEL.name },
+      undefined,
+    );
+
+    expect(Object.fromEntries(readAudienceUrl()?.searchParams ?? [])).toEqual({
+      fingerprint: CAPACITOR_FINGERPRINT,
+      rollout: '100',
+    });
   });
 
   it('should print only the sentence when no device is reached', async () => {

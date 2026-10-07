@@ -33,6 +33,13 @@ export async function readFingerprint(
 }
 
 /**
+ * Whether a lockfile lies in the project root or a directory above it, the one the fingerprint is computed from.
+ */
+export function hasLockfile(projectDirectoryPath: string): boolean {
+  return findLockfileDirectoryPath(projectDirectoryPath) !== undefined;
+}
+
+/**
  * What the project's fingerprint hashes: the native packages with their versions and the declared native sources.
  * The recipe reads from the nearest directory with a lockfile walking up from the project root, a monorepo's root
  * where the workspace installs, and is given the project's path and its native sources relative to that directory.
