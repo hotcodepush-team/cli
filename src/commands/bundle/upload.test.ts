@@ -301,15 +301,17 @@ describe('bundle upload', () => {
     expect([
       ...((await readDeltaPackEntries(PREVIOUS_BUNDLE.id))?.keys() ?? []),
     ]).toEqual([APP_JS_SHA256]);
-    expect(harness.readJson()).toEqual({
-      ...READY_BUNDLE,
-      upload: {
-        deltaBaseBundleIds: [PREVIOUS_BUNDLE.id],
-        patchCount: 0,
-        uploadedBytes: 34,
-        uploadedFileCount: 1,
+    expect(harness.readJson()).toEqual([
+      {
+        ...READY_BUNDLE,
+        upload: {
+          deltaBaseBundleIds: [PREVIOUS_BUNDLE.id],
+          patchCount: 0,
+          uploadedBytes: 34,
+          uploadedFileCount: 1,
+        },
       },
-    });
+    ]);
   });
 
   it('should carry a large changed file whole in the delta pack when the framework has no main bundle', async () => {
@@ -652,7 +654,7 @@ describe('bundle upload', () => {
         files: [expect.objectContaining({ path: 'main.jsbundle' })],
         platforms: ['ios'],
       });
-      expect(harness.readJson()).toMatchObject({ id: READY_BUNDLE.id });
+      expect(harness.readJson()).toMatchObject([{ id: READY_BUNDLE.id }]);
     });
 
     describe('with earlier bundles and a binary of the fingerprint', () => {
@@ -738,16 +740,18 @@ describe('bundle upload', () => {
         expect([
           ...((await readDeltaPackEntries(OLDER_BUNDLE.id))?.keys() ?? []),
         ]).toEqual([nextSha256]);
-        expect(harness.readJson()).toMatchObject({
-          upload: {
-            deltaBaseBundleIds: [
-              PREVIOUS_BUNDLE.id,
-              OLDER_BUNDLE.id,
-              BINARY.bundleId,
-            ],
-            patchCount: 2,
+        expect(harness.readJson()).toMatchObject([
+          {
+            upload: {
+              deltaBaseBundleIds: [
+                PREVIOUS_BUNDLE.id,
+                OLDER_BUNDLE.id,
+                BINARY.bundleId,
+              ],
+              patchCount: 2,
+            },
           },
-        });
+        ]);
       });
 
       it('should carry the main bundle whole against a base whose patch cannot be made', async () => {

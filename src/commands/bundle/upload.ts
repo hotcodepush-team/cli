@@ -126,7 +126,7 @@ export default defineCommand({
 });
 
 /**
- * One bundle prints as itself, the shape a web build always had; a framework with a bundle per platform prints the list.
+ * A line per bundle, or under `--json` always an array, one bundle or one per platform, as `release create` prints its releases.
  */
 function printUploadedBundles(
   uploadedBundles: UploadedBundle[],
@@ -135,16 +135,11 @@ function printUploadedBundles(
   for (const { warnings } of uploadedBundles) {
     printWarnings(warnings);
   }
-  if (!isJson) {
+  if (isJson) {
+    printJson(uploadedBundles.map(resolveUploadedBundleJson));
+  } else {
     uploadedBundles.forEach(printUploadedBundle);
-    return;
   }
-  const [onlyBundle] = uploadedBundles;
-  printJson(
-    onlyBundle !== undefined && uploadedBundles.length === 1
-      ? resolveUploadedBundleJson(onlyBundle)
-      : uploadedBundles.map(resolveUploadedBundleJson),
-  );
 }
 
 function resolveUploadedBundleJson({
