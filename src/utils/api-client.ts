@@ -1,5 +1,5 @@
 import { HotCodePush } from '@hotcodepush/node';
-import { PACKAGE_JSON } from '../config/consts.js';
+import { PACKAGE_JSON, USER_AGENT } from '../config/consts.js';
 import { NotLoggedInError } from './errors.js';
 import { readToken } from './token-store.js';
 import { readApiUrl } from './user-config.js';
@@ -16,5 +16,6 @@ export function createApiClient(): HotCodePush {
     baseUrl: readApiUrl(),
     client: `cli/${PACKAGE_JSON.version}`,
     token,
+    userAgent: USER_AGENT,
   });
 }

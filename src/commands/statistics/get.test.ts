@@ -21,16 +21,20 @@ const FLEET_STATISTICS: FleetStatistics = {
   osVersion: [{ count: 70, platform: 'ios', value: '17.4' }],
   platform: [{ count: 70, value: 'ios' }],
   release: [
-    { count: 50, value: LIVE_RELEASE.id },
-    { count: 20, value: null },
+    {
+      channelId: STAGING_CHANNEL.id,
+      count: 50,
+      number: 43,
+      value: LIVE_RELEASE.id,
+    },
+    { channelId: null, count: 20, number: null, value: null },
   ],
-  runtimeVersion: [{ count: 70, value: null }],
   sdkVersion: [{ count: 70, value: '0.1.0' }],
 };
 
 const UPDATE_STATISTICS: UpdateStatistics = {
   days: [{ day: '2026-09-01', failed: 1, installed: 9, rolledBack: 0 }],
-  failureReasons: [{ count: 1, reason: 'READY_TIMEOUT' }],
+  failureReasons: [{ count: 1, reason: 'READINESS_TIMED_OUT' }],
   releases: [
     {
       adoption: [{ at: '2026-09-01T08:00:00.000Z', installed: 9 }],
@@ -115,8 +119,8 @@ describe('statistics get', () => {
       '2026-09-01  9          1       0',
       'RELEASE  LIVE                      INSTALLED  50% AT                    90% AT',
       '#43      2026-09-01T07:00:00.000Z  9          2026-09-01T08:00:00.000Z  not yet',
-      'FAILURE REASON  COUNT',
-      'READY_TIMEOUT   1',
+      'FAILURE REASON       COUNT',
+      'READINESS_TIMED_OUT  1',
       'SKIP REASON: none in the period.',
     ]);
   });

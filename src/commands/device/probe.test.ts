@@ -326,7 +326,7 @@ describe('device probe', () => {
         fingerprint: FINGERPRINT,
         osVersion: '17.4',
       },
-      outcome: { condition: 'attribute', reason: 'NOT_TARGETED' },
+      outcome: { condition: 'attribute', reason: 'DEVICE_NOT_TARGETED' },
       unknownFacts: [],
     });
   });

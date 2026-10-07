@@ -22,6 +22,19 @@ describe('fingerprint', () => {
     rmSync(projectDirectoryPath, { force: true, recursive: true });
   });
 
+  /**
+   * A workspace at `apps/mobile` under the lockfile's directory, declaring the native package the root installs; its path.
+   */
+  function writeWorkspaceProject(): string {
+    const appDirectoryPath = join(projectDirectoryPath, 'apps', 'mobile');
+    mkdirSync(appDirectoryPath, { recursive: true });
+    writeFileSync(
+      join(appDirectoryPath, 'package.json'),
+      JSON.stringify({ dependencies: { '@capacitor/core': '8.0.0' } }),
+    );
+    return appDirectoryPath;
+  }
+
   it('should hash the native packages the lockfile installs, and nothing else', async () => {
     writeFingerprintInputs(projectDirectoryPath);
 
@@ -57,8 +70,8 @@ describe('fingerprint', () => {
 
   it("should read the workspace root's lockfile above a project directory without one, the native sources relative to the project", async () => {
     writeFingerprintInputs(projectDirectoryPath);
-    const appDirectoryPath = join(projectDirectoryPath, 'apps', 'mobile');
-    mkdirSync(join(appDirectoryPath, 'native'), { recursive: true });
+    const appDirectoryPath = writeWorkspaceProject();
+    mkdirSync(join(appDirectoryPath, 'native'));
     writeFileSync(
       join(appDirectoryPath, 'native', 'Plugin.swift'),
       'import Capacitor\n',
@@ -81,11 +94,8 @@ describe('fingerprint', () => {
 
   it('should refuse a native source that climbs out of a project under a workspace root', async () => {
     writeFingerprintInputs(projectDirectoryPath);
-    const appDirectoryPath = join(projectDirectoryPath, 'apps', 'mobile');
-    mkdirSync(join(projectDirectoryPath, 'apps', 'shared'), {
-      recursive: true,
-    });
-    mkdirSync(appDirectoryPath);
+    const appDirectoryPath = writeWorkspaceProject();
+    mkdirSync(join(projectDirectoryPath, 'apps', 'shared'));
 
     await expect(
       readFingerprint(appDirectoryPath, ['../shared']),

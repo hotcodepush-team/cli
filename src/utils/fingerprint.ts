@@ -8,15 +8,13 @@ import type {
 import {
   computeFingerprint,
   FingerprintError,
+  LOCKFILE_NAMES,
   readFingerprintContributors,
 } from '@hotcodepush/protocol/fingerprint';
 import { FingerprintUnavailableError } from './errors.js';
 
 /** What the file system answers for a path that holds nothing of the kind asked for. */
 const ABSENT_ERROR_CODES = new Set(['EISDIR', 'ENOENT', 'ENOTDIR']);
-
-/** The lockfiles the recipe reads, which mark the directory it reads from; the recipe does not export its list. */
-const LOCKFILE_NAMES = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'];
 
 /**
  * The project's `fp1` fingerprint, the native contract's hash, from its committed lockfile, its installed packages
@@ -37,7 +35,7 @@ export async function readFingerprint(
 /**
  * What the project's fingerprint hashes: the native packages with their versions and the declared native sources.
  * The recipe reads from the nearest directory with a lockfile walking up from the project root, a monorepo's root
- * where the workspace installs, and the native sources are given to it relative to that directory.
+ * where the workspace installs, and is given the project's path and its native sources relative to that directory.
  */
 export async function readProjectFingerprintContributors(
   projectDirectoryPath: string,
@@ -45,20 +43,16 @@ export async function readProjectFingerprintContributors(
 ): Promise<FingerprintContributors> {
   const lockfileDirectoryPath =
     findLockfileDirectoryPath(projectDirectoryPath) ?? projectDirectoryPath;
-  const projectPathFromLockfileDirectory = relative(
-    lockfileDirectoryPath,
-    projectDirectoryPath,
-  )
+  const projectPath = relative(lockfileDirectoryPath, projectDirectoryPath)
     .split(sep)
     .join('/');
   try {
     return await readFingerprintContributors({
       // joined as text, never normalized, so the recipe still refuses a `..` segment the file declares
       nativeSourcePaths: nativeSourcePaths.map(path =>
-        projectPathFromLockfileDirectory === ''
-          ? path
-          : `${projectPathFromLockfileDirectory}/${path}`,
+        projectPath === '' ? path : `${projectPath}/${path}`,
       ),
+      projectPath,
       reader: createProjectReader(lockfileDirectoryPath),
     });
   } catch (error) {

@@ -236,7 +236,6 @@ export const DEVICE: Device = {
   lastSeenAt: '2026-09-08T08:00:00.000Z',
   osVersion: '17.4',
   platform: 'ios',
-  runtimeVersion: null,
   sdkVersion: '0.1.0',
   updatedAt: '2026-09-08T08:00:00.000Z',
 };

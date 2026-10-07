@@ -10,6 +10,8 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ConfigurationSchema } from '@hotcodepush/protocol';
+import type { LockedPackage } from '@hotcodepush/protocol/fingerprint';
+import { computeFingerprint } from '@hotcodepush/protocol/fingerprint';
 import {
   afterEach,
   beforeEach,
@@ -639,18 +641,38 @@ describe('binary create', () => {
     const BUNDLE_SHA256 = createHash('sha256').update(BUNDLE).digest('hex');
     const LOGO = 'png';
     const LOGO_SHA256 = createHash('sha256').update(LOGO).digest('hex');
+    const REACT_NATIVE_PACKAGE: LockedPackage = {
+      integrity: 'sha512-reactnative0821invented==',
+      name: 'react-native',
+      version: '0.82.1',
+    };
+    const REACT_NATIVE_FINGERPRINT = computeFingerprint({
+      nativeSources: [],
+      packages: [REACT_NATIVE_PACKAGE],
+    });
 
     let appDirectoryPath = '';
 
     beforeEach(() => {
+      const dependencies = { 'react-native': REACT_NATIVE_PACKAGE.version };
       writeFileSync(
         join(projectDirectoryPath, 'package.json'),
+        JSON.stringify({ dependencies, name: 'demo', version: '1.0.0' }),
+      );
+      writeFileSync(
+        join(projectDirectoryPath, 'package-lock.json'),
         JSON.stringify({
-          dependencies: { 'react-native': '0.82.1' },
-          name: 'demo',
-          version: '1.0.0',
+          lockfileVersion: 3,
+          packages: {
+            '': { dependencies },
+            'node_modules/react-native': {
+              integrity: REACT_NATIVE_PACKAGE.integrity,
+              version: REACT_NATIVE_PACKAGE.version,
+            },
+          },
         }),
       );
+      mkdirSync(join(projectDirectoryPath, 'node_modules', 'react-native'));
       writeFileSync(
         join(projectDirectoryPath, 'hotcodepush.json'),
         JSON.stringify({
@@ -704,7 +726,7 @@ describe('binary create', () => {
         build: '57',
         version: '2.4.1',
         files,
-        fingerprint: CAPACITOR_FINGERPRINT,
+        fingerprint: REACT_NATIVE_FINGERPRINT,
         force: false,
         platform: 'ios',
       });
@@ -737,7 +759,7 @@ describe('binary create', () => {
           channelId: null,
           embeddedBundleId: null,
           embeddedBundleManifest: null,
-          fingerprint: CAPACITOR_FINGERPRINT,
+          fingerprint: REACT_NATIVE_FINGERPRINT,
         });
         expect(stderrWrite.mock.calls).toEqual([
           [

@@ -113,7 +113,8 @@ export class ConfirmationRequiredError extends CliError {
 }
 
 /**
- * The native contract's hash cannot be computed from the project: no lockfile, two, one the recipe cannot read, or no `node_modules`.
+ * The native contract's hash cannot be computed from the project: no lockfile, two, one the recipe cannot read,
+ * no `package.json` it can read, or a package the lockfile installs that `node_modules` does not hold.
  * A build without it would match binaries it does not describe, so nothing goes on without it.
  */
 export class FingerprintUnavailableError extends CliError {

@@ -32,6 +32,7 @@ describe('organization create', () => {
       'Bearer session-token-1',
     );
     expect(request?.headers.get('X-HotCodePush-Client')).toBe('cli/0.0.0');
+    expect(request?.headers.get('User-Agent')).toBe('hotcodepush-cli/0.0.0');
     expect(harness.readLines()).toEqual([
       `Created organization Acme (${ACME_ORGANIZATION.id}).`,
     ]);

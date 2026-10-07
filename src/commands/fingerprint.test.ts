@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { useCommandHarness } from '../../test/command-harness.js';
@@ -15,19 +15,27 @@ describe('fingerprint', () => {
   const harness = useCommandHarness();
 
   /**
-   * The fixture's project beside a hotcodepush.json declaring its native sources; the path of that file.
+   * The fixture's files with a hotcodepush.json declaring its native sources in the project's directory; the path of that file.
    */
   function writeFixtureProject(
     fixture: FingerprintFixture | RefusedFingerprintFixture,
   ): string {
-    const configPath = harness.writeProjectConfig({
+    const rootConfigPath = harness.writeProjectConfig({
       nativeSources: fixture.nativeSourcePaths,
     });
+    const rootDirectoryPath = dirname(rootConfigPath);
     for (const [path, content] of Object.entries(fixture.files)) {
-      const filePath = join(dirname(configPath), path);
+      const filePath = join(rootDirectoryPath, path);
       mkdirSync(dirname(filePath), { recursive: true });
       writeFileSync(filePath, content);
     }
+    const configPath = join(
+      rootDirectoryPath,
+      fixture.projectPath,
+      'hotcodepush.json',
+    );
+    mkdirSync(dirname(configPath), { recursive: true });
+    renameSync(rootConfigPath, configPath);
     return configPath;
   }
 

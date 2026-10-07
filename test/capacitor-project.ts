@@ -1,4 +1,10 @@
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import type { LockedPackage } from '@hotcodepush/protocol/fingerprint';
@@ -92,10 +98,19 @@ export function writeCapacitorProject({
 }
 
 /**
- * What the fingerprint reads: an npm lockfile and the packages it installs, `@capacitor/core` and a package without native code.
+ * What the fingerprint reads: an npm lockfile and the packages it installs, `@capacitor/core` and a package without native code,
+ * both added to the dependencies of the project's `package.json`, which the recipe walks from.
  */
 export function writeFingerprintInputs(directoryPath: string): void {
   const packages = { '@capacitor/core': '8.0.0', 'left-pad': '1.3.0' };
+  const packageJsonPath = join(directoryPath, 'package.json');
+  const packageJson = existsSync(packageJsonPath)
+    ? readJsonFile<{ dependencies?: Record<string, string> }>(packageJsonPath)
+    : {};
+  writeJson(packageJsonPath, {
+    ...packageJson,
+    dependencies: { ...packageJson.dependencies, ...packages },
+  });
   writeJson(join(directoryPath, 'package-lock.json'), {
     lockfileVersion: 3,
     name: 'demo',

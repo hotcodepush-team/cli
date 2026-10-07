@@ -3,7 +3,11 @@ import {
   deviceAuthorizationClient,
   organizationClient,
 } from 'better-auth/client/plugins';
-import { CLIENT_HEADER_NAME, PACKAGE_JSON } from '../config/consts.js';
+import {
+  CLIENT_HEADER_NAME,
+  PACKAGE_JSON,
+  USER_AGENT,
+} from '../config/consts.js';
 import type { ApiErrorResponse } from './error-mapping.js';
 import { resolveApiError } from './error-mapping.js';
 import { NotLoggedInError } from './errors.js';
@@ -34,7 +38,7 @@ export function createApiAuthClient(token?: string) {
     fetchOptions: {
       auth: token === undefined ? undefined : { token, type: 'Bearer' },
       headers: {
-        'User-Agent': `hotcodepush-cli/${PACKAGE_JSON.version}`,
+        'User-Agent': USER_AGENT,
         [CLIENT_HEADER_NAME]: `cli/${PACKAGE_JSON.version}`,
       },
     },

@@ -18,7 +18,7 @@ const DEVICE_WITH_OUTCOMES = {
     {
       createdAt: '2026-09-08T07:00:00.000Z',
       kind: 'failed' as const,
-      reason: 'READY_TIMEOUT',
+      reason: 'READINESS_TIMED_OUT',
       releaseId: LIVE_RELEASE.id,
       updatedAt: '2026-09-08T07:00:00.000Z',
     },
@@ -49,8 +49,8 @@ describe('device get', () => {
       'Country      DE',
       `Last seen    ${DEVICE.lastSeenAt}`,
       `First seen   ${DEVICE.createdAt}`,
-      'RELEASE                               OUTCOME  REASON         DATE',
-      `${LIVE_RELEASE.id}  failed   READY_TIMEOUT  2026-09-08`,
+      'RELEASE                               OUTCOME  REASON               DATE',
+      `${LIVE_RELEASE.id}  failed   READINESS_TIMED_OUT  2026-09-08`,
     ]);
   });
 
