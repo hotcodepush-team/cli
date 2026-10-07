@@ -7,6 +7,7 @@ import { createApiClient } from '../../utils/api-client.js';
 import { resolveBundleLabel } from '../../utils/bundle-resolution.js';
 import { withTemporaryDirectory } from '../../utils/compressed-files.js';
 import type { InteractivityOptions } from '../../utils/environment.js';
+import { SigningKeyUnavailableError } from '../../utils/errors.js';
 import { readFingerprint } from '../../utils/fingerprint.js';
 import {
   detectFramework,
@@ -189,12 +190,13 @@ function resolvePatchCountText(patchCount: number): string {
  * What each upload of the command needs, from the project's configuration and the flags, asked for where missing: one
  * bundle for a build the project holds, one per platform where the framework packages inside the upload, which it does
  * here, into the packaging directory. Nothing moves yet, so `release create` resolves them before it confirms and
- * uploads only once confirmed.
+ * uploads only once confirmed, and its dry run, which uploads nothing, resolves them without the private key.
  */
 export async function resolveUploadBundleOptions(
   hotCodePush: HotCodePush,
   options: BundleUploadOptions,
   packagingDirectoryPath: string,
+  { isDryRun = false }: { isDryRun?: boolean } = {},
 ): Promise<UploadBundleOptions[]> {
   const { directoryPath, projectConfig } = locateProjectConfig(options.config);
   const framework = resolveFrameworkModule(detectFramework(directoryPath));
@@ -213,6 +215,7 @@ export async function resolveUploadBundleOptions(
       appId,
       projectConfig,
       options.privateKeyPath,
+      isDryRun,
     ),
   };
   const packagedBundles =
@@ -242,18 +245,27 @@ export async function resolveUploadBundleOptions(
 
 /**
  * The private key the manifest is signed with, null where signing is off: `hotcodepush.json` lists no public key,
- * or it names another app than the one `--app` meant, whose keys it does not hold.
+ * or it names another app than the one `--app` meant, whose keys it does not hold. A dry run signs nothing, so a key
+ * given is checked against the listed ones and none is required.
  */
 async function readSigningPrivateKey(
   appId: string,
   projectConfig: ProjectConfig | undefined,
   privateKeyPath: string | undefined,
+  isDryRun: boolean,
 ): Promise<string | null> {
   const publicKeys =
     projectConfig?.appId === appId ? (projectConfig.publicKeys ?? []) : [];
-  return (
-    (await readSigningKeyPair(publicKeys, privateKeyPath))?.privateKey ?? null
-  );
+  try {
+    return (
+      (await readSigningKeyPair(publicKeys, privateKeyPath))?.privateKey ?? null
+    );
+  } catch (error) {
+    if (isDryRun && error instanceof SigningKeyUnavailableError) {
+      return null;
+    }
+    throw error;
+  }
 }
 
 /**

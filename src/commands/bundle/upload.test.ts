@@ -28,6 +28,7 @@ import {
   SIGNING_PRIVATE_KEY,
 } from '../../../test/fixtures.js';
 import { PACKAGE_JSON } from '../../config/consts.js';
+import { createApiClient } from '../../utils/api-client.js';
 import { applyBsdiffPatch } from '../../utils/bsdiff.js';
 import { runCli } from '../../utils/cli.js';
 import {
@@ -38,7 +39,7 @@ import {
 import type * as packageManagerModule from '../../utils/package-manager.js';
 import { runCommandLineVisibly } from '../../utils/package-manager.js';
 import { writeSigningPrivateKeyFile } from '../../utils/signing-private-key.js';
-import bundleUploadCommand from './upload.js';
+import bundleUploadCommand, { resolveUploadBundleOptions } from './upload.js';
 
 vi.mock('@clack/prompts');
 vi.mock('../../utils/package-manager.js', async importOriginal => ({
@@ -455,6 +456,36 @@ describe('bundle upload', () => {
     ).rejects.toBeInstanceOf(InvalidParameterError);
 
     expect(harness.requests).toHaveLength(0);
+  });
+
+  it('should resolve a dry run without a private key when hotcodepush.json lists a public key', async () => {
+    const [uploadBundleOptions] = await resolveUploadBundleOptions(
+      createApiClient(),
+      { config: listPublicKey(), noGit: true },
+      projectDirectoryPath,
+      { isDryRun: true },
+    );
+
+    expect(uploadBundleOptions?.signingPrivateKey).toBeNull();
+    expect(harness.requests).toHaveLength(0);
+  });
+
+  it('should check the private key a dry run is given', async () => {
+    await expect(
+      resolveUploadBundleOptions(
+        createApiClient(),
+        {
+          config: listPublicKey(),
+          noGit: true,
+          privateKeyPath: join(projectDirectoryPath, 'missing-key.pem'),
+        },
+        projectDirectoryPath,
+        { isDryRun: true },
+      ),
+    ).rejects.toMatchObject({
+      code: 'E_INVALID_PARAMETER',
+      message: expect.stringMatching(/^--private-key-path: /),
+    });
   });
 
   it('should ask for the version label when package.json has none and someone can answer', async () => {

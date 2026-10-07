@@ -216,6 +216,7 @@ describe('release create', () => {
       expect.anything(),
       expect.objectContaining({ path: 'dist' }),
       expect.any(String),
+      { isDryRun: undefined },
     );
     expect(uploadBundle).toHaveBeenCalledWith(
       expect.anything(),
@@ -430,7 +431,7 @@ describe('release create', () => {
       ]);
     });
 
-    it('should hash the web build and upload nothing when the build is the source', async () => {
+    it('should resolve the web build as a dry run, needing no private key, hash it and upload nothing when the build is the source', async () => {
       stubWebBuildUpload();
       vi.mocked(collectBundleFiles).mockResolvedValue([]);
 
@@ -439,6 +440,12 @@ describe('release create', () => {
         undefined,
       );
 
+      expect(resolveUploadBundleOptions).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ path: 'dist' }),
+        expect.any(String),
+        { isDryRun: true },
+      );
       expect(collectBundleFiles).toHaveBeenCalledWith(
         UPLOAD_BUNDLE_OPTIONS.directoryPath,
       );

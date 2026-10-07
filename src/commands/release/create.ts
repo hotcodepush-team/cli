@@ -122,7 +122,7 @@ export default defineCommand({
       .boolean()
       .optional()
       .describe(
-        'Validate and print the audience the release would reach; nothing is uploaded or published.',
+        'Validate and print the audience the release would reach; nothing is signed, uploaded or published, so no private key is needed.',
       ),
     fromChannel: z
       .string()
@@ -371,6 +371,7 @@ async function resolveBundleSource(
         hotCodePush,
         options,
         packagingDirectoryPath,
+        { isDryRun: options.dryRun },
       ),
     };
   }
