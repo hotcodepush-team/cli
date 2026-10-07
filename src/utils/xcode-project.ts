@@ -42,6 +42,10 @@ const BINARY_CREATE_PHASE_SCRIPT = [
   '',
 ].join('\\n');
 
+// the script reads the version and build from the built app's processed Info.plist: declared as the phase's input,
+// Xcode processes the plist before it runs the phase
+const INFO_PLIST_INPUT_PATH = '"$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)"';
+
 const JSON_FILE_TYPE = 'text.json';
 
 const REACT_NATIVE_BUNDLE_PHASE_NAME = 'Bundle React Native code and images';
@@ -154,7 +158,11 @@ export async function addBinaryCreatePhase(
     'PBXShellScriptBuildPhase',
     BINARY_CREATE_PHASE_NAME,
     target.key,
-    { shellPath: '/bin/sh', shellScript: BINARY_CREATE_PHASE_SCRIPT },
+    {
+      inputPaths: [INFO_PLIST_INPUT_PATH],
+      shellPath: '/bin/sh',
+      shellScript: BINARY_CREATE_PHASE_SCRIPT,
+    },
   );
   // binary create writes hotcodepush.json, which carries the build's time, on every build; a phase without outputs
   // that is not marked so makes Xcode warn

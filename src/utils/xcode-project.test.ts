@@ -132,6 +132,14 @@ describe('xcode-project', () => {
       );
     });
 
+    it("should declare the processed Info.plist as the phase's input, since the script reads the version and build from it", async () => {
+      await addBinaryCreatePhase(reactNativeProjectFilePath, {});
+
+      expect(readFileSync(reactNativeProjectFilePath, 'utf8')).toMatch(
+        /\/\* Create HotCodePush binary \*\/ = \{[^}]*\binputPaths = \(\n\t+"\$\(TARGET_BUILD_DIR\)\/\$\(INFOPLIST_PATH\)",\n\t+\);/,
+      );
+    });
+
     it('should stop with the manual step when the project has no bundling phase to run after', async () => {
       await expect(
         addBinaryCreatePhase(projectFilePath, {}),
