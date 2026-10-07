@@ -142,7 +142,7 @@ describe('cordova', () => {
           packageJson: readPackageJson(directoryPath),
         })
         .map(({ check, status }) => `${check}:${status}`),
-    ).toEqual(['package:ok', 'hook:ok']);
+    ).toEqual(['package:ok', 'hook:ok', 'android-file-mode:ok']);
   });
 
   it('should fail the hook with the plugin add command when package.json does not list the plugin', () => {
@@ -162,6 +162,41 @@ describe('cordova', () => {
         "@hotcodepush/cordova-code-push is not among package.json's cordova plugins",
       status: 'failed',
     });
+  });
+
+  it("should fail the Android file mode when config.xml's Android section sets AndroidInsecureFileModeEnabled", () => {
+    const directoryPath = writeProjectWithWidget(
+      'version="2.4.1"',
+      '<platform name="android"><preference name="AndroidInsecureFileModeEnabled" value="true" /></platform>',
+    );
+
+    expect(
+      cordovaFramework.checkWiring({
+        directoryPath,
+        packageJson: readPackageJson(directoryPath),
+      })[2],
+    ).toEqual({
+      check: 'android-file-mode',
+      manualStep:
+        'remove the preference; the plugin serves no update from file:// and stays off',
+      message:
+        'config.xml sets AndroidInsecureFileModeEnabled, which loads the Android app from file://',
+      status: 'failed',
+    });
+  });
+
+  it("should leave the Android file mode ok when config.xml's Android section turns off what the widget turns on", () => {
+    const directoryPath = writeProjectWithWidget(
+      'version="2.4.1"',
+      '<preference name="AndroidInsecureFileModeEnabled" value="true" /><platform name="android"><preference name="androidinsecurefilemodeenabled" value="false" /></platform>',
+    );
+
+    expect(
+      cordovaFramework.checkWiring({
+        directoryPath,
+        packageJson: readPackageJson(directoryPath),
+      })[2]?.status,
+    ).toBe('ok');
   });
 
   it('should install the plugin through cordova plugin add and leave binary create to its hook', async () => {

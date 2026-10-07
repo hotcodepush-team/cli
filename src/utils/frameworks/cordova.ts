@@ -23,16 +23,36 @@ import type {
 } from './index.js';
 
 /**
- * The `<widget>` of `config.xml` as the CLI reads it: the version, the per-platform build numbers and the start page.
+ * A `<platform>` section of `config.xml` and the preferences it sets for that platform alone.
+ */
+interface PlatformSection {
+  name?: string;
+  preference?: Preference[];
+}
+
+interface Preference {
+  name?: string;
+  value?: string;
+}
+
+/**
+ * The `<widget>` of `config.xml` as the CLI reads it: the version, the per-platform build numbers, the start page
+ * and the preferences, the widget's and each platform's.
  */
 interface Widget {
   'android-versionCode'?: string;
   'content'?: { src?: string } | { src?: string }[];
   'ios-CFBundleVersion'?: string;
+  'platform'?: PlatformSection[];
+  'preference'?: Preference[];
   'version'?: string;
 }
 
 const CONFIG_FILE_NAME = 'config.xml';
+
+const INSECURE_FILE_MODE_PREFERENCE_NAME = 'AndroidInsecureFileModeEnabled';
+
+const LIST_TAG_NAMES = new Set(['platform', 'preference']);
 
 const PLUGIN_ADD_COMMAND_LINE: CommandLine = {
   args: ['cordova', 'plugin', 'add', CORDOVA_PACKAGE_SPEC],
@@ -59,6 +79,7 @@ export const cordovaFramework: FrameworkModule = {
   checkWiring: project => [
     checkSdkPackage(project, CORDOVA_PACKAGE_NAME),
     checkHook(project),
+    checkInsecureFileMode(project),
   ],
   readBinaryIdentity,
   readBuildDirectory,
@@ -83,6 +104,45 @@ function checkHook({ packageJson }: FrameworkProject): FrameworkCheck {
         message: `${CORDOVA_PACKAGE_NAME} is not among package.json's cordova plugins`,
         status: 'failed',
       };
+}
+
+/**
+ * Under `AndroidInsecureFileModeEnabled` the Android app loads from `file://`, where the plugin serves no update and stays off.
+ */
+function checkInsecureFileMode({
+  directoryPath,
+}: FrameworkProject): FrameworkCheck {
+  return isInsecureFileModeEnabled(readWidget(directoryPath))
+    ? {
+        check: 'android-file-mode',
+        manualStep:
+          'remove the preference; the plugin serves no update from file:// and stays off',
+        message: `${CONFIG_FILE_NAME} sets ${INSECURE_FILE_MODE_PREFERENCE_NAME}, which loads the Android app from file://`,
+        status: 'failed',
+      }
+    : {
+        check: 'android-file-mode',
+        message: `${CONFIG_FILE_NAME} leaves ${INSECURE_FILE_MODE_PREFERENCE_NAME} off`,
+        status: 'ok',
+      };
+}
+
+/**
+ * The preference as Cordova's Android preferences read it: the name in any case, the Android section's value over
+ * the widget's and the later over the earlier, `true` in any case.
+ */
+function isInsecureFileModeEnabled(widget: Widget | undefined): boolean {
+  const preferences = [
+    ...(widget?.preference ?? []),
+    ...(widget?.platform ?? [])
+      .filter(({ name }) => name === 'android')
+      .flatMap(({ preference }) => preference ?? []),
+  ];
+  const value = preferences.findLast(
+    ({ name }) =>
+      name?.toLowerCase() === INSECURE_FILE_MODE_PREFERENCE_NAME.toLowerCase(),
+  )?.value;
+  return value?.toLowerCase() === 'true';
 }
 
 function isPluginListed(packageJson: FrameworkProject['packageJson']): boolean {
@@ -140,6 +200,8 @@ function readWidget(projectDirectoryPath: string): Widget | undefined {
   const document = new XMLParser({
     attributeNamePrefix: '',
     ignoreAttributes: false,
+    isArray: (tagName, _jPath, _isLeafNode, isAttribute) =>
+      !isAttribute && LIST_TAG_NAMES.has(tagName),
     parseAttributeValue: false,
   }).parse(readFileSync(configFilePath, 'utf8')) as { widget?: Widget };
   return document.widget;

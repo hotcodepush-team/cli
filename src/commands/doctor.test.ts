@@ -188,15 +188,16 @@ describe('doctor', () => {
     const result = harness.readJson() as DoctorResult;
     expect(
       result.checks
-        .slice(3, 7)
+        .slice(3, 8)
         .map(({ check, status }) => `${check}:${status}`),
     ).toEqual([
       'package:ok',
       'hook:ok',
+      'android-file-mode:ok',
       'android-resource-file:failed',
       'ios-resource-file:skipped',
     ]);
-    expect(result.checks[5]?.manualStep).toBe(
+    expect(result.checks[6]?.manualStep).toBe(
       'run npx cordova prepare, which runs binary create',
     );
     expect(result.checks.at(-1)?.message).toMatch(
