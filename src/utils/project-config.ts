@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { PROJECT_CONFIG_FILE_NAME } from '../config/consts.js';
 import { stringifyLikeSource } from './binary-create-hook.js';
 import { InvalidParameterError } from './errors.js';
+import { readJsonFile } from './json-file.js';
 
 /**
  * `hotcodepush.json`, the project's configuration, as written: `init` writes it and completes a partial one, so every key is optional.
@@ -12,12 +13,18 @@ import { InvalidParameterError } from './errors.js';
 export type ProjectConfig = Partial<z.input<typeof ProjectConfigurationSchema>>;
 
 /**
- * The project's configuration with the directory it lies in, the project root every path is relative to.
+ * The project's configuration file with the directory it lies in, the project root every path is relative to.
  */
-export interface ProjectConfigLocation {
+export interface ProjectConfigFileLocation {
   directoryPath: string;
-  /** The file the configuration was read from; none without a file. */
+  /** The file the configuration is read from; none without a file. */
   filePath: string | undefined;
+}
+
+/**
+ * The project's configuration as read from its file.
+ */
+export interface ProjectConfigLocation extends ProjectConfigFileLocation {
   projectConfig: ProjectConfig | undefined;
 }
 
@@ -63,6 +70,22 @@ export function readProjectConfig(
 export function locateProjectConfig(
   configPath: string | undefined,
 ): ProjectConfigLocation {
+  const fileLocation = locateProjectConfigFile(configPath);
+  return {
+    ...fileLocation,
+    projectConfig:
+      fileLocation.filePath === undefined
+        ? undefined
+        : readProjectConfigFile(fileLocation.filePath),
+  };
+}
+
+/**
+ * The configuration's file and its directory, the file not read yet, so `doctor` reports one that does not parse.
+ */
+export function locateProjectConfigFile(
+  configPath: string | undefined,
+): ProjectConfigFileLocation {
   if (configPath !== undefined && !existsSync(configPath)) {
     throw new InvalidParameterError(
       `--config: there is no file at ${configPath}`,
@@ -73,17 +96,14 @@ export function locateProjectConfig(
     configPath === undefined
       ? findProjectConfigFilePath(process.cwd())
       : resolve(configPath);
-  if (filePath === undefined) {
-    return {
-      directoryPath: process.cwd(),
-      filePath: undefined,
-      projectConfig: undefined,
-    };
-  }
-  const projectConfig = JSON.parse(
-    readFileSync(filePath, 'utf8'),
-  ) as ProjectConfig;
-  return { directoryPath: dirname(filePath), filePath, projectConfig };
+  return {
+    directoryPath: filePath === undefined ? process.cwd() : dirname(filePath),
+    filePath,
+  };
+}
+
+export function readProjectConfigFile(filePath: string): ProjectConfig {
+  return readJsonFile(filePath) as ProjectConfig;
 }
 
 /**

@@ -143,6 +143,21 @@ export class HookOccupiedError extends CliError {
   }
 }
 
+/**
+ * A JSON file the CLI reads and a person edits that does not parse: the message names the file and where the parse stopped,
+ * never the file's text, since `config.json` can hold the token.
+ */
+export class InvalidJsonError extends CliError {
+  constructor(filePath: string, problem: string) {
+    super({
+      code: 'E_INVALID_JSON',
+      exitCode: ExitCode.Error,
+      fix: 'correct the JSON in that file and run the command again.',
+      message: `${filePath} is no valid JSON: ${problem}`,
+    });
+  }
+}
+
 export class InvalidParameterError extends CliError {
   constructor(
     message: string,

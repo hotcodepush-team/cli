@@ -27,6 +27,18 @@ describe('framework', () => {
     );
   }
 
+  it('should throw E_INVALID_JSON naming package.json when it does not parse', () => {
+    const packageJsonPath = join(projectDirectoryPath, 'package.json');
+    writeFileSync(packageJsonPath, '{ "dependencies": ');
+
+    expect(() => detectFramework(projectDirectoryPath)).toThrow(
+      expect.objectContaining({
+        code: 'E_INVALID_JSON',
+        message: `${packageJsonPath} is no valid JSON: unexpected end of JSON input`,
+      }),
+    );
+  });
+
   it('should take the framework whose config file the project has when package.json names several', () => {
     writePackageJson({ '@capacitor/core': '8.0.0', 'cordova': '12.0.0' });
     writeFileSync(join(projectDirectoryPath, 'config.xml'), '<widget />');

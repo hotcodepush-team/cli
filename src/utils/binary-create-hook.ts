@@ -5,6 +5,7 @@ import {
   BINARY_CREATE_HOOK_NAME,
 } from '../config/consts.js';
 import { HookOccupiedError } from './errors.js';
+import { parseJsonFileText, readJsonFile } from './json-file.js';
 
 export interface PackageJson {
   cordova?: { plugins?: Record<string, unknown> };
@@ -25,8 +26,8 @@ export type BinaryCreateHookState =
 const UNPARSEABLE_SCRIPT_PATTERN = /[;|\n]|&\s*$/;
 
 export function readPackageJson(projectDirectoryPath: string): PackageJson {
-  return JSON.parse(
-    readFileSync(join(projectDirectoryPath, 'package.json'), 'utf8'),
+  return readJsonFile(
+    join(projectDirectoryPath, 'package.json'),
   ) as PackageJson;
 }
 
@@ -52,7 +53,10 @@ export function wireBinaryCreateHook(
 ): 'present' | 'wired' {
   const packageJsonPath = join(projectDirectoryPath, 'package.json');
   const packageJsonText = readFileSync(packageJsonPath, 'utf8');
-  const packageJson = JSON.parse(packageJsonText) as PackageJson;
+  const packageJson = parseJsonFileText(
+    packageJsonPath,
+    packageJsonText,
+  ) as PackageJson;
   const state = resolveBinaryCreateHookState(packageJson);
   if (state === 'wired') {
     return 'present';

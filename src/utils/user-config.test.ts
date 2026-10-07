@@ -35,6 +35,22 @@ describe('user config', () => {
     expect(readUserConfig()).toEqual({});
   });
 
+  it('should throw E_INVALID_JSON naming config.json, never its token, when it does not parse', () => {
+    const configDirectoryPath = join(configHomePath, 'hotcodepush');
+    mkdirSync(configDirectoryPath);
+    writeFileSync(
+      join(configDirectoryPath, 'config.json'),
+      '{ "token": session-token-1 }',
+    );
+
+    expect(() => readUserConfig()).toThrow(
+      expect.objectContaining({
+        code: 'E_INVALID_JSON',
+        message: `${join(configDirectoryPath, 'config.json')} is no valid JSON: unexpected token 's'`,
+      }),
+    );
+  });
+
   it('should read back what it wrote', () => {
     writeUserConfig({
       apiUrl: 'https://api.example.com',

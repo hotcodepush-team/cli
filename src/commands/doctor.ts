@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { relative } from 'node:path';
 import type { App, User } from '@hotcodepush/node';
 import {
   ConfigurationSchema,
@@ -23,6 +23,8 @@ import {
 } from '../utils/credential.js';
 import { resolveCliError } from '../utils/error-mapping.js';
 import {
+  CliError,
+  InvalidJsonError,
   NotLoggedInError,
   ReportedFailureError,
   SigningKeyUnavailableError,
@@ -44,7 +46,8 @@ import { printOutcomeRows } from '../utils/outcome.js';
 import { printJson, resolveQuantityText } from '../utils/output.js';
 import type { ProjectConfig } from '../utils/project-config.js';
 import {
-  locateProjectConfig,
+  locateProjectConfigFile,
+  readProjectConfigFile,
   resolveProjectChannel,
 } from '../utils/project-config.js';
 import {
@@ -69,13 +72,15 @@ type DoctorCheck = FrameworkCheck;
 
 /**
  * What every check reads: the project, its configuration, its `package.json` and its framework, located once;
- * a project whose framework the CLI cannot name carries the error that says so.
+ * a framework the CLI cannot name, from a `package.json` that names none or does not parse, and a configuration
+ * that does not parse are carried as the errors that say so, which their own checks report.
  */
 interface Project {
   directoryPath: string;
-  framework: FrameworkModule | UnknownFrameworkError;
+  framework: FrameworkModule | CliError;
   packageJson: PackageJson | undefined;
   projectConfig: ProjectConfig | undefined;
+  projectConfigError?: InvalidJsonError;
 }
 
 interface SessionAndAppChecks {
@@ -97,17 +102,7 @@ export default defineCommand({
   examples: ['hotcodepush doctor', 'hotcodepush doctor --json'],
   options: defineCommandOptions({}),
   action: async options => {
-    const { directoryPath, projectConfig } = locateProjectConfig(
-      options.config,
-    );
-    const project: Project = {
-      directoryPath,
-      framework: resolveProjectFramework(directoryPath),
-      packageJson: existsSync(join(directoryPath, 'package.json'))
-        ? readPackageJson(directoryPath)
-        : undefined,
-      projectConfig,
-    };
+    const project = readProject(options.config);
     const { app, checks: sessionAndAppChecks } =
       await checkSessionAndApp(project);
     const checks: DoctorCheck[] = [
@@ -139,11 +134,43 @@ export default defineCommand({
   },
 });
 
+/**
+ * The project the checks read; a configuration that does not parse leaves the configuration out and is kept for its check.
+ */
+function readProject(configPath: string | undefined): Project {
+  const { directoryPath, filePath } = locateProjectConfigFile(configPath);
+  const framework = resolveProjectFramework(directoryPath);
+  const project: Project = {
+    directoryPath,
+    framework,
+    packageJson:
+      framework instanceof CliError
+        ? undefined
+        : readPackageJson(directoryPath),
+    projectConfig: undefined,
+  };
+  if (filePath === undefined) {
+    return project;
+  }
+  try {
+    return { ...project, projectConfig: readProjectConfigFile(filePath) };
+  } catch (error) {
+    if (!(error instanceof InvalidJsonError)) {
+      throw error;
+    }
+    return { ...project, projectConfigError: error };
+  }
+}
+
 function checkConfiguration({
   directoryPath,
   framework,
   projectConfig,
+  projectConfigError,
 }: Project): DoctorCheck {
+  if (projectConfigError !== undefined) {
+    return resolveFailedCheck('configuration', projectConfigError);
+  }
   if (projectConfig === undefined) {
     return {
       check: 'configuration',
@@ -154,7 +181,7 @@ function checkConfiguration({
   }
   // a framework whose upload packages the bundle itself has no build output for `dir` to name
   const isDirRequired =
-    framework instanceof Error || framework.packageBundles === undefined;
+    framework instanceof CliError || framework.packageBundles === undefined;
   const problems = resolveConfigurationProblems(projectConfig, isDirRequired);
   if (problems.length > 0) {
     return {
@@ -207,20 +234,20 @@ function resolveConfigurationProblems(
 async function checkSessionAndApp({
   projectConfig,
 }: Project): Promise<SessionAndAppChecks> {
-  if (readToken() === undefined) {
-    return {
-      app: undefined,
-      checks: [
-        {
-          check: 'session',
-          message: 'not logged in; the app is not checked against the API',
-          status: 'skipped',
-        },
-      ],
-    };
-  }
   let user: User;
   try {
+    if (readToken() === undefined) {
+      return {
+        app: undefined,
+        checks: [
+          {
+            check: 'session',
+            message: 'not logged in; the app is not checked against the API',
+            status: 'skipped',
+          },
+        ],
+      };
+    }
     user = await fetchCurrentUser();
   } catch (error) {
     return { app: undefined, checks: [resolveFailedSessionCheck(error)] };
@@ -396,7 +423,7 @@ async function fetchUnregisteredPublicKeyCount(
  */
 function checkFramework(project: Project): DoctorCheck[] {
   const { framework } = project;
-  if (framework instanceof UnknownFrameworkError) {
+  if (framework instanceof CliError) {
     return [resolveFailedCheck('framework', framework)];
   }
   return [
@@ -483,10 +510,16 @@ function checkResourceFile(
 }
 
 /**
- * The API, the files host and the updates host answer; any HTTP answer counts, a network error does not.
+ * The API, the files host and the updates host answer; any HTTP answer counts, a network error does not, and a config.json
+ * that does not parse names no host to ask.
  */
 async function checkHosts(): Promise<DoctorCheck> {
-  const apiUrl = readApiUrl();
+  let apiUrl: string;
+  try {
+    apiUrl = readApiUrl();
+  } catch (error) {
+    return resolveFailedCheck('hosts', error);
+  }
   const hosts: [name: string, url: string][] = [
     ['api', `${apiUrl.replace(/\/+$/, '')}/health`],
     ['files', resolveFilesBaseUrl(apiUrl)],
@@ -524,7 +557,7 @@ function checkVersions({
     `${PACKAGE_JSON.name} ${PACKAGE_JSON.version}`,
     `node ${process.version}`,
   ];
-  if (!(framework instanceof UnknownFrameworkError)) {
+  if (!(framework instanceof CliError)) {
     versions.push(
       ...framework.versionedPackageNames.map(
         packageName =>
@@ -566,11 +599,14 @@ async function isReachable(url: string): Promise<boolean> {
  */
 function resolveProjectFramework(
   directoryPath: string,
-): FrameworkModule | UnknownFrameworkError {
+): FrameworkModule | CliError {
   try {
     return resolveFrameworkModule(detectFramework(directoryPath));
   } catch (error) {
-    if (error instanceof UnknownFrameworkError) {
+    if (
+      error instanceof UnknownFrameworkError ||
+      error instanceof InvalidJsonError
+    ) {
       return error;
     }
     throw error;

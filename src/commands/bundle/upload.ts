@@ -1,9 +1,10 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import type { HotCodePush } from '@hotcodepush/node';
 import { z } from 'zod';
 import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
+import { readPackageJson } from '../../utils/binary-create-hook.js';
 import { resolveBundleLabel } from '../../utils/bundle-resolution.js';
 import { withTemporaryDirectory } from '../../utils/compressed-files.js';
 import type { InteractivityOptions } from '../../utils/environment.js';
@@ -278,11 +279,8 @@ async function resolveBundleVersion(
   if (options.bundleVersion !== undefined) {
     return options.bundleVersion;
   }
-  const packageJsonPath = join(directoryPath, 'package.json');
-  if (existsSync(packageJsonPath)) {
-    const { version } = JSON.parse(readFileSync(packageJsonPath, 'utf8')) as {
-      version?: string;
-    };
+  if (existsSync(join(directoryPath, 'package.json'))) {
+    const { version } = readPackageJson(directoryPath);
     if (version) {
       return version;
     }

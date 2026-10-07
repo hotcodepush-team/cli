@@ -1,10 +1,4 @@
-import {
-  chmodSync,
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  writeFileSync,
-} from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -12,6 +6,7 @@ import {
   CONFIG_FILE_NAME,
   DEFAULT_API_URL,
 } from '../config/consts.js';
+import { readJsonFile } from './json-file.js';
 
 /**
  * `config.json` in the user's config directory; the token is here only where no keyring backend works,
@@ -39,7 +34,7 @@ export function readUserConfig(): UserConfig {
   if (!existsSync(filePath)) {
     return {};
   }
-  return JSON.parse(readFileSync(filePath, 'utf8')) as UserConfig;
+  return readJsonFile(filePath) as UserConfig;
 }
 
 /**

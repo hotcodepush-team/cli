@@ -20,6 +20,7 @@ import { respondWithChannels } from '../../test/release-routes.js';
 import { ReportedFailureError } from '../utils/errors.js';
 import { reactNativeFramework } from '../utils/frameworks/react-native.js';
 import type * as packageManagerModule from '../utils/package-manager.js';
+import { resolveConfigDirectoryPath } from '../utils/user-config.js';
 import { addResourceReference } from '../utils/xcode-project.js';
 import doctorCommand from './doctor.js';
 
@@ -291,6 +292,90 @@ describe('doctor', () => {
       status: 'failed',
     });
     expect(result.checks[7]?.status).toBe('failed');
+  });
+
+  it('should fail the configuration when hotcodepush.json does not parse, and still run every other check', async () => {
+    const directoryPath = await writeSetUpProject();
+    const configPath = join(directoryPath, 'hotcodepush.json');
+    writeFileSync(configPath, '{ "appId": ');
+    respondWithSessionAndApp();
+
+    await expect(
+      doctorCommand.action({ config: configPath, json: true }, undefined),
+    ).rejects.toBeInstanceOf(ReportedFailureError);
+
+    const result = harness.readJson() as DoctorResult;
+    expect(result.checks[0]).toEqual({
+      check: 'configuration',
+      manualStep: 'correct the JSON in that file and run the command again.',
+      message: `${configPath} is no valid JSON: unexpected end of JSON input`,
+      status: 'failed',
+    });
+    expect(result.checks.map(({ check }) => check)).toEqual([
+      'configuration',
+      'session',
+      'app',
+      'package',
+      'hook',
+      'ios-project',
+      'android-resource-file',
+      'ios-resource-file',
+      'hosts',
+      'signing-key',
+      'versions',
+    ]);
+  });
+
+  it('should fail the framework when package.json does not parse', async () => {
+    const directoryPath = await writeSetUpProject();
+    const packageJsonPath = join(directoryPath, 'package.json');
+    writeFileSync(packageJsonPath, '{ "dependencies": ');
+    respondWithSessionAndApp();
+
+    await expect(
+      doctorCommand.action(
+        { config: join(directoryPath, 'hotcodepush.json'), json: true },
+        undefined,
+      ),
+    ).rejects.toBeInstanceOf(ReportedFailureError);
+
+    const result = harness.readJson() as DoctorResult;
+    expect(result.checks.find(({ check }) => check === 'framework')).toEqual({
+      check: 'framework',
+      manualStep: 'correct the JSON in that file and run the command again.',
+      message: `${packageJsonPath} is no valid JSON: unexpected end of JSON input`,
+      status: 'failed',
+    });
+  });
+
+  it('should fail the session and the hosts when config.json does not parse', async () => {
+    const directoryPath = await writeSetUpProject();
+    const userConfigPath = join(resolveConfigDirectoryPath(), 'config.json');
+    writeFileSync(userConfigPath, '{ "apiUrl": ');
+
+    await expect(
+      doctorCommand.action(
+        { config: join(directoryPath, 'hotcodepush.json'), json: true },
+        undefined,
+      ),
+    ).rejects.toBeInstanceOf(ReportedFailureError);
+
+    const result = harness.readJson() as DoctorResult;
+    const invalidJsonMessage = `${userConfigPath} is no valid JSON: unexpected end of JSON input`;
+    expect(result.checks.filter(({ status }) => status === 'failed')).toEqual([
+      {
+        check: 'session',
+        manualStep: 'correct the JSON in that file and run the command again.',
+        message: `the credential cannot be checked: ${invalidJsonMessage}`,
+        status: 'failed',
+      },
+      {
+        check: 'hosts',
+        manualStep: 'correct the JSON in that file and run the command again.',
+        message: invalidJsonMessage,
+        status: 'failed',
+      },
+    ]);
   });
 
   it('should fail a resource file that names no channel, a build made offline or without a token', async () => {

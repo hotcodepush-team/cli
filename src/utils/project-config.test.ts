@@ -51,6 +51,18 @@ describe('project config', () => {
     );
   });
 
+  it('should throw E_INVALID_JSON naming hotcodepush.json when it does not parse', () => {
+    const configPath = join(projectPath, 'hotcodepush.json');
+    writeFileSync(configPath, '{ "appId": ');
+
+    expect(() => readProjectConfig(configPath)).toThrow(
+      expect.objectContaining({
+        code: 'E_INVALID_JSON',
+        message: `${configPath} is no valid JSON: unexpected end of JSON input`,
+      }),
+    );
+  });
+
   it('should pass an app id of the file', () => {
     expect(() => assertProjectConfigAppId(PROJECT_CONFIG.appId)).not.toThrow();
   });

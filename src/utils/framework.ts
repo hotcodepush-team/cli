@@ -4,6 +4,7 @@ import type { InteractivityOptions } from './environment.js';
 import { MissingParameterError, UnknownFrameworkError } from './errors.js';
 import { CAPACITOR_CONFIG_FILE_NAMES } from './frameworks/capacitor.js';
 import type { FrameworkModule } from './frameworks/index.js';
+import { readJsonFile } from './json-file.js';
 import type { ProjectConfig } from './project-config.js';
 import { promptText } from './prompts.js';
 
@@ -34,9 +35,7 @@ export function detectFramework(projectDirectoryPath: string): Framework {
   if (!existsSync(packageJsonPath)) {
     throw new UnknownFrameworkError();
   }
-  const packageJson = JSON.parse(
-    readFileSync(packageJsonPath, 'utf8'),
-  ) as PackageJson;
+  const packageJson = readJsonFile(packageJsonPath) as PackageJson;
   const dependencyNames = new Set([
     ...Object.keys(packageJson.dependencies ?? {}),
     ...Object.keys(packageJson.devDependencies ?? {}),
