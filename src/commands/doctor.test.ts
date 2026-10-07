@@ -254,6 +254,45 @@ describe('doctor', () => {
     ]);
   });
 
+  it('should fail the session and still reach every check when the API cannot be reached', async () => {
+    const directoryPath = await writeSetUpProject();
+    for (const route of ['GET /v1/users/me', 'GET /health']) {
+      harness.routes[route] = () => {
+        throw new TypeError('fetch failed');
+      };
+    }
+
+    await expect(
+      doctorCommand.action(
+        { config: join(directoryPath, 'hotcodepush.json'), json: true },
+        undefined,
+      ),
+    ).rejects.toBeInstanceOf(ReportedFailureError);
+
+    const result = harness.readJson() as DoctorResult;
+    expect(result.status).toBe('failed');
+    expect(result.checks.map(({ check }) => check)).toEqual([
+      'configuration',
+      'session',
+      'package',
+      'hook',
+      'ios-project',
+      'android-resource-file',
+      'ios-resource-file',
+      'hosts',
+      'signing-key',
+      'versions',
+    ]);
+    expect(result.checks[1]).toEqual({
+      check: 'session',
+      manualStep:
+        'run the command again with --verbose, and report it at https://github.com/hotcodepush-team/cli/issues if it persists.',
+      message: 'the credential cannot be checked: fetch failed',
+      status: 'failed',
+    });
+    expect(result.checks[7]?.status).toBe('failed');
+  });
+
   it('should fail a resource file that names no channel, a build made offline or without a token', async () => {
     const directoryPath = await writeSetUpProject();
     const resourceFilePath = join(

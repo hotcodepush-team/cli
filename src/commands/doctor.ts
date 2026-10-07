@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import type { App } from '@hotcodepush/node';
+import type { App, User } from '@hotcodepush/node';
 import {
   ConfigurationSchema,
   ProjectConfigurationSchema,
@@ -21,8 +21,8 @@ import {
   isUnauthenticatedError,
   resolveCredentialText,
 } from '../utils/credential.js';
+import { resolveCliError } from '../utils/error-mapping.js';
 import {
-  InvalidParameterError,
   NotLoggedInError,
   ReportedFailureError,
   SigningKeyUnavailableError,
@@ -201,7 +201,8 @@ function resolveConfigurationProblems(
 }
 
 /**
- * The credential — a session or `HOTCODEPUSH_TOKEN` — and with one the app and channel the configuration names as the API knows them.
+ * The credential — a session or `HOTCODEPUSH_TOKEN` — and with one the app and channel the configuration names as the API knows them;
+ * a credential the API refuses, or an API that cannot be asked, fails the session and leaves the app out.
  */
 async function checkSessionAndApp({
   projectConfig,
@@ -218,33 +219,37 @@ async function checkSessionAndApp({
       ],
     };
   }
+  let user: User;
   try {
-    const sessionCheck: DoctorCheck = {
-      check: 'session',
-      message: resolveCredentialText(await fetchCurrentUser()),
-      status: 'ok',
-    };
-    const { app, check } = await checkApp(projectConfig);
-    return { app, checks: [sessionCheck, check] };
+    user = await fetchCurrentUser();
   } catch (error) {
-    if (
-      !isUnauthenticatedError(error) &&
-      !(error instanceof NotLoggedInError)
-    ) {
-      throw error;
-    }
+    return { app: undefined, checks: [resolveFailedSessionCheck(error)] };
+  }
+  const sessionCheck: DoctorCheck = {
+    check: 'session',
+    message: resolveCredentialText(user),
+    status: 'ok',
+  };
+  const { app, check } = await checkApp(projectConfig);
+  return { app, checks: [sessionCheck, check] };
+}
+
+function resolveFailedSessionCheck(error: unknown): DoctorCheck {
+  if (isUnauthenticatedError(error) || error instanceof NotLoggedInError) {
     return {
-      app: undefined,
-      checks: [
-        {
-          check: 'session',
-          manualStep: 'run hotcodepush login, or set a valid HOTCODEPUSH_TOKEN',
-          message: 'the API does not accept the credential',
-          status: 'failed',
-        },
-      ],
+      check: 'session',
+      manualStep: 'run hotcodepush login, or set a valid HOTCODEPUSH_TOKEN',
+      message: 'the API does not accept the credential',
+      status: 'failed',
     };
   }
+  const { fix, message } = resolveCliError(error);
+  return {
+    check: 'session',
+    manualStep: fix ?? undefined,
+    message: `the credential cannot be checked: ${message}`,
+    status: 'failed',
+  };
 }
 
 async function checkApp(
@@ -300,7 +305,7 @@ async function checkApp(
  * Whether signing works for the project: the public keys `hotcodepush.json` lists are registered with the app, where a session
  * lets the API be asked, and the private key `HOTCODEPUSH_SIGNING_KEY` holds, when set, belongs to one of them; no file is
  * looked for, since an upload is told where its key is. A key the app has and the file does not list fails, since a build
- * from that file would verify nothing and an upload would go unsigned.
+ * from that file would verify nothing and an upload would go unsigned; so does a key that cannot be read or an API that cannot be asked.
  */
 async function checkSigningKey(
   { projectConfig }: Project,
@@ -316,20 +321,24 @@ async function checkSigningKey(
       status: 'failed',
     };
   }
-  const unregisteredKeyCount =
-    app === undefined || publicKeys.length === 0
-      ? 0
-      : await fetchUnregisteredPublicKeyCount(app.id, publicKeys);
-  if (unregisteredKeyCount > 0) {
-    return {
-      check: 'signing-key',
-      manualStep:
-        'run hotcodepush signing-key list --json and keep in publicKeys only the keys it prints',
-      message: `${PROJECT_CONFIG_FILE_NAME} lists ${resolveQuantityText(unregisteredKeyCount, 'public key')} the app has not registered`,
-      status: 'failed',
-    };
+  try {
+    const unregisteredKeyCount =
+      app === undefined || publicKeys.length === 0
+        ? 0
+        : await fetchUnregisteredPublicKeyCount(app.id, publicKeys);
+    if (unregisteredKeyCount > 0) {
+      return {
+        check: 'signing-key',
+        manualStep:
+          'run hotcodepush signing-key list --json and keep in publicKeys only the keys it prints',
+        message: `${PROJECT_CONFIG_FILE_NAME} lists ${resolveQuantityText(unregisteredKeyCount, 'public key')} the app has not registered`,
+        status: 'failed',
+      };
+    }
+    return await checkSigningPrivateKey(publicKeys);
+  } catch (error) {
+    return resolveFailedCheck('signing-key', error);
   }
-  return checkSigningPrivateKey(publicKeys);
 }
 
 /**
@@ -361,14 +370,6 @@ async function checkSigningPrivateKey(
         status: 'ok',
       };
     }
-    if (error instanceof InvalidParameterError) {
-      return {
-        check: 'signing-key',
-        manualStep: error.fix ?? undefined,
-        message: error.message,
-        status: 'failed',
-      };
-    }
     throw error;
   }
 }
@@ -396,14 +397,7 @@ async function fetchUnregisteredPublicKeyCount(
 function checkFramework(project: Project): DoctorCheck[] {
   const { framework } = project;
   if (framework instanceof UnknownFrameworkError) {
-    return [
-      {
-        check: 'framework',
-        manualStep: framework.fix ?? undefined,
-        message: framework.message,
-        status: 'failed',
-      },
-    ];
+    return [resolveFailedCheck('framework', framework)];
   }
   return [
     ...framework.checkWiring(project),
@@ -543,6 +537,19 @@ function checkVersions({
     );
   }
   return { check: 'versions', message: versions.join(', '), status: 'ok' };
+}
+
+/**
+ * A check that could not be made, failed with what the error says happened and its fix as the manual step.
+ */
+function resolveFailedCheck(check: string, error: unknown): DoctorCheck {
+  const { fix, message } = resolveCliError(error);
+  return {
+    check,
+    manualStep: fix ?? undefined,
+    message,
+    status: 'failed',
+  };
 }
 
 async function isReachable(url: string): Promise<boolean> {

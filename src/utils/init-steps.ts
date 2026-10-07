@@ -1,4 +1,4 @@
-import type { CliError } from './errors.js';
+import { resolveCliError } from './error-mapping.js';
 import type { OutcomeRow } from './outcome.js';
 
 export type StepStatus = 'done' | 'skipped' | 'stopped';
@@ -28,9 +28,9 @@ export interface RunStepOptions {
 }
 
 /**
- * The steps of one `init` run in order: a step runs unless one it depends on did not, and a CLI error inside a step
- * stops it with the error's code and fix as the manual step, so the run reports instead of throwing and the
- * independent steps still run.
+ * The steps of one `init` run in order: a step runs unless one it depends on did not, and any error inside a step,
+ * the API's and an unreachable network's included, stops it with the error's code and its fix, or the API's message
+ * that carries the fix, as the manual step, so the run reports instead of throwing and the independent steps still run.
  */
 export class InitRun {
   readonly steps: InitStep[] = [];
@@ -60,13 +60,11 @@ export class InitRun {
       this.steps.push({ message, status, step });
       return value;
     } catch (error) {
-      if (!isCliError(error)) {
-        throw error;
-      }
+      const { code, fix, message } = resolveCliError(error);
       this.steps.push({
-        code: error.code,
-        manualStep: error.fix ?? error.message,
-        message: error.message,
+        code,
+        manualStep: fix ?? message,
+        message,
         status: 'stopped',
         step,
       });
@@ -83,12 +81,4 @@ export function resolveStepRows(steps: InitStep[]): OutcomeRow[] {
     message: code === undefined ? message : `${code} ${message}`,
     status,
   }));
-}
-
-function isCliError(error: unknown): error is CliError {
-  return (
-    error instanceof Error &&
-    typeof (error as Partial<CliError>).code === 'string' &&
-    typeof (error as Partial<CliError>).exitCode === 'number'
-  );
 }

@@ -463,6 +463,45 @@ describe('init', () => {
     expect(result.steps[8]?.message).toBe('waits on the configuration step');
   });
 
+  it("should stop at the organization with the API's error when the API does not know the app hotcodepush.json names, and still run the independent steps", async () => {
+    const directoryPath = writeProject({
+      projectConfig: {
+        appId: DEMO_APP.id,
+        channel: PRODUCTION_CHANNEL.name,
+        dir: 'www',
+      },
+    });
+    respondWithSession([ACME_ORGANIZATION]);
+
+    await expect(
+      initCommand.action(
+        { json: true, yes: true, ...withCwd(directoryPath) },
+        undefined,
+      ),
+    ).rejects.toBeInstanceOf(ReportedFailureError);
+
+    const result = harness.readJson() as InitResult;
+    expect(result.status).toBe('incomplete');
+    expect(result.steps[1]).toEqual({
+      code: 'E_NOT_FOUND',
+      manualStep: 'The resource does not exist.',
+      message: 'The resource does not exist.',
+      status: 'stopped',
+      step: 'organization',
+    });
+    expect(readStepStatuses(result)).toEqual({
+      'app': 'skipped',
+      'build': 'skipped',
+      'configuration': 'skipped',
+      'hook': 'done',
+      'organization': 'stopped',
+      'package': 'done',
+      'release': 'skipped',
+      'sign-in': 'skipped',
+      'signing-key': 'skipped',
+    });
+  });
+
   it('should offer the picker with a create choice interactively, even with one organization and one app', async () => {
     stubInteractiveTerminal();
     vi.mocked(select)
