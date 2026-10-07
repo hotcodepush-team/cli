@@ -144,7 +144,6 @@ export default defineCommand({
         stringifyCanonicalJson(databaseIndex);
     const unknownFacts = resolveUnknownFacts(registryDevice, binary);
     const device: DeviceInfo = {
-      appliedIndexSequence: null,
       attributes: {
         ...registryDevice?.attributes,
         ...Object.fromEntries(
