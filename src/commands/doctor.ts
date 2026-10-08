@@ -92,7 +92,7 @@ const PROBE_TIMEOUT_MS = 5000;
 
 export default defineCommand({
   description:
-    'Check the project: its configuration, the hook wiring, the resource files, the hosts and the versions a bug report needs.',
+    'Check the project: its configuration, the hook wiring, the signing key, the hosts and the versions a bug report needs.',
   examples: ['hotcodepush doctor', 'hotcodepush doctor --json'],
   options: defineCommandOptions({}),
   action: async options => {
