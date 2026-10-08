@@ -141,7 +141,7 @@ A project with an app config that is code, or with a JSON one that does not pars
   A private key never reaches a message, a progress line or an error.
   Signing is RSA alone, `rsa-v1_5-sha256`, the keys of 4096 bits and none under 2048 taken; `binary create` writes each listed public key into the resource file in the encoding the platform's own API imports — PKCS #1 DER on iOS, SPKI DER on Android — beside its key id, through Node's key export in `utils/resource-file.ts`, never by hand.
 - **A delta pack per base, a patch for the main bundle alone**: the bases are the three newest earlier complete uploaded bundles with the bundle's fingerprint that share a platform with it,
-  and every binary with that fingerprint whose platform the bundle names, the base being the binary's embedded bundle.
+  and the three newest binaries with that fingerprint on each platform the bundle names, by when they were created, the base being the binary's embedded bundle.
   A delta pack carries the files its base lacks; none is made against a base that would get every file whole, nor against one that holds them all.
   A framework names its main JavaScript bundle through the hook `resolveMainBundlePath(files, platform)`, asked for the base's files and for the new bundle's, so the two are paired by role, never by path, since a file name may carry its content hash.
   Only the delta packs against the newest earlier bundle and against the binaries carry it as a patch entry in place of the file, and only when the patch is smaller than the stored object it replaces; the second and third earlier bundle get the file whole.
