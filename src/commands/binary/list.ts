@@ -8,7 +8,7 @@ import { fetchAppId } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
   description:
-    'List the store builds binary create registered, with the bundle each ships and the devices running it.',
+    'List the binaries, the store builds whose build created one, with the bundle each ships and the devices running it.',
   examples: [
     'hotcodepush binary list',
     'hotcodepush binary list --app "My App" --json',
@@ -31,7 +31,7 @@ export default defineCommand({
       return;
     }
     printTable({
-      emptyText: 'No binaries; a native build registers one.',
+      emptyText: 'No binaries; a store build creates one.',
       headers: [
         'ID',
         'VERSION',

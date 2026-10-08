@@ -14,7 +14,7 @@ import { fetchAppId } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
   description:
-    'Print a registered store build with the bundle it ships and the devices running it.',
+    'Print a binary, a store build whose build created it, with the bundle it ships and the devices running it.',
   examples: [
     'hotcodepush binary get --binary 6ba7b810-9dad-41d1-80b4-00c04fd430c8',
     'hotcodepush binary get --binary 6ba7b810-9dad-41d1-80b4-00c04fd430c8 --json',

@@ -43,7 +43,7 @@ export interface UploadedBundle {
   patchCount: number;
   uploadedBytes: number;
   uploadedFileCount: number;
-  /** What the API answered beside the created bundle, the fingerprint no binary is registered with among them. */
+  /** What the API answered beside the created bundle, the fingerprint no binary was created with among them. */
   warnings: BundleWithUploads['warnings'];
 }
 
@@ -282,7 +282,7 @@ export async function uploadPack(
 }
 
 /**
- * The hashes the app lacks per its refusal to register: `E_UPLOAD_INCOMPLETE` names them in its details.
+ * The hashes the app lacks per its refusal to create the bundle or the binary: `E_UPLOAD_INCOMPLETE` names them in its details.
  */
 export function resolveMissingSha256s(error: unknown): string[] | undefined {
   if (

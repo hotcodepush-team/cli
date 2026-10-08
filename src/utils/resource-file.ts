@@ -40,7 +40,7 @@ interface ResourceFileInput {
  * The resource file: the project's configuration with the channel as the id the build step resolved, null offline, plus what only
  * a build step can know — the floor, the fingerprint, the embedded bundle's manifest and id, both null without an embedded bundle,
  * and the device hosts outside production.
- * The manifest is the bundle manifest without patches, unsigned, the same whether the bundle was registered or not.
+ * The manifest is the bundle manifest without patches, unsigned, the same whether a binary was created with the bundle or not.
  * The public keys leave their project form for the one the platform's own API imports.
  */
 export function buildResourceFile({

@@ -254,7 +254,7 @@ describe('binary create', () => {
     });
   });
 
-  it('should fail the build naming hotcodepush.json when the app has no channel of its name, before writing or registering anything', async () => {
+  it('should fail the build naming hotcodepush.json when the app has no channel of its name, before writing or creating anything', async () => {
     const configPath = join(projectDirectoryPath, 'hotcodepush.json');
     writeFileSync(
       configPath,
@@ -280,7 +280,7 @@ describe('binary create', () => {
     ).toBe(false);
   });
 
-  it('should fail the build with E_FINGERPRINT_UNAVAILABLE when the project has no lockfile, before writing or registering anything', async () => {
+  it('should fail the build with E_FINGERPRINT_UNAVAILABLE when the project has no lockfile, before writing or creating anything', async () => {
     rmSync(join(projectDirectoryPath, 'package-lock.json'));
 
     await expect(
@@ -562,7 +562,7 @@ describe('binary create', () => {
     ).rejects.toThrow('fetch failed');
   });
 
-  it('should warn and skip a conflicting registration locally, and fail with it in CI', async () => {
+  it('should warn and create no binary when it conflicts locally, and fail with the conflict in CI', async () => {
     harness.routes[`POST ${BINARIES_PATH}`] = () =>
       respondWithApiError(
         409,

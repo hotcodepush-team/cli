@@ -43,7 +43,7 @@ interface BinaryIdentity {
  * What the API answered for the build: the channel's id, null when the build names none, and the binary created,
  * or the one warning that says what was skipped and why.
  */
-interface Registration extends UploadedFiles {
+interface BinaryCreation extends UploadedFiles {
   binary: Binary | null;
   channelId: string | null;
   skippedReason: string | null;
@@ -52,7 +52,7 @@ interface Registration extends UploadedFiles {
 /**
  * What creates the store build beside its files: the app, the platform, the version and build, and the native contract it was built on.
  */
-interface RegistrationRequest extends BinaryIdentity {
+interface BinaryCreationRequest extends BinaryIdentity {
   appId: string;
   fingerprint: string;
   force: boolean;
@@ -82,7 +82,7 @@ export default defineCommand({
       .boolean()
       .optional()
       .describe(
-        'Replace a registration whose fingerprint conflicts, for the deliberate pre-ship rebuild.',
+        'Replace a binary whose fingerprint conflicts, for the deliberate pre-ship rebuild.',
       ),
   }),
   action: async options => {
@@ -105,7 +105,7 @@ export default defineCommand({
     }
     assertWithinBundleBytesLimit(embeddedFiles);
     const identity = resolveBinaryIdentity(options);
-    const registration = await registerBuild(
+    const binaryCreation = await createBuildBinary(
       {
         ...identity,
         appId: buildStep.projectConfig.appId,
@@ -117,27 +117,27 @@ export default defineCommand({
       embeddedFiles,
       createReporter(options),
     );
-    writeBuildResourceFile(buildStep, registration.channelId, {
+    writeBuildResourceFile(buildStep, binaryCreation.channelId, {
       bundleVersion: identity.binaryVersion,
       files: embeddedFiles,
-      id: registration.binary?.bundleId ?? null,
+      id: binaryCreation.binary?.bundleId ?? null,
     });
-    if (registration.skippedReason !== null) {
-      process.stderr.write(`Warning: ${registration.skippedReason}\n`);
+    if (binaryCreation.skippedReason !== null) {
+      process.stderr.write(`Warning: ${binaryCreation.skippedReason}\n`);
     }
     if (options.json) {
       printJson({
-        binary: registration.binary,
+        binary: binaryCreation.binary,
         resourceFilePath,
-        uploadedBytes: registration.uploadedBytes,
-        uploadedFileCount: registration.uploadedFileCount,
+        uploadedBytes: binaryCreation.uploadedBytes,
+        uploadedFileCount: binaryCreation.uploadedFileCount,
       });
       return;
     }
     console.log(`Wrote ${resourceFilePath} for ${platform}.`);
-    if (registration.binary !== null) {
+    if (binaryCreation.binary !== null) {
       console.log(
-        `Created the binary ${platform} ${identity.binaryVersion} (${identity.binaryBuild}): ${registration.uploadedFileCount} files uploaded, ${resolveByteText(registration.uploadedBytes)}.`,
+        `Created the binary ${platform} ${identity.binaryVersion} (${identity.binaryBuild}): ${binaryCreation.uploadedFileCount} files uploaded, ${resolveByteText(binaryCreation.uploadedBytes)}.`,
       );
     }
   },
@@ -149,12 +149,12 @@ export default defineCommand({
  * that cannot be reached or refuses, it goes on with one warning, without a binary and with the channel only when given by id.
  * A pipeline fails instead, since what it ships must name its channel; a channel name the app lacks fails everywhere.
  */
-async function registerBuild(
-  request: RegistrationRequest,
+async function createBuildBinary(
+  request: BinaryCreationRequest,
   buildStep: BuildStep,
   files: BundleFile[],
   reporter: ReturnType<typeof createReporter>,
-): Promise<Registration> {
+): Promise<BinaryCreation> {
   const channelIdByShape = resolveChannelIdByShape(buildStep.channelReference);
   const offlineCause = resolveOfflineCause();
   if (offlineCause === 'no-token' && isCi()) {
@@ -186,7 +186,7 @@ async function registerBuild(
   }
   try {
     return {
-      ...(await registerWithUploads(hotCodePush, request, files, reporter)),
+      ...(await createBinaryWithUploads(hotCodePush, request, files, reporter)),
       channelId,
       skippedReason: null,
     };
@@ -204,9 +204,9 @@ async function registerBuild(
   }
 }
 
-async function registerWithUploads(
+async function createBinaryWithUploads(
   hotCodePush: HotCodePush,
-  request: RegistrationRequest,
+  request: BinaryCreationRequest,
   files: BundleFile[],
   reporter: ReturnType<typeof createReporter>,
 ): Promise<UploadedFiles & { binary: Binary }> {

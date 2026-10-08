@@ -42,13 +42,13 @@ interface ServedIndex {
 
 /**
  * The facts a device without `--device` cannot supply: its rollout bucket and OS version always,
- * its fingerprint when no store build is registered with its identity.
+ * its fingerprint when no binary was created with its identity.
  */
 type UnknownFact = 'fingerprint' | 'os' | 'rollout';
 
 const INDEX_FETCH_TIMEOUT_MS = 30_000;
 
-/** The floor a device without a registered store build evaluates from: no release is older than its binary. */
+/** The floor a device without a created binary evaluates from: no release is older than its binary. */
 const NO_FLOOR = new Date(0).toISOString();
 
 export default defineCommand({

@@ -6,7 +6,7 @@ import binaryListCommand from './list.js';
 describe('binary list', () => {
   const harness = useCommandHarness();
 
-  it('should list the registered store builds with their bundle and devices', async () => {
+  it('should list the binaries with their bundle and devices', async () => {
     harness.routes[`GET /v1/apps/${DEMO_APP.id}/binaries`] = () =>
       Response.json([BINARY, { ...BINARY, deviceCount: 0, lastSeenAt: null }]);
 

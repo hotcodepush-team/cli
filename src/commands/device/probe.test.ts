@@ -174,7 +174,7 @@ describe('device probe', () => {
     },
   );
 
-  it("should run the debugging guide's command as written, with the fingerprint of the registered store build and the unknown facts passing", async () => {
+  it("should run the debugging guide's command as written, with the fingerprint of the store build's binary and the unknown facts passing", async () => {
     const configPath = harness.writeProjectConfig({
       appId: DEMO_APP.id,
       channel: STAGING_CHANNEL.name,
@@ -210,7 +210,7 @@ describe('device probe', () => {
     ]);
   });
 
-  it('should mark the fingerprint unknown when no store build is registered with the identity', async () => {
+  it('should mark the fingerprint unknown when no binary was created with the identity', async () => {
     harness.routes[`GET ${BINARIES_PATH}`] = () => Response.json([]);
 
     await deviceProbeCommand.action(

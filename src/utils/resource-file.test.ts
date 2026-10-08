@@ -9,7 +9,7 @@ import type { Platform } from './upload.js';
 
 const CHANNEL_ID = '83ae07ef-2539-4c88-8380-17a56e24a82f';
 
-const UNREGISTERED_BUNDLE = {
+const BUNDLE_WITHOUT_BINARY = {
   bundleVersion: '1.0',
   files: [
     {
@@ -47,7 +47,7 @@ function buildResourceFileWithPublicKeys(
   return buildResourceFile({
     builtAt: '2026-09-29T12:00:00.000Z',
     channelId: CHANNEL_ID,
-    embeddedBundle: UNREGISTERED_BUNDLE,
+    embeddedBundle: BUNDLE_WITHOUT_BINARY,
     fingerprint: CAPACITOR_FINGERPRINT,
     hosts: { filesBaseUrl: undefined, updatesBaseUrl: undefined },
     platform,
@@ -63,7 +63,7 @@ describe('resource file', () => {
     const resourceFile = buildResourceFile({
       builtAt: '2026-09-29T12:00:00.000Z',
       channelId: CHANNEL_ID,
-      embeddedBundle: UNREGISTERED_BUNDLE,
+      embeddedBundle: BUNDLE_WITHOUT_BINARY,
       fingerprint: CAPACITOR_FINGERPRINT,
       hosts: {
         filesBaseUrl: 'http://localhost:8787/files',
@@ -113,7 +113,7 @@ describe('resource file', () => {
       builtAt: '2026-09-29T12:00:00.000Z',
       channelId: CHANNEL_ID,
       embeddedBundle: {
-        ...UNREGISTERED_BUNDLE,
+        ...BUNDLE_WITHOUT_BINARY,
         id: 'c56a4180-65aa-42ec-a945-5fd21dec0538',
       },
       fingerprint: CAPACITOR_FINGERPRINT,
