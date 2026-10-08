@@ -1,3 +1,4 @@
+import type { Binary } from '@hotcodepush/node';
 import { HotCodePush } from '@hotcodepush/node';
 import { describe, expect, it } from 'vitest';
 import {
@@ -29,6 +30,22 @@ const BINARIES = [
   { ...BINARY, bundleId: 'embedded-android', platform: 'android' as const },
 ];
 
+/**
+ * A binary of the fingerprint's, created on the day given, so a list of them sorts as the API sorts it.
+ */
+function buildBinary(
+  bundleId: string,
+  platform: Platform,
+  createdOn: string,
+): Binary {
+  return {
+    ...BINARY,
+    bundleId,
+    createdAt: `${createdOn}T02:00:00.000Z`,
+    platform,
+  };
+}
+
 function buildFile(path: string): {
   path: string;
   sha256: string;
@@ -43,28 +60,44 @@ describe('fetchDeltaBases', () => {
   function respondWithBases(): void {
     harness.routes[`GET ${APP_PATH}/bundles`] = () =>
       Response.json(EARLIER_BUNDLES);
-    harness.routes[`GET ${APP_PATH}/binaries`] = request => {
-      const platform = new URL(request.url).searchParams.get('platform');
-      return Response.json(
-        BINARIES.filter(
-          binary => platform === null || binary.platform === platform,
-        ),
-      );
-    };
-    for (const bundleId of [
-      ...EARLIER_BUNDLES.map(({ id }) => id),
-      ...BINARIES.map(({ bundleId }) => bundleId),
-    ]) {
-      harness.routes[`GET ${APP_PATH}/bundles/${bundleId}/files`] = () =>
-        Response.json([buildFile(bundleId)]);
+    respondWithBinaries(BINARIES);
+    for (const { id } of EARLIER_BUNDLES) {
+      respondWithBaseFiles(id);
     }
   }
 
+  /**
+   * The binaries list as the API answers it: on the platform asked for, newest first, at most the limit.
+   */
+  function respondWithBinaries(binaries: Binary[]): void {
+    harness.routes[`GET ${APP_PATH}/binaries`] = request => {
+      const { searchParams } = new URL(request.url);
+      const platform = searchParams.get('platform');
+      return Response.json(
+        binaries
+          .filter(binary => platform === null || binary.platform === platform)
+          .toSorted((a, b) => b.createdAt.localeCompare(a.createdAt))
+          .slice(0, Number(searchParams.get('limit'))),
+      );
+    };
+    for (const { bundleId } of binaries) {
+      respondWithBaseFiles(bundleId);
+    }
+  }
+
+  function respondWithBaseFiles(bundleId: string): void {
+    harness.routes[`GET ${APP_PATH}/bundles/${bundleId}/files`] = () =>
+      Response.json([buildFile(bundleId)]);
+  }
+
+  function readQueries(pathname: string): Record<string, string>[] {
+    return harness.requests
+      .filter(({ url }) => new URL(url).pathname === pathname)
+      .map(({ url }) => Object.fromEntries(new URL(url).searchParams));
+  }
+
   function readQuery(pathname: string): Record<string, string> | undefined {
-    const request = harness.requests.find(
-      ({ url }) => new URL(url).pathname === pathname,
-    );
-    return request && Object.fromEntries(new URL(request.url).searchParams);
+    return readQueries(pathname)[0];
   }
 
   async function fetchDeltaBasesFor(platforms: Platform[]) {
@@ -115,44 +148,33 @@ describe('fetchDeltaBases', () => {
     ]);
   });
 
-  it('should ask for earlier bundles and binaries of any platform when the bundle names both', async () => {
+  it('should ask for earlier bundles of any platform and for the binaries of each platform when the bundle names both', async () => {
     respondWithBases();
 
     const deltaBases = await fetchDeltaBasesFor(['android', 'ios']);
 
     expect(readQuery(`${APP_PATH}/bundles`)).not.toHaveProperty('platform');
-    expect(readQuery(`${APP_PATH}/binaries`)).not.toHaveProperty('platform');
+    expect(readQueries(`${APP_PATH}/binaries`)).toEqual([
+      { fingerprint: FINGERPRINT, limit: '3', platform: 'android' },
+      { fingerprint: FINGERPRINT, limit: '3', platform: 'ios' },
+    ]);
     expect(deltaBases.map(({ bundleId }) => bundleId)).toEqual([
       'earlier-1',
       'earlier-2',
       'earlier-3',
-      'embedded-ios',
       'embedded-android',
+      'embedded-ios',
     ]);
   });
 
   it('should take only the three newest binaries, newest first, when the fingerprint has more', async () => {
-    // newest first, as the API orders the binaries by when they were created
-    const binaries = ['night-4', 'night-3', 'night-2', 'night-1'].map(
-      (bundleId, index) => ({
-        ...BINARY,
-        build: String(4 - index),
-        bundleId,
-        createdAt: `2026-10-0${4 - index}T02:00:00.000Z`,
-      }),
-    );
     harness.routes[`GET ${APP_PATH}/bundles`] = () => Response.json([]);
-    harness.routes[`GET ${APP_PATH}/binaries`] = request =>
-      Response.json(
-        binaries.slice(
-          0,
-          Number(new URL(request.url).searchParams.get('limit')),
-        ),
-      );
-    for (const { bundleId } of binaries) {
-      harness.routes[`GET ${APP_PATH}/bundles/${bundleId}/files`] = () =>
-        Response.json([buildFile(bundleId)]);
-    }
+    respondWithBinaries([
+      buildBinary('night-1', 'ios', '2026-10-01'),
+      buildBinary('night-2', 'ios', '2026-10-02'),
+      buildBinary('night-3', 'ios', '2026-10-03'),
+      buildBinary('night-4', 'ios', '2026-10-04'),
+    ]);
 
     const deltaBases = await fetchDeltaBasesFor(['ios']);
 
@@ -167,6 +189,30 @@ describe('fetchDeltaBases', () => {
           new URL(url).pathname === `${APP_PATH}/bundles/night-1/files`,
       ),
     ).toBe(false);
+  });
+
+  it("should take the three newest binaries of each platform when the bundle names both and the newest three are all one platform's", async () => {
+    harness.routes[`GET ${APP_PATH}/bundles`] = () => Response.json([]);
+    respondWithBinaries([
+      buildBinary('android-1', 'android', '2026-10-01'),
+      buildBinary('android-2', 'android', '2026-10-02'),
+      buildBinary('android-3', 'android', '2026-10-03'),
+      buildBinary('android-4', 'android', '2026-10-04'),
+      buildBinary('ios-1', 'ios', '2026-10-05'),
+      buildBinary('ios-2', 'ios', '2026-10-06'),
+      buildBinary('ios-3', 'ios', '2026-10-07'),
+    ]);
+
+    const deltaBases = await fetchDeltaBasesFor(['android', 'ios']);
+
+    expect(deltaBases.map(({ bundleId }) => bundleId)).toEqual([
+      'android-4',
+      'android-3',
+      'android-2',
+      'ios-3',
+      'ios-2',
+      'ios-1',
+    ]);
   });
 
   it("should read a base's files page by page, a thousand at a time", async () => {

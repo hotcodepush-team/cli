@@ -1,4 +1,4 @@
-import type { HotCodePush } from '@hotcodepush/node';
+import type { Binary, HotCodePush } from '@hotcodepush/node';
 import type { ManifestFile } from '@hotcodepush/protocol';
 import { resolveBundleLabel } from './bundle-resolution.js';
 import { fetchAllPages } from './pagination.js';
@@ -26,8 +26,9 @@ export interface FetchDeltaBasesOptions {
 export const BASE_FILES_PAGE_SIZE = 1000;
 
 /**
- * A device on an older binary gets the full pack, as one without a base does: a team making a store build every night
- * under one fingerprint would otherwise pay a base fetch and a diff per binary ever made on every upload.
+ * Per platform, so fresh builds of one platform never crowd out the other's. A device on an older binary gets the full pack,
+ * as one without a base does: a team making a store build every night under one fingerprint would otherwise pay a base
+ * fetch and a diff per binary ever made on every upload.
  */
 const BINARY_BASE_COUNT = 3;
 
@@ -35,30 +36,25 @@ const EARLIER_BUNDLE_BASE_COUNT = 3;
 
 /**
  * The bases of a new bundle's delta packs: the three newest earlier complete uploaded bundles with its fingerprint that
- * share a platform with it, and the three newest binaries with its fingerprint on a platform it names, by when they were
- * created, whose base is the binary's embedded bundle.
+ * share a platform with it, and the three newest binaries with its fingerprint on each platform it names, by when they
+ * were created, whose base is the binary's embedded bundle.
  */
 export async function fetchDeltaBases(
   hotCodePush: HotCodePush,
-  { appId, fingerprint, platforms }: FetchDeltaBasesOptions,
+  options: FetchDeltaBasesOptions,
 ): Promise<DeltaBase[]> {
-  // a bundle names at least one of the two platforms, so one that names both shares a platform with every other
-  const platform = platforms.length === 1 ? platforms[0] : undefined;
+  const { appId, fingerprint, platforms } = options;
   const [earlierBundles, binaries] = await Promise.all([
     hotCodePush.apps.bundles.list({
       appId,
       fingerprint,
       limit: EARLIER_BUNDLE_BASE_COUNT,
-      platform,
+      // a bundle names at least one of the two platforms, so one that names both shares a platform with every other
+      platform: platforms.length === 1 ? platforms[0] : undefined,
       state: 'ready',
       type: 'uploaded',
     }),
-    hotCodePush.apps.binaries.list({
-      appId,
-      fingerprint,
-      limit: BINARY_BASE_COUNT,
-      platform,
-    }),
+    fetchNewestBinaries(hotCodePush, options),
   ]);
   const bases = [
     ...earlierBundles.map((bundle, index) => ({
@@ -88,4 +84,24 @@ export async function fetchDeltaBases(
       ),
     })),
   );
+}
+
+/**
+ * The three newest binaries with the fingerprint on each platform the bundle names, one list per platform, newest first within it.
+ */
+async function fetchNewestBinaries(
+  hotCodePush: HotCodePush,
+  { appId, fingerprint, platforms }: FetchDeltaBasesOptions,
+): Promise<Binary[]> {
+  const binariesPerPlatform = await Promise.all(
+    platforms.map(platform =>
+      hotCodePush.apps.binaries.list({
+        appId,
+        fingerprint,
+        limit: BINARY_BASE_COUNT,
+        platform,
+      }),
+    ),
+  );
+  return binariesPerPlatform.flat();
 }
