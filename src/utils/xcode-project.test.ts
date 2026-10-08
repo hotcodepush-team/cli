@@ -9,7 +9,6 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { project as parseXcodeProject } from 'xcode';
 import {
   CAPACITOR_XCODE_PROJECT_FILE_PATH,
   PBXPROJ_FIXTURE_PATH,
@@ -90,6 +89,19 @@ describe('xcode-project', () => {
     ).toBe('present');
   });
 
+  it('should keep every line of the project as it was, the numbers with leading zeros the package would rewrite included', async () => {
+    const originalLines = readFileSync(projectFilePath, 'utf8').split('\n');
+
+    await addBinaryCreatePhase(projectFilePath, APPENDED_PHASE, {});
+
+    const projectText = readFileSync(projectFilePath, 'utf8');
+    expect(projectText).toContain('LastSwiftUpdateCheck = 0920;');
+    expect(projectText).toContain('LastUpgradeCheck = 0920;');
+    expect(
+      originalLines.filter(line => !projectText.split('\n').includes(line)),
+    ).toEqual([]);
+  });
+
   it('should mark the phase to run on every build, since the resource file carries the build time', async () => {
     await addBinaryCreatePhase(projectFilePath, APPENDED_PHASE, {});
 
@@ -157,7 +169,7 @@ describe('xcode-project', () => {
       rmSync(capacitorDirectoryPath, { force: true, recursive: true });
     });
 
-    it('should remove the file reference, its build file and its resources phase entry, and see none afterwards', () => {
+    it('should remove the file reference, its build file and its resources phase entry, and leave every other byte as it was', () => {
       expect(hasReadableResourceReference(capacitorProjectFilePath)).toBe(true);
 
       removeResourceReference(capacitorProjectFilePath);
@@ -165,9 +177,8 @@ describe('xcode-project', () => {
       expect(hasReadableResourceReference(capacitorProjectFilePath)).toBe(
         false,
       );
-      // the project as the package writes the one cap add ios made, which it never held the reference in
       expect(readFileSync(capacitorProjectFilePath, 'utf8')).toBe(
-        parseXcodeProject(PBXPROJ_FIXTURE_PATH).parseSync().writeSync(),
+        readFileSync(PBXPROJ_FIXTURE_PATH, 'utf8'),
       );
     });
 
@@ -194,6 +205,26 @@ describe('xcode-project', () => {
 
     afterEach(() => {
       rmSync(reactNativeDirectoryPath, { force: true, recursive: true });
+    });
+
+    it('should keep a number with leading zeros as it was in this project too', async () => {
+      writeFileSync(
+        reactNativeProjectFilePath,
+        readFileSync(reactNativeProjectFilePath, 'utf8').replace(
+          'LastUpgradeCheck = 1210;',
+          'LastUpgradeCheck = 0920;',
+        ),
+      );
+
+      await addBinaryCreatePhase(
+        reactNativeProjectFilePath,
+        ANCHORED_PHASE,
+        {},
+      );
+
+      expect(readFileSync(reactNativeProjectFilePath, 'utf8')).toContain(
+        'LastUpgradeCheck = 0920;',
+      );
     });
 
     it('should add the phase right after that phase', async () => {

@@ -1,7 +1,13 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { join } from 'node:path';
-import type { PBXNativeTarget, PbxprojSection, XcodeProject } from 'xcode';
-import { project as parseXcodeProject } from 'xcode';
+import type {
+  PBXNativeTarget,
+  PbxprojHash,
+  PbxprojSection,
+  XcodeProject,
+} from 'xcode';
+import { project as createXcodeProject } from 'xcode';
 import type { InteractivityOptions } from './environment.js';
 import {
   InvalidParameterError,
@@ -25,6 +31,14 @@ export interface BinaryCreatePhase {
   shellScript: string;
 }
 
+/**
+ * A project parsed for an edit, with the numbers kept out of the package's hands that it writes back.
+ */
+interface EditableProject {
+  keptNumbers: string[];
+  project: XcodeProject;
+}
+
 interface XcodeTargetOptions extends InteractivityOptions {
   xcodeTarget?: string;
 }
@@ -34,6 +48,16 @@ const APPLICATION_PRODUCT_TYPE = 'com.apple.product-type.application';
 const BINARY_CREATE_PHASE_MARKER = 'binary-create-xcode.sh';
 
 const BINARY_CREATE_PHASE_NAME = 'Create HotCodePush binary';
+
+const KEPT_NUMBER_PLACEHOLDER_PATTERN = /hotcodepushKeptNumber(\d+)_/g;
+
+// a value of digits alone, which the package's grammar reads as a number: after `=`, `(` or `,`, before `;`, `,` or a line break
+const NUMBER_VALUE_PATTERN = /(?<=[=(,]\s*)\d+(?=[;,\n])/g;
+
+// the package parses the text through its own grammar module; the project it creates parses only a file, never a text
+const pbxprojParser = createRequire(import.meta.url)(
+  'xcode/lib/parser/pbxproj.js',
+) as { parse: (text: string) => PbxprojHash };
 
 // the script reads the version and build from the built app's processed Info.plist: declared as the phase's input,
 // Xcode processes the plist before it runs the phase
@@ -77,7 +101,8 @@ export async function addBinaryCreatePhase(
   if (hasBinaryCreatePhase(projectFilePath)) {
     return 'present';
   }
-  const project = parseProject(projectFilePath, phase.fix);
+  const editableProject = parseProject(projectFilePath, phase.fix);
+  const { project } = editableProject;
   const target = await resolveAppTarget(project, options);
   const nativeTarget = project.pbxNativeTargetSection()[target.key];
   const buildPhases =
@@ -117,7 +142,7 @@ export async function addBinaryCreatePhase(
       buildPhases.splice(anchorPhaseIndex + 1, 0, binaryCreatePhase);
     }
   }
-  writeFileSync(projectFilePath, project.writeSync());
+  writeProject(projectFilePath, editableProject);
   return 'added';
 }
 
@@ -127,7 +152,10 @@ export async function addBinaryCreatePhase(
  */
 export function hasReadableResourceReference(projectFilePath: string): boolean {
   try {
-    return findResourceReferenceKeys(parseProject(projectFilePath)).length > 0;
+    return (
+      findResourceReferenceKeys(parseProject(projectFilePath).project).length >
+      0
+    );
   } catch {
     return false;
   }
@@ -139,7 +167,8 @@ export function hasReadableResourceReference(projectFilePath: string): boolean {
  * and its place in the groups.
  */
 export function removeResourceReference(projectFilePath: string): void {
-  const project = parseProject(projectFilePath);
+  const editableProject = parseProject(projectFilePath);
+  const { project } = editableProject;
   const { objects } = project.hash.project;
   const fileReferenceKeys = findResourceReferenceKeys(project);
   const buildFileKeys = Object.entries(objects.PBXBuildFile)
@@ -153,7 +182,7 @@ export function removeResourceReference(projectFilePath: string): void {
   deleteObjects(objects.PBXBuildFile, buildFileKeys);
   removeChildren(objects.PBXResourcesBuildPhase ?? {}, 'files', buildFileKeys);
   removeChildren(objects.PBXGroup, 'children', fileReferenceKeys);
-  writeFileSync(projectFilePath, project.writeSync());
+  writeProject(projectFilePath, editableProject);
 }
 
 async function resolveAppTarget(
@@ -244,11 +273,28 @@ function findXcodeProjectPath(iosProjectPath: string): string | undefined {
   return undefined;
 }
 
-function parseProject(projectFilePath: string, fix?: string): XcodeProject {
+/**
+ * The project as the `xcode` package parses it, except for the numbers it would write differently: it reads a value of
+ * digits as a JavaScript number, so `LastUpgradeCheck = 0920` would come back as `920` and a value of more than fifteen
+ * digits would lose its last ones. Those values reach the package as placeholders it keeps as text, and `writeProject`
+ * puts them back, so an edit leaves every other byte of the project as it was.
+ */
+function parseProject(projectFilePath: string, fix?: string): EditableProject {
   try {
-    // the package reads the file itself; reading it first turns a missing file into the CLI's error
-    readFileSync(projectFilePath);
-    return parseXcodeProject(projectFilePath).parseSync();
+    const keptNumbers: string[] = [];
+    const text = readFileSync(projectFilePath, 'utf8').replace(
+      NUMBER_VALUE_PATTERN,
+      number => {
+        if (String(Number.parseInt(number, 10)) === number) {
+          return number;
+        }
+        keptNumbers.push(number);
+        return `hotcodepushKeptNumber${keptNumbers.length - 1}_`;
+      },
+    );
+    const project = createXcodeProject(projectFilePath);
+    project.hash = pbxprojParser.parse(text);
+    return { keptNumbers, project };
   } catch (error) {
     throw new XcodeProjectError(
       `${projectFilePath} could not be parsed`,
@@ -257,6 +303,22 @@ function parseProject(projectFilePath: string, fix?: string): XcodeProject {
       fix,
     );
   }
+}
+
+function writeProject(
+  projectFilePath: string,
+  { keptNumbers, project }: EditableProject,
+): void {
+  writeFileSync(
+    projectFilePath,
+    project
+      .writeSync()
+      .replace(
+        KEPT_NUMBER_PLACEHOLDER_PATTERN,
+        (placeholder, index: string) =>
+          keptNumbers[Number(index)] ?? placeholder,
+      ),
+  );
 }
 
 function resolveAppTargets(project: XcodeProject): AppTarget[] {

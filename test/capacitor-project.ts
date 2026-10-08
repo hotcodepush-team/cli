@@ -9,7 +9,6 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import type { LockedPackage } from '@hotcodepush/protocol/fingerprint';
 import { computeFingerprint } from '@hotcodepush/protocol/fingerprint';
-import { project as parseXcodeProject } from 'xcode';
 import { capacitorFramework } from '../src/utils/frameworks/capacitor.js';
 
 /**
@@ -116,29 +115,41 @@ export async function wireCapacitorProject(
 
 /**
  * The `hotcodepush.json` reference in the app target's resources that `init` added while the resource file lay in the
- * project, the way it added it: the file in the `App` group, its build file and its resources phase entry.
+ * project, the lines it wrote: the build file, the file reference, its place in the `App` group and in the resources phase.
  */
 export function writeResourceReference(directoryPath: string): void {
   const projectFilePath = join(
     directoryPath,
     CAPACITOR_XCODE_PROJECT_FILE_PATH,
   );
-  const project = parseXcodeProject(projectFilePath).parseSync();
-  const targetKey = project.getFirstTarget().uuid;
-  const file = project.addFile(
-    'hotcodepush.json',
-    project.findPBXGroupKey({ name: 'App' }) ??
-      project.findPBXGroupKey({ path: 'App' }),
-    { lastKnownFileType: 'text.json', target: targetKey },
+  const buildFileLine =
+    '\t\t83EECD4E5F5F49BB86BE08F2 /* hotcodepush.json in Resources */ = {isa = PBXBuildFile; fileRef = 73380BD3E9E545C7A167EDA6 /* hotcodepush.json */; };\n';
+  const fileReferenceLine =
+    '\t\t73380BD3E9E545C7A167EDA6 /* hotcodepush.json */ = {isa = PBXFileReference; name = "hotcodepush.json"; path = "hotcodepush.json"; sourceTree = "<group>"; fileEncoding = 4; lastKnownFileType = text.json; includeInIndex = 0; };\n';
+  const groupChildLine =
+    '\t\t\t\t50379B222058CBB4000EE86E /* capacitor.config.json */,\n';
+  const resourcesEntryLine =
+    '\t\t\t\t50379B232058CBB4000EE86E /* capacitor.config.json in Resources */,\n';
+  writeFileSync(
+    projectFilePath,
+    readFileSync(projectFilePath, 'utf8')
+      .replace(
+        '/* End PBXBuildFile section */',
+        `${buildFileLine}/* End PBXBuildFile section */`,
+      )
+      .replace(
+        '/* End PBXFileReference section */',
+        `${fileReferenceLine}/* End PBXFileReference section */`,
+      )
+      .replace(
+        groupChildLine,
+        `${groupChildLine}\t\t\t\t73380BD3E9E545C7A167EDA6 /* hotcodepush.json */,\n`,
+      )
+      .replace(
+        resourcesEntryLine,
+        `${resourcesEntryLine}\t\t\t\t83EECD4E5F5F49BB86BE08F2 /* hotcodepush.json in Resources */,\n`,
+      ),
   );
-  if (file === null) {
-    throw new Error(`${projectFilePath} references hotcodepush.json already`);
-  }
-  file.uuid = project.generateUuid();
-  file.target = targetKey;
-  project.addToPbxBuildFileSection(file);
-  project.addToPbxResourcesBuildPhase(file);
-  writeFileSync(projectFilePath, project.writeSync());
 }
 
 /**
