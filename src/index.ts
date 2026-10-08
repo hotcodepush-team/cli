@@ -51,6 +51,7 @@ const commandRegistry: CommandRegistry = {
   'release rollout': () => import('./commands/release/rollout.js'),
   'release update': () => import('./commands/release/update.js'),
   'resource-file write': () => import('./commands/resource-file/write.js'),
+  'signing-key add': () => import('./commands/signing-key/add.js'),
   'signing-key create': () => import('./commands/signing-key/create.js'),
   'signing-key delete': () => import('./commands/signing-key/delete.js'),
   'signing-key list': () => import('./commands/signing-key/list.js'),

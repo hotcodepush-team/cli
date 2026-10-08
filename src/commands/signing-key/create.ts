@@ -19,9 +19,15 @@ import {
 import { fetchAppId } from '../../utils/resource-resolution.js';
 import { writeSigningPrivateKeyFile } from '../../utils/signing-private-key.js';
 
+/**
+ * How uploads sign with the private key, the line `signing-key create` and `signing-key add` end with.
+ */
+export const UPLOAD_SIGNING_TEXT =
+  "Uploads sign with it through --private-key-path; in CI, set HOTCODEPUSH_SIGNING_KEY to the file's content.";
+
 export default defineCommand({
   description:
-    'Generate an RSA signing key pair on this machine, write the private key to a new file and register the public key: from then on the app releases only signed bundles.',
+    'Generate a key pair and add its public key to the app, the private key written to a new file on this machine: from then on the app releases only signed bundles.',
   examples: [
     'hotcodepush signing-key create',
     'hotcodepush signing-key create --app "My App" --private-key-path my-app-private-key.pem --json',
@@ -68,32 +74,30 @@ export default defineCommand({
     console.log(
       `Created signing key ${createdSigningKey.fingerprint} (${createdSigningKey.id}).`,
     );
-    console.log(
-      isConfigured
-        ? `Added to publicKeys in ${PROJECT_CONFIG_FILE_NAME}.`
-        : `Add it to publicKeys in the app's ${PROJECT_CONFIG_FILE_NAME}: ${publicKey}`,
-    );
+    console.log(resolvePublicKeyListingText(isConfigured, publicKey));
     console.log(`Wrote the private key to ${privateKeyPath}.`);
     console.log(
       "Keep the file out of version control: whoever holds it can sign the app's bundles.",
     );
-    console.log(
-      "Uploads sign with it through --private-key-path; in CI, set HOTCODEPUSH_SIGNING_KEY to the file's content.",
-    );
+    console.log(UPLOAD_SIGNING_TEXT);
   },
 });
 
 /**
  * The public key appended to the `publicKeys` of the `hotcodepush.json` that names the app, after the keys it lists,
- * which the next builds keep trusting beside it; a file of another app, or none, is left alone and answers false.
+ * which the next builds keep trusting beside it; a key the file lists already stays where it is. A file of another app,
+ * or none, is left alone and answers false.
  */
-function addPublicKeyToProjectConfig(
+export function addPublicKeyToProjectConfig(
   { filePath, projectConfig }: ProjectConfigLocation,
   appId: string,
   publicKey: string,
 ): boolean {
   if (filePath === undefined || projectConfig?.appId !== appId) {
     return false;
+  }
+  if (projectConfig.publicKeys?.includes(publicKey)) {
+    return true;
   }
   writeProjectConfig(filePath, {
     ...projectConfig,
@@ -122,4 +126,16 @@ function assertNewFilePath(filePath: string): void {
       'create the folder first, or pass a path in an existing one.',
     );
   }
+}
+
+/**
+ * Where the registered public key went: into `publicKeys`, or, for a file of another app or none, the key to add by hand.
+ */
+export function resolvePublicKeyListingText(
+  isConfigured: boolean,
+  publicKey: string,
+): string {
+  return isConfigured
+    ? `Added to publicKeys in ${PROJECT_CONFIG_FILE_NAME}.`
+    : `Add it to publicKeys in the app's ${PROJECT_CONFIG_FILE_NAME}: ${publicKey}`;
 }

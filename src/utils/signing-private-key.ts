@@ -65,6 +65,19 @@ export async function readSigningKeyPair(
 }
 
 /**
+ * The key pair of the private key file a person already has, its public half derived from the private one so the two
+ * cannot mismatch; read here, before any request, and refused when it is no RSA key of the minimum size.
+ */
+export function readSigningKeyPairFile(
+  privateKeyPath: string,
+): Promise<SigningKeyPair> {
+  return resolveSigningKeyPair({
+    source: '--private-key-path',
+    text: readPrivateKeyFile(privateKeyPath),
+  });
+}
+
+/**
  * Writes the private key as a PEM file of PKCS #8 through Node's own export, readable by its owner alone on macOS and
  * Linux; an existing file is never overwritten.
  */
@@ -122,7 +135,7 @@ function readPrivateKeyFile(filePath: string): string {
     throw new InvalidParameterError(
       `--private-key-path: cannot read ${filePath}`,
       error,
-      'pass the private key file "hotcodepush signing-key create" wrote.',
+      'pass the path of the private key file, a PEM of PKCS #8 or PKCS #1.',
     );
   }
 }
@@ -163,7 +176,7 @@ async function resolveSigningKeyPair({
     throw new InvalidParameterError(
       `${source}: no RSA private key of ${SIGNING_KEY_BITS_MINIMUM} bits or more`,
       error,
-      'give the private key file "hotcodepush signing-key create" wrote, or its content in HOTCODEPUSH_SIGNING_KEY.',
+      `give an RSA private key of ${SIGNING_KEY_BITS_MINIMUM} bits or more, a PEM of PKCS #8 or PKCS #1.`,
     );
   }
 }
