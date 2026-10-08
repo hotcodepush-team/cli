@@ -37,9 +37,9 @@ interface ResourceFileInput {
 }
 
 /**
- * The resource file: the project's configuration with the channel as the id the build step resolved, null offline, plus what only
- * a build step can know — the floor, the fingerprint, the embedded bundle's manifest and id, both null without an embedded bundle,
- * and the device hosts outside production.
+ * The resource file: the project's configuration with the channel as the id the build step resolved, null offline, and
+ * without the CLI's own key, `extraFingerprintPaths`, plus what only a build step can know — the floor, the fingerprint,
+ * the embedded bundle's manifest and id, both null without an embedded bundle, and the device hosts outside production.
  * The manifest is the bundle manifest without patches, unsigned, the same whether a binary was created with the bundle or not.
  * The public keys leave their project form for the one the platform's own API imports.
  */
@@ -53,7 +53,7 @@ export function buildResourceFile({
   projectConfig,
 }: ResourceFileInput): Configuration {
   return ConfigurationSchema.parse({
-    ...omitChannel(projectConfig),
+    ...omitProjectOnlyKeys(projectConfig),
     builtAt,
     channelId,
     embeddedBundleId: embeddedBundle?.id ?? null,
@@ -142,10 +142,12 @@ function buildUnusablePublicKeyError(
 }
 
 /**
- * The project's configuration without its channel, which the resolved id replaces.
+ * The project's configuration without its channel, which the resolved id replaces, and without the paths the
+ * fingerprint hashes, which the CLI alone reads.
  */
-function omitChannel(projectConfig: ProjectConfig): ProjectConfig {
+function omitProjectOnlyKeys(projectConfig: ProjectConfig): ProjectConfig {
   const configuration = { ...projectConfig };
   delete configuration.channel;
+  delete configuration.extraFingerprintPaths;
   return configuration;
 }

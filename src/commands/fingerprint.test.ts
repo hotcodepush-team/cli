@@ -15,13 +15,13 @@ describe('fingerprint', () => {
   const harness = useCommandHarness();
 
   /**
-   * The fixture's files with a hotcodepush.json declaring its native sources in the project's directory; the path of that file.
+   * The fixture's files with a hotcodepush.json listing its extra fingerprint paths in the project's directory; the path of that file.
    */
   function writeFixtureProject(
     fixture: FingerprintFixture | RefusedFingerprintFixture,
   ): string {
     const rootConfigPath = harness.writeProjectConfig({
-      nativeSources: fixture.nativeSourcePaths,
+      extraFingerprintPaths: fixture.extraFingerprintPaths,
     });
     const rootDirectoryPath = dirname(rootConfigPath);
     for (const [path, content] of Object.entries(fixture.files)) {
@@ -56,14 +56,16 @@ describe('fingerprint', () => {
     },
   );
 
-  it('should print the fingerprint, the packages with their versions and the native sources', async () => {
+  it('should print the fingerprint, the packages with their versions and the extra fingerprint paths', async () => {
     const fixture = FINGERPRINT_FIXTURES.cases.find(
       ({ contributors }) =>
-        contributors.nativeSources.length > 0 &&
+        contributors.extraFingerprintPaths.length > 0 &&
         contributors.packages.length > 0,
     );
     if (fixture === undefined) {
-      throw new Error('fingerprints.json has no case with native sources.');
+      throw new Error(
+        'fingerprints.json has no case with extra fingerprint paths.',
+      );
     }
     const configPath = writeFixtureProject(fixture);
 
@@ -77,8 +79,8 @@ describe('fingerprint', () => {
         ...fixture.contributors.packages.map(({ name, version }) =>
           expect.stringMatching(new RegExp(`^${name} +${version}$`)),
         ),
-        expect.stringMatching(/^NATIVE SOURCE +SHA-256$/),
-        ...fixture.contributors.nativeSources.map(({ path, sha256 }) =>
+        expect.stringMatching(/^EXTRA FINGERPRINT PATH +SHA-256$/),
+        ...fixture.contributors.extraFingerprintPaths.map(({ path, sha256 }) =>
           expect.stringMatching(new RegExp(`^${path} +${sha256}$`)),
         ),
       ]),
@@ -88,7 +90,7 @@ describe('fingerprint', () => {
   it('should say so when no installed package ships native code', async () => {
     const fixture = FINGERPRINT_FIXTURES.cases.find(
       ({ contributors }) =>
-        contributors.nativeSources.length === 0 &&
+        contributors.extraFingerprintPaths.length === 0 &&
         contributors.packages.length === 0,
     );
     if (fixture === undefined) {

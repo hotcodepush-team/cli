@@ -5,15 +5,15 @@ import type { ChannelIndex, DeviceInfo } from '@hotcodepush/protocol';
 import type { FingerprintContributors } from '@hotcodepush/protocol/fingerprint';
 
 /**
- * A sample project of the protocol's `fingerprints.json`: its files from the lockfile's directory, the native sources it declares,
+ * A sample project of the protocol's `fingerprints.json`: its files from the lockfile's directory, the extra fingerprint paths it lists,
  * the project's directory relative to the lockfile's, empty when they are one, and the contributors and fingerprint the recipe yields.
  */
 export interface FingerprintFixture {
   contributors: FingerprintContributors;
+  extraFingerprintPaths: string[];
   files: Record<string, string>;
   fingerprint: string;
   name: string;
-  nativeSourcePaths: string[];
   projectPath: string;
 }
 
@@ -37,9 +37,9 @@ export interface EvaluationFixture {
  * A project of `fingerprints.json` whose fingerprint the recipe refuses.
  */
 export interface RefusedFingerprintFixture {
+  extraFingerprintPaths: string[];
   files: Record<string, string>;
   name: string;
-  nativeSourcePaths: string[];
   projectPath: string;
 }
 

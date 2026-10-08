@@ -600,7 +600,7 @@ describe('binary create', () => {
       version: '0.82.1',
     };
     const REACT_NATIVE_FINGERPRINT = computeFingerprint({
-      nativeSources: [],
+      extraFingerprintPaths: [],
       packages: [REACT_NATIVE_PACKAGE],
     });
 

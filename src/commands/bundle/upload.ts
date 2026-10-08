@@ -202,7 +202,7 @@ export async function resolveUploadBundleOptions(
     bundleVersion: await resolveBundleVersion(options, directoryPath),
     fingerprint: await readFingerprint(
       directoryPath,
-      projectConfig?.nativeSources ?? [],
+      projectConfig?.extraFingerprintPaths ?? [],
     ),
     gitProvenance: await resolveGitProvenance(directoryPath, options),
     reporter: createReporter(options),

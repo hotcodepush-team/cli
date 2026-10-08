@@ -49,7 +49,7 @@ describe('fingerprint', () => {
     );
   });
 
-  it('should hash the native sources hotcodepush.json declares beside the packages', async () => {
+  it('should hash the extra fingerprint paths hotcodepush.json lists beside the packages', async () => {
     writeFingerprintInputs(projectDirectoryPath);
     mkdirSync(join(projectDirectoryPath, 'native', 'plugin'), {
       recursive: true,
@@ -61,7 +61,7 @@ describe('fingerprint', () => {
 
     expect(await readFingerprint(projectDirectoryPath, ['native'])).toBe(
       computeFingerprint({
-        nativeSources: [
+        extraFingerprintPaths: [
           {
             path: 'native/plugin/Plugin.swift',
             sha256: createHash('sha256')
@@ -74,7 +74,7 @@ describe('fingerprint', () => {
     );
   });
 
-  it("should read the workspace root's lockfile above a project directory without one, the native sources relative to the project", async () => {
+  it("should read the workspace root's lockfile above a project directory without one, the extra fingerprint paths relative to the project", async () => {
     writeFingerprintInputs(projectDirectoryPath);
     const appDirectoryPath = writeWorkspaceProject();
     mkdirSync(join(appDirectoryPath, 'native'));
@@ -85,7 +85,7 @@ describe('fingerprint', () => {
 
     expect(await readFingerprint(appDirectoryPath, ['native'])).toBe(
       computeFingerprint({
-        nativeSources: [
+        extraFingerprintPaths: [
           {
             path: 'apps/mobile/native/Plugin.swift',
             sha256: createHash('sha256')
@@ -98,7 +98,7 @@ describe('fingerprint', () => {
     );
   });
 
-  it("should hash a sibling workspace's native source named through ..", async () => {
+  it('should hash an extra fingerprint path in a sibling workspace named through ..', async () => {
     writeFingerprintInputs(projectDirectoryPath);
     const appDirectoryPath = writeWorkspaceProject();
     mkdirSync(join(projectDirectoryPath, 'apps', 'shared'));
@@ -109,7 +109,7 @@ describe('fingerprint', () => {
 
     expect(await readFingerprint(appDirectoryPath, ['../shared'])).toBe(
       computeFingerprint({
-        nativeSources: [
+        extraFingerprintPaths: [
           {
             path: 'apps/shared/Bridge.swift',
             sha256: createHash('sha256')
@@ -122,7 +122,7 @@ describe('fingerprint', () => {
     );
   });
 
-  it('should hash a native source under the path its symbolic link resolves to', async () => {
+  it('should hash an extra fingerprint path under the path its symbolic link resolves to', async () => {
     writeFingerprintInputs(projectDirectoryPath);
     const appDirectoryPath = writeWorkspaceProject();
     const targetDirectoryPath = join(
@@ -143,7 +143,7 @@ describe('fingerprint', () => {
 
     expect(await readFingerprint(appDirectoryPath, ['native'])).toBe(
       computeFingerprint({
-        nativeSources: [
+        extraFingerprintPaths: [
           {
             path: 'packages/scanner/Bridge.swift',
             sha256: createHash('sha256')
@@ -156,7 +156,7 @@ describe('fingerprint', () => {
     );
   });
 
-  it("should refuse a native source when its symbolic link leads out of the lockfile's directory", async () => {
+  it("should refuse an extra fingerprint path when its symbolic link leads out of the lockfile's directory", async () => {
     writeFingerprintInputs(projectDirectoryPath);
     const outsideDirectoryPath = mkdtempSync(join(tmpdir(), 'hotcodepush-fp-'));
     symlinkSync(
@@ -171,14 +171,14 @@ describe('fingerprint', () => {
       ).rejects.toMatchObject({
         code: 'E_FINGERPRINT_UNAVAILABLE',
         message:
-          "the fingerprint cannot be computed: the native source native is not inside the lockfile's directory",
+          "the fingerprint cannot be computed: the extra fingerprint path native is not inside the lockfile's directory",
       });
     } finally {
       rmSync(outsideDirectoryPath, { force: true, recursive: true });
     }
   });
 
-  it('should refuse a native source when nothing is at its path', async () => {
+  it('should refuse an extra fingerprint path when nothing is at its path', async () => {
     writeFingerprintInputs(projectDirectoryPath);
 
     await expect(
@@ -186,7 +186,7 @@ describe('fingerprint', () => {
     ).rejects.toMatchObject({
       code: 'E_FINGERPRINT_UNAVAILABLE',
       message:
-        'the fingerprint cannot be computed: the native source native does not exist',
+        'the fingerprint cannot be computed: the extra fingerprint path native does not exist',
     });
   });
 

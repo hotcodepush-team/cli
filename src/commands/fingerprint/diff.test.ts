@@ -115,7 +115,7 @@ describe('fingerprint diff', () => {
     );
 
     expect(harness.readJson()).toEqual({
-      nativeSources: [],
+      extraFingerprintPaths: [],
       packages: [
         {
           after: {
@@ -208,9 +208,9 @@ describe('fingerprint diff', () => {
     ]);
   });
 
-  it('should print the native sources that moved when no package did', async () => {
-    const nativeSourcesFixture = findFixture(
-      'should hash the declared native sources, file by file, skipping hidden files',
+  it('should print the extra fingerprint paths that moved when no package did', async () => {
+    const extraFingerprintPathsFixture = findFixture(
+      'should hash the files under the extra fingerprint paths, one by one, skipping hidden files',
     );
 
     await fingerprintDiffCommand.action(
@@ -219,14 +219,14 @@ describe('fingerprint diff', () => {
         findFixture(
           'should keep the native packages and the Capacitor runtime of an npm project',
         ),
-        nativeSourcesFixture,
+        extraFingerprintPathsFixture,
       ),
     );
 
     expect(readTableRows()).toEqual([
       ['No package moved.'],
-      ['NATIVE SOURCE', 'BEFORE', 'AFTER'],
-      ...nativeSourcesFixture.contributors.nativeSources.map(
+      ['EXTRA FINGERPRINT PATH', 'BEFORE', 'AFTER'],
+      ...extraFingerprintPathsFixture.contributors.extraFingerprintPaths.map(
         ({ path, sha256 }) => [path, 'none', sha256],
       ),
     ]);
@@ -254,7 +254,7 @@ describe('fingerprint diff', () => {
 
   it('should fail with E_INVALID_PARAMETER when a file is not a fingerprint', async () => {
     const beforeFilePath = writeFingerprintFile('before.json', {
-      nativeSources: [],
+      extraFingerprintPaths: [],
       packages: [],
     });
     const afterFilePath = join(directoryPath, 'package.json');
@@ -274,7 +274,10 @@ describe('fingerprint diff', () => {
     await expect(
       fingerprintDiffCommand.action({}, [
         beforeFilePath,
-        writeFingerprintFile('after.json', { nativeSources: [], packages: [] }),
+        writeFingerprintFile('after.json', {
+          extraFingerprintPaths: [],
+          packages: [],
+        }),
       ]),
     ).rejects.toMatchObject({
       code: 'E_INVALID_PARAMETER',
@@ -296,7 +299,7 @@ describe('fingerprint diff', () => {
     await expect(
       fingerprintDiffCommand.action({}, [
         writeFingerprintFile('before.json', {
-          nativeSources: [],
+          extraFingerprintPaths: [],
           packages: [],
         }),
       ]),

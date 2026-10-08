@@ -1,8 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import type {
+  ExtraFingerprintFile,
   FingerprintContributors,
   LockedPackage,
-  NativeSourceFile,
 } from '@hotcodepush/protocol/fingerprint';
 import { z } from 'zod';
 import { defineCommand } from 'zodline';
@@ -12,10 +12,19 @@ import { printJson, printTable } from '../../utils/output.js';
 import { promptText } from '../../utils/prompts.js';
 
 /**
- * What moved between two fingerprints: each package version and native source one side has and the other lacks.
+ * A file under the extra fingerprint paths as each side hashed it, null on the side without it.
+ */
+interface ExtraFingerprintPathChange {
+  after: string | null;
+  before: string | null;
+  path: string;
+}
+
+/**
+ * What moved between two fingerprints: each package version and extra fingerprint path one side has and the other lacks.
  */
 interface FingerprintDiff {
-  nativeSources: NativeSourceChange[];
+  extraFingerprintPaths: ExtraFingerprintPathChange[];
   packages: PackageChange[];
 }
 
@@ -23,15 +32,6 @@ interface FingerprintDiff {
  * A package's version and integrity as one side installs it.
  */
 type InstalledVersion = Omit<LockedPackage, 'name'>;
-
-/**
- * A native source as each side hashed it, null on the side without it.
- */
-interface NativeSourceChange {
-  after: string | null;
-  before: string | null;
-  path: string;
-}
 
 /**
  * A package version one side installs, paired with one the other side installs instead, null where it installs none.
@@ -50,7 +50,9 @@ const FINGERPRINT_FILE_FIX =
  */
 const FingerprintFileSchema = z.object({
   fingerprint: z.string(),
-  nativeSources: z.array(z.object({ path: z.string(), sha256: z.string() })),
+  extraFingerprintPaths: z.array(
+    z.object({ path: z.string(), sha256: z.string() }),
+  ),
   packages: z.array(
     z.object({
       integrity: z.string().nullable(),
@@ -64,7 +66,7 @@ type FingerprintFile = z.infer<typeof FingerprintFileSchema>;
 
 export default defineCommand({
   description:
-    'Print the packages and native sources added, removed or moved between <file-a> and <file-b>, two files written by fingerprint --json, the earlier first; local, no login.',
+    'Print the packages and extra fingerprint paths added, removed or moved between <file-a> and <file-b>, two files written by fingerprint --json, the earlier first; local, no login.',
   examples: [
     'hotcodepush fingerprint diff store-build.json current.json',
     'hotcodepush fingerprint diff store-build.json current.json --json',
@@ -101,7 +103,7 @@ export default defineCommand({
       printJson(diff);
       return;
     }
-    if (diff.packages.length === 0 && diff.nativeSources.length === 0) {
+    if (diff.packages.length === 0 && diff.extraFingerprintPaths.length === 0) {
       console.log(`Nothing moved: both files hold ${beforeFile.fingerprint}.`);
       return;
     }
@@ -115,12 +117,12 @@ export default defineCommand({
         resolveInstalledVersionText(after, before),
       ]),
     });
-    if (diff.nativeSources.length > 0) {
+    if (diff.extraFingerprintPaths.length > 0) {
       printTable({
         emptyText: '',
-        headers: ['NATIVE SOURCE', 'BEFORE', 'AFTER'],
+        headers: ['EXTRA FINGERPRINT PATH', 'BEFORE', 'AFTER'],
         nextOffset: null,
-        rows: diff.nativeSources.map(({ after, before, path }) => [
+        rows: diff.extraFingerprintPaths.map(({ after, before, path }) => [
           path,
           before ?? 'none',
           after ?? 'none',
@@ -165,9 +167,9 @@ function resolveFingerprintDiff(
   after: FingerprintContributors,
 ): FingerprintDiff {
   return {
-    nativeSources: resolveNativeSourceChanges(
-      before.nativeSources,
-      after.nativeSources,
+    extraFingerprintPaths: resolveExtraFingerprintPathChanges(
+      before.extraFingerprintPaths,
+      after.extraFingerprintPaths,
     ),
     packages: resolvePackageChanges(before.packages, after.packages),
   };
@@ -214,10 +216,10 @@ function resolveVersionsOnlyIn(
     .map(({ integrity, version }) => ({ integrity, version }));
 }
 
-function resolveNativeSourceChanges(
-  before: NativeSourceFile[],
-  after: NativeSourceFile[],
-): NativeSourceChange[] {
+function resolveExtraFingerprintPathChanges(
+  before: ExtraFingerprintFile[],
+  after: ExtraFingerprintFile[],
+): ExtraFingerprintPathChange[] {
   const beforeHashes = new Map(
     before.map(({ path, sha256 }) => [path, sha256]),
   );

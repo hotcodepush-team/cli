@@ -34,10 +34,10 @@ export const CAPACITOR_LOCKED_PACKAGES: LockedPackage[] = [
 ];
 
 /**
- * The fingerprint of the fingerprint inputs without custom native sources.
+ * The fingerprint of the fingerprint inputs without extra fingerprint paths.
  */
 export const CAPACITOR_FINGERPRINT = computeFingerprint({
-  nativeSources: [],
+  extraFingerprintPaths: [],
   packages: CAPACITOR_LOCKED_PACKAGES,
 });
 

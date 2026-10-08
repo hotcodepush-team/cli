@@ -122,7 +122,7 @@ export async function readBuildStep(
     embeddedFiles,
     fingerprint: await readFingerprint(
       directoryPath,
-      completeProjectConfig.nativeSources ?? [],
+      completeProjectConfig.extraFingerprintPaths ?? [],
     ),
     platform,
     projectConfig: completeProjectConfig,

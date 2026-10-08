@@ -79,10 +79,12 @@ describe('resource file', () => {
     expect(ConfigurationSchema.parse(resourceFile)).toEqual(resourceFile);
     expect(resourceFile).toEqual({
       appId: 'ec266350-15f9-44c6-9d85-82f1363ede75',
-      autoCheck: true,
+      applyOnResumeAfterSeconds: 300,
+      applyStrategy: 'next-start',
       builtAt: '2026-09-29T12:00:00.000Z',
       channelId: CHANNEL_ID,
-      checkInterval: 900,
+      checkIntervalSeconds: 900,
+      checkStrategy: 'auto',
       downloadStrategy: 'auto',
       embeddedBundleId: null,
       embeddedBundleManifest: {
@@ -96,12 +98,10 @@ describe('resource file', () => {
       enabledInDebugBuilds: true,
       filesBaseUrl: 'http://localhost:8787/files',
       fingerprint: CAPACITOR_FINGERPRINT,
-      installOnResumeAfter: 300,
-      installStrategy: 'next-start',
-      mandatoryInstallStrategy: 'immediate',
+      mandatoryApplyStrategy: 'immediate',
       publicKeys: [],
       readySignal: 'render',
-      readyTimeout: 10,
+      readyTimeoutSeconds: 10,
       updatesBaseUrl: 'http://localhost:8787/updates',
     });
   });
@@ -119,18 +119,35 @@ describe('resource file', () => {
       platform: 'android',
       projectConfig: {
         appId: 'ec266350-15f9-44c6-9d85-82f1363ede75',
+        applyStrategy: 'next-resume',
         channel: 'staging',
-        installStrategy: 'next-resume',
       },
     });
 
     expect(resourceFile.channelId).toBe(CHANNEL_ID);
     expect(resourceFile).not.toHaveProperty('channel');
-    expect(resourceFile.installStrategy).toBe('next-resume');
+    expect(resourceFile.applyStrategy).toBe('next-resume');
     expect(resourceFile.embeddedBundleId).toBe(
       'c56a4180-65aa-42ec-a945-5fd21dec0538',
     );
     expect(resourceFile).not.toHaveProperty('filesBaseUrl');
+  });
+
+  it('should leave out the extra fingerprint paths, which the CLI alone reads', () => {
+    const resourceFile = buildResourceFile({
+      builtAt: '2026-09-29T12:00:00.000Z',
+      channelId: CHANNEL_ID,
+      embeddedBundle: BUNDLE_WITHOUT_BINARY,
+      fingerprint: CAPACITOR_FINGERPRINT,
+      hosts: { filesBaseUrl: undefined, updatesBaseUrl: undefined },
+      platform: 'ios',
+      projectConfig: {
+        appId: 'ec266350-15f9-44c6-9d85-82f1363ede75',
+        extraFingerprintPaths: ['native'],
+      },
+    });
+
+    expect(resourceFile).not.toHaveProperty('extraFingerprintPaths');
   });
 
   it('should write a null manifest and a null bundle id when the build embeds no bundle', () => {

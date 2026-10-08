@@ -90,6 +90,6 @@ async function readProjectFingerprint(
 ): Promise<string | null> {
   const { directoryPath, projectConfig } = locateProjectConfig(configPath);
   return hasLockfile(directoryPath)
-    ? readFingerprint(directoryPath, projectConfig?.nativeSources ?? [])
+    ? readFingerprint(directoryPath, projectConfig?.extraFingerprintPaths ?? [])
     : null;
 }

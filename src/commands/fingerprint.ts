@@ -7,7 +7,7 @@ import { locateProjectConfig } from '../utils/project-config.js';
 
 export default defineCommand({
   description:
-    "Print the project's native fingerprint with the packages and native sources that contribute to it; local, no login.",
+    "Print the project's native fingerprint with the packages and the files under the extra fingerprint paths that contribute to it; local, no login.",
   examples: [
     'hotcodepush fingerprint',
     'hotcodepush fingerprint --json > fingerprint.json',
@@ -19,7 +19,7 @@ export default defineCommand({
     );
     const contributors = await readProjectFingerprintContributors(
       directoryPath,
-      projectConfig?.nativeSources ?? [],
+      projectConfig?.extraFingerprintPaths ?? [],
     );
     const fingerprint = computeFingerprint(contributors);
     if (options.json) {
@@ -33,12 +33,12 @@ export default defineCommand({
       nextOffset: null,
       rows: contributors.packages.map(({ name, version }) => [name, version]),
     });
-    if (contributors.nativeSources.length > 0) {
+    if (contributors.extraFingerprintPaths.length > 0) {
       printTable({
         emptyText: '',
-        headers: ['NATIVE SOURCE', 'SHA-256'],
+        headers: ['EXTRA FINGERPRINT PATH', 'SHA-256'],
         nextOffset: null,
-        rows: contributors.nativeSources.map(({ path, sha256 }) => [
+        rows: contributors.extraFingerprintPaths.map(({ path, sha256 }) => [
           path,
           sha256,
         ]),

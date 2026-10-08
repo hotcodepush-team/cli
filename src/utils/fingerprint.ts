@@ -18,16 +18,17 @@ const ABSENT_ERROR_CODES = new Set(['EISDIR', 'ENOENT', 'ENOTDIR']);
 
 /**
  * The project's `fp1` fingerprint, the native contract's hash, from its committed lockfile, its installed packages
- * and the custom native sources hotcodepush.json declares, relative to the project root, a sibling workspace's through `..`.
+ * and the files under the extra fingerprint paths hotcodepush.json lists, relative to the project root, a sibling
+ * workspace's through `..`.
  */
 export async function readFingerprint(
   projectDirectoryPath: string,
-  nativeSourcePaths: readonly string[],
+  extraFingerprintPaths: readonly string[],
 ): Promise<string> {
   return computeFingerprint(
     await readProjectFingerprintContributors(
       projectDirectoryPath,
-      nativeSourcePaths,
+      extraFingerprintPaths,
     ),
   );
 }
@@ -40,14 +41,14 @@ export function hasLockfile(projectDirectoryPath: string): boolean {
 }
 
 /**
- * What the project's fingerprint hashes: the native packages with their versions and the declared native sources.
- * The recipe reads from the nearest directory with a lockfile walking up from the project root, a monorepo's root
- * where the workspace installs, and is given the project's path relative to that directory and the native sources
- * as declared, which it resolves against the project and refuses outside that directory.
+ * What the project's fingerprint hashes: the native packages with their versions and the files under the extra
+ * fingerprint paths. The recipe reads from the nearest directory with a lockfile walking up from the project root,
+ * a monorepo's root where the workspace installs, and is given the project's path relative to that directory and the
+ * extra fingerprint paths as listed, which it resolves against the project and refuses outside that directory.
  */
 export async function readProjectFingerprintContributors(
   projectDirectoryPath: string,
-  nativeSourcePaths: readonly string[],
+  extraFingerprintPaths: readonly string[],
 ): Promise<FingerprintContributors> {
   const lockfileDirectoryPath =
     findLockfileDirectoryPath(projectDirectoryPath) ?? projectDirectoryPath;
@@ -56,7 +57,7 @@ export async function readProjectFingerprintContributors(
     .join('/');
   try {
     return await readFingerprintContributors({
-      nativeSourcePaths,
+      extraFingerprintPaths,
       projectPath,
       reader: createProjectReader(lockfileDirectoryPath),
     });
