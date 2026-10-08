@@ -21,6 +21,7 @@ import {
   isUnauthenticatedError,
   resolveCredentialText,
 } from '../utils/credential.js';
+import { isCi, isOfflineBuild } from '../utils/environment.js';
 import { resolveCliError } from '../utils/error-mapping.js';
 import {
   CliError,
@@ -419,8 +420,8 @@ async function fetchUnregisteredPublicKeyCount(
 }
 
 /**
- * The framework's SDK package and binary create step, then the resource file of each platform; a project without a framework
- * the CLI knows gets the one row that says so.
+ * The framework's SDK package and binary create step, then the resource file of each platform and whether a build here
+ * creates its binary; a project without a framework the CLI knows gets the one row that says so.
  */
 function checkFramework(project: Project): DoctorCheck[] {
   const { framework } = project;
@@ -432,7 +433,36 @@ function checkFramework(project: Project): DoctorCheck[] {
     ...PLATFORMS.map(platform =>
       checkResourceFile(project, framework, platform),
     ),
+    checkBinaryCreation(),
   ];
+}
+
+/**
+ * Whether the build step creates the binary, as binary create decides it without --register: under CI it does,
+ * a local build writes its resource file alone, and HOTCODEPUSH_OFFLINE asks the API nothing.
+ */
+function checkBinaryCreation(): DoctorCheck {
+  if (isOfflineBuild()) {
+    return {
+      check: 'binary',
+      message:
+        'HOTCODEPUSH_OFFLINE is set, so a build asks the API nothing and creates no binary',
+      status: 'skipped',
+    };
+  }
+  if (isCi()) {
+    return {
+      check: 'binary',
+      message: 'CI is set, so a build creates its binary',
+      status: 'ok',
+    };
+  }
+  return {
+    check: 'binary',
+    message:
+      'a local build creates no binary; a build under CI or with binary create --register creates one',
+    status: 'skipped',
+  };
 }
 
 /**

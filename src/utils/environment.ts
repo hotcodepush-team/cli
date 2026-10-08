@@ -15,6 +15,13 @@ export function isColorEnabled(stream: NodeJS.WriteStream): boolean {
 }
 
 /**
+ * A pipeline: GitHub Actions and the other runners set `CI`.
+ */
+export function isCi(): boolean {
+  return Boolean(process.env.CI);
+}
+
+/**
  * `HOTCODEPUSH_OFFLINE=1`: a build that never asks the API, for one that is never shipped.
  */
 export function isOfflineBuild(): boolean {
@@ -29,7 +36,7 @@ export function isInteractive({ json, yes }: InteractivityOptions): boolean {
   return (
     Boolean(process.stdin.isTTY) &&
     Boolean(process.stdout.isTTY) &&
-    !process.env.CI &&
+    !isCi() &&
     !json &&
     !yes
   );

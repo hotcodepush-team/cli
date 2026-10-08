@@ -124,7 +124,7 @@ describe('binary create', () => {
     );
   }
 
-  it('should write the resource file into the iOS project and register the binary, uploading what the app lacks', async () => {
+  it('should write the resource file into the iOS project and register the binary with --register, uploading what the app lacks', async () => {
     let createCount = 0;
     harness.routes[`POST ${BINARIES_PATH}`] = () => {
       createCount += 1;
@@ -170,6 +170,7 @@ describe('binary create', () => {
       {
         config: join(projectDirectoryPath, 'hotcodepush.json'),
         platform: 'ios',
+        register: true,
       },
       undefined,
     );
@@ -226,6 +227,7 @@ describe('binary create', () => {
         {
           config: join(cordovaDirectoryPath, 'hotcodepush.json'),
           platform: 'android',
+          register: true,
         },
         undefined,
       );
@@ -324,8 +326,6 @@ describe('binary create', () => {
 
   it('should follow the channel HOTCODEPUSH_CHANNEL names over the configured one, a build flavour', async () => {
     vi.stubEnv('HOTCODEPUSH_CHANNEL', STAGING_CHANNEL.name);
-    harness.routes[`POST ${BINARIES_PATH}`] = () =>
-      Response.json(BINARY, { status: 201 });
 
     await binaryCreateCommand.action(
       {
@@ -346,7 +346,11 @@ describe('binary create', () => {
       Response.json({ ...BINARY, platform: 'android' });
 
     await binaryCreateCommand.action(
-      { config: join(projectDirectoryPath, 'hotcodepush.json'), json: true },
+      {
+        config: join(projectDirectoryPath, 'hotcodepush.json'),
+        json: true,
+        register: true,
+      },
       undefined,
     );
 
@@ -382,8 +386,6 @@ describe('binary create', () => {
   it('should write to an absolute --out as given, the path a native build passes in', async () => {
     const outDirectoryPath = createTemporaryDirectory('hotcodepush-out-');
     const outFilePath = join(outDirectoryPath, 'hotcodepush.json');
-    harness.routes[`POST ${BINARIES_PATH}`] = () =>
-      Response.json(BINARY, { status: 201 });
 
     await binaryCreateCommand.action(
       {
@@ -397,6 +399,62 @@ describe('binary create', () => {
 
     expect(existsSync(outFilePath)).toBe(true);
     expect(harness.readJson()).toMatchObject({ resourceFilePath: outFilePath });
+  });
+
+  it('should write the resource file with the embedded bundle and the resolved channel and create no binary outside CI without --register, saying how to create it', async () => {
+    await binaryCreateCommand.action(
+      {
+        config: join(projectDirectoryPath, 'hotcodepush.json'),
+        platform: 'ios',
+      },
+      undefined,
+    );
+
+    expect(harness.requests.filter(({ method }) => method === 'POST')).toEqual(
+      [],
+    );
+    expect(
+      ConfigurationSchema.parse(
+        readResourceFile('ios/App/App/hotcodepush.json'),
+      ),
+    ).toMatchObject({
+      channelId: PRODUCTION_CHANNEL.id,
+      embeddedBundleId: null,
+      embeddedBundleManifest: {
+        files: [{ path: 'index.html', sha256: INDEX_SHA256, sizeBytes: 11 }],
+      },
+    });
+    expect(harness.readLines()).toEqual([
+      `Wrote ${join(projectDirectoryPath, 'ios', 'App', 'App', 'hotcodepush.json')} for ios.`,
+      'No binary created for ios 1.0 (1): only a build under CI or with --register creates one, leaving the identity to the store build CI makes.',
+    ]);
+    expect(stderrWrite).not.toHaveBeenCalled();
+  });
+
+  it('should create the binary without --register when CI is set', async () => {
+    vi.stubEnv('CI', 'true');
+    harness.routes[`POST ${BINARIES_PATH}`] = () =>
+      Response.json(BINARY, { status: 201 });
+
+    await binaryCreateCommand.action(
+      {
+        config: join(projectDirectoryPath, 'hotcodepush.json'),
+        platform: 'ios',
+      },
+      undefined,
+    );
+
+    expect(
+      harness.requests.filter(
+        ({ method, url }) => method === 'POST' && url.endsWith('/binaries'),
+      ),
+    ).toHaveLength(1);
+    expect(readResourceFile('ios/App/App/hotcodepush.json')).toMatchObject({
+      embeddedBundleId: BINARY.bundleId,
+    });
+    expect(harness.readLines()).toContain(
+      'Registered the binary ios 1.0 (1): 0 files uploaded, 0 B.',
+    );
   });
 
   describe('when the build does not reach the API', () => {
@@ -421,6 +479,7 @@ describe('binary create', () => {
         {
           config: configPath ?? join(projectDirectoryPath, 'hotcodepush.json'),
           platform: 'ios',
+          register: true,
         },
         undefined,
       );
@@ -572,7 +631,7 @@ describe('binary create', () => {
     });
   });
 
-  it('should still write the resource file and warn when creating the binary fails, and fail only in CI', async () => {
+  it('should still write the resource file and warn when creating the binary fails with --register outside CI, and fail in CI', async () => {
     harness.routes[`POST ${BINARIES_PATH}`] = () => {
       throw new TypeError('fetch failed');
     };
@@ -581,6 +640,7 @@ describe('binary create', () => {
       {
         config: join(projectDirectoryPath, 'hotcodepush.json'),
         platform: 'ios',
+        register: true,
       },
       undefined,
     );
@@ -605,7 +665,7 @@ describe('binary create', () => {
     ).rejects.toThrow('fetch failed');
   });
 
-  it('should warn and skip a conflicting registration locally, and fail with it in CI', async () => {
+  it('should warn and skip a conflicting registration with --register outside CI, and fail with it in CI', async () => {
     harness.routes[`POST ${BINARIES_PATH}`] = () =>
       respondWithApiError(
         409,
@@ -617,6 +677,7 @@ describe('binary create', () => {
       binaryVersion: '2.4.1',
       config: join(projectDirectoryPath, 'hotcodepush.json'),
       platform: 'ios' as const,
+      register: true,
     };
 
     await binaryCreateCommand.action(options, undefined);
@@ -704,6 +765,7 @@ describe('binary create', () => {
           out: join(appDirectoryPath, 'hotcodepush.json'),
           path: appDirectoryPath,
           platform: 'ios',
+          register: true,
           ...options,
         },
         undefined,
