@@ -480,6 +480,7 @@ describe('doctor', () => {
         channel: PRODUCTION_CHANNEL.name,
         dir: 'www',
         installStrategy: 'immediate',
+        nativeSources: ['native'],
       }),
     );
     respondWithSessionAndApp();
@@ -495,7 +496,7 @@ describe('doctor', () => {
       check: 'configuration',
       manualStep: 'rename each stale key as named and remove a gone one',
       message:
-        'hotcodepush.json carries stale keys: autoCheck, now checkStrategy, "auto" for true and "manual" for false; dir, gone, the upload reading the framework\'s build output and --path overriding it; installStrategy, now applyStrategy',
+        'hotcodepush.json carries stale keys: autoCheck, now checkStrategy, "auto" for true and "manual" for false; dir, gone, the upload reading the framework\'s build output and --path overriding it; installStrategy, now applyStrategy; nativeSources, now extraFingerprintPaths',
       status: 'failed',
     });
   });

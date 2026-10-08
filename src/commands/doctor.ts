@@ -101,6 +101,7 @@ const STALE_PROJECT_CONFIG_KEYS: Record<string, string> = {
   installOnResumeAfter: 'now applyOnResumeAfterSeconds',
   installStrategy: 'now applyStrategy',
   mandatoryInstallStrategy: 'now mandatoryApplyStrategy',
+  nativeSources: 'now extraFingerprintPaths',
   readyTimeout: 'now readyTimeoutSeconds',
 };
 
