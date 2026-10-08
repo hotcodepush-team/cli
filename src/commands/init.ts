@@ -119,7 +119,7 @@ export default defineCommand({
       .string()
       .optional()
       .describe(
-        'The app target to add the resource to, when the iOS project has several.',
+        'The app target that gets the build step phase, when the iOS project has several.',
       ),
   }),
   action: async options => {
