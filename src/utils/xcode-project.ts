@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { PBXNativeTarget, XcodeProject } from 'xcode';
+import type { PBXNativeTarget, PbxprojSection, XcodeProject } from 'xcode';
 import { project as parseXcodeProject } from 'xcode';
 import type { InteractivityOptions } from './environment.js';
 import {
@@ -38,6 +38,8 @@ const BINARY_CREATE_PHASE_NAME = 'Create HotCodePush binary';
 // the script reads the version and build from the built app's processed Info.plist: declared as the phase's input,
 // Xcode processes the plist before it runs the phase
 const INFO_PLIST_INPUT_PATH = '"$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)"';
+
+const RESOURCE_FILE_NAME = 'hotcodepush.json';
 
 /**
  * The `project.pbxproj` of the Capacitor iOS project: `App/App.xcodeproj` as `cap add ios` lays it out, else the first project found.
@@ -119,6 +121,41 @@ export async function addBinaryCreatePhase(
   return 'added';
 }
 
+/**
+ * Whether the project copies a `hotcodepush.json` of its own into the app, the reference an earlier `init` added to
+ * Capacitor's app target; a project the CLI cannot parse counts as one without it, and the phase's edit says why.
+ */
+export function hasReadableResourceReference(projectFilePath: string): boolean {
+  try {
+    return findResourceReferenceKeys(parseProject(projectFilePath)).length > 0;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Removes that reference: the build step writes the file into the app it builds, and a reference to a file the project
+ * no longer holds fails the build. The file reference goes with its build files, their entries in the resources phases
+ * and its place in the groups.
+ */
+export function removeResourceReference(projectFilePath: string): void {
+  const project = parseProject(projectFilePath);
+  const { objects } = project.hash.project;
+  const fileReferenceKeys = findResourceReferenceKeys(project);
+  const buildFileKeys = Object.entries(objects.PBXBuildFile)
+    .filter(
+      ([, buildFile]) =>
+        typeof buildFile === 'object' &&
+        fileReferenceKeys.includes(String(buildFile.fileRef)),
+    )
+    .map(([key]) => key);
+  deleteObjects(objects.PBXFileReference, fileReferenceKeys);
+  deleteObjects(objects.PBXBuildFile, buildFileKeys);
+  removeChildren(objects.PBXResourcesBuildPhase ?? {}, 'files', buildFileKeys);
+  removeChildren(objects.PBXGroup, 'children', fileReferenceKeys);
+  writeFileSync(projectFilePath, project.writeSync());
+}
+
 async function resolveAppTarget(
   project: XcodeProject,
   options: XcodeTargetOptions,
@@ -151,6 +188,45 @@ async function resolveAppTarget(
     throw new MissingParameterError('--xcode-target');
   }
   return selectedTarget;
+}
+
+/**
+ * The objects and their comments under the given keys, gone from the section.
+ */
+function deleteObjects(section: PbxprojSection, keys: string[]): void {
+  for (const key of keys) {
+    delete section[key];
+    delete section[`${key}_comment`];
+  }
+}
+
+function findResourceReferenceKeys(project: XcodeProject): string[] {
+  return Object.entries(project.pbxFileReferenceSection())
+    .filter(
+      ([, fileReference]) =>
+        typeof fileReference === 'object' &&
+        String(fileReference.path).replaceAll('"', '') === RESOURCE_FILE_NAME,
+    )
+    .map(([key]) => key);
+}
+
+/**
+ * The entries naming the given keys, gone from the list each object of the section keeps under the field.
+ */
+function removeChildren(
+  section: PbxprojSection,
+  field: 'children' | 'files',
+  keys: string[],
+): void {
+  for (const sectionObject of Object.values(section)) {
+    const entries =
+      typeof sectionObject === 'object' ? sectionObject[field] : undefined;
+    if (typeof sectionObject === 'object' && Array.isArray(entries)) {
+      sectionObject[field] = (entries as { value: string }[]).filter(
+        ({ value }) => !keys.includes(value),
+      );
+    }
+  }
 }
 
 function findXcodeProjectPath(iosProjectPath: string): string | undefined {

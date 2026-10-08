@@ -9,7 +9,13 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { PBXPROJ_FIXTURE_PATH } from '../../test/capacitor-project.js';
+import { project as parseXcodeProject } from 'xcode';
+import {
+  CAPACITOR_XCODE_PROJECT_FILE_PATH,
+  PBXPROJ_FIXTURE_PATH,
+  writeCapacitorProject,
+  writeResourceReference,
+} from '../../test/capacitor-project.js';
 import {
   XCODE_PROJECT_FILE_PATH,
   writeReactNativeProject,
@@ -18,6 +24,8 @@ import type { BinaryCreatePhase } from './xcode-project.js';
 import {
   addBinaryCreatePhase,
   hasBinaryCreatePhase,
+  hasReadableResourceReference,
+  removeResourceReference,
   resolveXcodeProjectFilePath,
 } from './xcode-project.js';
 
@@ -130,6 +138,46 @@ describe('xcode-project', () => {
       message: `${projectFilePath} has no "Bundle React Native code and images" phase to run the build step after`,
     });
     expect(hasBinaryCreatePhase(projectFilePath)).toBe(false);
+  });
+
+  describe('the hotcodepush.json reference an earlier init added', () => {
+    let capacitorDirectoryPath = '';
+    let capacitorProjectFilePath = '';
+
+    beforeEach(() => {
+      capacitorDirectoryPath = writeCapacitorProject();
+      capacitorProjectFilePath = join(
+        capacitorDirectoryPath,
+        CAPACITOR_XCODE_PROJECT_FILE_PATH,
+      );
+      writeResourceReference(capacitorDirectoryPath);
+    });
+
+    afterEach(() => {
+      rmSync(capacitorDirectoryPath, { force: true, recursive: true });
+    });
+
+    it('should remove the file reference, its build file and its resources phase entry, and see none afterwards', () => {
+      expect(hasReadableResourceReference(capacitorProjectFilePath)).toBe(true);
+
+      removeResourceReference(capacitorProjectFilePath);
+
+      expect(hasReadableResourceReference(capacitorProjectFilePath)).toBe(
+        false,
+      );
+      // the project as the package writes the one cap add ios made, which it never held the reference in
+      expect(readFileSync(capacitorProjectFilePath, 'utf8')).toBe(
+        parseXcodeProject(PBXPROJ_FIXTURE_PATH).parseSync().writeSync(),
+      );
+    });
+
+    it('should count a project it cannot parse as one without the reference', () => {
+      writeFileSync(capacitorProjectFilePath, 'not a project');
+
+      expect(hasReadableResourceReference(capacitorProjectFilePath)).toBe(
+        false,
+      );
+    });
   });
 
   describe('in a project with the phase to run after', () => {

@@ -6,10 +6,13 @@ import {
 } from '../../config/consts.js';
 import type { ConfirmationRequiredError } from '../errors.js';
 import type { StepOutcome } from '../init-steps.js';
+import type { NativeProjectEdit } from '../native-project-edit.js';
 import { resolveGradleEdit } from '../native-project-edit.js';
 import type { BinaryCreatePhase } from '../xcode-project.js';
 import {
   hasBinaryCreatePhase,
+  hasReadableResourceReference,
+  removeResourceReference,
   resolveXcodeProjectFilePath,
 } from '../xcode-project.js';
 import {
@@ -154,10 +157,6 @@ async function resolveWiring(
     'run "npx cap add ios" and "npx cap add android", or ',
   );
   const xcodeProjectFilePath = resolveXcodeProjectFilePath(nativeProjects.ios);
-  const gradleEdit = resolveGradleEdit(
-    nativeProjects.android,
-    CAPACITOR_PACKAGE_NAME,
-  );
   const isPackageInstalled = isSdkPackageDeclared(
     packageJson,
     CAPACITOR_PACKAGE_NAME,
@@ -165,13 +164,15 @@ async function resolveWiring(
   return {
     isPackageInstalled,
     nativeFilePaths: [
-      ...(xcodeProjectFilePath === undefined ||
-      hasBinaryCreatePhase(xcodeProjectFilePath)
-        ? []
-        : [xcodeProjectFilePath]),
-      ...(gradleEdit === undefined || gradleEdit.isApplied()
-        ? []
-        : [gradleEdit.filePath]),
+      ...new Set([
+        ...(xcodeProjectFilePath === undefined ||
+        hasBinaryCreatePhase(xcodeProjectFilePath)
+          ? []
+          : [xcodeProjectFilePath]),
+        ...resolvePendingEdits(nativeProjects, xcodeProjectFilePath).map(
+          ({ filePath }) => filePath,
+        ),
+      ]),
     ].map(filePath => relative(directoryPath, filePath)),
     packageFilePaths: isPackageInstalled ? [] : ['package.json'],
     installPackage: () =>
@@ -192,8 +193,39 @@ async function resolveWiring(
 }
 
 /**
- * The Xcode phase and the Gradle line, each left alone when present. An edit a file has no place for does not hold the
- * other back: it is made, and the step stops with the first one's manual step.
+ * The edits besides the phase not made yet: the `hotcodepush.json` reference an earlier `init` added to the Xcode project
+ * removed, since the build writes the file into the app now, and the Gradle line.
+ */
+function resolvePendingEdits(
+  nativeProjectPaths: NativeProjectPaths,
+  xcodeProjectFilePath: string | undefined,
+): NativeProjectEdit[] {
+  return [
+    xcodeProjectFilePath === undefined
+      ? undefined
+      : resolveResourceReferenceEdit(xcodeProjectFilePath),
+    resolveGradleEdit(nativeProjectPaths.android, CAPACITOR_PACKAGE_NAME),
+  ]
+    .filter(edit => edit !== undefined)
+    .filter(edit => !edit.isApplied());
+}
+
+function resolveResourceReferenceEdit(
+  xcodeProjectFilePath: string,
+): NativeProjectEdit {
+  return {
+    description: 'the Xcode project without its hotcodepush.json reference',
+    filePath: xcodeProjectFilePath,
+    isApplied: () => !hasReadableResourceReference(xcodeProjectFilePath),
+    apply: () => {
+      removeResourceReference(xcodeProjectFilePath);
+    },
+  };
+}
+
+/**
+ * The Xcode phase, the old reference's removal and the Gradle line, each left alone when done. An edit a file has no place
+ * for does not hold the others back: they are made, and the step stops with the first one's manual step.
  */
 async function wireBinaryCreateStep(
   projectDirectoryPath: string,
@@ -208,11 +240,10 @@ async function wireBinaryCreateStep(
   const isPhaseWired =
     xcodeProjectFilePath === undefined ||
     hasBinaryCreatePhase(xcodeProjectFilePath);
-  const pendingEdits = [
-    resolveGradleEdit(nativeProjects.android, CAPACITOR_PACKAGE_NAME),
-  ]
-    .filter(edit => edit !== undefined)
-    .filter(edit => !edit.isApplied());
+  const pendingEdits = resolvePendingEdits(
+    nativeProjects,
+    xcodeProjectFilePath,
+  );
   if (isPhaseWired && pendingEdits.length === 0) {
     return {
       message: 'the Xcode phase and the Gradle task already wired',
@@ -237,7 +268,7 @@ async function wireBinaryCreateStep(
     options,
   );
   return {
-    message: `wired ${wired.join(' and ')}`,
+    message: `wired ${wired.join(', ')}`,
     status: 'done',
     value: undefined,
   };

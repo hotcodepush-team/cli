@@ -15,6 +15,7 @@ import {
   readJsonFile,
   wireCapacitorProject,
   writeCapacitorProject,
+  writeResourceReference,
 } from '../../test/capacitor-project.js';
 import {
   stubInteractiveTerminal,
@@ -47,6 +48,10 @@ import {
 import type * as packageManagerModule from '../utils/package-manager.js';
 import { runCommandLineVisibly } from '../utils/package-manager.js';
 import { readUserConfig, writeUserConfig } from '../utils/user-config.js';
+import {
+  hasBinaryCreatePhase,
+  hasReadableResourceReference,
+} from '../utils/xcode-project.js';
 import initCommand from './init.js';
 
 // the in-place login must not touch the machine's keyring: a fake one keeps the token the flow stores
@@ -195,7 +200,7 @@ describe('init', () => {
       'created app Demo',
       `installed @hotcodepush/capacitor-live-updates from ${CAPACITOR_PACKAGE_SPEC}`,
       'wrote hotcodepush.json',
-      'wired the Create HotCodePush binary phase in Xcode and the Gradle task that runs the build step',
+      'wired the Create HotCodePush binary phase in Xcode, the Gradle task that runs the build step',
       'run signing-key create to enable code signing',
       'no release follows: run npm run build, then release create',
       'run release create to publish the first release',
@@ -260,6 +265,69 @@ describe('init', () => {
       appId: DEMO_APP.id,
       channel: PRODUCTION_CHANNEL.id,
       dir: 'www',
+    });
+  });
+
+  describe('when an earlier init added the hotcodepush.json reference to the Xcode project', () => {
+    function writeProjectWithResourceReference(): string {
+      const directoryPath = writeProject({
+        isPackageInstalled: true,
+        projectConfig: {
+          appId: DEMO_APP.id,
+          channel: PRODUCTION_CHANNEL.name,
+          dir: 'www',
+        },
+      });
+      writeResourceReference(directoryPath);
+      respondWithSession([ACME_ORGANIZATION]);
+      respondWithConfiguredApp();
+      return directoryPath;
+    }
+
+    it('should name the Xcode project once among the files to change', async () => {
+      const directoryPath = writeProjectWithResourceReference();
+
+      await expect(
+        initCommand.action(
+          { config: join(directoryPath, 'hotcodepush.json'), json: true },
+          undefined,
+        ),
+      ).rejects.toBeInstanceOf(ReportedFailureError);
+
+      expect(
+        (harness.readJson() as InitResult).steps.find(
+          ({ step }) => step === 'hook',
+        )?.manualStep,
+      ).toBe(
+        `run init --yes to change ${CAPACITOR_XCODE_PROJECT_FILE_PATH}, ${CAPACITOR_APP_GRADLE_FILE_PATH}`,
+      );
+    });
+
+    it('should remove the reference beside adding the phase, since the build writes the file into the app', async () => {
+      const directoryPath = writeProjectWithResourceReference();
+
+      await initCommand.action(
+        {
+          config: join(directoryPath, 'hotcodepush.json'),
+          json: true,
+          yes: true,
+        },
+        undefined,
+      );
+
+      const projectFilePath = join(
+        directoryPath,
+        CAPACITOR_XCODE_PROJECT_FILE_PATH,
+      );
+      expect(hasReadableResourceReference(projectFilePath)).toBe(false);
+      expect(hasBinaryCreatePhase(projectFilePath)).toBe(true);
+      expect(
+        (harness.readJson() as InitResult).steps.find(
+          ({ step }) => step === 'hook',
+        )?.message,
+      ).toBe(
+        'wired the Create HotCodePush binary phase in Xcode, the Xcode project without its hotcodepush.json reference, the Gradle task that runs the build step',
+      );
     });
   });
 

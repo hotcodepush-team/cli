@@ -9,6 +9,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import type { LockedPackage } from '@hotcodepush/protocol/fingerprint';
 import { computeFingerprint } from '@hotcodepush/protocol/fingerprint';
+import { project as parseXcodeProject } from 'xcode';
 import { capacitorFramework } from '../src/utils/frameworks/capacitor.js';
 
 /**
@@ -111,6 +112,33 @@ export async function wireCapacitorProject(
     { yes: true },
   );
   await wiring.wireBinaryCreateStep(undefined);
+}
+
+/**
+ * The `hotcodepush.json` reference in the app target's resources that `init` added while the resource file lay in the
+ * project, the way it added it: the file in the `App` group, its build file and its resources phase entry.
+ */
+export function writeResourceReference(directoryPath: string): void {
+  const projectFilePath = join(
+    directoryPath,
+    CAPACITOR_XCODE_PROJECT_FILE_PATH,
+  );
+  const project = parseXcodeProject(projectFilePath).parseSync();
+  const targetKey = project.getFirstTarget().uuid;
+  const file = project.addFile(
+    'hotcodepush.json',
+    project.findPBXGroupKey({ name: 'App' }) ??
+      project.findPBXGroupKey({ path: 'App' }),
+    { lastKnownFileType: 'text.json', target: targetKey },
+  );
+  if (file === null) {
+    throw new Error(`${projectFilePath} references hotcodepush.json already`);
+  }
+  file.uuid = project.generateUuid();
+  file.target = targetKey;
+  project.addToPbxBuildFileSection(file);
+  project.addToPbxResourcesBuildPhase(file);
+  writeFileSync(projectFilePath, project.writeSync());
 }
 
 /**
