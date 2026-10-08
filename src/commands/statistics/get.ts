@@ -180,24 +180,24 @@ function printUpdateStatistics(
   }
   printTable({
     emptyText: 'No days in the period.',
-    headers: ['DAY', 'INSTALLED', 'FAILED', 'ROLLED BACK'],
+    headers: ['DAY', 'APPLIED', 'FAILED', 'ROLLED BACK'],
     nextOffset: null,
-    rows: statistics.days.map(({ day, failed, installed, rolledBack }) => [
+    rows: statistics.days.map(({ applied, day, failed, rolledBack }) => [
       day,
-      String(installed),
+      String(applied),
       String(failed),
       String(rolledBack),
     ]),
   });
   printTable({
     emptyText: 'No release went live recently.',
-    headers: ['RELEASE', 'LIVE', 'INSTALLED', '50% AT', '90% AT'],
+    headers: ['RELEASE', 'LIVE', 'APPLIED', '50% AT', '90% AT'],
     nextOffset: null,
     rows: statistics.releases.map(
       ({ adoption, liveAt, number, timeToAdoption }) => [
         `#${number}`,
         liveAt,
-        String(adoption.at(-1)?.installed ?? 0),
+        String(adoption.at(-1)?.applied ?? 0),
         timeToAdoption.percent50At ?? 'not yet',
         timeToAdoption.percent90At ?? 'not yet',
       ],

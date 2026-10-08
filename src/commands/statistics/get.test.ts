@@ -36,16 +36,16 @@ const UPDATE_STATISTICS: UpdateStatistics = {
   days: [
     {
       activeDevices: 70,
+      applied: 9,
       day: '2026-09-01',
       failed: 1,
-      installed: 9,
       rolledBack: 0,
     },
   ],
   failureReasons: [{ count: 1, reason: 'READINESS_TIMED_OUT' }],
   releases: [
     {
-      adoption: [{ at: '2026-09-01T08:00:00.000Z', installed: 9 }],
+      adoption: [{ applied: 9, at: '2026-09-01T08:00:00.000Z' }],
       channelId: STAGING_CHANNEL.id,
       liveAt: '2026-09-01T07:00:00.000Z',
       number: 43,
@@ -123,10 +123,10 @@ describe('statistics get', () => {
       ),
     ).toEqual({ periodSince: '2026-09-01', periodUntil: '2026-09-30' });
     expect(harness.readLines()).toEqual([
-      'DAY         INSTALLED  FAILED  ROLLED BACK',
-      '2026-09-01  9          1       0',
-      'RELEASE  LIVE                      INSTALLED  50% AT                    90% AT',
-      '#43      2026-09-01T07:00:00.000Z  9          2026-09-01T08:00:00.000Z  not yet',
+      'DAY         APPLIED  FAILED  ROLLED BACK',
+      '2026-09-01  9        1       0',
+      'RELEASE  LIVE                      APPLIED  50% AT                    90% AT',
+      '#43      2026-09-01T07:00:00.000Z  9        2026-09-01T08:00:00.000Z  not yet',
       'FAILURE REASON       COUNT',
       'READINESS_TIMED_OUT  1',
       'SKIP REASON: none in the period.',

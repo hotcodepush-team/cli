@@ -127,22 +127,13 @@ describe('binary create', () => {
     let createCount = 0;
     harness.routes[`POST ${BINARIES_PATH}`] = () => {
       createCount += 1;
-      return createCount === 1
-        ? respondWithApiError(
-            409,
-            'E_UPLOAD_INCOMPLETE',
-            'Objects are missing.',
-          )
-        : Response.json(BINARY, { status: 201 });
-    };
-    harness.routes[`POST ${BINARIES_PATH}`] = () => {
-      createCount += 1;
       if (createCount === 1) {
         return Response.json(
           {
             code: 'E_UPLOAD_INCOMPLETE',
-            details: { isPackMissing: false, missingSha256s: [INDEX_SHA256] },
-            message: 'Objects are missing.',
+            details: { missingSha256s: [INDEX_SHA256] },
+            message:
+              'Files of the embedded bundle are not stored yet; upload them and create the binary again.',
           },
           { status: 409 },
         );
@@ -568,7 +559,7 @@ describe('binary create', () => {
       respondWithApiError(
         409,
         'E_BINARY_CONFLICT',
-        'A binary with this version and build carries another fingerprint.',
+        'A binary with this version and build carries another fingerprint or other files; a changed bundle under an unbumped build is a pipeline mistake, and `force` updates it deliberately.',
       );
     const options = {
       ...resolveBuildOptions('ios'),

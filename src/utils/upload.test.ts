@@ -182,7 +182,11 @@ describe('upload', () => {
       harness.routes[`POST ${path}/uploads`] = () =>
         Response.json({ uploadId: 'upload-1' }, { status: 201 });
       harness.routes[`PUT ${path}/uploads/upload-1/parts/1`] = () =>
-        respondWithApiError(409, 'E_UPLOAD_INCOMPLETE', 'The part is refused.');
+        respondWithApiError(
+          409,
+          'E_UPLOAD_INCOMPLETE',
+          'The parts cannot be assembled: every part but the last is at least five mebibytes and all of one size, and every part is named.',
+        );
       harness.routes[`DELETE ${path}/uploads/upload-1`] = () =>
         new Response(null, { status: 204 });
 
@@ -337,7 +341,8 @@ describe('upload', () => {
           {
             code: 'E_UPLOAD_INCOMPLETE',
             details: { isPackMissing: false, missingSha256s: [SHA256] },
-            message: 'Objects are missing.',
+            message:
+              'Objects of the bundle are missing; upload them and complete again.',
           },
           409,
         ),

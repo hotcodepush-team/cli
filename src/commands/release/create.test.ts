@@ -497,12 +497,11 @@ describe('release create', () => {
   });
 
   it('should print the warnings the upload and the created release answer', async () => {
-    // the API's code since the renaming, which the Node client's union learns with its next build
-    const fingerprintUnknownWarning = {
+    const fingerprintUnknownWarning: Audience['warnings'][number] = {
       code: 'FINGERPRINT_UNKNOWN',
       details: { fingerprint: CAPACITOR_FINGERPRINT },
       message: 'No binary of the app carries this fingerprint.',
-    } as unknown as Audience['warnings'][number];
+    };
     stubWebBuildUpload([fingerprintUnknownWarning]);
     respondWithStagingChannel();
     respondWithCreatedRelease([UNSUPPORTED_CONDITION_SHARE_WARNING]);

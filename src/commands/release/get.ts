@@ -12,7 +12,7 @@ import { channelOptionShape } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
   description:
-    'Print a release with its rollout, its state and its counters: attempted, installed and failed by reason.',
+    'Print a release with its rollout, its state and its counters: attempted, applied and failed by reason.',
   examples: [
     'hotcodepush release get --release 43',
     'hotcodepush release get --channel staging --release 43 --json',
@@ -56,7 +56,7 @@ function resolveCounterDetails({
   }
   return [
     ['Attempted', String(counters.attempted)],
-    ['Installed', String(counters.installed)],
+    ['Applied', String(counters.applied)],
     ['Failed download', String(counters.failedDownload)],
     ['Failed verification', String(counters.failedVerification)],
     ['Failed crashed', String(counters.failedCrashed)],

@@ -36,13 +36,13 @@ export const CHANNELS_PATH = `/v1/apps/${DEMO_APP.id}/channels`;
 export const RELEASES_PATH = `/v1/apps/${DEMO_APP.id}/releases`;
 
 export const RELEASE_COUNTERS = {
+  applied: 90,
   attempted: 100,
   failedCrashed: 2,
   failedDownload: 3,
   failedReadyTimeout: 1,
   failedReported: 3,
   failedVerification: 1,
-  installed: 90,
 };
 
 export const LIVE_RELEASE_WITH_RELATIONS: Release = {

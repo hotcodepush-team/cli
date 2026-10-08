@@ -45,7 +45,7 @@ describe('release get', () => {
       `Live                  ${LIVE_RELEASE.liveAt}`,
       'Devices               80',
       'Attempted             100',
-      'Installed             90',
+      'Applied               90',
       'Failed download       3',
       'Failed verification   1',
       'Failed crashed        2',
