@@ -128,7 +128,7 @@ export default defineCommand({
       ),
     mandatory: booleanFlagSchema
       .optional()
-      .describe('Devices install the release at once and restart.'),
+      .describe('Devices apply the release at once and restart.'),
     notes: z
       .string()
       .optional()

@@ -30,7 +30,7 @@ export default defineCommand({
     mandatory: booleanFlagSchema
       .optional()
       .describe(
-        'Whether devices install the release at once and restart; pass false to clear it.',
+        'Whether devices apply the release at once and restart; pass false to clear it.',
       ),
     notes: z.string().optional().describe('The new release notes.'),
   }),

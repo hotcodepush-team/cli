@@ -31,7 +31,7 @@ export default defineCommand({
     mandatory: booleanFlagSchema
       .optional()
       .describe(
-        'Devices install the rollback at once and restart, the default for an incident fix; pass false to let them wait.',
+        'Devices apply the rollback at once and restart, the default for an incident fix; pass false to let them wait.',
       ),
     toRelease: z
       .string()
