@@ -28,6 +28,7 @@ npx hotcodepush bundle list --json
 npx hotcodepush bundle list --type embedded
 npx hotcodepush binary list
 npx hotcodepush signing-key create
+npx hotcodepush signing-key add --private-key-path my-app-private-key.pem
 npx hotcodepush signing-key list
 npx hotcodepush release create --path dist
 npx hotcodepush release create --bundle 17 --channel staging --rollout-percentage 10
@@ -63,7 +64,8 @@ The bundles are compiled with React Native's default release flags, so they matc
 `signing-key create` turns code signing on: it generates an RSA key pair of 4096 bits on this machine, registers the public key with the app, adds it to `publicKeys` in `hotcodepush.json` and writes the private key, which it never prints, to a new file — `hotcodepush-private-key.pem` in the working directory unless `--private-key-path` names another — after which the app releases only signed bundles.
 Keep the file out of version control: whoever holds it can sign the app's bundles.
 The CLI keeps no copy and HotCodePush receives only the public key, so a lost private key means a new key and a new store build that trusts it.
-`signing-key list` shows the fingerprints, and `signing-key delete` unregisters a key, never the app's only one.
+`signing-key add` brings a key pair you already have: it reads the private key file `--private-key-path` names, derives the public key from it on this machine so the two halves cannot mismatch, registers that public key with the app and adds it to `publicKeys`, leaving the file where it is; a key that is no RSA key of 2048 bits or more is refused before anything is sent.
+`signing-key list` shows the fingerprints, and `signing-key delete` unregisters a key; deleting the app's last one asks first, since binaries built with it refuse unsigned releases until they are replaced.
 `release create` uploads the web build unless `--bundle` names one already uploaded, releases it to every `--channel` named with the project's channel as the default, and waits until the release is live; the client keeps one `Idempotency-Key` across its own retries of a request, and a pipeline run again creates the release again, which after a revoke is the point.
 A release carries its conditions as flags — `--binary`, `--os`, `--attribute` and `--device` — and `--from-channel` releases what another channel serves; `--dry-run` publishes nothing and prints the audience the release would reach, the count `audience get` answers on its own.
 `release revoke` takes one release, every release from a number on with `--release-from`, a channel's whole log with `--all`, or every release of a bundle with `--bundle`; revoked is final, and the confirmation says how many releases move and where their devices land.
