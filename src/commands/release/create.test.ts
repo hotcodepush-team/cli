@@ -497,12 +497,13 @@ describe('release create', () => {
   });
 
   it('should print the warnings the upload and the created release answer', async () => {
-    const fingerprintUnregisteredWarning: Audience['warnings'][number] = {
-      code: 'FINGERPRINT_UNREGISTERED',
+    // the API's code since the renaming, which the Node client's union learns with its next build
+    const fingerprintUnknownWarning = {
+      code: 'FINGERPRINT_UNKNOWN',
       details: { fingerprint: CAPACITOR_FINGERPRINT },
-      message: `No binary of the app is registered with the fingerprint ${CAPACITOR_FINGERPRINT}; a release of this bundle reaches no device until a store build with it is registered.`,
-    };
-    stubWebBuildUpload([fingerprintUnregisteredWarning]);
+      message: 'No binary of the app carries this fingerprint.',
+    } as unknown as Audience['warnings'][number];
+    stubWebBuildUpload([fingerprintUnknownWarning]);
     respondWithStagingChannel();
     respondWithCreatedRelease([UNSUPPORTED_CONDITION_SHARE_WARNING]);
 
@@ -518,7 +519,7 @@ describe('release create', () => {
     );
 
     expect(stderrWrite).toHaveBeenCalledWith(
-      `Warning: ${fingerprintUnregisteredWarning.message}\n`,
+      `Warning: ${fingerprintUnknownWarning.message}\n`,
     );
     expect(stderrWrite).toHaveBeenCalledWith(
       `Warning: ${UNSUPPORTED_CONDITION_SHARE_WARNING.message}\n`,

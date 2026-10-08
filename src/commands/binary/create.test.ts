@@ -568,7 +568,7 @@ describe('binary create', () => {
       respondWithApiError(
         409,
         'E_BINARY_CONFLICT',
-        'The build is registered with another fingerprint.',
+        'A binary with this version and build carries another fingerprint.',
       );
     const options = {
       ...resolveBuildOptions('ios'),

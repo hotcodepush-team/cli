@@ -279,12 +279,12 @@ describe('bundle upload', () => {
   });
 
   it('should print the warnings the API answers beside the created bundle on stderr', async () => {
-    const message = `No binary of the app is registered with the fingerprint ${CAPACITOR_FINGERPRINT}; a release of this bundle reaches no device until a store build with it is registered.`;
+    const message = 'No binary of the app carries this fingerprint.';
     respondWithUploadRoutes(
       [],
       [
         {
-          code: 'FINGERPRINT_UNREGISTERED',
+          code: 'FINGERPRINT_UNKNOWN',
           details: { fingerprint: CAPACITOR_FINGERPRINT },
           message,
         },
