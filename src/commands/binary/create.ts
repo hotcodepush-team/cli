@@ -56,7 +56,7 @@ import { readApiUrl } from '../../utils/user-config.js';
 
 /**
  * What the API answered for the build: the channel's id, null when the build names none, and the binary created,
- * or the one warning that says what was skipped and why; a local build has neither, since it creates no binary.
+ * or the one warning that says what was skipped and why.
  */
 interface Registration extends UploadedFiles {
   binary: Binary | null;
@@ -95,7 +95,7 @@ const NO_UPLOAD: UploadedFiles = { uploadedBytes: 0, uploadedFileCount: 0 };
 
 export default defineCommand({
   description:
-    'The build step the native hook calls: writes the resource file the SDK reads and, under CI or with --register, creates the store build, the binary, with the bundle it ships; HOTCODEPUSH_OFFLINE=1 builds without the API, naming no channel unless it is given by id, for a build that is never shipped.',
+    'The build step the native hook calls: writes the resource file the SDK reads and creates the store build, the binary, with the bundle it ships; HOTCODEPUSH_OFFLINE=1 builds without the API, naming no channel unless it is given by id, for a build that is never shipped.',
   examples: [
     'hotcodepush binary create --platform ios',
     'hotcodepush binary create --platform android --binary-version 2.4.1 --binary-build 57 --force',
@@ -136,12 +136,6 @@ export default defineCommand({
       .optional()
       .describe(
         "The platform being built; CAPACITOR_PLATFORM_NAME's when the hook runs.",
-      ),
-    register: z
-      .boolean()
-      .optional()
-      .describe(
-        'Create the binary from a build outside CI, a store build made on this machine; a build under CI always creates it.',
       ),
   }),
   action: async options => {
@@ -206,7 +200,6 @@ export default defineCommand({
       framework,
     );
     const reporter = createReporter(options);
-    const isRegistering = options.register === true || isCi();
     const registration = await registerBuild(
       {
         ...identity,
@@ -218,7 +211,6 @@ export default defineCommand({
       channelReference,
       files,
       reporter,
-      isRegistering,
     );
     writeResourceFile(
       resourceFilePath,
@@ -249,14 +241,9 @@ export default defineCommand({
       return;
     }
     console.log(`Wrote ${resourceFilePath} for ${platform}.`);
-    const identityText = `${platform} ${identity.binaryVersion} (${identity.binaryBuild})`;
     if (registration.binary !== null) {
       console.log(
-        `Registered the binary ${identityText}: ${registration.uploadedFileCount} files uploaded, ${resolveByteText(registration.uploadedBytes)}.`,
-      );
-    } else if (!isRegistering) {
-      console.log(
-        `No binary created for ${identityText}: only a build under CI or with --register creates one, leaving the identity to the store build CI makes.`,
+        `Registered the binary ${platform} ${identity.binaryVersion} (${identity.binaryBuild}): ${registration.uploadedFileCount} files uploaded, ${resolveByteText(registration.uploadedBytes)}.`,
       );
     }
   },
@@ -276,11 +263,9 @@ function assertProjectConfig(
 }
 
 /**
- * Registers the build with the API: the channel's name resolved to its id, then, when the build registers, the binary
- * created on its identity, the files the API names as missing uploaded first. A local build registers only with --register,
- * so a developer's build never claims the identity CI's store build of the same version and build needs.
- * A local build never breaks: offline, without a token, or with an API that cannot be reached or refuses, it goes on with
- * one warning, without a binary and with the channel only when given by id.
+ * Registers the build with the API: the channel's name resolved to its id, then the binary created on its identity,
+ * the files the API names as missing uploaded first. A local build never breaks: offline, without a token, or with an API
+ * that cannot be reached or refuses, it goes on with one warning, without a binary and with the channel only when given by id.
  * A pipeline fails instead, since what it ships must name its channel; a channel name the app lacks fails everywhere.
  */
 async function registerBuild(
@@ -288,7 +273,6 @@ async function registerBuild(
   channelReference: ChannelReference,
   files: BundleFile[],
   reporter: ReturnType<typeof createReporter>,
-  isRegistering: boolean,
 ): Promise<Registration> {
   const channelIdByShape = resolveChannelIdByShape(channelReference);
   const offlineCause = resolveOfflineCause();
@@ -321,9 +305,6 @@ async function registerBuild(
       channelId: null,
       skippedReason: `the channel could not be resolved, so the build names none and takes no updates, and no binary was created: ${resolveFailureText(error)}`,
     };
-  }
-  if (!isRegistering) {
-    return { ...NO_UPLOAD, binary: null, channelId, skippedReason: null };
   }
   try {
     return {

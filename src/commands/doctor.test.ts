@@ -152,7 +152,6 @@ describe('doctor', () => {
       'ios-project:ok',
       'android-resource-file:ok',
       'ios-resource-file:ok',
-      'binary:skipped',
       'hosts:ok',
       'signing-key:skipped',
       'versions:ok',
@@ -160,50 +159,6 @@ describe('doctor', () => {
     expect(result.checks.at(-1)?.message).toMatch(
       /^hotcodepush \d+\.\d+\.\d+, node v\d+.*, @capacitor\/core 8\.0\.0, @hotcodepush\/capacitor-live-updates 8\.0\.0$/,
     );
-  });
-
-  it('should say a build creates its binary when CI is set', async () => {
-    vi.stubEnv('CI', 'true');
-    const directoryPath = await writeSetUpProject();
-    respondWithSessionAndApp();
-
-    await doctorCommand.action(
-      { config: join(directoryPath, 'hotcodepush.json'), json: true },
-      undefined,
-    );
-
-    expect(
-      (harness.readJson() as DoctorResult).checks.find(
-        ({ check }) => check === 'binary',
-      ),
-    ).toEqual({
-      check: 'binary',
-      message: 'CI is set, so a build creates its binary',
-      status: 'ok',
-    });
-  });
-
-  it('should say a build creates no binary when HOTCODEPUSH_OFFLINE is set, also in CI', async () => {
-    vi.stubEnv('CI', 'true');
-    vi.stubEnv('HOTCODEPUSH_OFFLINE', '1');
-    const directoryPath = await writeSetUpProject();
-    respondWithSessionAndApp();
-
-    await doctorCommand.action(
-      { config: join(directoryPath, 'hotcodepush.json'), json: true },
-      undefined,
-    );
-
-    expect(
-      (harness.readJson() as DoctorResult).checks.find(
-        ({ check }) => check === 'binary',
-      ),
-    ).toEqual({
-      check: 'binary',
-      message:
-        'HOTCODEPUSH_OFFLINE is set, so a build asks the API nothing and creates no binary',
-      status: 'skipped',
-    });
   });
 
   it("should check a Cordova project by its plugin, its hook and the resource file beside each prepared platform's web assets", async () => {
@@ -294,7 +249,6 @@ describe('doctor', () => {
       `✗ android-resource-file  no resource file at ${join('android', 'app', 'src', 'main', 'assets', 'hotcodepush.json')}`,
       '                         run npx cap sync, which runs binary create',
       `✓ ios-resource-file      ${join('ios', 'App', 'App', 'hotcodepush.json')} built at 2026-09-29T12:00:00.000Z`,
-      '– binary                 a local build creates no binary; a build under CI or with binary create --register creates one',
       '✗ hosts                  unreachable: api (https://api.example.com/health)',
       '                         check the network, the API URL in config.json and the HOTCODEPUSH_*_BASE_URL variables',
       '– signing-key            code signing is off; signing-key create turns it on',
@@ -327,7 +281,6 @@ describe('doctor', () => {
       'ios-project',
       'android-resource-file',
       'ios-resource-file',
-      'binary',
       'hosts',
       'signing-key',
       'versions',
@@ -339,7 +292,7 @@ describe('doctor', () => {
       message: 'the credential cannot be checked: fetch failed',
       status: 'failed',
     });
-    expect(result.checks[8]?.status).toBe('failed');
+    expect(result.checks[7]?.status).toBe('failed');
   });
 
   it('should fail the configuration when hotcodepush.json does not parse, and still run every other check', async () => {
@@ -368,7 +321,6 @@ describe('doctor', () => {
       'ios-project',
       'android-resource-file',
       'ios-resource-file',
-      'binary',
       'hosts',
       'signing-key',
       'versions',
@@ -756,7 +708,6 @@ describe('doctor', () => {
       'host:ok',
       'android-resource-file:skipped',
       'ios-resource-file:skipped',
-      'binary:skipped',
       'hosts:ok',
       'signing-key:skipped',
       'versions:ok',
