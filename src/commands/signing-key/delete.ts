@@ -16,9 +16,16 @@ import {
   fetchSigningKeys,
 } from '../../utils/resource-resolution.js';
 
+/**
+ * What deleting the app's last key does: the API takes unsigned uploads again, which the store builds that trust the key
+ * refuse.
+ */
+const LAST_KEY_CONSEQUENCE =
+  'binaries built with this key refuse unsigned releases until they are replaced';
+
 export default defineCommand({
   description:
-    'Unregister a signing key after the store release that stopped trusting it; the app keeps at least one.',
+    'Unregister a signing key after the store release that stopped trusting it; once the last is gone, binaries built with it refuse unsigned releases until they are replaced.',
   examples: [
     'hotcodepush signing-key delete --signing-key sha256:9f2c4e1ab07d',
     'hotcodepush signing-key delete --signing-key 3b1f8e7a-5c2d-4f6b-9a0e-7d4c1b2a3f5e --yes --json',
@@ -51,8 +58,9 @@ export default defineCommand({
           options,
         )),
     );
+    const isLastKey = signingKeys.length === 1;
     const isConfirmed = await confirmConsequence(
-      `unregisters signing key ${signingKey.fingerprint}: an upload signed with it is refused from then on`,
+      `unregisters signing key ${signingKey.fingerprint}: ${isLastKey ? LAST_KEY_CONSEQUENCE : 'an upload signed with it is refused from then on'}`,
       options,
     );
     if (!isConfirmed) {
@@ -72,7 +80,7 @@ export default defineCommand({
       printJson({ id: signingKey.id, name: signingKey.fingerprint });
     } else {
       console.log(
-        `Deleted signing key ${signingKey.fingerprint} (${signingKey.id}).`,
+        `Deleted signing key ${signingKey.fingerprint} (${signingKey.id})${isLastKey ? `: ${LAST_KEY_CONSEQUENCE}` : ''}.`,
       );
     }
   },
