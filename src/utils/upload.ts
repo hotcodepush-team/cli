@@ -12,7 +12,9 @@ import type { DeltaBase } from './delta-bases.js';
 import { fetchDeltaBases } from './delta-bases.js';
 import { BundleTooLargeError } from './errors.js';
 import type { MainBundlePathResolver } from './frameworks/index.js';
+import { omitNativeGlue } from './frameworks/native-glue.js';
 import type { GitProvenance } from './git-provenance.js';
+import { resolveQuantityText } from './output.js';
 import { writePack } from './pack.js';
 import type { ComputedPatch, PatchPair } from './patches.js';
 import { computePatches, resolvePatchPairs } from './patches.js';
@@ -27,6 +29,8 @@ export interface UploadBundleOptions {
   directoryPath: string;
   fingerprint: string;
   gitProvenance: GitProvenance;
+  /** The native glue the files leave out, as the framework names it; none without the framework's member. */
+  nativeGluePaths?: readonly string[];
   platforms: Platform[];
   reporter: Reporter;
   /** The framework's main bundle among the files, which delta packs carry as a patch; none without the framework's member. */
@@ -70,6 +74,29 @@ export function assertWithinBundleBytesLimit(files: BundleFile[]): void {
 }
 
 /**
+ * The files of a build an upload packages: every shipped file but the native glue the binary carries, left out with one
+ * line saying so.
+ */
+export async function collectUploadFiles({
+  directoryPath,
+  nativeGluePaths = [],
+  reporter,
+}: Pick<
+  UploadBundleOptions,
+  'directoryPath' | 'nativeGluePaths' | 'reporter'
+>): Promise<BundleFile[]> {
+  const collectedFiles = await collectBundleFiles(directoryPath);
+  const files = omitNativeGlue(collectedFiles, nativeGluePaths);
+  const omittedFileCount = collectedFiles.length - files.length;
+  if (omittedFileCount > 0) {
+    reporter.report(
+      `Left out ${resolveQuantityText(omittedFileCount, 'file')} of the native glue the binary carries: ${nativeGluePaths.join(', ')}.`,
+    );
+  }
+  return files;
+}
+
+/**
  * The whole upload of a web build: hash every file, find the delta bases and patch the main bundle against the newest
  * earlier bundle and the binaries, sign the manifest where a key is configured, post it, upload only the hashes the app
  * lacks, the full pack, one delta pack per base, then complete.
@@ -82,6 +109,7 @@ export async function uploadBundle(
     directoryPath,
     fingerprint,
     gitProvenance,
+    nativeGluePaths,
     platforms,
     reporter,
     resolveMainBundlePath,
@@ -89,7 +117,11 @@ export async function uploadBundle(
   }: UploadBundleOptions,
 ): Promise<UploadedBundle> {
   reporter.report(`Hashing the files under ${directoryPath}…`);
-  const files = await collectBundleFiles(directoryPath);
+  const files = await collectUploadFiles({
+    directoryPath,
+    nativeGluePaths,
+    reporter,
+  });
   assertWithinBundleBytesLimit(files);
   const deltaBases = await fetchDeltaBases(hotCodePush, {
     appId,

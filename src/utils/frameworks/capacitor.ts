@@ -19,6 +19,7 @@ import {
   applyNativeProjectEdits,
   checkBinaryCreateStep,
 } from './binary-create-step.js';
+import { NATIVE_GLUE_PATHS } from './native-glue.js';
 import type { NativeProjects } from './native-projects.js';
 import { resolveNativeProjects } from './native-projects.js';
 import {
@@ -55,6 +56,7 @@ export const CAPACITOR_CONFIG_FILE_NAMES = [
  * native build, an Xcode phase and the Gradle file the SDK ships, which write the resource file into the app they build.
  */
 export const capacitorFramework: FrameworkModule = {
+  nativeGluePaths: NATIVE_GLUE_PATHS,
   packageName: CAPACITOR_PACKAGE_NAME,
   versionedPackageNames: ['@capacitor/core', CAPACITOR_PACKAGE_NAME],
   checkWiring: project => [

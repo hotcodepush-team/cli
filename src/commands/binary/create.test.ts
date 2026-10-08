@@ -29,7 +29,10 @@ import {
   respondWithApiError,
   useCommandHarness,
 } from '../../../test/command-harness.js';
-import { writeCordovaProject } from '../../../test/cordova-project.js';
+import {
+  writeCordovaProject,
+  writeNativeGlue,
+} from '../../../test/cordova-project.js';
 import {
   BINARY,
   DEMO_APP,
@@ -205,7 +208,7 @@ describe('binary create', () => {
     ]);
   });
 
-  it("should hash a Cordova platform's www with the identity and the place its native build passes in", async () => {
+  it("should hash a Cordova platform's www without the native glue it carries, with the identity and the place its native build passes in", async () => {
     const cordovaDirectoryPath = writeCordovaProject({
       isPluginInstalled: true,
       projectConfig: {
@@ -216,6 +219,7 @@ describe('binary create', () => {
     onTestFinished(() => {
       rmSync(cordovaDirectoryPath, { force: true, recursive: true });
     });
+    writeNativeGlue(join(cordovaDirectoryPath, 'www'));
     const outFilePath = join(
       createTemporaryDirectory('hotcodepush-out-'),
       'hotcodepush.json',
@@ -240,6 +244,7 @@ describe('binary create', () => {
     );
     expect(await createRequest?.json()).toMatchObject({
       build: '20401',
+      files: [{ path: 'index.html', sha256: INDEX_SHA256, sizeBytes: 11 }],
       version: '2.4.1',
       platform: 'android',
     });

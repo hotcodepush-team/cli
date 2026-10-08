@@ -15,6 +15,7 @@ import {
   resolveInputDirectoryPath,
 } from './framework.js';
 import { resolveFrameworkModule } from './frameworks/index.js';
+import { omitNativeGlue } from './frameworks/native-glue.js';
 import { resolveDeviceHosts } from './hosts.js';
 import type { ProjectConfig } from './project-config.js';
 import {
@@ -89,6 +90,8 @@ export const buildStepShape = {
 
 /**
  * The project, the platform, the embedded bundle's files and the fingerprint, read in the order a failure should name them.
+ * The embedded bundle leaves out the native glue the platform copy carries, so its manifest lists what a release of the
+ * same web build lists.
  */
 export async function readBuildStep(
   options: BuildStepOptions,
@@ -112,7 +115,10 @@ export async function readBuildStep(
   );
   const embeddedFiles =
     framework.collectEmbeddedFiles === undefined
-      ? await collectBundleFiles(embeddedBundlePath)
+      ? omitNativeGlue(
+          await collectBundleFiles(embeddedBundlePath),
+          framework.nativeGluePaths ?? [],
+        )
       : await framework.collectEmbeddedFiles(platform, embeddedBundlePath);
   const resourceFilePath = resolve(
     assertMissingParameter(options.resourceFilePath, '--resource-file-path'),

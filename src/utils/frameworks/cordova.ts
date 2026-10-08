@@ -10,6 +10,7 @@ import {
   resolveCommandLineText,
   runCommandLineVisibly,
 } from '../package-manager.js';
+import { NATIVE_GLUE_PATHS } from './native-glue.js';
 import { checkSdkPackage, isSdkPackageDeclared } from './sdk-package.js';
 import type {
   FrameworkCheck,
@@ -58,6 +59,7 @@ const WEB_DIRECTORY = 'www';
  * an Xcode phase and a Gradle task the plugin wires itself, which write the resource file into the app they build.
  */
 export const cordovaFramework: FrameworkModule = {
+  nativeGluePaths: NATIVE_GLUE_PATHS,
   packageName: CORDOVA_PACKAGE_NAME,
   versionedPackageNames: [
     'cordova',

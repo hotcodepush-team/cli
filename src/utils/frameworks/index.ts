@@ -30,6 +30,12 @@ export interface FrameworkCheck {
  * and build step are wired and checked.
  */
 export interface FrameworkModule {
+  /**
+   * The native glue the platform copies beside the web build, which the binary serves under every bundle: left out of
+   * the embedded manifest and of an upload alike, so a release lists what the embedded bundle lists. Without the member
+   * nothing is left out.
+   */
+  nativeGluePaths?: readonly string[];
   packageName: string;
   /**
    * The packages whose installed versions a bug report needs.

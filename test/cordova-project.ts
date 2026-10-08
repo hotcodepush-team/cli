@@ -1,6 +1,6 @@
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 /**
  * What a Cordova project starts with in a test: the plugin when installed, its own `config.xml` and configuration.
@@ -67,6 +67,21 @@ export function writeCordovaProject({
   mkdirSync(join(directoryPath, 'www'));
   writeFileSync(join(directoryPath, 'www', 'index.html'), '<h1>v1</h1>');
   return directoryPath;
+}
+
+/**
+ * The native glue a platform copy carries beside the web build, Capacitor's and Cordova's alike: Cordova's bridge,
+ * its plugin list and a plugin's script, the files the binary serves under every bundle.
+ */
+export function writeNativeGlue(webDirectoryPath: string): void {
+  for (const path of [
+    'cordova.js',
+    'cordova_plugins.js',
+    'plugins/cordova-plugin-example/www/example.js',
+  ]) {
+    mkdirSync(dirname(join(webDirectoryPath, path)), { recursive: true });
+    writeFileSync(join(webDirectoryPath, path), '// the binary serves this\n');
+  }
 }
 
 function writeJson(filePath: string, value: object): void {

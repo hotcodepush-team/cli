@@ -205,6 +205,7 @@ export async function resolveUploadBundleOptions(
       projectConfig?.extraFingerprintPaths ?? [],
     ),
     gitProvenance: await resolveGitProvenance(directoryPath, options),
+    nativeGluePaths: framework.nativeGluePaths,
     reporter: createReporter(options),
     resolveMainBundlePath: framework.resolveMainBundlePath,
     signingPrivateKey: await readSigningPrivateKey(

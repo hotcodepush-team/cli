@@ -19,6 +19,7 @@ import {
   stubInteractiveTerminal,
   useCommandHarness,
 } from '../../../test/command-harness.js';
+import { writeNativeGlue } from '../../../test/cordova-project.js';
 import {
   BINARY,
   DEMO_APP,
@@ -254,6 +255,27 @@ describe('bundle upload', () => {
     expect(harness.readLines()).toEqual([
       `Uploaded bundle #17 · 1.4.2 (${READY_BUNDLE.id}): 1 files moved, 34 B.`,
     ]);
+  });
+
+  it('should leave the native glue the build carries out of the files it uploads', async () => {
+    writeNativeGlue(join(projectDirectoryPath, 'dist'));
+    respondWithUploadRoutes();
+
+    await bundleUploadCommand.action(
+      {
+        config: join(projectDirectoryPath, 'hotcodepush.json'),
+        json: true,
+        noGit: true,
+      },
+      undefined,
+    );
+
+    expect(await readRequest('POST', '/bundles')?.json()).toMatchObject({
+      files: [
+        { path: 'assets/app.js', sha256: APP_JS_SHA256, sizeBytes: 14 },
+        { path: 'index.html', sha256: INDEX_SHA256, sizeBytes: 11 },
+      ],
+    });
   });
 
   it('should print the warnings the API answers beside the created bundle on stderr', async () => {

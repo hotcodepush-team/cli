@@ -28,6 +28,7 @@ import {
   respondWithApiError,
   useCommandHarness,
 } from '../../../test/command-harness.js';
+import { writeNativeGlue } from '../../../test/cordova-project.js';
 import { DEMO_APP, PRODUCTION_CHANNEL } from '../../../test/fixtures.js';
 import {
   CHANNELS_PATH,
@@ -122,6 +123,16 @@ describe('resource-file write', () => {
     });
     expect(harness.readLines()).toEqual([`Wrote ${resourceFilePath} for ios.`]);
     expect(stderrWrite).not.toHaveBeenCalled();
+  });
+
+  it('should leave the native glue the platform copy carries out of the embedded manifest', async () => {
+    writeNativeGlue(join(projectDirectoryPath, 'www'));
+
+    await writeIosResourceFile();
+
+    expect(readResourceFile().embeddedBundleManifest?.files).toEqual([
+      { path: 'index.html', sha256: INDEX_SHA256, sizeBytes: 11 },
+    ]);
   });
 
   it('should print where the resource file went with --json', async () => {

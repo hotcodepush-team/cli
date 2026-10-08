@@ -13,7 +13,6 @@ import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
 import { resolveAudienceText } from '../../utils/audience.js';
 import { booleanFlagSchema } from '../../utils/boolean-flag.js';
-import { collectBundleFiles } from '../../utils/bundle-files.js';
 import {
   fetchBundle,
   resolveBundleLabel,
@@ -49,6 +48,7 @@ import {
 import type { UploadBundleOptions } from '../../utils/upload.js';
 import {
   assertWithinBundleBytesLimit,
+  collectUploadFiles,
   uploadBundle,
 } from '../../utils/upload.js';
 import type { BundleUploadOptions } from '../bundle/upload.js';
@@ -321,8 +321,8 @@ async function printDryRun(
   options: ReleaseCreateOptions,
 ): Promise<void> {
   if ('bundleUploads' in bundleSource) {
-    for (const { directoryPath } of bundleSource.bundleUploads) {
-      assertWithinBundleBytesLimit(await collectBundleFiles(directoryPath));
+    for (const bundleUpload of bundleSource.bundleUploads) {
+      assertWithinBundleBytesLimit(await collectUploadFiles(bundleUpload));
     }
   }
   for (const { audience } of channelAudiences) {

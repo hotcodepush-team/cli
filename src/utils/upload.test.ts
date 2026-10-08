@@ -14,6 +14,7 @@ import {
   TOKEN,
   useCommandHarness,
 } from '../../test/command-harness.js';
+import { writeNativeGlue } from '../../test/cordova-project.js';
 import {
   DEMO_APP,
   PREVIOUS_BUNDLE,
@@ -21,10 +22,12 @@ import {
 } from '../../test/fixtures.js';
 import type { DeltaBase } from './delta-bases.js';
 import { BundleTooLargeError } from './errors.js';
+import { NATIVE_GLUE_PATHS } from './frameworks/native-glue.js';
 import {
   assertWithinBundleBytesLimit,
   buildManifestToSign,
   BUNDLE_BYTES_LIMIT,
+  collectUploadFiles,
   resolveDeltaPack,
   resolveMissingSha256s,
   uploadDeltaPack,
@@ -274,6 +277,39 @@ describe('upload', () => {
       ],
     ])('should make no delta pack %s', (_condition, base) => {
       expect(resolveDeltaPack(base, PACK_FILES, [])).toBeUndefined();
+    });
+  });
+
+  describe('collectUploadFiles', () => {
+    it('should leave out the native glue the framework names and say so in one line', async () => {
+      writeFileSync(join(directoryPath, 'index.html'), '<h1>v1</h1>');
+      writeNativeGlue(directoryPath);
+      const reports: string[] = [];
+
+      const files = await collectUploadFiles({
+        directoryPath,
+        nativeGluePaths: NATIVE_GLUE_PATHS,
+        reporter: { report: line => reports.push(line) },
+      });
+
+      expect(files.map(({ path }) => path)).toEqual(['index.html']);
+      expect(reports).toEqual([
+        'Left out 3 files of the native glue the binary carries: cordova.js, cordova_plugins.js, plugins/.',
+      ]);
+    });
+
+    it('should keep every file and say nothing when the framework names no native glue', async () => {
+      writeFileSync(join(directoryPath, 'index.html'), '<h1>v1</h1>');
+      writeNativeGlue(directoryPath);
+      const reports: string[] = [];
+
+      const files = await collectUploadFiles({
+        directoryPath,
+        reporter: { report: line => reports.push(line) },
+      });
+
+      expect(files).toHaveLength(4);
+      expect(reports).toEqual([]);
     });
   });
 
