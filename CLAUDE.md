@@ -28,6 +28,7 @@ src/
                the pack writer, the git provenance, the device hosts derived from the API URL,
                the upload flow, the private key an upload is given, read into the pair that signs, and the writer of its file,
                the delta bases, the main bundle's patches and the bsdiff module behind one function,
+               the native glue the Capacitor and Cordova modules name, one constant in `frameworks/native-glue.ts`,
                the build step both commands share, the resource file,
                the progress lines, the browser opener, the JSON, tables and details output,
                init's step runner, the outcome rows init and doctor print, the package manager and its visible runs,
@@ -38,7 +39,7 @@ src/
                the manual step that runs `init`
 test/          the command tests' harness, the API faked behind fetch, their fixtures, the release routes
                and the Capacitor project a test writes, with the pbxproj of `cap add ios`, its Gradle file and the old resource reference, the fingerprint inputs,
-               the Cordova project with its `config.xml`, the React Native project with its pbxproj,
+               the Cordova project with its `config.xml` and the native glue a platform copy carries, the React Native project with its pbxproj,
                the protocol's fixtures read from the installed package; never built
 bsdiff-wasm/   the bsdiff module, our build of the Rust crate `qbsdiff`: the crate that wraps it, its `Cargo.lock`,
                the pure-Rust stand-in for `cdivsufsort` under `patches/`, `build.sh`, and the built `bsdiff.wasm`,
@@ -78,13 +79,13 @@ No releases yet: the version stays `0.0.0`, and release-please and npm provenanc
 
 ## Adding a framework
 
-1. `src/utils/frameworks/<framework>.ts` exports a `FrameworkModule`: the build output, the native projects, what `init` installs and wires,
+1. `src/utils/frameworks/<framework>.ts` exports a `FrameworkModule`: the build output, read when the upload runs, or the reason there is none, the native projects, the optional `nativeGluePaths` left out of the embedded manifest and of an upload, what `init` installs and wires,
    what `doctor` checks, and, where the framework has one,
    the optional `resolveMainBundlePath`, which names the main JavaScript bundle among a bundle's files for the delta packs to carry as a patch.
 2. One line joins the registry in `src/utils/frameworks/index.ts`.
 3. Nothing outside the module names the framework: a command asks the module, never a config file or a path of its own.
 
-Capacitor's module reads `capacitor.config` as text and no native file; Cordova's reads `config.xml` through `fast-xml-parser` for the file-mode preference alone. The store build's identity comes from the build on every framework, never from a project file: the hook script passes the version and the build number it read from the processed `Info.plist` or the variant. Capacitor and React Native are wired the same way, `init` adding the phase and the Gradle line; Cordova's plugin and Expo's config plugin wire themselves.
+Capacitor's module reads `capacitor.config` as text and no native file, `webDir` when the upload runs, and a config with no `webDir` readable as a quoted string makes `--path` required, `E_MISSING_PARAMETER` naming the reason; Cordova's reads `config.xml` through `fast-xml-parser` for the file-mode preference alone. The store build's identity comes from the build on every framework, never from a project file: the hook script passes the version and the build number it read from the processed `Info.plist` or the variant. Capacitor and React Native are wired the same way, `init` adding the phase and the Gradle line; Cordova's plugin and Expo's config plugin wire themselves.
 React Native's and Expo's have no build output to read and share React Native's release build in `frameworks/react-native-build.ts`: `packageReactNativeBundles` runs the module's bundler and Hermes' compiler per platform into the command's packaging directory, one bundle each, `collectEmbeddedFiles` takes `main.jsbundle` and `assets/` out of the app the Xcode phase points at, the native build passes the identity and `--resource-file-path` in, and `resolveMainBundlePath` answers `main.jsbundle` on iOS and `index.android.bundle` on Android where a bundle's files hold it.
 The bundler is all the two differ in there: `react-native bundle` with the project's entry file for React Native, `expo export:embed`, which resolves the entry file itself, for Expo.
 `--path` is the prepared bundle directory of the one platform `--platform` names, refused without the JavaScript under the name that platform's app loads.
@@ -148,7 +149,7 @@ A project with an app config that is code, or with a JSON one that does not pars
   A patch that cannot be made — a base file the files host does not answer or answers with other bytes, a diff that fails — sends the file whole and says so in one line, never failing the upload.
   A patch is made once per pair of contents, however many bases share it; the base files are fetched by hash from the files host three at a time, and the diffs run one after another.
   bsdiff goes through `utils/bsdiff.ts` alone, over the module in `bsdiff-wasm/`: the BSDIFF40 format the SDKs apply, the algorithm `qbsdiff`'s and never written here.
-- **The build step is two commands over one module, `utils/build-step.ts`**: `resource-file write` resolves the channel and writes the resource file; `binary create` does the same and creates the binary first, so the file carries its embedded bundle's id. An id is taken as it is and never asks the API; a name is resolved through the API, which alone knows the id the resource file carries, and a name the app lacks fails everywhere with `E_INVALID_PARAMETER`.
+- **The build step is two commands over one module, `utils/build-step.ts`**: `resource-file write` resolves the channel and writes the resource file; `binary create` does the same and creates the binary first, so the file carries its embedded bundle's id. An id is taken as it is and never asks the API; a name is resolved through the API, which alone knows the id the resource file carries, and a name the app lacks fails everywhere with `E_INVALID_PARAMETER`. On Capacitor and Cordova the embedded manifest leaves out `NATIVE_GLUE_PATHS`, and `bundle upload`, `release create`'s upload and its dry run leave out the same glue, with one progress line.
   `resource-file write` never fails for want of a token or an API, in CI too: with `HOTCODEPUSH_OFFLINE=1`, read in `utils/environment.ts`, or without a token, the API is asked nothing, the file carries `channelId: null` or the id it was given, one warning is printed and the exit is 0; an API that cannot be reached or refuses while a name is resolved ends the same way.
   `binary create` is the same on a laptop, warning and creating nothing, and loud in CI: without a token the build fails with `E_NOT_LOGGED_IN`, exit 3, its fix naming `HOTCODEPUSH_TOKEN`, and a failed resolution or a failed creation fails the build there, `E_BINARY_CONFLICT` under an unbumped build number being a pipeline mistake. `isCi()` decides that alone; whether a binary is created is the hook script's choice, by the build's own variables, never the CLI's.
   A build that bundled nothing — a React Native or Expo debug build, Metro serving its JavaScript — is neither: before any token is read, the file is written with `embeddedBundle: null` and the channel id only where the project named the channel by id, no binary is created, one line on stderr says so and the exit is 0; every check in that build answers `SKIPPED` with `BUILD_DEBUG`.
