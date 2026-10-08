@@ -16,8 +16,8 @@ interface AppTarget {
 }
 
 /**
- * The run-script phase that runs binary create in a framework's app target: the script, the phase it follows where
- * binary create reads that phase's output, none to follow the target's last phase, and the manual step that adds it by hand.
+ * The run-script phase that runs the build step in a framework's app target: the script, the phase it follows where
+ * the build step reads that phase's output, none to follow the target's last phase, and the manual step that adds it by hand.
  */
 export interface BinaryCreatePhase {
   anchorPhaseName: string | undefined;
@@ -55,7 +55,7 @@ export function resolveXcodeProjectFilePath(
 }
 
 /**
- * Whether the project already runs binary create: the phase is recognised by the script it runs, the same file name in every SDK.
+ * Whether the project already runs the build step: the phase is recognised by the script it runs, the same file name in every SDK.
  */
 export function hasBinaryCreatePhase(projectFilePath: string): boolean {
   return readFileSync(projectFilePath, 'utf8').includes(
@@ -64,7 +64,7 @@ export function hasBinaryCreatePhase(projectFilePath: string): boolean {
 }
 
 /**
- * Adds the run-script phase that runs binary create to the app target, right after the phase whose output it reads, or
+ * Adds the run-script phase that runs the build step to the app target, right after the phase whose output it reads, or
  * after the target's last phase; the phase already there is left alone, and a project without that phase is the manual step.
  */
 export async function addBinaryCreatePhase(
@@ -88,7 +88,7 @@ export async function addBinaryCreatePhase(
         );
   if (anchorPhaseIndex === -1) {
     throw new XcodeProjectError(
-      `${projectFilePath} has no "${phase.anchorPhaseName}" phase to run binary create after`,
+      `${projectFilePath} has no "${phase.anchorPhaseName}" phase to run the build step after`,
       undefined,
       projectFilePath,
       phase.fix,
@@ -105,11 +105,11 @@ export async function addBinaryCreatePhase(
       shellScript: phase.shellScript,
     },
   );
-  // binary create writes hotcodepush.json, which carries the build's time, on every build; a phase without outputs
+  // the build step writes hotcodepush.json, which carries the build's time, on every build; a phase without outputs
   // that is not marked so makes Xcode warn
   buildPhase.alwaysOutOfDate = 1;
   if (anchorPhaseIndex !== undefined) {
-    // the package appends the phase to the target; binary create belongs right after the phase it reads
+    // the package appends the phase to the target; the build step belongs right after the phase it reads
     const binaryCreatePhase = buildPhases.pop();
     if (binaryCreatePhase !== undefined) {
       buildPhases.splice(anchorPhaseIndex + 1, 0, binaryCreatePhase);

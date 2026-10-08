@@ -22,7 +22,7 @@ export interface FrameworkCheck {
 
 /**
  * What the CLI needs to know about a framework: where its build output and native projects lie, and how its SDK package
- * and binary create step are wired and checked.
+ * and build step are wired and checked.
  */
 export interface FrameworkModule {
   packageName: string;
@@ -36,7 +36,7 @@ export interface FrameworkModule {
    */
   versionedSdkDependencyNames?: string[];
   /**
-   * The SDK package and the binary create step as `doctor` reports them.
+   * The SDK package and the build step as `doctor` reports them.
    */
   checkWiring: (project: FrameworkProject) => FrameworkCheck[];
   /**
@@ -88,7 +88,7 @@ export interface FrameworkProject {
 export interface FrameworkWiring {
   isPackageInstalled: boolean;
   /**
-   * The native project files wiring the binary create step would change, relative to the project root.
+   * The native project files wiring the build step would change, relative to the project root.
    */
   nativeFilePaths: string[];
   /**
@@ -100,7 +100,7 @@ export interface FrameworkWiring {
    */
   installPackage: () => string;
   /**
-   * Wires the binary create step, or skips what is wired already; the blocker is thrown where a file would change.
+   * Wires the build step, or skips what is wired already; the blocker is thrown where a file would change.
    */
   wireBinaryCreateStep: (
     editBlocker: ConfirmationRequiredError | undefined,

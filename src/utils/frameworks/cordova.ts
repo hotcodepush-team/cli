@@ -54,7 +54,7 @@ const PLUGIN_ADD_COMMAND_LINE: CommandLine = {
 const WEB_DIRECTORY = 'www';
 
 /**
- * Cordova: the web build at `www`, the native projects under `platforms/`, and binary create inside the native build,
+ * Cordova: the web build at `www`, the native projects under `platforms/`, and the build step inside the native build,
  * an Xcode phase and a Gradle task the plugin wires itself, which write the resource file into the app they build.
  */
 export const cordovaFramework: FrameworkModule = {
@@ -83,7 +83,7 @@ function checkHook({ packageJson }: FrameworkProject): FrameworkCheck {
   return isPluginListed(packageJson)
     ? {
         check: 'hook',
-        message: "the plugin's Xcode phase and Gradle task run binary create",
+        message: "the plugin's Xcode phase and Gradle task run the build step",
         status: 'ok',
       }
     : {

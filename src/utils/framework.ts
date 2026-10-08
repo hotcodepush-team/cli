@@ -54,11 +54,12 @@ export function detectFramework(projectDirectoryPath: string): Framework {
 }
 
 /**
- * The build to package: `--path` as typed, against the working directory; otherwise `hotcodepush.json`'s `dir`
- * or the framework's own build output, both relative to the project root; otherwise asked for when interactive.
+ * The build to package: the path the flag names as typed, against the working directory; otherwise `hotcodepush.json`'s
+ * `dir` or the framework's own build output, both relative to the project root; otherwise asked for when interactive.
  */
 export async function resolveInputDirectoryPath(
   options: InputDirectoryOptions,
+  pathFlag: string,
   projectConfig: ProjectConfig | undefined,
   projectDirectoryPath: string,
   framework: Pick<FrameworkModule, 'readBuildDirectory'>,
@@ -72,7 +73,7 @@ export async function resolveInputDirectoryPath(
     return join(projectDirectoryPath, configuredPath);
   }
   return resolve(
-    await promptText('--path', 'Where is the web build?', options),
+    await promptText(pathFlag, 'Where is the web build?', options),
   );
 }
 

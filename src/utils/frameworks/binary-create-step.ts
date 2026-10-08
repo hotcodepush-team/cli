@@ -25,7 +25,7 @@ export interface BinaryCreatePhaseEdit {
 }
 
 /**
- * `doctor`'s `hook` row where the native build runs binary create: the Xcode phase and the Gradle line `init` wires,
+ * `doctor`'s `hook` row where the native build runs the build step: the Xcode phase and the Gradle line `init` wires,
  * the line applying the Gradle file the SDK package ships.
  */
 export function checkBinaryCreateStep(
@@ -46,7 +46,7 @@ export function checkBinaryCreateStep(
   }
   return checkEdits(
     'hook',
-    'the Xcode phase and the Gradle task run binary create',
+    'the Xcode phase and the Gradle task run the build step',
     gradleEdit === undefined ? [] : [gradleEdit],
     projectDirectoryPath,
     xcodeProjectFilePath !== undefined &&

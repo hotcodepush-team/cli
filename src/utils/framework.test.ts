@@ -66,6 +66,7 @@ describe('framework', () => {
     expect(
       await resolveInputDirectoryPath(
         { path: '/abs/dist' },
+        '--path',
         { dir: 'www' },
         projectDirectoryPath,
         CAPACITOR,
@@ -74,6 +75,7 @@ describe('framework', () => {
     expect(
       await resolveInputDirectoryPath(
         { path: '../dist' },
+        '--path',
         { dir: 'www' },
         projectDirectoryPath,
         CAPACITOR,
@@ -85,6 +87,7 @@ describe('framework', () => {
     expect(
       await resolveInputDirectoryPath(
         {},
+        '--path',
         { dir: 'www' },
         projectDirectoryPath,
         CAPACITOR,
@@ -97,6 +100,7 @@ describe('framework', () => {
     expect(
       await resolveInputDirectoryPath(
         {},
+        '--path',
         undefined,
         projectDirectoryPath,
         CAPACITOR,
@@ -108,6 +112,7 @@ describe('framework', () => {
     await expect(
       resolveInputDirectoryPath(
         { json: true },
+        '--path',
         undefined,
         projectDirectoryPath,
         CAPACITOR,

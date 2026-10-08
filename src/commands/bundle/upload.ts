@@ -220,6 +220,7 @@ export async function resolveUploadBundleOptions(
           {
             directoryPath: await resolveInputDirectoryPath(
               options,
+              '--path',
               projectConfig,
               directoryPath,
               framework,

@@ -18,7 +18,7 @@ const GRADLE_FILE_MARKER = 'hotcodepush.gradle';
 const GRADLE_FILE_NAMES = ['build.gradle', 'build.gradle.kts'];
 
 /**
- * The app's Gradle file applies the Gradle file the SDK package ships, which holds the task that runs binary create: one line,
+ * The app's Gradle file applies the Gradle file the SDK package ships, which holds the task that runs the build step: one line,
  * resolved through Node so it finds the package wherever `node_modules` lies, in the syntax of the file it joins.
  */
 export function resolveGradleEdit(
@@ -33,7 +33,7 @@ export function resolveGradleEdit(
   }
   const resolvePackageScript = `require.resolve('${packageName}/package.json')`;
   return {
-    description: 'the Gradle task that runs binary create',
+    description: 'the Gradle task that runs the build step',
     filePath,
     isApplied: () =>
       readFileSync(filePath, 'utf8').includes(GRADLE_FILE_MARKER),

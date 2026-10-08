@@ -82,6 +82,22 @@ describe('xcode-project', () => {
     ).toBe('present');
   });
 
+  it('should mark the phase to run on every build, since the resource file carries the build time', async () => {
+    await addBinaryCreatePhase(projectFilePath, APPENDED_PHASE, {});
+
+    expect(readFileSync(projectFilePath, 'utf8')).toMatch(
+      /\/\* Create HotCodePush binary \*\/ = \{[^}]*\balwaysOutOfDate = 1;/,
+    );
+  });
+
+  it("should declare the processed Info.plist as the phase's input, since the script reads the version and build from it", async () => {
+    await addBinaryCreatePhase(projectFilePath, APPENDED_PHASE, {});
+
+    expect(readFileSync(projectFilePath, 'utf8')).toMatch(
+      /\/\* Create HotCodePush binary \*\/ = \{[^}]*\binputPaths = \(\n\t+"\$\(TARGET_BUILD_DIR\)\/\$\(INFOPLIST_PATH\)",\n\t+\);/,
+    );
+  });
+
   it('should refuse an --xcode-target that names no app target, listing the targets', async () => {
     await expect(
       addBinaryCreatePhase(projectFilePath, APPENDED_PHASE, {
@@ -111,7 +127,7 @@ describe('xcode-project', () => {
     ).rejects.toMatchObject({
       code: 'E_XCODE_PROJECT',
       fix: ANCHORED_PHASE.fix,
-      message: `${projectFilePath} has no "Bundle React Native code and images" phase to run binary create after`,
+      message: `${projectFilePath} has no "Bundle React Native code and images" phase to run the build step after`,
     });
     expect(hasBinaryCreatePhase(projectFilePath)).toBe(false);
   });
@@ -141,30 +157,6 @@ describe('xcode-project', () => {
 
       expect(readFileSync(reactNativeProjectFilePath, 'utf8')).toMatch(
         /\/\* Bundle React Native code and images \*\/,\n\t+[0-9A-F]+ \/\* Create HotCodePush binary \*\/,/,
-      );
-    });
-
-    it('should mark the phase to run on every build, since the resource file carries the build time', async () => {
-      await addBinaryCreatePhase(
-        reactNativeProjectFilePath,
-        ANCHORED_PHASE,
-        {},
-      );
-
-      expect(readFileSync(reactNativeProjectFilePath, 'utf8')).toMatch(
-        /\/\* Create HotCodePush binary \*\/ = \{[^}]*\balwaysOutOfDate = 1;/,
-      );
-    });
-
-    it("should declare the processed Info.plist as the phase's input, since the script reads the version and build from it", async () => {
-      await addBinaryCreatePhase(
-        reactNativeProjectFilePath,
-        ANCHORED_PHASE,
-        {},
-      );
-
-      expect(readFileSync(reactNativeProjectFilePath, 'utf8')).toMatch(
-        /\/\* Create HotCodePush binary \*\/ = \{[^}]*\binputPaths = \(\n\t+"\$\(TARGET_BUILD_DIR\)\/\$\(INFOPLIST_PATH\)",\n\t+\);/,
       );
     });
   });

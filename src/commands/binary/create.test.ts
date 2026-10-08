@@ -105,7 +105,12 @@ describe('binary create', () => {
     return {
       binaryBuild: '1',
       binaryVersion: '1.0',
-      out: join(projectDirectoryPath, 'build', platform, 'hotcodepush.json'),
+      resourceFilePath: join(
+        projectDirectoryPath,
+        'build',
+        platform,
+        'hotcodepush.json',
+      ),
       platform,
     };
   }
@@ -116,7 +121,7 @@ describe('binary create', () => {
     );
   }
 
-  it('should write the resource file where --out names and create the binary under the identity passed in, uploading what the app lacks', async () => {
+  it('should create the binary under the identity passed in, uploading what the app lacks, and write the resource file where --resource-file-path names with its bundle', async () => {
     let createCount = 0;
     harness.routes[`POST ${BINARIES_PATH}`] = () => {
       createCount += 1;
@@ -197,7 +202,7 @@ describe('binary create', () => {
     });
     expect(harness.readLines()).toEqual([
       `Wrote ${join(projectDirectoryPath, 'build', 'ios', 'hotcodepush.json')} for ios.`,
-      `Registered the binary ios 1.0 (1): 1 files uploaded, ${uploadedByteCount} B.`,
+      `Created the binary ios 1.0 (1): 1 files uploaded, ${uploadedByteCount} B.`,
     ]);
   });
 
@@ -225,8 +230,8 @@ describe('binary create', () => {
         binaryBuild: '20401',
         binaryVersion: '2.4.1',
         config: join(cordovaDirectoryPath, 'hotcodepush.json'),
-        out: outFilePath,
-        path: join(cordovaDirectoryPath, 'www'),
+        embeddedBundlePath: join(cordovaDirectoryPath, 'www'),
+        resourceFilePath: outFilePath,
         platform: 'android',
       },
       undefined,
@@ -329,10 +334,10 @@ describe('binary create', () => {
       undefined,
     );
 
-    expect(existsSync(buildOptions.out)).toBe(true);
+    expect(existsSync(buildOptions.resourceFilePath)).toBe(true);
     expect(harness.readJson()).toEqual({
       binary: { ...BINARY, platform: 'android' },
-      resourceFilePath: buildOptions.out,
+      resourceFilePath: buildOptions.resourceFilePath,
       uploadedBytes: 0,
       uploadedFileCount: 0,
     });
@@ -646,15 +651,19 @@ describe('binary create', () => {
     }
 
     async function createBinary(
-      options: { binaryVersion?: string; json?: boolean; out?: string } = {},
+      options: {
+        binaryVersion?: string;
+        json?: boolean;
+        resourceFilePath?: string;
+      } = {},
     ): Promise<void> {
       await binaryCreateCommand.action(
         {
           binaryBuild: '57',
           binaryVersion: '2.4.1',
           config: join(projectDirectoryPath, 'hotcodepush.json'),
-          out: join(appDirectoryPath, 'hotcodepush.json'),
-          path: appDirectoryPath,
+          embeddedBundlePath: appDirectoryPath,
+          resourceFilePath: join(appDirectoryPath, 'hotcodepush.json'),
           platform: 'ios',
           ...options,
         },
@@ -662,7 +671,7 @@ describe('binary create', () => {
       );
     }
 
-    it('should hash the JavaScript and its assets out of the app, with the identity the build passes in, into the place --out names', async () => {
+    it('should hash the JavaScript and its assets out of the app, with the identity the build passes in, into the place --resource-file-path names', async () => {
       writeBundledJavaScript();
 
       await createBinary();
@@ -762,12 +771,12 @@ describe('binary create', () => {
       });
     });
 
-    it('should name --out when the build does not say where the resource file goes', async () => {
+    it('should name --resource-file-path when the build does not say where the resource file goes', async () => {
       writeBundledJavaScript();
 
-      await expect(createBinary({ out: undefined })).rejects.toThrow(
-        new MissingParameterError('--out'),
-      );
+      await expect(
+        createBinary({ resourceFilePath: undefined }),
+      ).rejects.toThrow(new MissingParameterError('--resource-file-path'));
       expect(
         harness.requests.filter(({ method }) => method === 'POST'),
       ).toEqual([]);

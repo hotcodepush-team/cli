@@ -412,7 +412,7 @@ async function fetchUnregisteredPublicKeyCount(
 }
 
 /**
- * The framework's SDK package and binary create step; a project without a framework the CLI knows gets the one row that says so.
+ * The framework's SDK package and build step; a project without a framework the CLI knows gets the one row that says so.
  * The resource file is not checked: every build writes it into the app it builds, never into the project.
  */
 function checkFramework(project: Project): DoctorCheck[] {

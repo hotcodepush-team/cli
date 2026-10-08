@@ -360,7 +360,7 @@ describe('expoFramework', () => {
         {
           check: 'hook',
           message:
-            'app.json lists the config plugin, which wires binary create at prebuild',
+            'app.json lists the config plugin, which wires the build step at prebuild',
           status: 'ok',
         },
       ]);
@@ -379,7 +379,7 @@ describe('expoFramework', () => {
         {
           check: 'hook',
           message:
-            'app.config.ts lists the config plugin, which wires binary create at prebuild',
+            'app.config.ts lists the config plugin, which wires the build step at prebuild',
           status: 'ok',
         },
       ]);

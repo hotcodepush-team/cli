@@ -114,7 +114,7 @@ describe('cordova', () => {
     ).toBe('ok');
   });
 
-  it('should install the plugin through cordova plugin add and leave binary create to the build steps it wires', async () => {
+  it('should install the plugin through cordova plugin add and leave the build step to the Xcode phase and Gradle task it wires', async () => {
     const directoryPath = writeProject();
     const wiring = await cordovaFramework.resolveWiring(
       { directoryPath, packageJson: readPackageJson(directoryPath) },

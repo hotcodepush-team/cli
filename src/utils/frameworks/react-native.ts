@@ -49,7 +49,7 @@ import type {
 
 /**
  * The phase runs the SDK package's script through React Native's `with-environment.sh`, which finds Node, right after
- * the bundling whose output binary create hashes.
+ * the bundling whose output the build step hashes.
  */
 const BINARY_CREATE_PHASE: BinaryCreatePhase = {
   anchorPhaseName: 'Bundle React Native code and images',
@@ -71,7 +71,7 @@ const POD_NAME = 'HotcodepushReactNativeCodePush';
 
 /**
  * React Native: no build output in the project, since each platform's JavaScript is bundled when it is needed — by the
- * native build, whose Xcode phase and Gradle task run binary create on what it bundled, and by the upload, one bundle
+ * native build, whose Xcode phase and Gradle task run the build step on what it bundled, and by the upload, one bundle
  * per platform. The app hands React Native the bundle the SDK serves, one line in `AppDelegate.swift` and one in `MainApplication.kt`.
  */
 export const reactNativeFramework: FrameworkModule = {
@@ -237,7 +237,7 @@ async function wireBinaryCreateStep(
   const arePodsInstalled = isPodInstalled(nativeProjects.ios);
   if (isPhaseWired && pendingEdits.length === 0 && arePodsInstalled) {
     return {
-      message: 'binary create and the bundle wiring already wired',
+      message: 'the build step and the bundle wiring already wired',
       status: 'skipped',
       value: undefined,
     };

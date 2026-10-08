@@ -39,7 +39,7 @@ export const CAPACITOR_CONFIG_FILE_NAMES = [
 ];
 
 /**
- * Capacitor: the web build at `webDir`, the native projects at `ios/` and `android/`, and binary create inside the
+ * Capacitor: the web build at `webDir`, the native projects at `ios/` and `android/`, and the build step inside the
  * native build, an Xcode phase and the Gradle file the SDK ships, which write the resource file into the app they build.
  */
 export const capacitorFramework: FrameworkModule = {
@@ -79,7 +79,7 @@ function readConfigValue(
 }
 
 /**
- * Capacitor's `webDir`, the web build binary create hashes.
+ * Capacitor's `webDir`, the web build the build step hashes by default.
  */
 function readWebDir(projectDirectoryPath: string): string | undefined {
   return readConfigValue(

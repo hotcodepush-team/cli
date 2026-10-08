@@ -108,7 +108,7 @@ function addPluginEntry(filePath: string): void {
 }
 
 /**
- * `doctor`'s `hook` row: the app config lists the plugin, which wires binary create into the native builds at prebuild.
+ * `doctor`'s `hook` row: the app config lists the plugin, which wires the build step into the native builds at prebuild.
  */
 function checkPluginEntry({ directoryPath }: FrameworkProject): FrameworkCheck {
   const appConfigFileNames = findAppConfigFileNames(directoryPath);
@@ -119,7 +119,7 @@ function checkPluginEntry({ directoryPath }: FrameworkProject): FrameworkCheck {
   if (pluginEntryFileName !== undefined) {
     return {
       check: 'hook',
-      message: `${pluginEntryFileName} lists the config plugin, which wires binary create at prebuild`,
+      message: `${pluginEntryFileName} lists the config plugin, which wires the build step at prebuild`,
       status: 'ok',
     };
   }

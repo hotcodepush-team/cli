@@ -16,9 +16,9 @@ import type { ProjectConfig } from './project-config.js';
 import type { Platform } from './upload.js';
 
 /**
- * The bundle a build embeds: its files, the version its manifest carries, and its id, null while the API has not registered it.
+ * The bundle a build embeds: its files, the version its manifest carries, and its id, null while no binary was created with it.
  */
-interface EmbeddedBundle {
+export interface EmbeddedBundle {
   bundleVersion: string;
   files: BundleFile[];
   id: string | null;
@@ -37,7 +37,7 @@ interface ResourceFileInput {
 }
 
 /**
- * The resource file: the project's configuration with the channel as the id binary create resolved, null offline, plus what only
+ * The resource file: the project's configuration with the channel as the id the build step resolved, null offline, plus what only
  * a build step can know — the floor, the fingerprint, the embedded bundle's manifest and id, both null without an embedded bundle,
  * and the device hosts outside production.
  * The manifest is the bundle manifest without patches, unsigned, the same whether the bundle was registered or not.
