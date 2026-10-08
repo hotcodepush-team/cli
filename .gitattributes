@@ -1,0 +1,2 @@
+# Xcode writes its projects with LF line endings; the test projects keep them on every checkout, Windows included
+*.pbxproj text eol=lf
