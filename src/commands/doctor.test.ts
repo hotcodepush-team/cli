@@ -161,7 +161,7 @@ describe('doctor', () => {
     );
   });
 
-  it("should check a Cordova project by its plugin, its hook and the resource file beside each prepared platform's web assets", async () => {
+  it('should check a Cordova project by its plugin and the build steps it wires, with no resource file in the native projects to read', async () => {
     const directoryPath = writeCordovaProject({
       isPluginInstalled: true,
       projectConfig: {
@@ -171,19 +171,13 @@ describe('doctor', () => {
       },
     });
     directoryPaths.push(directoryPath);
-    const assetsPath = join(
-      directoryPath,
-      'platforms/android/app/src/main/assets/www',
-    );
-    mkdirSync(assetsPath, { recursive: true });
+    mkdirSync(join(directoryPath, 'platforms', 'android'), { recursive: true });
     respondWithSessionAndApp();
 
-    await expect(
-      doctorCommand.action(
-        { config: join(directoryPath, 'hotcodepush.json'), json: true },
-        undefined,
-      ),
-    ).rejects.toBeInstanceOf(ReportedFailureError);
+    await doctorCommand.action(
+      { config: join(directoryPath, 'hotcodepush.json'), json: true },
+      undefined,
+    );
 
     const result = harness.readJson() as DoctorResult;
     expect(
@@ -194,12 +188,9 @@ describe('doctor', () => {
       'package:ok',
       'hook:ok',
       'android-file-mode:ok',
-      'android-resource-file:failed',
+      'android-resource-file:skipped',
       'ios-resource-file:skipped',
     ]);
-    expect(result.checks[6]?.manualStep).toBe(
-      'run npx cordova prepare, which runs binary create',
-    );
     expect(result.checks.at(-1)?.message).toMatch(
       /, cordova 13\.0\.0, cordova-android 15\.1\.0, cordova-ios missing, @hotcodepush\/cordova-code-push 0\.1\.0$/,
     );

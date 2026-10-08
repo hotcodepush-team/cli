@@ -6,7 +6,7 @@ import {
   writeCordovaProject,
 } from '../../../test/cordova-project.js';
 import { readPackageJson } from '../binary-create-hook.js';
-import { InvalidParameterError } from '../errors.js';
+import { MissingParameterError } from '../errors.js';
 import type * as packageManagerModule from '../package-manager.js';
 import { runCommandLineVisibly } from '../package-manager.js';
 import { cordovaFramework } from './cordova.js';
@@ -48,68 +48,19 @@ describe('cordova', () => {
     expect(cordovaFramework.readBuildDirectory(directoryPath)).toBe('www');
   });
 
-  it("should read the store build's identity from the build numbers config.xml names", () => {
-    const directoryPath = writeProjectWithWidget(
-      'version="2.4.1" ios-CFBundleVersion="57" android-versionCode="20457"',
-    );
-
-    expect(cordovaFramework.readBinaryIdentity('ios', directoryPath)).toEqual({
-      binaryBuild: '57',
-      binaryVersion: '2.4.1',
-    });
-    expect(
-      cordovaFramework.readBinaryIdentity('android', directoryPath),
-    ).toEqual({ binaryBuild: '20457', binaryVersion: '2.4.1' });
-  });
-
-  it('should derive the build numbers as Cordova does when config.xml names none', () => {
-    const directoryPath = writeProjectWithWidget('version="2.4.1-rc.1"');
-
-    expect(cordovaFramework.readBinaryIdentity('ios', directoryPath)).toEqual({
-      binaryBuild: '2.4.1',
-      binaryVersion: '2.4.1-rc.1',
-    });
-    expect(
-      cordovaFramework.readBinaryIdentity('android', directoryPath),
-    ).toEqual({ binaryBuild: '20401', binaryVersion: '2.4.1-rc.1' });
-  });
-
-  it('should name the flag to pass when config.xml is missing', () => {
-    const directoryPath = writeProject();
-    rmSync(join(directoryPath, 'config.xml'));
-
+  it("should ask for the identity, which the plugin's build steps pass in from the build's variables", () => {
     expect(() =>
-      cordovaFramework.readBinaryIdentity('ios', directoryPath),
-    ).toThrow(InvalidParameterError);
+      cordovaFramework.readBinaryIdentity('ios', writeProject()),
+    ).toThrow(new MissingParameterError('--binary-version'));
   });
 
-  it('should name the flag to pass when config.xml carries no version', () => {
-    const directoryPath = writeProjectWithWidget('id="com.example.demo"');
-
-    expect(() =>
-      cordovaFramework.readBinaryIdentity('android', directoryPath),
-    ).toThrow(/version is missing from .*config\.xml/);
-  });
-
-  it("should place the resource file beside each platform's web assets", () => {
-    const directoryPath = writeProject();
+  it('should name no resource file in the native projects, which the build writes into the app it builds', () => {
     const nativeProjectPaths =
-      cordovaFramework.resolveNativeProjectPaths(directoryPath);
+      cordovaFramework.resolveNativeProjectPaths(writeProject());
 
     expect(
       cordovaFramework.resolveResourceFilePath('ios', nativeProjectPaths.ios),
-    ).toBe(join(directoryPath, 'platforms/ios/www/hotcodepush.json'));
-    expect(
-      cordovaFramework.resolveResourceFilePath(
-        'android',
-        nativeProjectPaths.android,
-      ),
-    ).toBe(
-      join(
-        directoryPath,
-        'platforms/android/app/src/main/assets/www/hotcodepush.json',
-      ),
-    );
+    ).toBeUndefined();
   });
 
   it('should report the plugin and its hook ok when package.json lists the plugin among Cordova’s', () => {
@@ -179,7 +130,7 @@ describe('cordova', () => {
     ).toBe('ok');
   });
 
-  it('should install the plugin through cordova plugin add and leave binary create to its hook', async () => {
+  it('should install the plugin through cordova plugin add and leave binary create to the build steps it wires', async () => {
     const directoryPath = writeProject();
     const wiring = await cordovaFramework.resolveWiring(
       { directoryPath, packageJson: readPackageJson(directoryPath) },
@@ -202,7 +153,8 @@ describe('cordova', () => {
       directoryPath,
     );
     expect(await wiring.wireBinaryCreateStep(undefined)).toEqual({
-      message: 'the plugin brings its after_prepare hook; nothing to wire',
+      message:
+        'the plugin wires its Xcode phase and Gradle task itself; nothing to wire',
       status: 'skipped',
       value: undefined,
     });

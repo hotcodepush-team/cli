@@ -712,7 +712,7 @@ describe('init', () => {
       package: 'done',
     });
     expect(result.steps.find(({ step }) => step === 'hook')?.message).toBe(
-      'the plugin brings its after_prepare hook; nothing to wire',
+      'the plugin wires its Xcode phase and Gradle task itself; nothing to wire',
     );
   });
 
