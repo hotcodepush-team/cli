@@ -13,7 +13,7 @@ When code and plan disagree, stop and surface it; never improvise.
 ```
 src/
   index.ts     the registry: space-separated command names, each a lazy import
-  commands/    a folder per noun and a file per verb, channel/create.ts; the standalone commands flat, login.ts, init.ts, doctor.ts, open.ts
+  commands/    a folder per noun and a file per verb, channel/create.ts, resource-file/write.ts; the standalone commands flat, login.ts, init.ts, doctor.ts, open.ts
   utils/       the runner, command resolution and did-you-mean, the E_ catalog and its one mapping,
                the global options, environment detection, config.json, the token store,
                the auth client, the API client, hotcodepush.json and its directory, the JSON files a person edits read as `E_INVALID_JSON` when they do not parse, a resource by id or name,
@@ -28,16 +28,16 @@ src/
                the pack writer, the git provenance, the device hosts derived from the API URL,
                the upload flow, the private key an upload is given, read into the pair that signs, and the writer of its file,
                the delta bases, the main bundle's patches and the bsdiff module behind one function,
-               the store build's binary identity from the native projects, the resource file,
+               the build step both commands share, the resource file,
                the progress lines, the browser opener, the JSON, tables and details output,
                init's step runner, the outcome rows init and doctor print, the package manager and its visible runs,
-               the binary create hook in package.json, the resource reference and the binary create phase in the Xcode project,
+               the native-project edits: the binary create phase in the Xcode project and the removal of the resource reference an earlier init added, package.json reading,
                the lines a React Native project is wired with
   config/      consts: the API URL, the client id and header, the config file, the docs and issues URLs,
                the keyring entry, package.json, the project file, the SDK packages' names and pinned specs,
                the manual step that runs `init`
 test/          the command tests' harness, the API faked behind fetch, their fixtures, the release routes
-               and the Capacitor project a test writes, with the pbxproj of `cap add ios`, the fingerprint inputs,
+               and the Capacitor project a test writes, with the pbxproj of `cap add ios`, its Gradle file and the old resource reference, the fingerprint inputs,
                the Cordova project with its `config.xml`, the React Native project with its pbxproj,
                the protocol's fixtures read from the installed package; never built
 bsdiff-wasm/   the bsdiff module, our build of the Rust crate `qbsdiff`: the crate that wraps it, its `Cargo.lock`,
@@ -78,14 +78,14 @@ No releases yet: the version stays `0.0.0`, and release-please and npm provenanc
 
 ## Adding a framework
 
-1. `src/utils/frameworks/<framework>.ts` exports a `FrameworkModule`: the build output, the native projects, the resource file's place,
-   the store build's identity, what `init` installs and wires, what `doctor` checks, and, where the framework has one,
+1. `src/utils/frameworks/<framework>.ts` exports a `FrameworkModule`: the build output, the native projects, what `init` installs and wires,
+   what `doctor` checks, and, where the framework has one,
    the optional `resolveMainBundlePath`, which names the main JavaScript bundle among a bundle's files for the delta packs to carry as a patch.
 2. One line joins the registry in `src/utils/frameworks/index.ts`.
 3. Nothing outside the module names the framework: a command asks the module, never a config file or a path of its own.
 
-Capacitor's module reads `capacitor.config` as text and the native projects' own files; Cordova's reads `config.xml` through `fast-xml-parser` and derives the store build's identity as Cordova's prepare does.
-React Native's and Expo's have no build output to read and share React Native's release build in `frameworks/react-native-build.ts`: `packageReactNativeBundles` runs the module's bundler and Hermes' compiler per platform into the command's packaging directory, one bundle each, `collectEmbeddedFiles` takes `main.jsbundle` and `assets/` out of the app the Xcode phase points at, the native build passes the identity and `--out` in, and `resolveMainBundlePath` answers `main.jsbundle` on iOS and `index.android.bundle` on Android where a bundle's files hold it.
+Capacitor's module reads `capacitor.config` as text and no native file; Cordova's reads `config.xml` through `fast-xml-parser` for the file-mode preference alone. The store build's identity comes from the build on every framework, never from a project file: the hook script passes the version and the build number it read from the processed `Info.plist` or the variant. Capacitor and React Native are wired the same way, `init` adding the phase and the Gradle line; Cordova's plugin and Expo's config plugin wire themselves.
+React Native's and Expo's have no build output to read and share React Native's release build in `frameworks/react-native-build.ts`: `packageReactNativeBundles` runs the module's bundler and Hermes' compiler per platform into the command's packaging directory, one bundle each, `collectEmbeddedFiles` takes `main.jsbundle` and `assets/` out of the app the Xcode phase points at, the native build passes the identity and `--resource-file-path` in, and `resolveMainBundlePath` answers `main.jsbundle` on iOS and `index.android.bundle` on Android where a bundle's files hold it.
 The bundler is all the two differ in there: `react-native bundle` with the project's entry file for React Native, `expo export:embed`, which resolves the entry file itself, for Expo.
 `--path` is the prepared bundle directory of the one platform `--platform` names, refused without the JavaScript under the name that platform's app loads.
 React Native's wiring is five edits, each recognised afterwards by what it wrote: the Xcode phase through the `xcode` package, and one line each in `build.gradle`, `AppDelegate.swift`, `MainApplication.kt` and the Podfile, in `utils/react-native-project.ts`.
@@ -117,8 +117,8 @@ A project with an app config that is code, or with a JSON one that does not pars
 - **Commands call commands**: a command that needs what another does runs that command's action in place, never a copy of its logic.
 - **A command that reports several outcomes** — `init`'s steps, `doctor`'s checks — prints them itself and ends with `ReportedFailureError` when one failed,
   so the exit code is set without a second message; nothing else throws it.
-- **`init` and `binary create` edit only what they can recognise afterwards**: the hook script gains the `binary create` command or is returned as the manual step,
-  the Xcode project gains one resource reference or one run-script phase through the `xcode` package, a React Native project's other files one line each,
+- **`init` edits only what it can recognise afterwards**: the Xcode project gains one run-script phase through the `xcode` package and loses the resource reference an earlier `init` added,
+  a Capacitor or React Native project's other files one line each,
   an Expo project's JSON app config one plugin entry,
   and `init` names the files it will change and asks once before touching them.
 - **The token** is `readToken()`: `HOTCODEPUSH_TOKEN` when set, then the keyring, then the `config.json` fallback that any keyring failure latches for the rest of the process.
@@ -148,9 +148,9 @@ A project with an app config that is code, or with a JSON one that does not pars
   A patch that cannot be made — a base file the files host does not answer or answers with other bytes, a diff that fails — sends the file whole and says so in one line, never failing the upload.
   A patch is made once per pair of contents, however many bases share it; the base files are fetched by hash from the files host three at a time, and the diffs run one after another.
   bsdiff goes through `utils/bsdiff.ts` alone, over the module in `bsdiff-wasm/`: the BSDIFF40 format the SDKs apply, the algorithm `qbsdiff`'s and never written here.
-- **`binary create` resolves the channel before it writes anything**: an id is taken as it is and never asks the API; a name is resolved through the API, which alone knows the id the resource file carries, and a name the app lacks fails everywhere with `E_INVALID_PARAMETER`.
-  A build that cannot ask still builds: with `HOTCODEPUSH_OFFLINE=1`, read in `utils/environment.ts` and honoured in CI too, or without a token locally, the API is asked nothing, the resource file carries `channelId: null` or the id it was given, no binary is created, one warning is printed and the exit is 0; an API that cannot be reached or refuses while a name is resolved ends the same way locally.
-  CI is the loud half: without a token the build fails with `E_NOT_LOGGED_IN`, exit 3, its fix naming `HOTCODEPUSH_TOKEN` and `HOTCODEPUSH_OFFLINE=1` for a build that is never shipped, and a failed resolution or a failed creation fails the build there, `E_BINARY_CONFLICT` under an unbumped build number being a pipeline mistake.
+- **The build step is two commands over one module, `utils/build-step.ts`**: `resource-file write` resolves the channel and writes the resource file; `binary create` does the same and creates the binary first, so the file carries its embedded bundle's id. An id is taken as it is and never asks the API; a name is resolved through the API, which alone knows the id the resource file carries, and a name the app lacks fails everywhere with `E_INVALID_PARAMETER`.
+  `resource-file write` never fails for want of a token or an API, in CI too: with `HOTCODEPUSH_OFFLINE=1`, read in `utils/environment.ts`, or without a token, the API is asked nothing, the file carries `channelId: null` or the id it was given, one warning is printed and the exit is 0; an API that cannot be reached or refuses while a name is resolved ends the same way.
+  `binary create` is the same on a laptop, warning and creating nothing, and loud in CI: without a token the build fails with `E_NOT_LOGGED_IN`, exit 3, its fix naming `HOTCODEPUSH_TOKEN`, and a failed resolution or a failed creation fails the build there, `E_BINARY_CONFLICT` under an unbumped build number being a pipeline mistake. `isCi()` decides that alone; whether a binary is created is the hook script's choice, by the build's own variables, never the CLI's.
   A build that bundled nothing — a React Native or Expo debug build, Metro serving its JavaScript — is neither: before any token is read, the file is written with `embeddedBundle: null` and the channel id only where the project named the channel by id, no binary is created, one line on stderr says so and the exit is 0; every check in that build answers `SKIPPED` with `BUILD_DEBUG`.
   The fingerprint is the strict half too: a project the recipe cannot read is `E_FINGERPRINT_UNAVAILABLE` on `binary create` and upload alike, never `null`, since a release targets it.
   The device hosts it writes derive from the API URL: none for production, the staging hosts for staging, `<apiUrl>/files` and `/updates` for any other, `HOTCODEPUSH_FILES_BASE_URL` and `HOTCODEPUSH_UPDATES_BASE_URL` overriding.
