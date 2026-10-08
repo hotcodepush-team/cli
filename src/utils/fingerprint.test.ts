@@ -1,5 +1,11 @@
 import { createHash } from 'node:crypto';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { computeFingerprint } from '@hotcodepush/protocol/fingerprint';
@@ -92,17 +98,95 @@ describe('fingerprint', () => {
     );
   });
 
-  it('should refuse a native source that climbs out of a project under a workspace root', async () => {
+  it("should hash a sibling workspace's native source named through ..", async () => {
     writeFingerprintInputs(projectDirectoryPath);
     const appDirectoryPath = writeWorkspaceProject();
     mkdirSync(join(projectDirectoryPath, 'apps', 'shared'));
+    writeFileSync(
+      join(projectDirectoryPath, 'apps', 'shared', 'Bridge.swift'),
+      'import Capacitor\n',
+    );
+
+    expect(await readFingerprint(appDirectoryPath, ['../shared'])).toBe(
+      computeFingerprint({
+        nativeSources: [
+          {
+            path: 'apps/shared/Bridge.swift',
+            sha256: createHash('sha256')
+              .update('import Capacitor\n')
+              .digest('hex'),
+          },
+        ],
+        packages: CAPACITOR_LOCKED_PACKAGES,
+      }),
+    );
+  });
+
+  it('should hash a native source under the path its symbolic link resolves to', async () => {
+    writeFingerprintInputs(projectDirectoryPath);
+    const appDirectoryPath = writeWorkspaceProject();
+    const targetDirectoryPath = join(
+      projectDirectoryPath,
+      'packages',
+      'scanner',
+    );
+    mkdirSync(targetDirectoryPath, { recursive: true });
+    writeFileSync(
+      join(targetDirectoryPath, 'Bridge.swift'),
+      'import Capacitor\n',
+    );
+    symlinkSync(
+      targetDirectoryPath,
+      join(appDirectoryPath, 'native'),
+      'junction',
+    );
+
+    expect(await readFingerprint(appDirectoryPath, ['native'])).toBe(
+      computeFingerprint({
+        nativeSources: [
+          {
+            path: 'packages/scanner/Bridge.swift',
+            sha256: createHash('sha256')
+              .update('import Capacitor\n')
+              .digest('hex'),
+          },
+        ],
+        packages: CAPACITOR_LOCKED_PACKAGES,
+      }),
+    );
+  });
+
+  it("should refuse a native source when its symbolic link leads out of the lockfile's directory", async () => {
+    writeFingerprintInputs(projectDirectoryPath);
+    const outsideDirectoryPath = mkdtempSync(join(tmpdir(), 'hotcodepush-fp-'));
+    symlinkSync(
+      outsideDirectoryPath,
+      join(projectDirectoryPath, 'native'),
+      'junction',
+    );
+
+    try {
+      await expect(
+        readFingerprint(projectDirectoryPath, ['native']),
+      ).rejects.toMatchObject({
+        code: 'E_FINGERPRINT_UNAVAILABLE',
+        message:
+          "the fingerprint cannot be computed: the native source native is not inside the lockfile's directory",
+      });
+    } finally {
+      rmSync(outsideDirectoryPath, { force: true, recursive: true });
+    }
+  });
+
+  it('should refuse a native source when nothing is at its path', async () => {
+    writeFingerprintInputs(projectDirectoryPath);
 
     await expect(
-      readFingerprint(appDirectoryPath, ['../shared']),
+      readFingerprint(projectDirectoryPath, ['native']),
     ).rejects.toMatchObject({
       code: 'E_FINGERPRINT_UNAVAILABLE',
       message:
-        'the fingerprint cannot be computed: the native source "apps/mobile/../shared" is not a relative path without . or .. segments',
+        'the fingerprint cannot be computed: the native source native does not exist',
     });
   });
 
