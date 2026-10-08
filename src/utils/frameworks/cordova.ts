@@ -71,7 +71,7 @@ export const cordovaFramework: FrameworkModule = {
     checkInsecureFileMode(project),
   ],
   // the start page `config.xml` names is a page inside `www`, which the app serves as its root
-  readBuildDirectory: () => WEB_DIRECTORY,
+  readBuildDirectory: () => ({ path: WEB_DIRECTORY }),
   resolveNativeProjectPaths,
   resolveWiring: project => Promise.resolve(resolveWiring(project)),
 };

@@ -44,7 +44,9 @@ describe('cordova', () => {
       '<content src="app/index.html" />',
     );
 
-    expect(cordovaFramework.readBuildDirectory(directoryPath)).toBe('www');
+    expect(cordovaFramework.readBuildDirectory(directoryPath)).toEqual({
+      path: 'www',
+    });
   });
 
   it('should report the plugin and its hook ok when package.json lists the plugin among Cordova’s', () => {

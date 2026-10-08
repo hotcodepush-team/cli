@@ -382,13 +382,12 @@ async function resolveEditBlocker(
 }
 
 function resolveFilesToChange({
-  framework,
   projectConfig,
   wiring,
 }: ProjectFiles): string[] {
   return [
     ...wiring.packageFilePaths,
-    ...(isConfigurationComplete(projectConfig, framework)
+    ...(isConfigurationComplete(projectConfig)
       ? []
       : [PROJECT_CONFIG_FILE_NAME]),
     ...wiring.nativeFilePaths,
@@ -417,15 +416,15 @@ function installPackage(
 }
 
 /**
- * `hotcodepush.json` with the app, its default channel by name and the framework's build output; a file present keeps what it has.
+ * `hotcodepush.json` with the app and its default channel by name; a file present keeps what it has.
  */
 async function writeConfiguration(
   hotCodePush: HotCodePush,
-  { directoryPath, framework, projectConfig }: ProjectFiles,
+  { directoryPath, projectConfig }: ProjectFiles,
   app: App,
   editBlocker: ConfirmationRequiredError | undefined,
 ): Promise<StepOutcome<undefined>> {
-  if (isConfigurationComplete(projectConfig, framework)) {
+  if (isConfigurationComplete(projectConfig)) {
     return {
       message: `${PROJECT_CONFIG_FILE_NAME} already present`,
       status: 'skipped',
@@ -434,14 +433,6 @@ async function writeConfiguration(
   }
   if (editBlocker !== undefined) {
     throw editBlocker;
-  }
-  const dir = projectConfig?.dir ?? framework.readBuildDirectory(directoryPath);
-  if (dir === undefined && framework.packageBundles === undefined) {
-    throw new InvalidParameterError(
-      'the project names no build directory',
-      undefined,
-      `set dir in ${PROJECT_CONFIG_FILE_NAME} to the web build directory.`,
-    );
   }
   const filePath = join(directoryPath, PROJECT_CONFIG_FILE_NAME);
   const sourceText = existsSync(filePath) ? readFileSync(filePath, 'utf8') : '';
@@ -454,7 +445,6 @@ async function writeConfiguration(
         ...(projectConfig?.channel !== undefined
           ? {}
           : { channel: await fetchDefaultChannelName(hotCodePush, app) }),
-        ...(dir === undefined ? {} : { dir }),
       },
       sourceText || '{}\n',
     ),
@@ -568,7 +558,7 @@ function buildProject(
  * The first release through `release create`, interactively only; the web build must exist by then.
  */
 async function releaseFirst(
-  { directoryPath, framework, packageJson, projectConfig }: ProjectFiles,
+  { directoryPath, framework, packageJson }: ProjectFiles,
   isReleaseWanted: boolean,
   isBuilt: boolean,
   options: InitOptions,
@@ -580,19 +570,19 @@ async function releaseFirst(
       value: undefined,
     };
   }
-  const dir =
-    projectConfig?.dir ?? framework.readBuildDirectory(directoryPath) ?? '';
+  const buildDirectory = framework.readBuildDirectory(directoryPath);
   if (
     framework.packageBundles === undefined &&
     !isBuilt &&
-    !existsSync(join(directoryPath, dir))
+    'path' in buildDirectory &&
+    !existsSync(join(directoryPath, buildDirectory.path))
   ) {
     const buildCommandLine = resolveBuildCommandLine(
       directoryPath,
       packageJson,
     );
     return {
-      message: `${buildCommandLine === undefined ? 'no build script and ' : ''}no output at ${dir}; build, then release create`,
+      message: `${buildCommandLine === undefined ? 'no build script and ' : ''}no output at ${buildDirectory.path}; build, then release create`,
       status: 'skipped',
       value: undefined,
     };
@@ -656,16 +646,13 @@ function findNamed<TResource extends { id: string; name: string }>(
 }
 
 /**
- * The file names the app, the channel and, where the upload reads a build from the project, that build's directory.
+ * The file names the app and the channel, all `init` writes.
  */
 function isConfigurationComplete(
   projectConfig: ProjectConfig | undefined,
-  framework: FrameworkModule,
 ): boolean {
   return (
-    projectConfig?.appId !== undefined &&
-    projectConfig?.channel !== undefined &&
-    (framework.packageBundles !== undefined || projectConfig.dir !== undefined)
+    projectConfig?.appId !== undefined && projectConfig.channel !== undefined
   );
 }
 

@@ -27,12 +27,21 @@ import {
   isSdkPackageDeclared,
 } from './sdk-package.js';
 import type {
+  BuildDirectory,
   FrameworkModule,
   FrameworkProject,
   FrameworkWiring,
   NativeProjectPaths,
   WiringOptions,
 } from './index.js';
+
+/**
+ * `capacitor.config.json` or `.ts` as text, since the TypeScript form is code: the values are matched, never evaluated.
+ */
+interface CapacitorConfig {
+  fileName: string;
+  text: string;
+}
 
 const BINARY_CREATE_SCRIPT_PATH = `node_modules/${CAPACITOR_PACKAGE_NAME}/scripts/binary-create-xcode.sh`;
 
@@ -61,34 +70,47 @@ export const capacitorFramework: FrameworkModule = {
   resolveWiring,
 };
 
-/**
- * The text of `capacitor.config.json` or `.ts`, read as text since the TypeScript form is code: the values are matched, never evaluated.
- */
-function readCapacitorConfig(projectDirectoryPath: string): string | undefined {
+function readCapacitorConfig(
+  projectDirectoryPath: string,
+): CapacitorConfig | undefined {
   for (const fileName of CAPACITOR_CONFIG_FILE_NAMES) {
     const filePath = join(projectDirectoryPath, fileName);
     if (existsSync(filePath)) {
-      return readFileSync(filePath, 'utf8');
+      return { fileName, text: readFileSync(filePath, 'utf8') };
     }
   }
   return undefined;
 }
 
 function readConfigValue(
-  configText: string | undefined,
+  capacitorConfig: CapacitorConfig | undefined,
   pattern: RegExp,
 ): string | undefined {
-  return configText === undefined ? undefined : pattern.exec(configText)?.[1];
+  return capacitorConfig === undefined
+    ? undefined
+    : pattern.exec(capacitorConfig.text)?.[1];
 }
 
 /**
- * Capacitor's `webDir`, the web build the build step hashes by default.
+ * Capacitor's `webDir` as `capacitor.config` sets it when the upload runs, the web build an upload packages by default;
+ * a config the CLI cannot read it from is the reason `--path` must name the build.
  */
-function readWebDir(projectDirectoryPath: string): string | undefined {
-  return readConfigValue(
-    readCapacitorConfig(projectDirectoryPath),
+function readWebDir(projectDirectoryPath: string): BuildDirectory {
+  const capacitorConfig = readCapacitorConfig(projectDirectoryPath);
+  if (capacitorConfig === undefined) {
+    return {
+      missingReason: `there is no ${CAPACITOR_CONFIG_FILE_NAMES.join(' or ')} to read webDir from`,
+    };
+  }
+  const webDir = readConfigValue(
+    capacitorConfig,
     /webDir['"]?\s*:\s*['"]([^'"]+)['"]/,
   );
+  return webDir === undefined
+    ? {
+        missingReason: `${capacitorConfig.fileName} sets no webDir the CLI can read as a quoted string`,
+      }
+    : { path: webDir };
 }
 
 /**

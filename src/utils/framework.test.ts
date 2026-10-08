@@ -2,7 +2,6 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MissingParameterError } from './errors.js';
 import { detectFramework, resolveInputDirectoryPath } from './framework.js';
 import { resolveFrameworkModule } from './frameworks/index.js';
 
@@ -67,7 +66,6 @@ describe('framework', () => {
       await resolveInputDirectoryPath(
         { path: '/abs/dist' },
         '--path',
-        { dir: 'www' },
         projectDirectoryPath,
         CAPACITOR,
       ),
@@ -76,47 +74,70 @@ describe('framework', () => {
       await resolveInputDirectoryPath(
         { path: '../dist' },
         '--path',
-        { dir: 'www' },
         projectDirectoryPath,
         CAPACITOR,
       ),
     ).toBe(join(projectDirectoryPath, 'dist'));
   });
 
-  it("should resolve hotcodepush.json's dir and Capacitor's webDir against the project root", async () => {
-    expect(
-      await resolveInputDirectoryPath(
-        {},
-        '--path',
-        { dir: 'www' },
-        projectDirectoryPath,
-        CAPACITOR,
-      ),
-    ).toBe(join(projectDirectoryPath, 'www'));
+  it("should resolve Capacitor's webDir against the project root when the upload runs", async () => {
     writeFileSync(
       join(projectDirectoryPath, 'capacitor.config.json'),
       JSON.stringify({ webDir: 'build' }),
     );
+
     expect(
       await resolveInputDirectoryPath(
         {},
         '--path',
-        undefined,
         projectDirectoryPath,
         CAPACITOR,
       ),
     ).toBe(join(projectDirectoryPath, 'build'));
   });
 
-  it('should ask for --path when nothing names the build, and name the flag when nobody can be asked', async () => {
+  it("should resolve Cordova's www against the project root", async () => {
+    expect(
+      await resolveInputDirectoryPath(
+        {},
+        '--path',
+        projectDirectoryPath,
+        resolveFrameworkModule('cordova'),
+      ),
+    ).toBe(join(projectDirectoryPath, 'www'));
+  });
+
+  it('should require --path with the reason when there is no capacitor.config and nobody can be asked', async () => {
     await expect(
       resolveInputDirectoryPath(
         { json: true },
         '--path',
-        undefined,
         projectDirectoryPath,
         CAPACITOR,
       ),
-    ).rejects.toBeInstanceOf(MissingParameterError);
+    ).rejects.toMatchObject({
+      code: 'E_MISSING_PARAMETER',
+      fix: 'pass --path, since there is no capacitor.config.json or capacitor.config.ts to read webDir from.',
+      message: '--path is missing',
+    });
+  });
+
+  it('should require --path with the reason when capacitor.config sets webDir in a way the CLI cannot read', async () => {
+    writeFileSync(
+      join(projectDirectoryPath, 'capacitor.config.ts'),
+      'const config = { appId: "com.example.demo", webDir: process.env.WEB_DIR };\nexport default config;\n',
+    );
+
+    await expect(
+      resolveInputDirectoryPath(
+        { json: true },
+        '--path',
+        projectDirectoryPath,
+        CAPACITOR,
+      ),
+    ).rejects.toMatchObject({
+      code: 'E_MISSING_PARAMETER',
+      fix: 'pass --path, since capacitor.config.ts sets no webDir the CLI can read as a quoted string.',
+    });
   });
 });

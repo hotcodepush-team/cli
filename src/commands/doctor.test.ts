@@ -60,7 +60,6 @@ describe('doctor', () => {
       projectConfig: {
         appId: DEMO_APP.id,
         channel: PRODUCTION_CHANNEL.name,
-        dir: 'www',
       },
     });
     directoryPaths.push(directoryPath);
@@ -130,7 +129,6 @@ describe('doctor', () => {
       projectConfig: {
         appId: DEMO_APP.id,
         channel: PRODUCTION_CHANNEL.name,
-        dir: 'www',
       },
     });
     directoryPaths.push(directoryPath);
@@ -178,7 +176,7 @@ describe('doctor', () => {
     ).rejects.toBeInstanceOf(ReportedFailureError);
 
     expect(harness.readLines()).toEqual([
-      `✓ configuration  hotcodepush.json names app ${DEMO_APP.id} and channel production, web build at www`,
+      `✓ configuration  hotcodepush.json names app ${DEMO_APP.id} and channel production`,
       '✓ session        logged in as Anna Example (anna@example.com)',
       '✓ app            app Demo, channel production',
       '✗ package        @hotcodepush/capacitor-live-updates is not in package.json',
@@ -453,7 +451,6 @@ describe('doctor', () => {
       JSON.stringify({
         appId: DEMO_APP.id,
         channel: 'pre release',
-        dir: 'www',
       }),
     );
     respondWithSessionAndApp();
@@ -477,7 +474,7 @@ describe('doctor', () => {
     const directoryPath = await writeSetUpProject();
     writeFileSync(
       join(directoryPath, 'hotcodepush.json'),
-      JSON.stringify({ appId: DEMO_APP.id, channel: 'beta', dir: 'www' }),
+      JSON.stringify({ appId: DEMO_APP.id, channel: 'beta' }),
     );
     respondWithSessionAndApp();
 
@@ -524,7 +521,7 @@ describe('doctor', () => {
     ]);
   });
 
-  it('should check a wired React Native project: no dir to name, the phase and the Gradle line, and both apps', async () => {
+  it('should check a wired React Native project: the phase and the Gradle line, and both apps', async () => {
     const directoryPath = writeReactNativeProject({
       isPackageInstalled: true,
       projectConfig: { appId: DEMO_APP.id, channel: PRODUCTION_CHANNEL.name },

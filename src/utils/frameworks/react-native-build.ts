@@ -13,6 +13,7 @@ import { InvalidParameterError } from '../errors.js';
 import { runCommandLineVisibly } from '../package-manager.js';
 import type { Platform } from '../upload.js';
 import type {
+  BuildDirectory,
   NativeProjectPaths,
   PackagedBundle,
   PackagingRequest,
@@ -128,6 +129,15 @@ export function packageReactNativeBundles(
       return { directoryPath, platforms: [platform] };
     }),
   );
+}
+
+/**
+ * No build output in the project: an upload bundles the JavaScript itself, and the build step is named the app's bundle.
+ */
+export function readBuildDirectory(): BuildDirectory {
+  return {
+    missingReason: 'the embedded bundle lies in the app the native build makes',
+  };
 }
 
 /**

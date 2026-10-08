@@ -57,7 +57,6 @@ describe('resource-file write', () => {
       projectConfig: {
         appId: DEMO_APP.id,
         channel: PRODUCTION_CHANNEL.name,
-        dir: 'www',
       },
     });
     writeFingerprintInputs(projectDirectoryPath);
@@ -99,7 +98,6 @@ describe('resource-file write', () => {
       JSON.stringify({
         appId: DEMO_APP.id,
         channel: PRODUCTION_CHANNEL.id,
-        dir: 'www',
       }),
     );
   }
@@ -194,7 +192,7 @@ describe('resource-file write', () => {
   it('should fail naming hotcodepush.json when the app has no channel of its name, before writing anything', async () => {
     writeFileSync(
       join(projectDirectoryPath, 'hotcodepush.json'),
-      JSON.stringify({ appId: DEMO_APP.id, channel: 'beta', dir: 'www' }),
+      JSON.stringify({ appId: DEMO_APP.id, channel: 'beta' }),
     );
 
     await expect(writeIosResourceFile()).rejects.toMatchObject({

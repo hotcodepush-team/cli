@@ -77,7 +77,6 @@ describe('binary create', () => {
       JSON.stringify({
         appId: DEMO_APP.id,
         channel: PRODUCTION_CHANNEL.name,
-        dir: 'dist',
       }),
     );
     writeFileSync(
@@ -212,7 +211,6 @@ describe('binary create', () => {
       projectConfig: {
         appId: DEMO_APP.id,
         channel: PRODUCTION_CHANNEL.name,
-        dir: 'www',
       },
     });
     onTestFinished(() => {
@@ -258,7 +256,7 @@ describe('binary create', () => {
     const configPath = join(projectDirectoryPath, 'hotcodepush.json');
     writeFileSync(
       configPath,
-      JSON.stringify({ appId: DEMO_APP.id, channel: 'beta', dir: 'dist' }),
+      JSON.stringify({ appId: DEMO_APP.id, channel: 'beta' }),
     );
 
     await expect(
@@ -367,7 +365,6 @@ describe('binary create', () => {
         JSON.stringify({
           appId: DEMO_APP.id,
           channel: PRODUCTION_CHANNEL.id,
-          dir: 'dist',
         }),
       );
       return configPath;
@@ -409,7 +406,6 @@ describe('binary create', () => {
         configPath,
         JSON.stringify({
           appId: DEMO_APP.id,
-          dir: 'dist',
           publicKeys: [SIGNING_KEY.publicKey],
         }),
       );

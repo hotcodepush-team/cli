@@ -158,7 +158,6 @@ function readProject(configPath: string | undefined): Project {
 
 function checkConfiguration({
   directoryPath,
-  framework,
   projectConfig,
   projectConfigError,
 }: Project): DoctorCheck {
@@ -173,10 +172,7 @@ function checkConfiguration({
       status: 'failed',
     };
   }
-  // a framework whose upload packages the bundle itself has no build output for `dir` to name
-  const isDirRequired =
-    framework instanceof CliError || framework.packageBundles === undefined;
-  const problems = resolveConfigurationProblems(projectConfig, isDirRequired);
+  const problems = resolveConfigurationProblems(projectConfig);
   if (problems.length > 0) {
     return {
       check: 'configuration',
@@ -187,29 +183,19 @@ function checkConfiguration({
   }
   return {
     check: 'configuration',
-    message: `${PROJECT_CONFIG_FILE_NAME} names app ${projectConfig.appId} and channel ${resolveProjectChannel(projectConfig)}${projectConfig.dir === undefined ? '' : `, web build at ${projectConfig.dir}`}`,
+    message: `${PROJECT_CONFIG_FILE_NAME} names app ${projectConfig.appId} and channel ${resolveProjectChannel(projectConfig)}`,
     status: 'ok',
   };
 }
 
 /**
- * What keeps the file from naming a valid app, channel and, where the upload reads a build from the project, that build;
- * a file without `channel` follows the schema's default.
+ * What keeps the file from naming a valid app and channel; a file without `channel` follows the schema's default.
  */
-function resolveConfigurationProblems(
-  projectConfig: ProjectConfig,
-  isDirRequired: boolean,
-): string[] {
-  const requiredFields = isDirRequired
-    ? (['appId', 'dir'] as const)
-    : (['appId'] as const);
-  const problems = requiredFields
-    .filter(field => projectConfig[field] === undefined)
-    .map(field => `lacks ${field}`);
-  if (
-    projectConfig.appId !== undefined &&
-    !ID_SCHEMA.safeParse(projectConfig.appId).success
-  ) {
+function resolveConfigurationProblems(projectConfig: ProjectConfig): string[] {
+  const problems: string[] = [];
+  if (projectConfig.appId === undefined) {
+    problems.push('lacks appId');
+  } else if (!ID_SCHEMA.safeParse(projectConfig.appId).success) {
     problems.push('has an appId that is no id');
   }
   if (

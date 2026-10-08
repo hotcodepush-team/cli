@@ -11,6 +11,11 @@ import { expoFramework } from './expo.js';
 import { reactNativeFramework } from './react-native.js';
 
 /**
+ * The framework's build output relative to the project root, or why the module names none, which `--path` must then name.
+ */
+export type BuildDirectory = { missingReason: string } | { path: string };
+
+/**
  * One row of `doctor`: a check, its outcome and the step that repairs it.
  */
 export interface FrameworkCheck {
@@ -49,14 +54,14 @@ export interface FrameworkModule {
   ) => Promise<BundleFile[] | undefined>;
   /**
    * The bundles one upload makes, where the framework's packaging runs inside the upload: each platform's JavaScript
-   * bundled into the packaging directory. `hotcodepush.json` then names no `dir` and `init` runs no build.
+   * bundled into the packaging directory, so `init` runs no build.
    * Without the member the project's build output is one bundle for every platform.
    */
   packageBundles?: (request: PackagingRequest) => Promise<PackagedBundle[]>;
   /**
-   * The framework's own build output relative to the project root, what `dir` defaults to.
+   * The framework's own build output, read when the upload runs, what `--path` overrides.
    */
-  readBuildDirectory: (projectDirectoryPath: string) => string | undefined;
+  readBuildDirectory: (projectDirectoryPath: string) => BuildDirectory;
   /**
    * The main JavaScript bundle among a bundle's files, which a delta pack carries as a patch; without the member the
    * framework has none.

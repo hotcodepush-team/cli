@@ -85,7 +85,7 @@ export const bundleUploadOptionShape = {
     .string()
     .optional()
     .describe(
-      "The web build to upload, hotcodepush.json's dir or the framework's output by default; on React Native and Expo one platform's prepared bundle.",
+      "The web build to upload, the framework's build output by default, Capacitor's webDir or Cordova's www; on React Native and Expo one platform's prepared bundle.",
     ),
   platform: platformListSchema
     .optional()
@@ -221,7 +221,6 @@ export async function resolveUploadBundleOptions(
             directoryPath: await resolveInputDirectoryPath(
               options,
               '--path',
-              projectConfig,
               directoryPath,
               framework,
             ),

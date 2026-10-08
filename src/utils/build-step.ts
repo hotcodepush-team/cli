@@ -78,7 +78,7 @@ export const buildStepShape = {
     .string()
     .optional()
     .describe(
-      "The directory of the embedded bundle, the files the build puts into the app; hotcodepush.json's dir by default.",
+      "The directory of the embedded bundle, the files the build puts into the app; the framework's build output by default.",
     ),
   platform: z.enum(PLATFORMS).optional().describe('The platform being built.'),
   resourceFilePath: z
@@ -107,7 +107,6 @@ export async function readBuildStep(
   const embeddedBundlePath = await resolveInputDirectoryPath(
     { ...options, path: options.embeddedBundlePath },
     '--embedded-bundle-path',
-    projectConfig,
     directoryPath,
     framework,
   );

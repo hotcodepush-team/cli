@@ -13,6 +13,7 @@ import { stringifyLikeSource } from '../json-file.js';
 import {
   collectEmbeddedFiles,
   packageReactNativeBundles,
+  readBuildDirectory,
   resolveMainBundlePath,
   resolveNativeProjectPaths,
 } from './react-native-build.js';
@@ -90,7 +91,7 @@ export const expoFramework: FrameworkModule = {
   collectEmbeddedFiles,
   packageBundles: request =>
     packageReactNativeBundles(request, () => BUNDLER_ARGS),
-  readBuildDirectory: () => undefined,
+  readBuildDirectory,
   resolveMainBundlePath,
   resolveNativeProjectPaths,
   resolveWiring: project => Promise.resolve(resolveWiring(project)),

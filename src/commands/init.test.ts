@@ -166,7 +166,6 @@ describe('init', () => {
     expect(readJsonFile(join(directoryPath, 'hotcodepush.json'))).toEqual({
       appId: DEMO_APP.id,
       channel: PRODUCTION_CHANNEL.name,
-      dir: 'www',
     });
     expect(
       readFileSync(
@@ -213,7 +212,6 @@ describe('init', () => {
       projectConfig: {
         appId: DEMO_APP.id,
         channel: PRODUCTION_CHANNEL.name,
-        dir: 'www',
       },
     });
     await wireCapacitorProject(directoryPath);
@@ -264,7 +262,6 @@ describe('init', () => {
     expect(readJsonFile(join(directoryPath, 'hotcodepush.json'))).toEqual({
       appId: DEMO_APP.id,
       channel: PRODUCTION_CHANNEL.id,
-      dir: 'www',
     });
   });
 
@@ -275,7 +272,6 @@ describe('init', () => {
         projectConfig: {
           appId: DEMO_APP.id,
           channel: PRODUCTION_CHANNEL.name,
-          dir: 'www',
         },
       });
       writeResourceReference(directoryPath);
@@ -371,7 +367,6 @@ describe('init', () => {
       projectConfig: {
         appId: DEMO_APP.id,
         channel: PRODUCTION_CHANNEL.name,
-        dir: 'www',
       },
     });
     rmSync(join(directoryPath, 'ios'), { force: true, recursive: true });
@@ -407,7 +402,6 @@ describe('init', () => {
       projectConfig: {
         appId: DEMO_APP.id,
         channel: PRODUCTION_CHANNEL.name,
-        dir: 'www',
       },
     });
     rmSync(join(directoryPath, 'ios'), { force: true, recursive: true });
@@ -528,7 +522,6 @@ describe('init', () => {
       projectConfig: {
         appId: DEMO_APP.id,
         channel: PRODUCTION_CHANNEL.name,
-        dir: 'www',
       },
     });
     respondWithSession([ACME_ORGANIZATION]);
@@ -646,7 +639,6 @@ describe('init', () => {
       projectConfig: {
         appId: DEMO_APP.id,
         channel: PRODUCTION_CHANNEL.name,
-        dir: 'www',
       },
     });
     respondWithSession([ACME_ORGANIZATION]);
@@ -740,7 +732,7 @@ describe('init', () => {
     });
   });
 
-  it('should set a Cordova project up through cordova plugin add, with www as the build directory and no hook to wire', async () => {
+  it('should set a Cordova project up through cordova plugin add, with no hook to wire', async () => {
     const directoryPath = writeCordovaProject();
     directoryPaths.push(directoryPath);
     respondWithSession([ACME_ORGANIZATION]);
@@ -766,7 +758,6 @@ describe('init', () => {
     expect(readJsonFile(join(directoryPath, 'hotcodepush.json'))).toEqual({
       appId: DEMO_APP.id,
       channel: PRODUCTION_CHANNEL.name,
-      dir: 'www',
     });
     const result = harness.readJson() as InitResult;
     expect(result.status).toBe('complete');
@@ -812,7 +803,7 @@ describe('init', () => {
       vi.mocked(runCommandLineVisibly).mockReset();
     });
 
-    it('should install the SDK, write hotcodepush.json without dir, and wire the phase, the Gradle line, both apps and the pod', async () => {
+    it('should install the SDK, write hotcodepush.json, and wire the phase, the Gradle line, both apps and the pod', async () => {
       const directoryPath = writeReactNative();
       // the Podfile pins the commit the SDK names, which is there once the install ran
       vi.mocked(runCommandLineVisibly).mockImplementation(({ command }) => {

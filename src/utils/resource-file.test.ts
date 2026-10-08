@@ -73,7 +73,6 @@ describe('resource file', () => {
       projectConfig: {
         appId: 'ec266350-15f9-44c6-9d85-82f1363ede75',
         channel: 'production',
-        dir: 'dist',
       },
     });
 
@@ -84,7 +83,6 @@ describe('resource file', () => {
       builtAt: '2026-09-29T12:00:00.000Z',
       channelId: CHANNEL_ID,
       checkInterval: 900,
-      dir: 'dist',
       downloadStrategy: 'auto',
       embeddedBundleId: null,
       embeddedBundleManifest: {

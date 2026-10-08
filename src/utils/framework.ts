@@ -1,11 +1,11 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import type { InteractivityOptions } from './environment.js';
+import { isInteractive } from './environment.js';
 import { MissingParameterError, UnknownFrameworkError } from './errors.js';
 import { CAPACITOR_CONFIG_FILE_NAMES } from './frameworks/capacitor.js';
 import type { FrameworkModule } from './frameworks/index.js';
 import { readJsonFile } from './json-file.js';
-import type { ProjectConfig } from './project-config.js';
 import { promptText } from './prompts.js';
 
 export type Framework = 'capacitor' | 'cordova' | 'expo' | 'react-native';
@@ -54,23 +54,28 @@ export function detectFramework(projectDirectoryPath: string): Framework {
 }
 
 /**
- * The build to package: the path the flag names as typed, against the working directory; otherwise `hotcodepush.json`'s
- * `dir` or the framework's own build output, both relative to the project root; otherwise asked for when interactive.
+ * The build to package: the path the flag names as typed, against the working directory; otherwise the framework's own
+ * build output, relative to the project root; otherwise asked for when interactive, the flag required with the reason
+ * the framework names none when not.
  */
 export async function resolveInputDirectoryPath(
   options: InputDirectoryOptions,
   pathFlag: string,
-  projectConfig: ProjectConfig | undefined,
   projectDirectoryPath: string,
   framework: Pick<FrameworkModule, 'readBuildDirectory'>,
 ): Promise<string> {
   if (options.path !== undefined) {
     return resolve(options.path);
   }
-  const configuredPath =
-    projectConfig?.dir ?? framework.readBuildDirectory(projectDirectoryPath);
-  if (configuredPath !== undefined) {
-    return join(projectDirectoryPath, configuredPath);
+  const buildDirectory = framework.readBuildDirectory(projectDirectoryPath);
+  if ('path' in buildDirectory) {
+    return join(projectDirectoryPath, buildDirectory.path);
+  }
+  if (!isInteractive(options)) {
+    throw new MissingParameterError(
+      pathFlag,
+      `pass ${pathFlag}, since ${buildDirectory.missingReason}.`,
+    );
   }
   return resolve(
     await promptText(pathFlag, 'Where is the web build?', options),

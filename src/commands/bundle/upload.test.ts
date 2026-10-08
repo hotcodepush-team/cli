@@ -103,11 +103,12 @@ describe('bundle upload', () => {
       join(projectDirectoryPath, 'package.json'),
       JSON.stringify({ dependencies, name: 'demo', version: '1.4.2' }),
     );
-    const configPath = join(projectDirectoryPath, 'hotcodepush.json');
     writeFileSync(
-      configPath,
-      JSON.stringify({ appId: DEMO_APP.id, dir: 'dist' }),
+      join(projectDirectoryPath, 'capacitor.config.json'),
+      JSON.stringify({ webDir: 'dist' }),
     );
+    const configPath = join(projectDirectoryPath, 'hotcodepush.json');
+    writeFileSync(configPath, JSON.stringify({ appId: DEMO_APP.id }));
     mkdirSync(join(projectDirectoryPath, 'dist', 'assets'), {
       recursive: true,
     });
@@ -368,7 +369,6 @@ describe('bundle upload', () => {
       configPath,
       JSON.stringify({
         appId: DEMO_APP.id,
-        dir: 'dist',
         publicKeys: [SIGNING_KEY.publicKey],
       }),
     );
