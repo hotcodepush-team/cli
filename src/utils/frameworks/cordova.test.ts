@@ -39,31 +39,11 @@ describe('cordova', () => {
     }
   });
 
-  it('should take www as the build directory when the start page lies at its root', () => {
-    expect(cordovaFramework.readBuildDirectory(writeProject())).toBe('www');
-  });
-
-  it('should take the directory of the start page under www when config.xml names one', () => {
+  it('should take www as the build directory when config.xml names a start page in a directory of it', () => {
     const directoryPath = writeProjectWithWidget(
       'version="1.0.0"',
       '<content src="app/index.html" />',
     );
-
-    expect(cordovaFramework.readBuildDirectory(directoryPath)).toBe('www/app');
-  });
-
-  it('should take www when the start page is a URL', () => {
-    const directoryPath = writeProjectWithWidget(
-      'version="1.0.0"',
-      '<content src="https://example.com/index.html" />',
-    );
-
-    expect(cordovaFramework.readBuildDirectory(directoryPath)).toBe('www');
-  });
-
-  it('should take www when the project has no config.xml', () => {
-    const directoryPath = writeProject();
-    rmSync(join(directoryPath, 'config.xml'));
 
     expect(cordovaFramework.readBuildDirectory(directoryPath)).toBe('www');
   });

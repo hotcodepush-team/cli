@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { dirname, join, posix } from 'node:path';
+import { join } from 'node:path';
 import { XMLParser } from 'fast-xml-parser';
 import {
   CORDOVA_PACKAGE_NAME,
@@ -36,12 +36,11 @@ interface Preference {
 }
 
 /**
- * The `<widget>` of `config.xml` as the CLI reads it: the version, the per-platform build numbers, the start page
+ * The `<widget>` of `config.xml` as the CLI reads it: the version, the per-platform build numbers
  * and the preferences, the widget's and each platform's.
  */
 interface Widget {
   'android-versionCode'?: string;
-  'content'?: { src?: string } | { src?: string }[];
   'ios-CFBundleVersion'?: string;
   'platform'?: PlatformSection[];
   'preference'?: Preference[];
@@ -58,8 +57,6 @@ const PLUGIN_ADD_COMMAND_LINE: CommandLine = {
   args: ['cordova', 'plugin', 'add', CORDOVA_PACKAGE_SPEC],
   command: 'npx',
 };
-
-const RELATIVE_PATH_PATTERN = /^(?![a-z][a-z0-9+.-]*:)[^/]/i;
 
 const WEB_DIRECTORY = 'www';
 
@@ -82,7 +79,8 @@ export const cordovaFramework: FrameworkModule = {
     checkInsecureFileMode(project),
   ],
   readBinaryIdentity,
-  readBuildDirectory,
+  // the start page `config.xml` names is a page inside `www`, which the app serves as its root
+  readBuildDirectory: () => WEB_DIRECTORY,
   resolveNativeProjectPaths,
   resolveResourceFilePath,
   resolveWiring: project => Promise.resolve(resolveWiring(project)),
@@ -179,17 +177,6 @@ function readBinaryIdentity(
         : (widget['android-versionCode'] ?? resolveVersionCode(version)),
     binaryVersion: version,
   };
-}
-
-/**
- * The directory of `config.xml`'s start page under `www`, or `www` itself when the page lies at its root or elsewhere.
- */
-function readBuildDirectory(projectDirectoryPath: string): string {
-  const content = readWidget(projectDirectoryPath)?.content;
-  const startPage = Array.isArray(content) ? content[0]?.src : content?.src;
-  return startPage !== undefined && RELATIVE_PATH_PATTERN.test(startPage)
-    ? posix.join(WEB_DIRECTORY, dirname(startPage))
-    : WEB_DIRECTORY;
 }
 
 function readWidget(projectDirectoryPath: string): Widget | undefined {
