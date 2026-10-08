@@ -90,6 +90,20 @@ const ID_SCHEMA = z.guid();
 
 const PROBE_TIMEOUT_MS = 5000;
 
+/**
+ * The keys `hotcodepush.json` carried before the naming of 2026-10-08, each with what replaced it: the SDK and the CLI
+ * read none of them, so a file still carrying one runs on the defaults. `doctor` names them; nothing rewrites the file.
+ */
+const STALE_PROJECT_CONFIG_KEYS: Record<string, string> = {
+  autoCheck: 'now checkStrategy, "auto" for true and "manual" for false',
+  checkInterval: 'now checkIntervalSeconds',
+  dir: "gone, the upload reading the framework's build output and --path overriding it",
+  installOnResumeAfter: 'now applyOnResumeAfterSeconds',
+  installStrategy: 'now applyStrategy',
+  mandatoryInstallStrategy: 'now mandatoryApplyStrategy',
+  readyTimeout: 'now readyTimeoutSeconds',
+};
+
 export default defineCommand({
   description:
     'Check the project: its configuration, the hook wiring, the signing key, the hosts and the versions a bug report needs.',
@@ -178,6 +192,17 @@ function checkConfiguration({
       check: 'configuration',
       manualStep: INIT_MANUAL_STEP,
       message: `${PROJECT_CONFIG_FILE_NAME} ${problems.join(', ')}`,
+      status: 'failed',
+    };
+  }
+  const staleKeys = Object.keys(projectConfig).filter(key =>
+    Object.hasOwn(STALE_PROJECT_CONFIG_KEYS, key),
+  );
+  if (staleKeys.length > 0) {
+    return {
+      check: 'configuration',
+      manualStep: 'rename each stale key as named and remove a gone one',
+      message: `${PROJECT_CONFIG_FILE_NAME} carries stale keys: ${staleKeys.map(key => `${key}, ${STALE_PROJECT_CONFIG_KEYS[key]}`).join('; ')}`,
       status: 'failed',
     };
   }

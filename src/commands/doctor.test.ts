@@ -470,6 +470,36 @@ describe('doctor', () => {
     });
   });
 
+  it('should fail the configuration on the stale keys the file still carries, each with what replaced it', async () => {
+    const directoryPath = await writeSetUpProject();
+    writeFileSync(
+      join(directoryPath, 'hotcodepush.json'),
+      JSON.stringify({
+        appId: DEMO_APP.id,
+        autoCheck: false,
+        channel: PRODUCTION_CHANNEL.name,
+        dir: 'www',
+        installStrategy: 'immediate',
+      }),
+    );
+    respondWithSessionAndApp();
+
+    await expect(
+      doctorCommand.action(
+        { config: join(directoryPath, 'hotcodepush.json'), json: true },
+        undefined,
+      ),
+    ).rejects.toBeInstanceOf(ReportedFailureError);
+
+    expect((harness.readJson() as DoctorResult).checks[0]).toEqual({
+      check: 'configuration',
+      manualStep: 'rename each stale key as named and remove a gone one',
+      message:
+        'hotcodepush.json carries stale keys: autoCheck, now checkStrategy, "auto" for true and "manual" for false; dir, gone, the upload reading the framework\'s build output and --path overriding it; installStrategy, now applyStrategy',
+      status: 'failed',
+    });
+  });
+
   it('should fail the app check when the app has no channel of the configured name', async () => {
     const directoryPath = await writeSetUpProject();
     writeFileSync(
