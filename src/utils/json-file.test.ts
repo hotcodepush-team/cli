@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ExitCode } from './errors.js';
-import { readJsonFile } from './json-file.js';
+import { readJsonFile, stringifyLikeSource } from './json-file.js';
 
 describe('json file', () => {
   let directoryPath = '';
@@ -46,5 +46,12 @@ describe('json file', () => {
         message: `${filePath} is no valid JSON: unexpected token 's'`,
       }),
     );
+  });
+
+  it('should write JSON back with the indentation and the final newline of its source', () => {
+    expect(stringifyLikeSource({ a: 1 }, '{\n    "b": 2\n}\n')).toBe(
+      '{\n    "a": 1\n}\n',
+    );
+    expect(stringifyLikeSource({ a: 1 }, '{"b":2}')).toBe('{\n  "a": 1\n}');
   });
 });

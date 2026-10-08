@@ -5,8 +5,7 @@ import {
   CORDOVA_CONFIG_XML,
   writeCordovaProject,
 } from '../../../test/cordova-project.js';
-import { readPackageJson } from '../binary-create-hook.js';
-import { MissingParameterError } from '../errors.js';
+import { readPackageJson } from '../package-json.js';
 import type * as packageManagerModule from '../package-manager.js';
 import { runCommandLineVisibly } from '../package-manager.js';
 import { cordovaFramework } from './cordova.js';
@@ -46,21 +45,6 @@ describe('cordova', () => {
     );
 
     expect(cordovaFramework.readBuildDirectory(directoryPath)).toBe('www');
-  });
-
-  it("should ask for the identity, which the plugin's build steps pass in from the build's variables", () => {
-    expect(() =>
-      cordovaFramework.readBinaryIdentity('ios', writeProject()),
-    ).toThrow(new MissingParameterError('--binary-version'));
-  });
-
-  it('should name no resource file in the native projects, which the build writes into the app it builds', () => {
-    const nativeProjectPaths =
-      cordovaFramework.resolveNativeProjectPaths(writeProject());
-
-    expect(
-      cordovaFramework.resolveResourceFilePath('ios', nativeProjectPaths.ios),
-    ).toBeUndefined();
   });
 
   it('should report the plugin and its hook ok when package.json lists the plugin among Cordova’s', () => {

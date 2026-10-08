@@ -1,10 +1,9 @@
-import type { PackageJson } from '../binary-create-hook.js';
-import type { BinaryIdentity } from '../binary-identity.js';
 import type { BundleFile } from '../bundle-files.js';
 import type { InteractivityOptions } from '../environment.js';
 import type { ConfirmationRequiredError } from '../errors.js';
 import type { Framework } from '../framework.js';
 import type { StepOutcome } from '../init-steps.js';
+import type { PackageJson } from '../package-json.js';
 import type { Platform } from '../upload.js';
 import { capacitorFramework } from './capacitor.js';
 import { cordovaFramework } from './cordova.js';
@@ -22,14 +21,10 @@ export interface FrameworkCheck {
 }
 
 /**
- * What the CLI needs to know about a framework: where its build output and native projects lie, how the store build
- * names itself, and how its SDK package and binary create step are wired and checked.
+ * What the CLI needs to know about a framework: where its build output and native projects lie, and how its SDK package
+ * and binary create step are wired and checked.
  */
 export interface FrameworkModule {
-  /**
-   * The step that runs binary create, as `doctor` names it for a missing or stale resource file.
-   */
-  binaryCreateStep: string;
   packageName: string;
   /**
    * The packages whose installed versions a bug report needs.
@@ -58,10 +53,6 @@ export interface FrameworkModule {
    * Without the member the project's build output is one bundle for every platform.
    */
   packageBundles?: (request: PackagingRequest) => Promise<PackagedBundle[]>;
-  readBinaryIdentity: (
-    platform: Platform,
-    projectDirectoryPath: string,
-  ) => BinaryIdentity;
   /**
    * The framework's own build output relative to the project root, what `dir` defaults to.
    */
@@ -74,14 +65,6 @@ export interface FrameworkModule {
   resolveNativeProjectPaths: (
     projectDirectoryPath: string,
   ) => NativeProjectPaths;
-  /**
-   * Where the platform's native project reads the resource file; none where the native build writes it into the app
-   * it builds and names the place with `--out`.
-   */
-  resolveResourceFilePath: (
-    platform: Platform,
-    nativeProjectPath: string,
-  ) => string | undefined;
   /**
    * What `init` installs and wires in this project, resolved once before the editing steps, asking where it must.
    */

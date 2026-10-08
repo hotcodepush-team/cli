@@ -1,7 +1,11 @@
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { writeCapacitorProject } from '../../test/capacitor-project.js';
+import {
+  CAPACITOR_APP_GRADLE_FILE_PATH,
+  wireCapacitorProject,
+  writeCapacitorProject,
+} from '../../test/capacitor-project.js';
 import { useCommandHarness } from '../../test/command-harness.js';
 import { writeCordovaProject } from '../../test/cordova-project.js';
 import {
@@ -21,7 +25,6 @@ import { ReportedFailureError } from '../utils/errors.js';
 import { reactNativeFramework } from '../utils/frameworks/react-native.js';
 import type * as packageManagerModule from '../utils/package-manager.js';
 import { resolveConfigDirectoryPath } from '../utils/user-config.js';
-import { addResourceReference } from '../utils/xcode-project.js';
 import doctorCommand from './doctor.js';
 
 // wiring a React Native project ends with pod install, which a test never runs
@@ -53,7 +56,6 @@ describe('doctor', () => {
 
   async function writeSetUpProject(): Promise<string> {
     const directoryPath = writeCapacitorProject({
-      hookScript: 'npx hotcodepush binary create',
       isPackageInstalled: true,
       projectConfig: {
         appId: DEMO_APP.id,
@@ -62,10 +64,7 @@ describe('doctor', () => {
       },
     });
     directoryPaths.push(directoryPath);
-    await addResourceReference(
-      join(directoryPath, 'ios', 'App', 'App.xcodeproj', 'project.pbxproj'),
-      {},
-    );
+    await wireCapacitorProject(directoryPath);
     for (const packageName of [
       '@capacitor/core',
       '@hotcodepush/capacitor-live-updates',
@@ -77,39 +76,6 @@ describe('doctor', () => {
         JSON.stringify({ name: packageName, version: '8.0.0' }),
       );
     }
-    const resourceFile = {
-      appId: DEMO_APP.id,
-      builtAt: '2026-09-29T12:00:00.000Z',
-      channelId: PRODUCTION_CHANNEL.id,
-      dir: 'www',
-      embeddedBundleId: null,
-      embeddedBundleManifest: {
-        appId: DEMO_APP.id,
-        bundleVersion: '1.0',
-        files: [],
-        fingerprint: null,
-        keyId: null,
-        platforms: ['ios'],
-      },
-      fingerprint: null,
-    };
-    mkdirSync(join(directoryPath, 'ios', 'App', 'App'), { recursive: true });
-    writeFileSync(
-      join(directoryPath, 'ios', 'App', 'App', 'hotcodepush.json'),
-      JSON.stringify(resourceFile),
-    );
-    writeFileSync(
-      join(
-        directoryPath,
-        'android',
-        'app',
-        'src',
-        'main',
-        'assets',
-        'hotcodepush.json',
-      ),
-      JSON.stringify(resourceFile),
-    );
     return directoryPath;
   }
 
@@ -149,9 +115,6 @@ describe('doctor', () => {
       'app:ok',
       'package:ok',
       'hook:ok',
-      'ios-project:ok',
-      'android-resource-file:ok',
-      'ios-resource-file:ok',
       'hosts:ok',
       'signing-key:skipped',
       'versions:ok',
@@ -161,7 +124,7 @@ describe('doctor', () => {
     );
   });
 
-  it('should check a Cordova project by its plugin and the build steps it wires, with no resource file in the native projects to read', async () => {
+  it('should check a Cordova project by its plugin and the build steps it wires', async () => {
     const directoryPath = writeCordovaProject({
       isPluginInstalled: true,
       projectConfig: {
@@ -171,7 +134,6 @@ describe('doctor', () => {
       },
     });
     directoryPaths.push(directoryPath);
-    mkdirSync(join(directoryPath, 'platforms', 'android'), { recursive: true });
     respondWithSessionAndApp();
 
     await doctorCommand.action(
@@ -182,15 +144,9 @@ describe('doctor', () => {
     const result = harness.readJson() as DoctorResult;
     expect(
       result.checks
-        .slice(3, 8)
+        .slice(3, 6)
         .map(({ check, status }) => `${check}:${status}`),
-    ).toEqual([
-      'package:ok',
-      'hook:ok',
-      'android-file-mode:ok',
-      'android-resource-file:skipped',
-      'ios-resource-file:skipped',
-    ]);
+    ).toEqual(['package:ok', 'hook:ok', 'android-file-mode:ok']);
     expect(result.checks.at(-1)?.message).toMatch(
       /, cordova 13\.0\.0, cordova-android 15\.1\.0, cordova-ios missing, @hotcodepush\/cordova-code-push 0\.1\.0$/,
     );
@@ -205,16 +161,9 @@ describe('doctor', () => {
         name: 'demo',
       }),
     );
-    rmSync(
-      join(
-        directoryPath,
-        'android',
-        'app',
-        'src',
-        'main',
-        'assets',
-        'hotcodepush.json',
-      ),
+    writeFileSync(
+      join(directoryPath, CAPACITOR_APP_GRADLE_FILE_PATH),
+      "apply plugin: 'com.android.application'\n",
     );
     respondWithSessionAndApp();
     harness.routes['GET /health'] = () => {
@@ -229,20 +178,16 @@ describe('doctor', () => {
     ).rejects.toBeInstanceOf(ReportedFailureError);
 
     expect(harness.readLines()).toEqual([
-      `✓ configuration          hotcodepush.json names app ${DEMO_APP.id} and channel production, web build at www`,
-      '✓ session                logged in as Anna Example (anna@example.com)',
-      '✓ app                    app Demo, channel production',
-      '✗ package                @hotcodepush/capacitor-live-updates is not in package.json',
-      '                         run hotcodepush init',
-      '✗ hook                   capacitor:copy:after does not run binary create',
-      '                         run hotcodepush init',
-      '✓ ios-project            the app target copies hotcodepush.json into the bundle',
-      `✗ android-resource-file  no resource file at ${join('android', 'app', 'src', 'main', 'assets', 'hotcodepush.json')}`,
-      '                         run npx cap sync, which runs binary create',
-      `✓ ios-resource-file      ${join('ios', 'App', 'App', 'hotcodepush.json')} built at 2026-09-29T12:00:00.000Z`,
-      '✗ hosts                  unreachable: api (https://api.example.com/health)',
-      '                         check the network, the API URL in config.json and the HOTCODEPUSH_*_BASE_URL variables',
-      '– signing-key            code signing is off; signing-key create turns it on',
+      `✓ configuration  hotcodepush.json names app ${DEMO_APP.id} and channel production, web build at www`,
+      '✓ session        logged in as Anna Example (anna@example.com)',
+      '✓ app            app Demo, channel production',
+      '✗ package        @hotcodepush/capacitor-live-updates is not in package.json',
+      '                 run hotcodepush init',
+      `✗ hook           not wired in ${CAPACITOR_APP_GRADLE_FILE_PATH}`,
+      '                 run hotcodepush init',
+      '✗ hosts          unreachable: api (https://api.example.com/health)',
+      '                 check the network, the API URL in config.json and the HOTCODEPUSH_*_BASE_URL variables',
+      '– signing-key    code signing is off; signing-key create turns it on',
       expect.stringMatching(/^✓ versions +hotcodepush /),
     ]);
   });
@@ -269,9 +214,6 @@ describe('doctor', () => {
       'session',
       'package',
       'hook',
-      'ios-project',
-      'android-resource-file',
-      'ios-resource-file',
       'hosts',
       'signing-key',
       'versions',
@@ -283,7 +225,7 @@ describe('doctor', () => {
       message: 'the credential cannot be checked: fetch failed',
       status: 'failed',
     });
-    expect(result.checks[7]?.status).toBe('failed');
+    expect(result.checks[4]?.status).toBe('failed');
   });
 
   it('should fail the configuration when hotcodepush.json does not parse, and still run every other check', async () => {
@@ -309,9 +251,6 @@ describe('doctor', () => {
       'app',
       'package',
       'hook',
-      'ios-project',
-      'android-resource-file',
-      'ios-resource-file',
       'hosts',
       'signing-key',
       'versions',
@@ -368,77 +307,6 @@ describe('doctor', () => {
         status: 'failed',
       },
     ]);
-  });
-
-  it('should fail a resource file that does not parse with where its parse stopped, and still run every other check', async () => {
-    const directoryPath = await writeSetUpProject();
-    const resourceFilePath = join(
-      directoryPath,
-      'android',
-      'app',
-      'src',
-      'main',
-      'assets',
-      'hotcodepush.json',
-    );
-    writeFileSync(resourceFilePath, '{ "appId": ');
-    respondWithSessionAndApp();
-
-    await expect(
-      doctorCommand.action(
-        { config: join(directoryPath, 'hotcodepush.json'), json: true },
-        undefined,
-      ),
-    ).rejects.toBeInstanceOf(ReportedFailureError);
-
-    const result = harness.readJson() as DoctorResult;
-    expect(result.checks.filter(({ status }) => status === 'failed')).toEqual([
-      {
-        check: 'android-resource-file',
-        manualStep: 'run npx cap sync, which runs binary create',
-        message: `${resourceFilePath} is no valid JSON: unexpected end of JSON input`,
-        status: 'failed',
-      },
-    ]);
-    expect(result.checks.at(-1)?.check).toBe('versions');
-  });
-
-  it('should fail a resource file that names no channel, a build made offline or without a token', async () => {
-    const directoryPath = await writeSetUpProject();
-    const resourceFilePath = join(
-      directoryPath,
-      'ios',
-      'App',
-      'App',
-      'hotcodepush.json',
-    );
-    writeFileSync(
-      resourceFilePath,
-      JSON.stringify({
-        ...JSON.parse(readFileSync(resourceFilePath, 'utf8')),
-        channelId: null,
-      }),
-    );
-    respondWithSessionAndApp();
-
-    await expect(
-      doctorCommand.action(
-        { config: join(directoryPath, 'hotcodepush.json'), json: true },
-        undefined,
-      ),
-    ).rejects.toBeInstanceOf(ReportedFailureError);
-
-    expect(
-      (harness.readJson() as DoctorResult).checks.find(
-        ({ check }) => check === 'ios-resource-file',
-      ),
-    ).toEqual({
-      check: 'ios-resource-file',
-      manualStep:
-        'log in or set HOTCODEPUSH_TOKEN, leave HOTCODEPUSH_OFFLINE unset, then run npx cap sync, which runs binary create',
-      message: `${join('ios', 'App', 'App', 'hotcodepush.json')} names no channel, so the build takes no updates: it was made offline or without a token`,
-      status: 'failed',
-    });
   });
 
   function listPublicKey(directoryPath: string): void {
@@ -656,7 +524,7 @@ describe('doctor', () => {
     ]);
   });
 
-  it('should check a wired React Native project: no dir to name, the phase and the Gradle line, both apps, and no resource file to read', async () => {
+  it('should check a wired React Native project: no dir to name, the phase and the Gradle line, and both apps', async () => {
     const directoryPath = writeReactNativeProject({
       isPackageInstalled: true,
       projectConfig: { appId: DEMO_APP.id, channel: PRODUCTION_CHANNEL.name },
@@ -697,8 +565,6 @@ describe('doctor', () => {
       'package:ok',
       'hook:ok',
       'host:ok',
-      'android-resource-file:skipped',
-      'ios-resource-file:skipped',
       'hosts:ok',
       'signing-key:skipped',
       'versions:ok',

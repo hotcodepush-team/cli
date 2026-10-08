@@ -5,7 +5,6 @@ import { z } from 'zod';
 import { defineCommand } from 'zodline';
 import { PROJECT_CONFIG_FILE_NAME } from '../../config/consts.js';
 import { createApiClient } from '../../utils/api-client.js';
-import type { BinaryIdentity } from '../../utils/binary-identity.js';
 import type { BundleFile } from '../../utils/bundle-files.js';
 import { collectBundleFiles } from '../../utils/bundle-files.js';
 import {
@@ -16,11 +15,11 @@ import { isCi, isOfflineBuild } from '../../utils/environment.js';
 import {
   CliError,
   InvalidParameterError,
-  MissingParameterError,
   PipelineNotLoggedInError,
 } from '../../utils/errors.js';
 import { readFingerprint } from '../../utils/fingerprint.js';
 import {
+  assertMissingParameter,
   detectFramework,
   resolveInputDirectoryPath,
 } from '../../utils/framework.js';
@@ -53,6 +52,15 @@ import {
   uploadMissingFiles,
 } from '../../utils/upload.js';
 import { readApiUrl } from '../../utils/user-config.js';
+
+/**
+ * The store build's version and build number as the build's own variables give them: `CFBundleShortVersionString` and
+ * `CFBundleVersion` on iOS, `versionName` and `versionCode` on Android, the identity the binary is created under.
+ */
+interface BinaryIdentity {
+  binaryBuild: string;
+  binaryVersion: string;
+}
 
 /**
  * What the API answered for the build: the channel's id, null when the build names none, and the binary created,
@@ -104,15 +112,11 @@ export default defineCommand({
     binaryBuild: z
       .string()
       .optional()
-      .describe(
-        "The store build's build number; read from the native project by default.",
-      ),
+      .describe("The store build's build number, from the build's variables."),
     binaryVersion: z
       .string()
       .optional()
-      .describe(
-        "The store build's version; read from the native project by default.",
-      ),
+      .describe("The store build's version, from the build's variables."),
     force: z
       .boolean()
       .optional()
@@ -123,7 +127,7 @@ export default defineCommand({
       .string()
       .optional()
       .describe(
-        "Where to write the resource file; the platform's native project by default.",
+        'Where to write the resource file, in the app the build makes.',
       ),
     path: z
       .string()
@@ -134,20 +138,21 @@ export default defineCommand({
     platform: z
       .enum(PLATFORMS)
       .optional()
-      .describe(
-        "The platform being built; CAPACITOR_PLATFORM_NAME's when the hook runs.",
-      ),
+      .describe('The platform being built.'),
   }),
   action: async options => {
-    if (options.platform === undefined && isWebHookRun()) {
-      return;
-    }
     const { directoryPath, projectConfig } = locateProjectConfig(
       options.config,
     );
     const completeProjectConfig = assertProjectConfig(projectConfig);
     const platform =
-      options.platform ?? (await resolvePlatformFromEnvironment(options));
+      options.platform ??
+      (await promptSelect(
+        '--platform',
+        'Which platform?',
+        PLATFORMS.map(platform => ({ label: platform, value: platform })),
+        options,
+      ));
     const framework = resolveFrameworkModule(detectFramework(directoryPath));
     const files = await collectEmbeddedFiles(
       framework,
@@ -159,11 +164,8 @@ export default defineCommand({
         framework,
       ),
     );
-    const resourceFilePath = resolveResourceFilePath(
-      options.out,
-      platform,
-      directoryPath,
-      framework,
+    const resourceFilePath = resolve(
+      assertMissingParameter(options.out, '--out'),
     );
     const fingerprint = await readFingerprint(
       directoryPath,
@@ -193,12 +195,7 @@ export default defineCommand({
       return;
     }
     assertWithinBundleBytesLimit(files);
-    const identity = resolveBinaryIdentity(
-      options,
-      platform,
-      directoryPath,
-      framework,
-    );
+    const identity = resolveBinaryIdentity(options);
     const reporter = createReporter(options);
     const registration = await registerBuild(
       {
@@ -383,83 +380,21 @@ function collectEmbeddedFiles(
     : framework.collectEmbeddedFiles(platform, inputDirectoryPath);
 }
 
-function resolveBinaryIdentity(
-  options: { binaryBuild?: string; binaryVersion?: string },
-  platform: Platform,
-  projectDirectoryPath: string,
-  framework: FrameworkModule,
-): BinaryIdentity {
-  if (
-    options.binaryBuild !== undefined &&
-    options.binaryVersion !== undefined
-  ) {
-    return {
-      binaryBuild: options.binaryBuild,
-      binaryVersion: options.binaryVersion,
-    };
-  }
-  const readIdentity = framework.readBinaryIdentity(
-    platform,
-    projectDirectoryPath,
+/**
+ * The identity the native build passes in from its own variables; the CLI reads no project file for it.
+ */
+function resolveBinaryIdentity(options: {
+  binaryBuild?: string;
+  binaryVersion?: string;
+}): BinaryIdentity {
+  const binaryVersion = assertMissingParameter(
+    options.binaryVersion,
+    '--binary-version',
   );
   return {
-    binaryBuild: options.binaryBuild ?? readIdentity.binaryBuild,
-    binaryVersion: options.binaryVersion ?? readIdentity.binaryVersion,
+    binaryBuild: assertMissingParameter(options.binaryBuild, '--binary-build'),
+    binaryVersion,
   };
-}
-
-/**
- * `--out` as the native build names it, otherwise the place the framework's native project reads the file from.
- */
-function resolveResourceFilePath(
-  out: string | undefined,
-  platform: Platform,
-  projectDirectoryPath: string,
-  framework: FrameworkModule,
-): string {
-  const resourceFilePath =
-    out === undefined
-      ? framework.resolveResourceFilePath(
-          platform,
-          framework.resolveNativeProjectPaths(projectDirectoryPath)[platform],
-        )
-      : resolve(out);
-  if (resourceFilePath === undefined) {
-    throw new MissingParameterError('--out');
-  }
-  return resourceFilePath;
-}
-
-/**
- * Capacitor runs the copy hook for `web` too, where no native project takes a resource file: nothing to do, and no failure,
- * whatever the configuration says, since a web-only checkout may have none.
- */
-function isWebHookRun(): boolean {
-  const platformName = process.env.CAPACITOR_PLATFORM_NAME;
-  return (
-    platformName !== undefined &&
-    platformName !== '' &&
-    !PLATFORMS.includes(platformName as Platform)
-  );
-}
-
-/**
- * The platform Capacitor's hook names in `CAPACITOR_PLATFORM_NAME`, otherwise a pick when interactive.
- */
-function resolvePlatformFromEnvironment(options: {
-  json?: boolean;
-  yes?: boolean;
-}): Promise<Platform> {
-  const platformName = process.env.CAPACITOR_PLATFORM_NAME;
-  if (platformName === 'android' || platformName === 'ios') {
-    return Promise.resolve(platformName);
-  }
-  return promptSelect(
-    '--platform',
-    'Which platform?',
-    PLATFORMS.map(platform => ({ label: platform, value: platform })),
-    options,
-  );
 }
 
 /**

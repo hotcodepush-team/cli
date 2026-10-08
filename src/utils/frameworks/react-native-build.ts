@@ -9,7 +9,7 @@ import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import type { BundleFile } from '../bundle-files.js';
 import { collectBundleFiles, computeFileSha256 } from '../bundle-files.js';
-import { InvalidParameterError, MissingParameterError } from '../errors.js';
+import { InvalidParameterError } from '../errors.js';
 import { runCommandLineVisibly } from '../package-manager.js';
 import type { Platform } from '../upload.js';
 import type {
@@ -128,13 +128,6 @@ export function packageReactNativeBundles(
       return { directoryPath, platforms: [platform] };
     }),
   );
-}
-
-/**
- * The identity the Xcode phase and the Gradle task pass in from the build's own variables; asked for, it is missing.
- */
-export function readBinaryIdentity(): never {
-  throw new MissingParameterError('--binary-version');
 }
 
 /**

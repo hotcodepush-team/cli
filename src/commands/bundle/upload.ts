@@ -4,7 +4,6 @@ import type { HotCodePush } from '@hotcodepush/node';
 import { z } from 'zod';
 import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
-import { readPackageJson } from '../../utils/binary-create-hook.js';
 import { resolveBundleLabel } from '../../utils/bundle-resolution.js';
 import { withTemporaryDirectory } from '../../utils/compressed-files.js';
 import type { InteractivityOptions } from '../../utils/environment.js';
@@ -23,6 +22,7 @@ import {
   printWarnings,
   resolveQuantityText,
 } from '../../utils/output.js';
+import { readPackageJson } from '../../utils/package-json.js';
 import { createReporter, resolveByteText } from '../../utils/progress.js';
 import type { ProjectConfig } from '../../utils/project-config.js';
 import { locateProjectConfig } from '../../utils/project-config.js';

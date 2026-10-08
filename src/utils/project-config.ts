@@ -3,9 +3,8 @@ import { dirname, join, resolve } from 'node:path';
 import { ProjectConfigurationSchema } from '@hotcodepush/protocol';
 import { z } from 'zod';
 import { PROJECT_CONFIG_FILE_NAME } from '../config/consts.js';
-import { stringifyLikeSource } from './binary-create-hook.js';
 import { InvalidParameterError } from './errors.js';
-import { readJsonFile } from './json-file.js';
+import { readJsonFile, stringifyLikeSource } from './json-file.js';
 
 /**
  * `hotcodepush.json`, the project's configuration, as written: `init` writes it and completes a partial one, so every key is optional.

@@ -3,7 +3,6 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   APP_DELEGATE_FILE_PATH,
-  APP_GRADLE_FILE_PATH,
   CORE_POD_COMMIT,
   MAIN_APPLICATION_FILE_PATH,
   PODFILE_PATH,
@@ -15,7 +14,6 @@ import { NativeProjectError } from './errors.js';
 import {
   resolveBundleUrlEdit,
   resolveCorePodEdit,
-  resolveGradleEdit,
   resolveReactHostEdit,
 } from './react-native-project.js';
 
@@ -114,38 +112,6 @@ describe('react-native-project', () => {
       expect(() =>
         resolveCorePodEdit(join(directoryPath, 'ios'), directoryPath)?.apply(),
       ).toThrow(NativeProjectError);
-    });
-  });
-
-  describe('resolveGradleEdit', () => {
-    it("should append the one apply from line that resolves the SDK's Gradle file through Node", () => {
-      const edit = resolveGradleEdit(join(directoryPath, 'android'));
-      expect(edit?.isApplied()).toBe(false);
-
-      edit?.apply();
-
-      expect(edit?.isApplied()).toBe(true);
-      expect(
-        readProjectFile(directoryPath, APP_GRADLE_FILE_PATH).split('\n').at(-2),
-      ).toBe(
-        `apply from: new File(["node", "--print", "require.resolve('@hotcodepush/react-native-code-push/package.json')"].execute(null, rootDir).text.trim(), "../android/hotcodepush.gradle")`,
-      );
-    });
-
-    it('should write the line in Kotlin syntax when the file is build.gradle.kts', () => {
-      rmSync(join(directoryPath, APP_GRADLE_FILE_PATH));
-      const ktsFilePath = join(directoryPath, `${APP_GRADLE_FILE_PATH}.kts`);
-      writeFileSync(ktsFilePath, 'plugins { id("com.android.application") }');
-
-      resolveGradleEdit(join(directoryPath, 'android'))?.apply();
-
-      expect(
-        readProjectFile(directoryPath, `${APP_GRADLE_FILE_PATH}.kts`)
-          .split('\n')
-          .at(-2),
-      ).toBe(
-        `apply(from = File(providers.exec { workingDir(rootDir); commandLine("node", "--print", "require.resolve('@hotcodepush/react-native-code-push/package.json')") }.standardOutput.asText.get().trim()).resolveSibling("android/hotcodepush.gradle"))`,
-      );
     });
   });
 

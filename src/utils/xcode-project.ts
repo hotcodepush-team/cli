@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { PBXFile, PBXNativeTarget, XcodeProject } from 'xcode';
+import type { PBXNativeTarget, XcodeProject } from 'xcode';
 import { project as parseXcodeProject } from 'xcode';
 import type { InteractivityOptions } from './environment.js';
 import {
@@ -15,44 +15,29 @@ interface AppTarget {
   name: string;
 }
 
+/**
+ * The run-script phase that runs binary create in a framework's app target: the script, the phase it follows where
+ * binary create reads that phase's output, none to follow the target's last phase, and the manual step that adds it by hand.
+ */
+export interface BinaryCreatePhase {
+  anchorPhaseName: string | undefined;
+  fix: string;
+  shellScript: string;
+}
+
 interface XcodeTargetOptions extends InteractivityOptions {
   xcodeTarget?: string;
 }
 
-const APP_GROUP_NAME = 'App';
-
 const APPLICATION_PRODUCT_TYPE = 'com.apple.product-type.application';
-
-const BINARY_CREATE_PHASE_FIX =
-  'add a Run Script phase after "Bundle React Native code and images" that runs node_modules/@hotcodepush/react-native-code-push/scripts/binary-create-xcode.sh through React Native\'s with-environment.sh.';
 
 const BINARY_CREATE_PHASE_MARKER = 'binary-create-xcode.sh';
 
 const BINARY_CREATE_PHASE_NAME = 'Create HotCodePush binary';
 
-// the lines of the phase as a pbxproj string carries them, the line breaks escaped
-const BINARY_CREATE_PHASE_SCRIPT = [
-  'set -e',
-  '',
-  '# hotcodepush: writes hotcodepush.json into the app and registers the binary',
-  'WITH_ENVIRONMENT="$REACT_NATIVE_PATH/scripts/xcode/with-environment.sh"',
-  'HOTCODEPUSH_BINARY_CREATE="$REACT_NATIVE_PATH/../@hotcodepush/react-native-code-push/scripts/binary-create-xcode.sh"',
-  '',
-  '/bin/sh -c "$WITH_ENVIRONMENT $HOTCODEPUSH_BINARY_CREATE"',
-  '',
-].join('\\n');
-
 // the script reads the version and build from the built app's processed Info.plist: declared as the phase's input,
 // Xcode processes the plist before it runs the phase
 const INFO_PLIST_INPUT_PATH = '"$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)"';
-
-const JSON_FILE_TYPE = 'text.json';
-
-const REACT_NATIVE_BUNDLE_PHASE_NAME = 'Bundle React Native code and images';
-
-const RESOURCE_FILE_NAME = 'hotcodepush.json';
-
-const UTF8_FILE_ENCODING = 4;
 
 /**
  * The `project.pbxproj` of the Capacitor iOS project: `App/App.xcodeproj` as `cap add ios` lays it out, else the first project found.
@@ -70,55 +55,7 @@ export function resolveXcodeProjectFilePath(
 }
 
 /**
- * Whether the project already copies the resource file into the app bundle.
- */
-export function hasResourceReference(projectFilePath: string): boolean {
-  return parseProject(projectFilePath).hasFile(RESOURCE_FILE_NAME) !== false;
-}
-
-/**
- * Adds `hotcodepush.json` to the app target's resources, in the `App` group the file is written into,
- * the way React Native's own scripts edit projects; the reference already there is left alone.
- */
-export async function addResourceReference(
-  projectFilePath: string,
-  options: XcodeTargetOptions,
-): Promise<'added' | 'present'> {
-  const project = parseProject(projectFilePath);
-  if (project.hasFile(RESOURCE_FILE_NAME) !== false) {
-    return 'present';
-  }
-  const target = await resolveAppTarget(project, options);
-  const groupKey =
-    project.findPBXGroupKey({ path: APP_GROUP_NAME }) ??
-    project.findPBXGroupKey({ name: APP_GROUP_NAME });
-  if (groupKey === undefined) {
-    throw new XcodeProjectError(
-      `${projectFilePath} has no ${APP_GROUP_NAME} group to add ${RESOURCE_FILE_NAME} to`,
-      undefined,
-      projectFilePath,
-    );
-  }
-  // the package's addResourceFile expects Cordova's Resources group, so the reference, the build file and the phase entry are added one by one
-  const file = project.addFile(RESOURCE_FILE_NAME, groupKey, {
-    defaultEncoding: UTF8_FILE_ENCODING,
-    lastKnownFileType: JSON_FILE_TYPE,
-    target: target.key,
-  });
-  if (file === null) {
-    return 'present';
-  }
-  file.uuid = project.generateUuid();
-  file.target = target.key;
-  project.addToPbxBuildFileSection(file);
-  project.addToPbxResourcesBuildPhase(file);
-  deleteUndefinedFields(project, file);
-  writeFileSync(projectFilePath, project.writeSync());
-  return 'added';
-}
-
-/**
- * Whether the React Native project already runs binary create: the phase is recognised by the script it runs.
+ * Whether the project already runs binary create: the phase is recognised by the script it runs, the same file name in every SDK.
  */
 export function hasBinaryCreatePhase(projectFilePath: string): boolean {
   return readFileSync(projectFilePath, 'utf8').includes(
@@ -127,30 +64,34 @@ export function hasBinaryCreatePhase(projectFilePath: string): boolean {
 }
 
 /**
- * Adds the run-script phase that runs binary create to the app target, right after "Bundle React Native code and images",
- * whose output it hashes; the phase already there is left alone, and a project without that bundling phase is the manual step.
+ * Adds the run-script phase that runs binary create to the app target, right after the phase whose output it reads, or
+ * after the target's last phase; the phase already there is left alone, and a project without that phase is the manual step.
  */
 export async function addBinaryCreatePhase(
   projectFilePath: string,
+  phase: BinaryCreatePhase,
   options: XcodeTargetOptions,
 ): Promise<'added' | 'present'> {
   if (hasBinaryCreatePhase(projectFilePath)) {
     return 'present';
   }
-  const project = parseProject(projectFilePath, BINARY_CREATE_PHASE_FIX);
+  const project = parseProject(projectFilePath, phase.fix);
   const target = await resolveAppTarget(project, options);
   const nativeTarget = project.pbxNativeTargetSection()[target.key];
   const buildPhases =
     typeof nativeTarget === 'object' ? nativeTarget.buildPhases : [];
-  const bundlePhaseIndex = buildPhases.findIndex(
-    ({ comment }) => comment === REACT_NATIVE_BUNDLE_PHASE_NAME,
-  );
-  if (bundlePhaseIndex === -1) {
+  const anchorPhaseIndex =
+    phase.anchorPhaseName === undefined
+      ? undefined
+      : buildPhases.findIndex(
+          ({ comment }) => comment === phase.anchorPhaseName,
+        );
+  if (anchorPhaseIndex === -1) {
     throw new XcodeProjectError(
-      `${projectFilePath} has no "${REACT_NATIVE_BUNDLE_PHASE_NAME}" phase to run binary create after`,
+      `${projectFilePath} has no "${phase.anchorPhaseName}" phase to run binary create after`,
       undefined,
       projectFilePath,
-      BINARY_CREATE_PHASE_FIX,
+      phase.fix,
     );
   }
   const { buildPhase } = project.addBuildPhase(
@@ -161,37 +102,21 @@ export async function addBinaryCreatePhase(
     {
       inputPaths: [INFO_PLIST_INPUT_PATH],
       shellPath: '/bin/sh',
-      shellScript: BINARY_CREATE_PHASE_SCRIPT,
+      shellScript: phase.shellScript,
     },
   );
   // binary create writes hotcodepush.json, which carries the build's time, on every build; a phase without outputs
   // that is not marked so makes Xcode warn
   buildPhase.alwaysOutOfDate = 1;
-  // the package appends the phase to the target; binary create belongs right after the bundling it reads
-  const binaryCreatePhase = buildPhases.pop();
-  if (binaryCreatePhase !== undefined) {
-    buildPhases.splice(bundlePhaseIndex + 1, 0, binaryCreatePhase);
+  if (anchorPhaseIndex !== undefined) {
+    // the package appends the phase to the target; binary create belongs right after the phase it reads
+    const binaryCreatePhase = buildPhases.pop();
+    if (binaryCreatePhase !== undefined) {
+      buildPhases.splice(anchorPhaseIndex + 1, 0, binaryCreatePhase);
+    }
   }
   writeFileSync(projectFilePath, project.writeSync());
   return 'added';
-}
-
-/**
- * The package writes every field of a reference, an absent one as the word `undefined`; the entry keeps only what it has.
- */
-function deleteUndefinedFields(project: XcodeProject, file: PBXFile): void {
-  if (file.fileRef === undefined) {
-    return;
-  }
-  const fileReference = project.pbxFileReferenceSection()[file.fileRef];
-  if (typeof fileReference !== 'object') {
-    return;
-  }
-  for (const [key, value] of Object.entries(fileReference)) {
-    if (value === undefined) {
-      delete fileReference[key];
-    }
-  }
 }
 
 async function resolveAppTarget(

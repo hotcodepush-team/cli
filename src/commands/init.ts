@@ -5,11 +5,6 @@ import { z } from 'zod';
 import { defineCommand } from 'zodline';
 import { DOCS_URL, PROJECT_CONFIG_FILE_NAME } from '../config/consts.js';
 import { createApiClient } from '../utils/api-client.js';
-import type { PackageJson } from '../utils/binary-create-hook.js';
-import {
-  readPackageJson,
-  stringifyLikeSource,
-} from '../utils/binary-create-hook.js';
 import {
   fetchCurrentUser,
   isUnauthenticatedError,
@@ -36,8 +31,11 @@ import { defineCommandOptions } from '../utils/global-options.js';
 import { resolveConsoleBaseUrl } from '../utils/hosts.js';
 import type { StepOutcome } from '../utils/init-steps.js';
 import { InitRun, resolveStepRows } from '../utils/init-steps.js';
+import { stringifyLikeSource } from '../utils/json-file.js';
 import { printOutcomeRows } from '../utils/outcome.js';
 import { printJson } from '../utils/output.js';
+import type { PackageJson } from '../utils/package-json.js';
+import { readPackageJson } from '../utils/package-json.js';
 import type { CommandLine } from '../utils/package-manager.js';
 import {
   resolveCommandLineText,

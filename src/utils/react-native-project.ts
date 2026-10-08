@@ -2,18 +2,7 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { REACT_NATIVE_PACKAGE_NAME } from '../config/consts.js';
 import { NativeProjectError } from './errors.js';
-
-/**
- * One line of the React Native project binary create or the bundle wiring lives in: whether it is there, and how it gets there.
- * Every edit is recognised afterwards by the marker it writes, and one the file has no place for is the manual step.
- */
-export interface ReactNativeEdit {
-  /** What the edit wires, in the words `init` prints. */
-  description: string;
-  filePath: string;
-  isApplied: () => boolean;
-  apply: () => void;
-}
+import type { NativeProjectEdit } from './native-project-edit.js';
 
 const BUNDLE_URL_CALL = 'HotCodePush.bundleURL()';
 
@@ -27,17 +16,11 @@ const CORE_POD_REPOSITORY_URL =
 const EMBEDDED_BUNDLE_URL_CALL =
   'Bundle.main.url(forResource: "main", withExtension: "jsbundle")';
 
-const GRADLE_FILE_MARKER = 'hotcodepush.gradle';
-
-const GRADLE_FILE_NAMES = ['build.gradle', 'build.gradle.kts'];
-
 const REACT_HOST_IMPORT =
   'import com.hotcodepush.reactnative.HotCodePushReactHost.getDefaultReactHost';
 
 const REACT_NATIVE_REACT_HOST_IMPORT =
   'import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost';
-
-const RESOLVE_PACKAGE_SCRIPT = `require.resolve('${REACT_NATIVE_PACKAGE_NAME}/package.json')`;
 
 const SWIFT_MODULE_IMPORT = 'import HotcodepushReactNativeCodePush';
 
@@ -47,7 +30,7 @@ const SWIFT_MODULE_IMPORT = 'import HotcodepushReactNativeCodePush';
  */
 export function resolveBundleUrlEdit(
   iosProjectPath: string,
-): ReactNativeEdit | undefined {
+): NativeProjectEdit | undefined {
   const filePath = findAppDelegateFilePath(iosProjectPath);
   if (filePath === undefined) {
     return undefined;
@@ -87,7 +70,7 @@ export function resolveBundleUrlEdit(
 export function resolveCorePodEdit(
   iosProjectPath: string,
   projectDirectoryPath: string,
-): ReactNativeEdit | undefined {
+): NativeProjectEdit | undefined {
   const filePath = join(iosProjectPath, 'Podfile');
   if (!existsSync(filePath)) {
     return undefined;
@@ -124,43 +107,12 @@ export function resolveCorePodEdit(
 }
 
 /**
- * The app's Gradle file applies the Gradle file the SDK ships, which holds the task that runs binary create: one line, resolved through Node
- * so it finds the package wherever `node_modules` lies, in the syntax of the file it joins.
- */
-export function resolveGradleEdit(
-  androidProjectPath: string,
-): ReactNativeEdit | undefined {
-  const filePath = GRADLE_FILE_NAMES.map(fileName =>
-    join(androidProjectPath, 'app', fileName),
-  ).find(candidatePath => existsSync(candidatePath));
-  if (filePath === undefined) {
-    return undefined;
-  }
-  return {
-    description: 'the Gradle task that runs binary create',
-    filePath,
-    isApplied: () =>
-      readFileSync(filePath, 'utf8').includes(GRADLE_FILE_MARKER),
-    apply: () => {
-      const source = readFileSync(filePath, 'utf8');
-      const applyLine = filePath.endsWith('.kts')
-        ? `apply(from = File(providers.exec { workingDir(rootDir); commandLine("node", "--print", "${RESOLVE_PACKAGE_SCRIPT}") }.standardOutput.asText.get().trim()).resolveSibling("android/${GRADLE_FILE_MARKER}"))`
-        : `apply from: new File(["node", "--print", "${RESOLVE_PACKAGE_SCRIPT}"].execute(null, rootDir).text.trim(), "../android/${GRADLE_FILE_MARKER}")`;
-      writeFileSync(
-        filePath,
-        `${source}${source.endsWith('\n') ? '' : '\n'}\n${applyLine}\n`,
-      );
-    },
-  };
-}
-
-/**
  * `MainApplication.kt` builds its React host with the SDK's `getDefaultReactHost`, which asks for the served bundle at
  * every start and reload: the import changes, the call and its parameters stay.
  */
 export function resolveReactHostEdit(
   androidProjectPath: string,
-): ReactNativeEdit | undefined {
+): NativeProjectEdit | undefined {
   const filePath = findFilePath(
     join(androidProjectPath, 'app', 'src', 'main', 'java'),
     'MainApplication.kt',

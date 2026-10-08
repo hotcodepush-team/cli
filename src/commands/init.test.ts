@@ -1,9 +1,19 @@
-import { existsSync, renameSync, rmSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import { confirm, select } from '@clack/prompts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  CAPACITOR_APP_GRADLE_FILE_PATH,
+  CAPACITOR_XCODE_PROJECT_FILE_PATH,
   readJsonFile,
+  wireCapacitorProject,
   writeCapacitorProject,
 } from '../../test/capacitor-project.js';
 import {
@@ -37,7 +47,6 @@ import {
 import type * as packageManagerModule from '../utils/package-manager.js';
 import { runCommandLineVisibly } from '../utils/package-manager.js';
 import { readUserConfig, writeUserConfig } from '../utils/user-config.js';
-import { hasResourceReference } from '../utils/xcode-project.js';
 import initCommand from './init.js';
 
 // the in-place login must not touch the machine's keyring: a fake one keeps the token the flow stores
@@ -122,7 +131,7 @@ describe('init', () => {
     }
   });
 
-  it('should set a fresh project up with --yes: the only organization, the app --app creates, the package, hotcodepush.json, the hook and the resource reference', async () => {
+  it('should set a fresh project up with --yes: the only organization, the app --app creates, the package, hotcodepush.json, the Xcode phase and the Gradle line', async () => {
     const directoryPath = writeProject();
     respondWithSession([ACME_ORGANIZATION]);
     harness.routes[`GET ${APPS_PATH}`] = () => Response.json([]);
@@ -155,15 +164,18 @@ describe('init', () => {
       dir: 'www',
     });
     expect(
-      readJsonFile<{ scripts: Record<string, string> }>(
-        join(directoryPath, 'package.json'),
-      ).scripts['capacitor:copy:after'],
-    ).toBe('npx hotcodepush binary create');
-    expect(
-      hasResourceReference(
-        join(directoryPath, 'ios', 'App', 'App.xcodeproj', 'project.pbxproj'),
+      readFileSync(
+        join(directoryPath, CAPACITOR_XCODE_PROJECT_FILE_PATH),
+        'utf8',
       ),
-    ).toBe(true);
+    ).toContain(
+      'shellScript = "set -e\\n\\n# hotcodepush: writes hotcodepush.json into the app and, in a store build, creates the binary\\nPROJECT_ROOT=\\"$PROJECT_DIR/../..\\"\\nexport PROJECT_ROOT\\n/bin/sh \\"$PROJECT_ROOT/node_modules/@hotcodepush/capacitor-live-updates/scripts/binary-create-xcode.sh\\"\\n";',
+    );
+    expect(
+      readFileSync(join(directoryPath, CAPACITOR_APP_GRADLE_FILE_PATH), 'utf8'),
+    ).toContain(
+      "require.resolve('@hotcodepush/capacitor-live-updates/package.json')",
+    );
     const result = harness.readJson() as InitResult;
     expect(result.status).toBe('complete');
     expect(readStepStatuses(result)).toEqual({
@@ -183,7 +195,7 @@ describe('init', () => {
       'created app Demo',
       `installed @hotcodepush/capacitor-live-updates from ${CAPACITOR_PACKAGE_SPEC}`,
       'wrote hotcodepush.json',
-      'wired capacitor:copy:after and the iOS resource reference',
+      'wired the Create HotCodePush binary phase in Xcode and the Gradle task that runs binary create',
       'run signing-key create to enable code signing',
       'no release follows: run npm run build, then release create',
       'run release create to publish the first release',
@@ -192,7 +204,6 @@ describe('init', () => {
 
   it('should skip what a set-up project already has, the app and its organization from hotcodepush.json, whatever --organization would need', async () => {
     const directoryPath = writeProject({
-      hookScript: 'npx hotcodepush binary create',
       isPackageInstalled: true,
       projectConfig: {
         appId: DEMO_APP.id,
@@ -200,14 +211,7 @@ describe('init', () => {
         dir: 'www',
       },
     });
-    const pbxprojPath = join(
-      directoryPath,
-      'ios',
-      'App',
-      'App.xcodeproj',
-      'project.pbxproj',
-    );
-    rmSync(join(directoryPath, 'ios'), { force: true, recursive: true });
+    await wireCapacitorProject(directoryPath);
     respondWithSession([ACME_ORGANIZATION, GLOBEX_ORGANIZATION]);
     respondWithConfiguredApp();
 
@@ -216,7 +220,6 @@ describe('init', () => {
       undefined,
     );
 
-    expect(existsSync(pbxprojPath)).toBe(false);
     expect(runCommandLineVisibly).not.toHaveBeenCalled();
     expect(harness.readLines()).toEqual([
       '– sign-in        logged in as Anna Example (anna@example.com)',
@@ -224,7 +227,7 @@ describe('init', () => {
       '✓ app            used app Demo, as hotcodepush.json names it',
       '– package        @hotcodepush/capacitor-live-updates already installed',
       '– configuration  hotcodepush.json already present',
-      '– hook           capacitor:copy:after and the iOS resource reference already wired',
+      '– hook           the Xcode phase and the Gradle task already wired',
       '– signing-key    run signing-key create to enable code signing',
       '– build          no release follows: run npm run build, then release create',
       '– release        run release create to publish the first release',
@@ -237,7 +240,6 @@ describe('init', () => {
 
   it('should complete a hotcodepush.json that names its channel by id without naming another channel', async () => {
     const directoryPath = writeProject({
-      hookScript: 'npx hotcodepush binary create',
       isPackageInstalled: true,
       projectConfig: { appId: DEMO_APP.id, channel: PRODUCTION_CHANNEL.id },
     });
@@ -275,16 +277,11 @@ describe('init', () => {
     const configurationStep = result.steps.find(
       ({ step }) => step === 'configuration',
     );
-    const projectFilePath = join(
-      'ios',
-      'App',
-      'App.xcodeproj',
-      'project.pbxproj',
-    );
+    const filesText = `hotcodepush.json, ${CAPACITOR_XCODE_PROJECT_FILE_PATH}, ${CAPACITOR_APP_GRADLE_FILE_PATH}`;
     expect(configurationStep).toEqual({
       code: 'E_CONFIRMATION_REQUIRED',
-      manualStep: `run init --yes to change package.json, hotcodepush.json, ${projectFilePath}`,
-      message: `a confirmation is required: changes package.json, hotcodepush.json, ${projectFilePath}`,
+      manualStep: `run init --yes to change ${filesText}`,
+      message: `a confirmation is required: changes ${filesText}`,
       status: 'stopped',
       step: 'configuration',
     });
@@ -302,7 +299,6 @@ describe('init', () => {
 
   it('should skip the sign-in under HOTCODEPUSH_TOKEN, an API token no session answers for, and never start a device login', async () => {
     const directoryPath = writeProject({
-      hookScript: 'npx hotcodepush binary create',
       isPackageInstalled: true,
       projectConfig: {
         appId: DEMO_APP.id,
@@ -339,7 +335,6 @@ describe('init', () => {
 
   it('should log in in place with the kept device code and keep --json stdout to the result', async () => {
     const directoryPath = writeProject({
-      hookScript: 'npx hotcodepush binary create',
       isPackageInstalled: true,
       projectConfig: {
         appId: DEMO_APP.id,
@@ -398,11 +393,12 @@ describe('init', () => {
     expect(readUserConfig().pendingDeviceCode).toBeUndefined();
   });
 
-  it('should stop at the hook with E_HOOK_OCCUPIED and the manual step when the script cannot be parsed', async () => {
-    const directoryPath = writeProject({
-      hookScript: 'a; b',
-      isPackageInstalled: true,
-    });
+  it('should stop at the hook with E_XCODE_PROJECT and the manual step when the Xcode project cannot be parsed, still adding the Gradle line', async () => {
+    const directoryPath = writeProject({ isPackageInstalled: true });
+    writeFileSync(
+      join(directoryPath, CAPACITOR_XCODE_PROJECT_FILE_PATH),
+      'not a project',
+    );
     respondWithSession([ACME_ORGANIZATION]);
     harness.routes[`GET ${APPS_PATH}`] = () => Response.json([DEMO_APP]);
 
@@ -414,24 +410,20 @@ describe('init', () => {
     ).rejects.toBeInstanceOf(ReportedFailureError);
 
     const result = harness.readJson() as InitResult;
-    expect(result.steps.find(({ step }) => step === 'hook')).toEqual({
-      code: 'E_HOOK_OCCUPIED',
+    expect(result.steps.find(({ step }) => step === 'hook')).toMatchObject({
+      code: 'E_XCODE_PROJECT',
       manualStep:
-        'append " && npx hotcodepush binary create" to the capacitor:copy:after script in package.json.',
-      message: 'capacitor:copy:after runs a script the CLI cannot parse',
+        "add a Run Script phase after the app target's last phase that runs node_modules/@hotcodepush/capacitor-live-updates/scripts/binary-create-xcode.sh.",
       status: 'stopped',
-      step: 'hook',
     });
     expect(readStepStatuses(result)).toMatchObject({
       'build': 'skipped',
       'release': 'skipped',
       'signing-key': 'skipped',
     });
-    expect(readJsonFile(join(directoryPath, 'hotcodepush.json'))).toEqual({
-      appId: DEMO_APP.id,
-      channel: PRODUCTION_CHANNEL.name,
-      dir: 'www',
-    });
+    expect(
+      readFileSync(join(directoryPath, CAPACITOR_APP_GRADLE_FILE_PATH), 'utf8'),
+    ).toContain('hotcodepush.gradle');
   });
 
   it('should stop at the organization when the user belongs to several and none is named, and still run the independent steps', async () => {
@@ -582,7 +574,6 @@ describe('init', () => {
 
   it('should skip the signing key for an app that has one', async () => {
     const directoryPath = writeProject({
-      hookScript: 'npx hotcodepush binary create',
       isPackageInstalled: true,
       projectConfig: {
         appId: DEMO_APP.id,
@@ -615,20 +606,24 @@ describe('init', () => {
     });
   });
 
-  it('should take the native projects from --ios-path and --android-path, typed against the working directory', async () => {
+  it('should take the native projects from --ios-path and --android-path, typed against the working directory, the phase finding the project from there', async () => {
     const directoryPath = writeProject({ isPackageInstalled: true });
-    renameSync(join(directoryPath, 'ios'), join(directoryPath, 'native-ios'));
+    mkdirSync(join(directoryPath, 'native'));
+    renameSync(
+      join(directoryPath, 'ios'),
+      join(directoryPath, 'native', 'ios'),
+    );
     renameSync(
       join(directoryPath, 'android'),
-      join(directoryPath, 'native-android'),
+      join(directoryPath, 'native', 'android'),
     );
     respondWithSession([ACME_ORGANIZATION]);
     harness.routes[`GET ${APPS_PATH}`] = () => Response.json([DEMO_APP]);
 
     await initCommand.action(
       {
-        androidPath: 'native-android',
-        iosPath: 'native-ios',
+        androidPath: join('native', 'android'),
+        iosPath: join('native', 'ios'),
         json: true,
         yes: true,
         ...withCwd(directoryPath),
@@ -639,16 +634,17 @@ describe('init', () => {
     const result = harness.readJson() as InitResult;
     expect(result.status).toBe('complete');
     expect(
-      hasResourceReference(
-        join(
-          directoryPath,
-          'native-ios',
-          'App',
-          'App.xcodeproj',
-          'project.pbxproj',
-        ),
+      readFileSync(
+        join(directoryPath, 'native', CAPACITOR_XCODE_PROJECT_FILE_PATH),
+        'utf8',
       ),
-    ).toBe(true);
+    ).toContain('PROJECT_ROOT=\\"$PROJECT_DIR/../../..\\"');
+    expect(
+      readFileSync(
+        join(directoryPath, 'native', CAPACITOR_APP_GRADLE_FILE_PATH),
+        'utf8',
+      ),
+    ).toContain('hotcodepush.gradle');
   });
 
   it('should stop the hook with the manual step when neither native project exists and nobody can be asked', async () => {

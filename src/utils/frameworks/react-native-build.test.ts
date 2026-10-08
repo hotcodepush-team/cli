@@ -11,13 +11,12 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { InvalidParameterError, MissingParameterError } from '../errors.js';
+import { InvalidParameterError } from '../errors.js';
 import type * as packageManagerModule from '../package-manager.js';
 import { runCommandLineVisibly } from '../package-manager.js';
 import {
   collectEmbeddedFiles,
   packageReactNativeBundles,
-  readBinaryIdentity,
 } from './react-native-build.js';
 
 vi.mock('../package-manager.js', async importOriginal => ({
@@ -378,14 +377,6 @@ describe('react-native-build', () => {
           undefined,
           'name it with --platform ios or --platform android.',
         ),
-      );
-    });
-  });
-
-  describe('readBinaryIdentity', () => {
-    it('should name the flag the native build passes the identity in with', () => {
-      expect(() => readBinaryIdentity()).toThrow(
-        new MissingParameterError('--binary-version'),
       );
     });
   });

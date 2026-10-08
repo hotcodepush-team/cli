@@ -163,6 +163,28 @@ describe('reactNativeFramework', () => {
         ).toEqual([]);
       });
 
+      it("should add the phase after React Native's bundling, running the SDK package script through with-environment.sh", async () => {
+        const directoryPath = writeProject({ isPackageInstalled: true });
+        writeInstalledSdk(directoryPath);
+
+        await (
+          await reactNativeFramework.resolveWiring(readProject(directoryPath), {
+            yes: true,
+          })
+        ).wireBinaryCreateStep(undefined);
+
+        const projectText = readProjectFile(
+          directoryPath,
+          XCODE_PROJECT_FILE_PATH,
+        );
+        expect(projectText).toMatch(
+          /\/\* Bundle React Native code and images \*\/,\n\t+[0-9A-F]+ \/\* Create HotCodePush binary \*\/,/,
+        );
+        expect(projectText).toContain(
+          'shellScript = "set -e\\n\\n# hotcodepush: writes hotcodepush.json into the app and, in a store build, creates the binary\\nWITH_ENVIRONMENT=\\"$REACT_NATIVE_PATH/scripts/xcode/with-environment.sh\\"\\nHOTCODEPUSH_BINARY_CREATE=\\"$REACT_NATIVE_PATH/../@hotcodepush/react-native-code-push/scripts/binary-create-xcode.sh\\"\\n\\n/bin/sh -c \\"$WITH_ENVIRONMENT $HOTCODEPUSH_BINARY_CREATE\\"\\n";',
+        );
+      });
+
       it('should skip what is wired and run nothing once the pods hold the SDK', async () => {
         const directoryPath = writeProject({ isPackageInstalled: true });
         writeInstalledSdk(directoryPath);

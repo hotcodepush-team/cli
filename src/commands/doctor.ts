@@ -1,8 +1,5 @@
-import { existsSync } from 'node:fs';
-import { relative } from 'node:path';
 import type { App, User } from '@hotcodepush/node';
 import {
-  ConfigurationSchema,
   ProjectConfigurationSchema,
   resolveSigningKeyFingerprint,
 } from '@hotcodepush/protocol';
@@ -14,8 +11,6 @@ import {
   PROJECT_CONFIG_FILE_NAME,
 } from '../config/consts.js';
 import { createApiClient } from '../utils/api-client.js';
-import type { PackageJson } from '../utils/binary-create-hook.js';
-import { readPackageJson } from '../utils/binary-create-hook.js';
 import {
   fetchCurrentUser,
   isUnauthenticatedError,
@@ -42,9 +37,10 @@ import {
 } from '../utils/frameworks/sdk-package.js';
 import { defineCommandOptions } from '../utils/global-options.js';
 import { resolveFilesBaseUrl, resolveUpdatesBaseUrl } from '../utils/hosts.js';
-import { readJsonFile } from '../utils/json-file.js';
 import { printOutcomeRows } from '../utils/outcome.js';
 import { printJson, resolveQuantityText } from '../utils/output.js';
+import type { PackageJson } from '../utils/package-json.js';
+import { readPackageJson } from '../utils/package-json.js';
 import type { ProjectConfig } from '../utils/project-config.js';
 import {
   locateProjectConfigFile,
@@ -58,7 +54,6 @@ import {
 } from '../utils/resource-resolution.js';
 import { readSigningKeyPair } from '../utils/signing-private-key.js';
 import { readToken } from '../utils/token-store.js';
-import type { Platform } from '../utils/upload.js';
 import { readApiUrl } from '../utils/user-config.js';
 
 /**
@@ -92,8 +87,6 @@ interface SessionAndAppChecks {
 const CHANNEL_NAME_SCHEMA = ProjectConfigurationSchema.shape.channel;
 
 const ID_SCHEMA = z.guid();
-
-const PLATFORMS: Platform[] = ['android', 'ios'];
 
 const PROBE_TIMEOUT_MS = 5000;
 
@@ -419,108 +412,15 @@ async function fetchUnregisteredPublicKeyCount(
 }
 
 /**
- * The framework's SDK package and binary create step, then the resource file of each platform; a project without a framework
- * the CLI knows gets the one row that says so.
+ * The framework's SDK package and binary create step; a project without a framework the CLI knows gets the one row that says so.
+ * The resource file is not checked: every build writes it into the app it builds, never into the project.
  */
 function checkFramework(project: Project): DoctorCheck[] {
   const { framework } = project;
   if (framework instanceof CliError) {
     return [resolveFailedCheck('framework', framework)];
   }
-  return [
-    ...framework.checkWiring(project),
-    ...PLATFORMS.map(platform =>
-      checkResourceFile(project, framework, platform),
-    ),
-  ];
-}
-
-/**
- * The resource file the hook wrote into the native project, parsed as the SDK parses it and naming the configured app;
- * one that is no JSON, a write cut short, is rebuilt rather than corrected.
- */
-function checkResourceFile(
-  { directoryPath, projectConfig }: Project,
-  framework: FrameworkModule,
-  platform: Platform,
-): DoctorCheck {
-  const check = `${platform}-resource-file`;
-  const nativeProjectPath =
-    framework.resolveNativeProjectPaths(directoryPath)[platform];
-  if (!existsSync(nativeProjectPath)) {
-    return {
-      check,
-      message: `no ${platform} project at ${relative(directoryPath, nativeProjectPath)}`,
-      status: 'skipped',
-    };
-  }
-  const filePath = framework.resolveResourceFilePath(
-    platform,
-    nativeProjectPath,
-  );
-  if (filePath === undefined) {
-    return {
-      check,
-      message: `the ${platform} build writes hotcodepush.json into the app it builds`,
-      status: 'skipped',
-    };
-  }
-  const relativeFilePath = relative(directoryPath, filePath);
-  if (!existsSync(filePath)) {
-    return {
-      check,
-      manualStep: framework.binaryCreateStep,
-      message: `no resource file at ${relativeFilePath}`,
-      status: 'failed',
-    };
-  }
-  let resourceFile: unknown;
-  try {
-    resourceFile = readJsonFile(filePath);
-  } catch (error) {
-    if (!(error instanceof InvalidJsonError)) {
-      throw error;
-    }
-    return {
-      check,
-      manualStep: framework.binaryCreateStep,
-      message: error.message,
-      status: 'failed',
-    };
-  }
-  const parsed = ConfigurationSchema.safeParse(resourceFile);
-  if (!parsed.success) {
-    return {
-      check,
-      manualStep: framework.binaryCreateStep,
-      message: `${relativeFilePath} is not a configuration the SDK reads`,
-      status: 'failed',
-    };
-  }
-  if (
-    projectConfig?.appId !== undefined &&
-    parsed.data.appId !== projectConfig.appId
-  ) {
-    return {
-      check,
-      manualStep: framework.binaryCreateStep,
-      message: `${relativeFilePath} names another app`,
-      status: 'failed',
-    };
-  }
-  if (parsed.data.channelId === null) {
-    return {
-      check,
-      manualStep: `log in or set HOTCODEPUSH_TOKEN, leave HOTCODEPUSH_OFFLINE unset, then ${framework.binaryCreateStep}`,
-      message: `${relativeFilePath} names no channel, so the build takes no updates: it was made offline or without a token`,
-      status: 'failed',
-    };
-  }
-  return {
-    check,
-    message: `${relativeFilePath} built at ${parsed.data.builtAt}`,
-    status: 'ok',
-  };
+  return framework.checkWiring(project);
 }
 
 /**

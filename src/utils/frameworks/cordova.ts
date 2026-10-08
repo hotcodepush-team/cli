@@ -10,7 +10,6 @@ import {
   resolveCommandLineText,
   runCommandLineVisibly,
 } from '../package-manager.js';
-import { readBinaryIdentity } from './react-native-build.js';
 import { checkSdkPackage, isSdkPackageDeclared } from './sdk-package.js';
 import type {
   FrameworkCheck,
@@ -59,7 +58,6 @@ const WEB_DIRECTORY = 'www';
  * an Xcode phase and a Gradle task the plugin wires itself, which write the resource file into the app they build.
  */
 export const cordovaFramework: FrameworkModule = {
-  binaryCreateStep: 'build the app natively, which runs binary create',
   packageName: CORDOVA_PACKAGE_NAME,
   versionedPackageNames: [
     'cordova',
@@ -72,11 +70,9 @@ export const cordovaFramework: FrameworkModule = {
     checkHook(project),
     checkInsecureFileMode(project),
   ],
-  readBinaryIdentity,
   // the start page `config.xml` names is a page inside `www`, which the app serves as its root
   readBuildDirectory: () => WEB_DIRECTORY,
   resolveNativeProjectPaths,
-  resolveResourceFilePath: () => undefined,
   resolveWiring: project => Promise.resolve(resolveWiring(project)),
 };
 

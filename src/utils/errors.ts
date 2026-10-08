@@ -130,20 +130,6 @@ export class FingerprintUnavailableError extends CliError {
 }
 
 /**
- * The hook script the CLI would add its command to is one it cannot parse as a command chain.
- */
-export class HookOccupiedError extends CliError {
-  constructor(hookName: string) {
-    super({
-      code: 'E_HOOK_OCCUPIED',
-      exitCode: ExitCode.Error,
-      fix: `append " && npx hotcodepush binary create" to the ${hookName} script in package.json.`,
-      message: `${hookName} runs a script the CLI cannot parse`,
-    });
-  }
-}
-
-/**
  * A JSON file the CLI reads and a person edits that does not parse: the message names the file and where the parse stopped,
  * never the file's text, since `config.json` can hold the token.
  */

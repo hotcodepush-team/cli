@@ -1,33 +1,35 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import {
-  INIT_MANUAL_STEP,
   REACT_NATIVE_PACKAGE_NAME,
   REACT_NATIVE_PACKAGE_SPEC,
 } from '../../config/consts.js';
-import type { CliError, ConfirmationRequiredError } from '../errors.js';
-import { NativeProjectError, XcodeProjectError } from '../errors.js';
+import type { ConfirmationRequiredError } from '../errors.js';
 import type { StepOutcome } from '../init-steps.js';
+import type { NativeProjectEdit } from '../native-project-edit.js';
+import { resolveGradleEdit } from '../native-project-edit.js';
 import { runCommandLineVisibly } from '../package-manager.js';
-import type { ReactNativeEdit } from '../react-native-project.js';
 import {
   resolveBundleUrlEdit,
   resolveCorePodEdit,
-  resolveGradleEdit,
   resolveReactHostEdit,
 } from '../react-native-project.js';
 import type { Platform } from '../upload.js';
+import type { BinaryCreatePhase } from '../xcode-project.js';
 import {
-  addBinaryCreatePhase,
   hasBinaryCreatePhase,
   resolveXcodeProjectFilePath,
 } from '../xcode-project.js';
+import {
+  applyNativeProjectEdits,
+  checkBinaryCreateStep,
+  checkEdits,
+} from './binary-create-step.js';
 import type { NativeProjects } from './native-projects.js';
 import { resolveNativeProjects } from './native-projects.js';
 import {
   collectEmbeddedFiles,
   packageReactNativeBundles,
-  readBinaryIdentity,
   resolveMainBundlePath,
   resolveNativeProjectPaths,
 } from './react-native-build.js';
@@ -45,8 +47,25 @@ import type {
   WiringOptions,
 } from './index.js';
 
-const BINARY_CREATE_PHASE_DESCRIPTION =
-  'the Create HotCodePush binary phase in Xcode';
+/**
+ * The phase runs the SDK package's script through React Native's `with-environment.sh`, which finds Node, right after
+ * the bundling whose output binary create hashes.
+ */
+const BINARY_CREATE_PHASE: BinaryCreatePhase = {
+  anchorPhaseName: 'Bundle React Native code and images',
+  fix: `add a Run Script phase after "Bundle React Native code and images" that runs node_modules/${REACT_NATIVE_PACKAGE_NAME}/scripts/binary-create-xcode.sh through React Native's with-environment.sh.`,
+  // the lines of the phase as a pbxproj string carries them, the line breaks escaped
+  shellScript: [
+    'set -e',
+    '',
+    '# hotcodepush: writes hotcodepush.json into the app and, in a store build, creates the binary',
+    'WITH_ENVIRONMENT="$REACT_NATIVE_PATH/scripts/xcode/with-environment.sh"',
+    `HOTCODEPUSH_BINARY_CREATE="$REACT_NATIVE_PATH/../${REACT_NATIVE_PACKAGE_NAME}/scripts/binary-create-xcode.sh"`,
+    '',
+    '/bin/sh -c "$WITH_ENVIRONMENT $HOTCODEPUSH_BINARY_CREATE"',
+    '',
+  ].join('\\n'),
+};
 
 const POD_NAME = 'HotcodepushReactNativeCodePush';
 
@@ -56,22 +75,23 @@ const POD_NAME = 'HotcodepushReactNativeCodePush';
  * per platform. The app hands React Native the bundle the SDK serves, one line in `AppDelegate.swift` and one in `MainApplication.kt`.
  */
 export const reactNativeFramework: FrameworkModule = {
-  binaryCreateStep: 'build the app natively, which runs binary create',
   packageName: REACT_NATIVE_PACKAGE_NAME,
   versionedPackageNames: ['react-native', REACT_NATIVE_PACKAGE_NAME],
   checkWiring: project => [
     checkSdkPackage(project, REACT_NATIVE_PACKAGE_NAME),
-    checkBinaryCreateStep(project),
+    checkBinaryCreateStep(
+      project.directoryPath,
+      resolveNativeProjectPaths(project.directoryPath),
+      REACT_NATIVE_PACKAGE_NAME,
+    ),
     checkBundleWiring(project),
   ],
   collectEmbeddedFiles,
   packageBundles: request =>
     packageReactNativeBundles(request, resolveBundlerArgs),
-  readBinaryIdentity,
   readBuildDirectory: () => undefined,
   resolveMainBundlePath,
   resolveNativeProjectPaths,
-  resolveResourceFilePath: () => undefined,
   resolveWiring,
 };
 
@@ -86,61 +106,6 @@ function checkBundleWiring({
     'React Native runs the bundle the SDK serves',
     resolveBundleWiringEdits(resolveNativeProjectPaths(directoryPath)),
     directoryPath,
-  );
-}
-
-/**
- * A row over edits: ok when every one is in its file, failed naming the files that lack theirs, skipped without a native project.
- */
-function checkEdits(
-  check: string,
-  wiredMessage: string,
-  edits: ReactNativeEdit[],
-  projectDirectoryPath: string,
-  isPhaseMissing = false,
-): FrameworkCheck {
-  const missingFilePaths = edits
-    .filter(edit => !edit.isApplied())
-    .map(({ filePath }) => relative(projectDirectoryPath, filePath));
-  if (edits.length === 0 && !isPhaseMissing) {
-    return { check, message: 'no native project to check', status: 'skipped' };
-  }
-  if (missingFilePaths.length > 0 || isPhaseMissing) {
-    return {
-      check,
-      manualStep: INIT_MANUAL_STEP,
-      message: `not wired in ${[...(isPhaseMissing ? ['the Xcode project'] : []), ...missingFilePaths].join(' and ')}`,
-      status: 'failed',
-    };
-  }
-  return { check, message: wiredMessage, status: 'ok' };
-}
-
-/**
- * `doctor`'s `hook` row: the Xcode phase and the Gradle line that run binary create.
- */
-function checkBinaryCreateStep({
-  directoryPath,
-}: FrameworkProject): FrameworkCheck {
-  const nativeProjectPaths = resolveNativeProjectPaths(directoryPath);
-  const xcodeProjectFilePath = resolveXcodeProjectFilePath(
-    nativeProjectPaths.ios,
-  );
-  const gradleEdit = resolveGradleEdit(nativeProjectPaths.android);
-  if (xcodeProjectFilePath === undefined && gradleEdit === undefined) {
-    return {
-      check: 'hook',
-      message: 'no native project to check',
-      status: 'skipped',
-    };
-  }
-  return checkEdits(
-    'hook',
-    'the Xcode phase and the Gradle task run binary create',
-    gradleEdit === undefined ? [] : [gradleEdit],
-    directoryPath,
-    xcodeProjectFilePath !== undefined &&
-      !hasBinaryCreatePhase(xcodeProjectFilePath),
   );
 }
 
@@ -163,7 +128,7 @@ function isPodInstalled(iosProjectPath: string): boolean {
  */
 function resolveBundleWiringEdits(
   nativeProjectPaths: NativeProjectPaths,
-): ReactNativeEdit[] {
+): NativeProjectEdit[] {
   return [
     resolveBundleUrlEdit(nativeProjectPaths.ios),
     resolveReactHostEdit(nativeProjectPaths.android),
@@ -195,9 +160,9 @@ function resolveBundlerArgs(
 function resolveEdits(
   projectDirectoryPath: string,
   nativeProjectPaths: NativeProjectPaths,
-): ReactNativeEdit[] {
+): NativeProjectEdit[] {
   return [
-    resolveGradleEdit(nativeProjectPaths.android),
+    resolveGradleEdit(nativeProjectPaths.android, REACT_NATIVE_PACKAGE_NAME),
     ...resolveBundleWiringEdits(nativeProjectPaths),
     resolveCorePodEdit(nativeProjectPaths.ios, projectDirectoryPath),
   ].filter(edit => edit !== undefined);
@@ -280,28 +245,13 @@ async function wireBinaryCreateStep(
   if (editBlocker !== undefined && (!isPhaseWired || pendingEdits.length > 0)) {
     throw editBlocker;
   }
-  const errors: CliError[] = [];
-  const wired: string[] = [];
-  if (xcodeProjectFilePath !== undefined && !isPhaseWired) {
-    try {
-      await addBinaryCreatePhase(xcodeProjectFilePath, options);
-      wired.push(BINARY_CREATE_PHASE_DESCRIPTION);
-    } catch (error) {
-      errors.push(assertEditError(error));
-    }
-  }
-  for (const edit of pendingEdits) {
-    try {
-      edit.apply();
-      wired.push(edit.description);
-    } catch (error) {
-      errors.push(assertEditError(error));
-    }
-  }
-  const [firstError] = errors;
-  if (firstError !== undefined) {
-    throw firstError;
-  }
+  const wired = await applyNativeProjectEdits(
+    xcodeProjectFilePath === undefined
+      ? undefined
+      : { phase: BINARY_CREATE_PHASE, projectFilePath: xcodeProjectFilePath },
+    pendingEdits,
+    options,
+  );
   if (!arePodsInstalled) {
     runCommandLineVisibly(
       { args: ['install'], command: 'pod' },
@@ -314,17 +264,4 @@ async function wireBinaryCreateStep(
     status: 'done',
     value: undefined,
   };
-}
-
-/**
- * An edit that found no place in its file is collected as the step's manual step; anything else is not the edit's to explain.
- */
-function assertEditError(error: unknown): CliError {
-  if (
-    error instanceof NativeProjectError ||
-    error instanceof XcodeProjectError
-  ) {
-    return error;
-  }
-  throw error;
 }

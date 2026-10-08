@@ -9,12 +9,12 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import type { LockedPackage } from '@hotcodepush/protocol/fingerprint';
 import { computeFingerprint } from '@hotcodepush/protocol/fingerprint';
+import { capacitorFramework } from '../src/utils/frameworks/capacitor.js';
 
 /**
- * What a Capacitor project's `package.json` starts with in a test: the framework, the SDK when installed, the hook when wired.
+ * What a Capacitor project starts with in a test: the framework, the SDK when installed, its configuration and web build.
  */
 export interface CapacitorProjectOptions {
-  hookScript?: string;
   isPackageInstalled?: boolean;
   projectConfig?: object;
   webDir?: string;
@@ -41,6 +41,19 @@ export const CAPACITOR_FINGERPRINT = computeFingerprint({
   packages: CAPACITOR_LOCKED_PACKAGES,
 });
 
+export const CAPACITOR_APP_GRADLE_FILE_PATH = join(
+  'android',
+  'app',
+  'build.gradle',
+);
+
+export const CAPACITOR_XCODE_PROJECT_FILE_PATH = join(
+  'ios',
+  'App',
+  'App.xcodeproj',
+  'project.pbxproj',
+);
+
 export const PBXPROJ_FIXTURE_PATH = join(
   import.meta.dirname,
   'capacitor-project.pbxproj',
@@ -48,10 +61,9 @@ export const PBXPROJ_FIXTURE_PATH = join(
 
 /**
  * A Capacitor project in a temporary directory: `package.json`, `capacitor.config.json`, the web build,
- * and the iOS project of `cap add ios` without the resource reference; the caller removes it.
+ * the iOS project of `cap add ios` and the app's Gradle file of `cap add android`, neither wired; the caller removes it.
  */
 export function writeCapacitorProject({
-  hookScript,
   isPackageInstalled = false,
   projectConfig,
   webDir = 'www',
@@ -65,12 +77,7 @@ export function writeCapacitorProject({
         : {}),
     },
     name: 'demo',
-    scripts: {
-      build: 'vite build',
-      ...(hookScript === undefined
-        ? {}
-        : { 'capacitor:copy:after': hookScript }),
-    },
+    scripts: { build: 'vite build' },
     version: '1.0.0',
   });
   writeJson(join(directoryPath, 'capacitor.config.json'), {
@@ -82,19 +89,28 @@ export function writeCapacitorProject({
   }
   mkdirSync(join(directoryPath, webDir));
   writeFileSync(join(directoryPath, webDir, 'index.html'), '<h1>v1</h1>');
-  const pbxprojPath = join(
-    directoryPath,
-    'ios',
-    'App',
-    'App.xcodeproj',
-    'project.pbxproj',
-  );
+  const pbxprojPath = join(directoryPath, CAPACITOR_XCODE_PROJECT_FILE_PATH);
   mkdirSync(dirname(pbxprojPath), { recursive: true });
   writeFileSync(pbxprojPath, readFileSync(PBXPROJ_FIXTURE_PATH));
-  mkdirSync(join(directoryPath, 'android', 'app', 'src', 'main', 'assets'), {
-    recursive: true,
-  });
+  mkdirSync(join(directoryPath, 'android', 'app'), { recursive: true });
+  writeFileSync(
+    join(directoryPath, CAPACITOR_APP_GRADLE_FILE_PATH),
+    "apply plugin: 'com.android.application'\n",
+  );
   return directoryPath;
+}
+
+/**
+ * The project with the Xcode phase and the Gradle line `init` wires, made the way `init` makes them.
+ */
+export async function wireCapacitorProject(
+  directoryPath: string,
+): Promise<void> {
+  const wiring = await capacitorFramework.resolveWiring(
+    { directoryPath, packageJson: undefined },
+    { yes: true },
+  );
+  await wiring.wireBinaryCreateStep(undefined);
 }
 
 /**

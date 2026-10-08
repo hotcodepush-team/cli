@@ -6,14 +6,13 @@ import {
   INIT_MANUAL_STEP,
   REACT_NATIVE_PACKAGE_NAME,
 } from '../../config/consts.js';
-import { stringifyLikeSource } from '../binary-create-hook.js';
 import type { ConfirmationRequiredError } from '../errors.js';
 import { NativeProjectError } from '../errors.js';
 import type { StepOutcome } from '../init-steps.js';
+import { stringifyLikeSource } from '../json-file.js';
 import {
   collectEmbeddedFiles,
   packageReactNativeBundles,
-  readBinaryIdentity,
   resolveMainBundlePath,
   resolveNativeProjectPaths,
 } from './react-native-build.js';
@@ -81,8 +80,6 @@ const JSON_APP_CONFIG_FILE_NAMES = ['app.config.json', APP_JSON_FILE_NAME];
  * app config and the native projects stay prebuild's. An upload bundles each platform with Expo's own bundler.
  */
 export const expoFramework: FrameworkModule = {
-  binaryCreateStep:
-    'run npx expo prebuild and build the app natively, which runs binary create',
   packageName: EXPO_PACKAGE_NAME,
   versionedPackageNames: ['expo', 'react-native', EXPO_PACKAGE_NAME],
   versionedSdkDependencyNames: [REACT_NATIVE_PACKAGE_NAME],
@@ -93,11 +90,9 @@ export const expoFramework: FrameworkModule = {
   collectEmbeddedFiles,
   packageBundles: request =>
     packageReactNativeBundles(request, () => BUNDLER_ARGS),
-  readBinaryIdentity,
   readBuildDirectory: () => undefined,
   resolveMainBundlePath,
   resolveNativeProjectPaths,
-  resolveResourceFilePath: () => undefined,
   resolveWiring: project => Promise.resolve(resolveWiring(project)),
 };
 

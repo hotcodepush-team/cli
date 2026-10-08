@@ -86,26 +86,6 @@ describe('binary create', () => {
     );
     mkdirSync(join(projectDirectoryPath, 'dist'));
     writeFileSync(join(projectDirectoryPath, 'dist', 'index.html'), INDEX_HTML);
-    mkdirSync(join(projectDirectoryPath, 'ios', 'App', 'App.xcodeproj'), {
-      recursive: true,
-    });
-    writeFileSync(
-      join(
-        projectDirectoryPath,
-        'ios',
-        'App',
-        'App.xcodeproj',
-        'project.pbxproj',
-      ),
-      'CURRENT_PROJECT_VERSION = 1;\nMARKETING_VERSION = 1.0;\n',
-    );
-    mkdirSync(join(projectDirectoryPath, 'android', 'app'), {
-      recursive: true,
-    });
-    writeFileSync(
-      join(projectDirectoryPath, 'android', 'app', 'build.gradle'),
-      'versionCode 1\nversionName "1.0"\n',
-    );
     writeFingerprintInputs(projectDirectoryPath);
     stderrWrite = vi
       .spyOn(process.stderr, 'write')
@@ -118,13 +98,25 @@ describe('binary create', () => {
     vi.unstubAllEnvs();
   });
 
+  /**
+   * What the native build passes in: the platform, its identity and where the resource file goes in the app it builds.
+   */
+  function resolveBuildOptions(platform: 'android' | 'ios') {
+    return {
+      binaryBuild: '1',
+      binaryVersion: '1.0',
+      out: join(projectDirectoryPath, 'build', platform, 'hotcodepush.json'),
+      platform,
+    };
+  }
+
   function readResourceFile(relativePath: string): unknown {
     return JSON.parse(
       readFileSync(join(projectDirectoryPath, relativePath), 'utf8'),
     );
   }
 
-  it('should write the resource file into the iOS project and register the binary, uploading what the app lacks', async () => {
+  it('should write the resource file where --out names and create the binary under the identity passed in, uploading what the app lacks', async () => {
     let createCount = 0;
     harness.routes[`POST ${BINARIES_PATH}`] = () => {
       createCount += 1;
@@ -169,7 +161,7 @@ describe('binary create', () => {
     await binaryCreateCommand.action(
       {
         config: join(projectDirectoryPath, 'hotcodepush.json'),
-        platform: 'ios',
+        ...resolveBuildOptions('ios'),
       },
       undefined,
     );
@@ -186,7 +178,7 @@ describe('binary create', () => {
       force: false,
       platform: 'ios',
     });
-    const resourceFile = readResourceFile('ios/App/App/hotcodepush.json');
+    const resourceFile = readResourceFile('build/ios/hotcodepush.json');
     expect(ConfigurationSchema.parse(resourceFile)).toMatchObject({
       appId: DEMO_APP.id,
       channelId: PRODUCTION_CHANNEL.id,
@@ -204,7 +196,7 @@ describe('binary create', () => {
       updatesBaseUrl: 'https://api.example.com/updates',
     });
     expect(harness.readLines()).toEqual([
-      `Wrote ${join(projectDirectoryPath, 'ios', 'App', 'App', 'hotcodepush.json')} for ios.`,
+      `Wrote ${join(projectDirectoryPath, 'build', 'ios', 'hotcodepush.json')} for ios.`,
       `Registered the binary ios 1.0 (1): 1 files uploaded, ${uploadedByteCount} B.`,
     ]);
   });
@@ -257,22 +249,6 @@ describe('binary create', () => {
     });
   });
 
-  it('should do nothing when the hook runs for the web platform, before any configuration check', async () => {
-    vi.stubEnv('CAPACITOR_PLATFORM_NAME', 'web');
-    rmSync(join(projectDirectoryPath, 'hotcodepush.json'));
-    vi.spyOn(process, 'cwd').mockReturnValue(projectDirectoryPath);
-
-    await binaryCreateCommand.action({}, undefined);
-
-    expect(harness.requests).toEqual([]);
-    expect(harness.readLines()).toEqual([]);
-    expect(
-      existsSync(
-        join(projectDirectoryPath, 'ios', 'App', 'App', 'hotcodepush.json'),
-      ),
-    ).toBe(false);
-  });
-
   it('should fail the build naming hotcodepush.json when the app has no channel of its name, before writing or registering anything', async () => {
     const configPath = join(projectDirectoryPath, 'hotcodepush.json');
     writeFileSync(
@@ -282,7 +258,7 @@ describe('binary create', () => {
 
     await expect(
       binaryCreateCommand.action(
-        { config: configPath, platform: 'ios' },
+        { ...resolveBuildOptions('ios'), config: configPath },
         undefined,
       ),
     ).rejects.toMatchObject({
@@ -294,7 +270,7 @@ describe('binary create', () => {
     );
     expect(
       existsSync(
-        join(projectDirectoryPath, 'ios', 'App', 'App', 'hotcodepush.json'),
+        join(projectDirectoryPath, 'build', 'ios', 'hotcodepush.json'),
       ),
     ).toBe(false);
   });
@@ -306,7 +282,7 @@ describe('binary create', () => {
       binaryCreateCommand.action(
         {
           config: join(projectDirectoryPath, 'hotcodepush.json'),
-          platform: 'ios',
+          ...resolveBuildOptions('ios'),
         },
         undefined,
       ),
@@ -316,7 +292,7 @@ describe('binary create', () => {
     );
     expect(
       existsSync(
-        join(projectDirectoryPath, 'ios', 'App', 'App', 'hotcodepush.json'),
+        join(projectDirectoryPath, 'build', 'ios', 'hotcodepush.json'),
       ),
     ).toBe(false);
   });
@@ -329,73 +305,50 @@ describe('binary create', () => {
     await binaryCreateCommand.action(
       {
         config: join(projectDirectoryPath, 'hotcodepush.json'),
-        platform: 'ios',
+        ...resolveBuildOptions('ios'),
       },
       undefined,
     );
 
-    expect(readResourceFile('ios/App/App/hotcodepush.json')).toMatchObject({
+    expect(readResourceFile('build/ios/hotcodepush.json')).toMatchObject({
       channelId: STAGING_CHANNEL.id,
     });
   });
 
-  it('should take the platform from CAPACITOR_PLATFORM_NAME and the identity from the Gradle file, printing JSON', async () => {
-    vi.stubEnv('CAPACITOR_PLATFORM_NAME', 'android');
+  it('should print the binary and where the resource file went with --json', async () => {
     harness.routes[`POST ${BINARIES_PATH}`] = () =>
       Response.json({ ...BINARY, platform: 'android' });
+    const buildOptions = resolveBuildOptions('android');
 
     await binaryCreateCommand.action(
-      { config: join(projectDirectoryPath, 'hotcodepush.json'), json: true },
+      {
+        ...buildOptions,
+        config: join(projectDirectoryPath, 'hotcodepush.json'),
+        json: true,
+      },
       undefined,
     );
 
-    expect(
-      existsSync(
-        join(
-          projectDirectoryPath,
-          'android',
-          'app',
-          'src',
-          'main',
-          'assets',
-          'hotcodepush.json',
-        ),
-      ),
-    ).toBe(true);
+    expect(existsSync(buildOptions.out)).toBe(true);
     expect(harness.readJson()).toEqual({
       binary: { ...BINARY, platform: 'android' },
-      resourceFilePath: join(
-        projectDirectoryPath,
-        'android',
-        'app',
-        'src',
-        'main',
-        'assets',
-        'hotcodepush.json',
-      ),
+      resourceFilePath: buildOptions.out,
       uploadedBytes: 0,
       uploadedFileCount: 0,
     });
   });
 
-  it('should write to an absolute --out as given, the path a native build passes in', async () => {
-    const outDirectoryPath = createTemporaryDirectory('hotcodepush-out-');
-    const outFilePath = join(outDirectoryPath, 'hotcodepush.json');
-    harness.routes[`POST ${BINARIES_PATH}`] = () =>
-      Response.json(BINARY, { status: 201 });
-
-    await binaryCreateCommand.action(
-      {
-        config: join(projectDirectoryPath, 'hotcodepush.json'),
-        json: true,
-        out: outFilePath,
-        platform: 'ios',
-      },
-      undefined,
-    );
-
-    expect(existsSync(outFilePath)).toBe(true);
-    expect(harness.readJson()).toMatchObject({ resourceFilePath: outFilePath });
+  it('should name --binary-build when the build passes the version alone', async () => {
+    await expect(
+      binaryCreateCommand.action(
+        {
+          ...resolveBuildOptions('ios'),
+          binaryBuild: undefined,
+          config: join(projectDirectoryPath, 'hotcodepush.json'),
+        },
+        undefined,
+      ),
+    ).rejects.toThrow(new MissingParameterError('--binary-build'));
   });
 
   describe('when the build does not reach the API', () => {
@@ -419,7 +372,7 @@ describe('binary create', () => {
       await binaryCreateCommand.action(
         {
           config: configPath ?? join(projectDirectoryPath, 'hotcodepush.json'),
-          platform: 'ios',
+          ...resolveBuildOptions('ios'),
         },
         undefined,
       );
@@ -432,7 +385,7 @@ describe('binary create', () => {
       await createIosBinary();
 
       expect(harness.requests).toEqual([]);
-      expect(readResourceFile('ios/App/App/hotcodepush.json')).toMatchObject({
+      expect(readResourceFile('build/ios/hotcodepush.json')).toMatchObject({
         channelId: null,
         embeddedBundleId: null,
         fingerprint: CAPACITOR_FINGERPRINT,
@@ -458,13 +411,13 @@ describe('binary create', () => {
 
       await createIosBinary(configPath);
       await binaryCreateCommand.action(
-        { config: configPath, platform: 'android' },
+        { ...resolveBuildOptions('android'), config: configPath },
         undefined,
       );
 
       const spkiDer = SIGNING_KEY.publicKey.slice('rsa-v1_5-sha256:'.length);
       const [iosPublicKey] = ConfigurationSchema.parse(
-        readResourceFile('ios/App/App/hotcodepush.json'),
+        readResourceFile('build/ios/hotcodepush.json'),
       ).publicKeys;
       expect(iosPublicKey?.keyId).toBe(SIGNING_KEY.fingerprint);
       // PKCS #1 is the key inside the SPKI wrapper: shorter, and the tail of the same bytes
@@ -476,7 +429,7 @@ describe('binary create', () => {
       expect(iosPublicKey?.der).not.toBe(spkiDer);
       expect(
         ConfigurationSchema.parse(
-          readResourceFile('android/app/src/main/assets/hotcodepush.json'),
+          readResourceFile('build/android/hotcodepush.json'),
         ).publicKeys,
       ).toEqual([{ der: spkiDer, keyId: SIGNING_KEY.fingerprint }]);
     });
@@ -487,7 +440,7 @@ describe('binary create', () => {
       await createIosBinary(writeChannelById());
 
       expect(harness.requests).toEqual([]);
-      expect(readResourceFile('ios/App/App/hotcodepush.json')).toMatchObject({
+      expect(readResourceFile('build/ios/hotcodepush.json')).toMatchObject({
         channelId: PRODUCTION_CHANNEL.id,
       });
       expect(stderrWrite).toHaveBeenCalledWith(
@@ -501,7 +454,7 @@ describe('binary create', () => {
       await createIosBinary();
 
       expect(harness.requests).toEqual([]);
-      expect(readResourceFile('ios/App/App/hotcodepush.json')).toMatchObject({
+      expect(readResourceFile('build/ios/hotcodepush.json')).toMatchObject({
         channelId: null,
         embeddedBundleId: null,
       });
@@ -523,7 +476,7 @@ describe('binary create', () => {
       });
       expect(
         existsSync(
-          join(projectDirectoryPath, 'ios', 'App', 'App', 'hotcodepush.json'),
+          join(projectDirectoryPath, 'build', 'ios', 'hotcodepush.json'),
         ),
       ).toBe(false);
     });
@@ -534,7 +487,7 @@ describe('binary create', () => {
 
       await createIosBinary();
 
-      expect(readResourceFile('ios/App/App/hotcodepush.json')).toMatchObject({
+      expect(readResourceFile('build/ios/hotcodepush.json')).toMatchObject({
         channelId: null,
         embeddedBundleId: null,
       });
@@ -564,7 +517,7 @@ describe('binary create', () => {
           ({ url }) => new URL(url).pathname === CHANNELS_PATH,
         ),
       ).toEqual([]);
-      expect(readResourceFile('ios/App/App/hotcodepush.json')).toMatchObject({
+      expect(readResourceFile('build/ios/hotcodepush.json')).toMatchObject({
         channelId: PRODUCTION_CHANNEL.id,
         embeddedBundleId: BINARY.bundleId,
       });
@@ -579,12 +532,12 @@ describe('binary create', () => {
     await binaryCreateCommand.action(
       {
         config: join(projectDirectoryPath, 'hotcodepush.json'),
-        platform: 'ios',
+        ...resolveBuildOptions('ios'),
       },
       undefined,
     );
 
-    expect(readResourceFile('ios/App/App/hotcodepush.json')).toMatchObject({
+    expect(readResourceFile('build/ios/hotcodepush.json')).toMatchObject({
       channelId: PRODUCTION_CHANNEL.id,
       embeddedBundleId: null,
     });
@@ -597,7 +550,7 @@ describe('binary create', () => {
       binaryCreateCommand.action(
         {
           config: join(projectDirectoryPath, 'hotcodepush.json'),
-          platform: 'ios',
+          ...resolveBuildOptions('ios'),
         },
         undefined,
       ),
@@ -612,17 +565,17 @@ describe('binary create', () => {
         'The build is registered with another fingerprint.',
       );
     const options = {
+      ...resolveBuildOptions('ios'),
       binaryBuild: '57',
       binaryVersion: '2.4.1',
       config: join(projectDirectoryPath, 'hotcodepush.json'),
-      platform: 'ios' as const,
     };
 
     await binaryCreateCommand.action(options, undefined);
     expect(stderrWrite).toHaveBeenCalledWith(
       expect.stringContaining('E_BINARY_CONFLICT'),
     );
-    expect(readResourceFile('ios/App/App/hotcodepush.json')).toMatchObject({
+    expect(readResourceFile('build/ios/hotcodepush.json')).toMatchObject({
       embeddedBundleId: null,
       embeddedBundleManifest: { bundleVersion: '2.4.1' },
     });

@@ -27,6 +27,18 @@ export function parseJsonFileText(filePath: string, text: string): unknown {
 }
 
 /**
+ * The JSON written back with the indentation and the final newline the file had, so the edit is the one line it means.
+ */
+export function stringifyLikeSource(
+  value: unknown,
+  sourceText: string,
+): string {
+  const indent = /^(\s+)"/m.exec(sourceText)?.[1] ?? '  ';
+  const newline = sourceText.endsWith('\n') ? '\n' : '';
+  return `${JSON.stringify(value, null, indent)}${newline}`;
+}
+
+/**
  * Where the parse stopped, in V8's words with its first letter lowercase and without the file's text.
  */
 function resolveJsonSyntaxProblem({ message }: SyntaxError): string {

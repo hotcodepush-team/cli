@@ -1,26 +1,21 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { dirname, join, relative, sep } from 'node:path';
 import {
   CAPACITOR_PACKAGE_NAME,
   CAPACITOR_PACKAGE_SPEC,
-  BINARY_CREATE_HOOK_COMMAND,
-  BINARY_CREATE_HOOK_NAME,
-  INIT_MANUAL_STEP,
 } from '../../config/consts.js';
-import {
-  readPackageJson,
-  resolveBinaryCreateHookState,
-  wireBinaryCreateHook,
-} from '../binary-create-hook.js';
-import { readBinaryIdentity as readNativeProjectBinaryIdentity } from '../binary-identity.js';
 import type { ConfirmationRequiredError } from '../errors.js';
 import type { StepOutcome } from '../init-steps.js';
-import type { Platform } from '../upload.js';
+import { resolveGradleEdit } from '../native-project-edit.js';
+import type { BinaryCreatePhase } from '../xcode-project.js';
 import {
-  addResourceReference,
-  hasResourceReference,
+  hasBinaryCreatePhase,
   resolveXcodeProjectFilePath,
 } from '../xcode-project.js';
+import {
+  applyNativeProjectEdits,
+  checkBinaryCreateStep,
+} from './binary-create-step.js';
 import type { NativeProjects } from './native-projects.js';
 import { resolveNativeProjects } from './native-projects.js';
 import {
@@ -29,7 +24,6 @@ import {
   isSdkPackageDeclared,
 } from './sdk-package.js';
 import type {
-  FrameworkCheck,
   FrameworkModule,
   FrameworkProject,
   FrameworkWiring,
@@ -37,110 +31,32 @@ import type {
   WiringOptions,
 } from './index.js';
 
+const BINARY_CREATE_SCRIPT_PATH = `node_modules/${CAPACITOR_PACKAGE_NAME}/scripts/binary-create-xcode.sh`;
+
 export const CAPACITOR_CONFIG_FILE_NAMES = [
   'capacitor.config.json',
   'capacitor.config.ts',
 ];
 
 /**
- * Capacitor: the web build at `webDir`, the native projects at `ios/` and `android/`, binary create in the
- * `capacitor:copy:after` script and the resource file referenced by the iOS project.
+ * Capacitor: the web build at `webDir`, the native projects at `ios/` and `android/`, and binary create inside the
+ * native build, an Xcode phase and the Gradle file the SDK ships, which write the resource file into the app they build.
  */
 export const capacitorFramework: FrameworkModule = {
-  binaryCreateStep: 'run npx cap sync, which runs binary create',
   packageName: CAPACITOR_PACKAGE_NAME,
   versionedPackageNames: ['@capacitor/core', CAPACITOR_PACKAGE_NAME],
   checkWiring: project => [
     checkSdkPackage(project, CAPACITOR_PACKAGE_NAME),
-    checkHook(project),
-    checkXcodeProject(project),
-  ],
-  readBinaryIdentity: (platform, projectDirectoryPath) =>
-    readNativeProjectBinaryIdentity(
-      platform,
-      resolveNativeProjectPaths(projectDirectoryPath)[platform],
+    checkBinaryCreateStep(
+      project.directoryPath,
+      resolveNativeProjectPaths(project.directoryPath),
+      CAPACITOR_PACKAGE_NAME,
     ),
+  ],
   readBuildDirectory: readWebDir,
   resolveNativeProjectPaths,
-  resolveResourceFilePath,
   resolveWiring,
 };
-
-function checkHook({ packageJson }: FrameworkProject): FrameworkCheck {
-  const state =
-    packageJson === undefined
-      ? 'absent'
-      : resolveBinaryCreateHookState(packageJson);
-  switch (state) {
-    case 'wired':
-      return {
-        check: 'hook',
-        message: `${BINARY_CREATE_HOOK_NAME} runs binary create`,
-        status: 'ok',
-      };
-    case 'unparseable':
-      return {
-        check: 'hook',
-        manualStep: `add "${BINARY_CREATE_HOOK_COMMAND}" to the ${BINARY_CREATE_HOOK_NAME} script by hand`,
-        message: `${BINARY_CREATE_HOOK_NAME} runs a script without binary create`,
-        status: 'failed',
-      };
-    default:
-      return {
-        check: 'hook',
-        manualStep: INIT_MANUAL_STEP,
-        message: `${BINARY_CREATE_HOOK_NAME} does not run binary create`,
-        status: 'failed',
-      };
-  }
-}
-
-function checkXcodeProject({
-  directoryPath,
-}: FrameworkProject): FrameworkCheck {
-  const iosProjectPath = resolveNativeProjectPaths(directoryPath).ios;
-  const projectFilePath = resolveXcodeProjectFilePath(iosProjectPath);
-  if (projectFilePath === undefined) {
-    return {
-      check: 'ios-project',
-      message: `no iOS project at ${relative(directoryPath, iosProjectPath)}`,
-      status: 'skipped',
-    };
-  }
-  try {
-    return hasResourceReference(projectFilePath)
-      ? {
-          check: 'ios-project',
-          message: 'the app target copies hotcodepush.json into the bundle',
-          status: 'ok',
-        }
-      : {
-          check: 'ios-project',
-          manualStep: INIT_MANUAL_STEP,
-          message: 'the app target does not copy hotcodepush.json',
-          status: 'failed',
-        };
-  } catch (error) {
-    return {
-      check: 'ios-project',
-      manualStep:
-        "add hotcodepush.json to the app target's Copy Bundle Resources in Xcode",
-      message: error instanceof Error ? error.message : String(error),
-      status: 'failed',
-    };
-  }
-}
-
-/**
- * Whether the reference is there; a project the CLI cannot read counts as one to change, and the hook step says why.
- */
-function hasReadableResourceReference(xcodeProjectFilePath: string): boolean {
-  try {
-    return hasResourceReference(xcodeProjectFilePath);
-  } catch {
-    return false;
-  }
-}
 
 /**
  * The text of `capacitor.config.json` or `.ts`, read as text since the TypeScript form is code: the values are matched, never evaluated.
@@ -198,22 +114,33 @@ function resolveNativeProjectPaths(
 }
 
 /**
- * Where each platform's native project reads the file: the app bundle's resources on iOS, the assets on Android.
+ * The phase runs the SDK package's script, which finds Node itself, after the app target's last phase, once the web
+ * build is copied into the app; `PROJECT_ROOT` is the project's directory as seen from the Xcode project's.
  */
-function resolveResourceFilePath(
-  platform: Platform,
-  nativeProjectPath: string,
-): string {
-  return platform === 'ios'
-    ? join(nativeProjectPath, 'App', 'App', 'hotcodepush.json')
-    : join(
-        nativeProjectPath,
-        'app',
-        'src',
-        'main',
-        'assets',
-        'hotcodepush.json',
-      );
+function resolveBinaryCreatePhase(
+  projectDirectoryPath: string,
+  xcodeProjectFilePath: string,
+): BinaryCreatePhase {
+  const projectRootPath = relative(
+    dirname(dirname(xcodeProjectFilePath)),
+    projectDirectoryPath,
+  )
+    .split(sep)
+    .join('/');
+  return {
+    anchorPhaseName: undefined,
+    fix: `add a Run Script phase after the app target's last phase that runs ${BINARY_CREATE_SCRIPT_PATH}.`,
+    // the lines of the phase as a pbxproj string carries them, the line breaks escaped
+    shellScript: [
+      'set -e',
+      '',
+      '# hotcodepush: writes hotcodepush.json into the app and, in a store build, creates the binary',
+      `PROJECT_ROOT="$PROJECT_DIR${projectRootPath === '' ? '' : `/${projectRootPath}`}"`,
+      'export PROJECT_ROOT',
+      `/bin/sh "$PROJECT_ROOT/${BINARY_CREATE_SCRIPT_PATH}"`,
+      '',
+    ].join('\\n'),
+  };
 }
 
 async function resolveWiring(
@@ -227,22 +154,26 @@ async function resolveWiring(
     'run "npx cap add ios" and "npx cap add android", or ',
   );
   const xcodeProjectFilePath = resolveXcodeProjectFilePath(nativeProjects.ios);
+  const gradleEdit = resolveGradleEdit(
+    nativeProjects.android,
+    CAPACITOR_PACKAGE_NAME,
+  );
   const isPackageInstalled = isSdkPackageDeclared(
     packageJson,
     CAPACITOR_PACKAGE_NAME,
   );
   return {
     isPackageInstalled,
-    nativeFilePaths:
-      xcodeProjectFilePath !== undefined &&
-      !hasReadableResourceReference(xcodeProjectFilePath)
-        ? [relative(directoryPath, xcodeProjectFilePath)]
-        : [],
-    packageFilePaths:
-      !isPackageInstalled ||
-      resolveBinaryCreateHookState(packageJson ?? {}) !== 'wired'
-        ? ['package.json']
-        : [],
+    nativeFilePaths: [
+      ...(xcodeProjectFilePath === undefined ||
+      hasBinaryCreatePhase(xcodeProjectFilePath)
+        ? []
+        : [xcodeProjectFilePath]),
+      ...(gradleEdit === undefined || gradleEdit.isApplied()
+        ? []
+        : [gradleEdit.filePath]),
+    ].map(filePath => relative(directoryPath, filePath)),
+    packageFilePaths: isPackageInstalled ? [] : ['package.json'],
     installPackage: () =>
       installSdkPackage(
         directoryPath,
@@ -261,7 +192,8 @@ async function resolveWiring(
 }
 
 /**
- * The binary create command in the `capacitor:copy:after` script and the resource reference in the iOS project, each left alone when present.
+ * The Xcode phase and the Gradle line, each left alone when present. An edit a file has no place for does not hold the
+ * other back: it is made, and the step stops with the first one's manual step.
  */
 async function wireBinaryCreateStep(
   projectDirectoryPath: string,
@@ -273,15 +205,17 @@ async function wireBinaryCreateStep(
   if (nativeProjects.missingError !== undefined) {
     throw nativeProjects.missingError;
   }
-  const isHookWired =
-    resolveBinaryCreateHookState(readPackageJson(projectDirectoryPath)) ===
-    'wired';
-  const isReferencePresent =
+  const isPhaseWired =
     xcodeProjectFilePath === undefined ||
-    hasReadableResourceReference(xcodeProjectFilePath);
-  if (isHookWired && isReferencePresent) {
+    hasBinaryCreatePhase(xcodeProjectFilePath);
+  const pendingEdits = [
+    resolveGradleEdit(nativeProjects.android, CAPACITOR_PACKAGE_NAME),
+  ]
+    .filter(edit => edit !== undefined)
+    .filter(edit => !edit.isApplied());
+  if (isPhaseWired && pendingEdits.length === 0) {
     return {
-      message: `${BINARY_CREATE_HOOK_NAME} and the iOS resource reference already wired`,
+      message: 'the Xcode phase and the Gradle task already wired',
       status: 'skipped',
       value: undefined,
     };
@@ -289,16 +223,19 @@ async function wireBinaryCreateStep(
   if (editBlocker !== undefined) {
     throw editBlocker;
   }
-  const wired: string[] = [];
-  if (wireBinaryCreateHook(projectDirectoryPath) === 'wired') {
-    wired.push(BINARY_CREATE_HOOK_NAME);
-  }
-  if (
-    xcodeProjectFilePath !== undefined &&
-    (await addResourceReference(xcodeProjectFilePath, options)) === 'added'
-  ) {
-    wired.push('the iOS resource reference');
-  }
+  const wired = await applyNativeProjectEdits(
+    xcodeProjectFilePath === undefined
+      ? undefined
+      : {
+          phase: resolveBinaryCreatePhase(
+            projectDirectoryPath,
+            xcodeProjectFilePath,
+          ),
+          projectFilePath: xcodeProjectFilePath,
+        },
+    pendingEdits,
+    options,
+  );
   return {
     message: `wired ${wired.join(' and ')}`,
     status: 'done',
