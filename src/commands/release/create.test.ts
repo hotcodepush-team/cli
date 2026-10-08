@@ -1,11 +1,6 @@
 import { confirm } from '@clack/prompts';
 import type { Audience } from '@hotcodepush/node';
-import {
-  computeSha256Hex,
-  hashAttribute,
-  hashDeviceId,
-  stringifyCanonicalJson,
-} from '@hotcodepush/protocol';
+import { hashAttribute, hashDeviceId } from '@hotcodepush/protocol';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CAPACITOR_FINGERPRINT } from '../../../test/capacitor-project.js';
 import {
@@ -170,19 +165,13 @@ describe('release create', () => {
         'This releases bundle #17 · 1.4.2 at 100 percent: reaches 100 of 120 active devices in staging. Continue?',
     });
     const [createRequest] = readCreateRequests();
-    const releaseBody = {
+    expect(await createRequest?.json()).toEqual({
       bundleId: READY_BUNDLE.id,
       conditions: [],
       isMandatory: false,
       notes: null,
       rolloutPercentage: 100,
-    };
-    expect(await createRequest?.json()).toEqual(releaseBody);
-    expect(createRequest?.headers.get('Idempotency-Key')).toBe(
-      computeSha256Hex(
-        `${READY_BUNDLE.manifestSha256}:${STAGING_CHANNEL.id}:${stringifyCanonicalJson(releaseBody)}`,
-      ),
-    );
+    });
     expect(
       harness.requests.filter(({ url }) =>
         url.endsWith(`${RELEASES_PATH}/${LIVE_RELEASE.id}`),
@@ -232,6 +221,59 @@ describe('release create', () => {
       rolloutPercentage: 10,
     });
     expect(harness.readJson()).toEqual([{ ...LIVE_RELEASE, warnings: [] }]);
+  });
+
+  it('should send a new Idempotency-Key on every run, so a second run creates a second release', async () => {
+    respondWithStagingChannel();
+    harness.routes[`GET ${BUNDLES_PATH}`] = () => Response.json([READY_BUNDLE]);
+    respondWithCreatedRelease();
+    const options = {
+      bundle: '17',
+      config: harness.writeProjectConfig({
+        appId: DEMO_APP.id,
+        channel: STAGING_CHANNEL.name,
+      }),
+      yes: true,
+    };
+
+    await releaseCreateCommand.action(options, undefined);
+    await releaseCreateCommand.action(options, undefined);
+
+    const sentKeys = readCreateRequests().map(({ headers }) =>
+      headers.get('Idempotency-Key'),
+    );
+    expect(sentKeys).toEqual([expect.any(String), expect.any(String)]);
+    expect(sentKeys[1]).not.toBe(sentKeys[0]);
+  });
+
+  it("should send the same Idempotency-Key on the client's retry when the API answers a server error", async () => {
+    respondWithStagingChannel();
+    harness.routes[`GET ${BUNDLES_PATH}`] = () => Response.json([READY_BUNDLE]);
+    harness.routes[`POST ${CHANNEL_PATH}/releases`] = vi
+      .fn<() => Response>()
+      .mockReturnValueOnce(
+        new Response(null, { headers: { 'Retry-After': '0' }, status: 503 }),
+      )
+      .mockReturnValueOnce(
+        Response.json({ ...LIVE_RELEASE, warnings: [] }, { status: 201 }),
+      );
+
+    await releaseCreateCommand.action(
+      {
+        bundle: '17',
+        config: harness.writeProjectConfig({
+          appId: DEMO_APP.id,
+          channel: STAGING_CHANNEL.name,
+        }),
+        yes: true,
+      },
+      undefined,
+    );
+
+    const sentKeys = readCreateRequests().map(({ headers }) =>
+      headers.get('Idempotency-Key'),
+    );
+    expect(sentKeys).toEqual([expect.any(String), sentKeys[0]]);
   });
 
   describe('when conditions are named', () => {

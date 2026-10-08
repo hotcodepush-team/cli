@@ -8,10 +8,6 @@ import type {
   HotCodePush,
   Release,
 } from '@hotcodepush/node';
-import {
-  computeSha256Hex,
-  stringifyCanonicalJson,
-} from '@hotcodepush/protocol';
 import { z } from 'zod';
 import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
@@ -208,7 +204,6 @@ async function createReleases(
         ...releaseBody,
         appId: bundle.appId,
         channelId: channel.id,
-        idempotencyKey: resolveIdempotencyKey(bundle, channel, releaseBody),
       });
       printWarnings(createdRelease.warnings);
       const liveRelease = await waitUntilLive(hotCodePush, createdRelease);
@@ -402,20 +397,6 @@ async function resolveReleasedBundles(
     bundles.push(uploadedBundle.bundle);
   }
   return bundles;
-}
-
-/**
- * The key a pipeline that retries after a timeout sends again: the same bundle to the same channel with the same
- * body is the same release, and a deliberate second release with other flags is a new one.
- */
-function resolveIdempotencyKey(
-  bundle: Bundle,
-  channel: ChannelWithDeviceCounts,
-  releaseBody: ReleaseBody,
-): string {
-  return computeSha256Hex(
-    `${bundle.manifestSha256 ?? bundle.id}:${channel.id}:${stringifyCanonicalJson(releaseBody)}`,
-  );
 }
 
 function resolveReleaseText(bundleSource: BundleSource): string {
