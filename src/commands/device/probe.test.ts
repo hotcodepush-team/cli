@@ -71,7 +71,7 @@ const INDEX: ChannelIndex = {
 };
 
 /**
- * The evaluation cases a registry row and a registered store build carry every fact of: a device on its embedded
+ * The evaluation cases a registry row and a store build's binary carry every fact of: a device on its embedded
  * bundle that never failed a bundle, under no spending cap.
  */
 const REGISTRY_FIXTURES = [
