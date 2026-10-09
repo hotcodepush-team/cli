@@ -17,7 +17,7 @@ export const DOCS_URL = 'https://hotcodepush.com/docs';
 export const ERRORS_DOCS_URL = 'https://hotcodepush.com/docs/cli/errors';
 export const EXPO_PACKAGE_NAME = '@hotcodepush/expo-ota-updates';
 export const EXPO_PACKAGE_SPEC =
-  'https://pkg.pr.new/hotcodepush-team/expo-ota-updates/@hotcodepush/expo-ota-updates@7dace73';
+  'https://pkg.pr.new/hotcodepush-team/expo-ota-updates/@hotcodepush/expo-ota-updates@131e739';
 export const INIT_MANUAL_STEP = 'run hotcodepush init';
 export const ISSUES_URL = 'https://github.com/hotcodepush-team/cli/issues';
 export const KEYRING_ACCOUNT_NAME = 'token';
@@ -28,6 +28,6 @@ export const PACKAGE_JSON: CliMeta = createRequire(import.meta.url)(
 export const PROJECT_CONFIG_FILE_NAME = 'hotcodepush.json';
 export const REACT_NATIVE_PACKAGE_NAME = '@hotcodepush/react-native-code-push';
 export const REACT_NATIVE_PACKAGE_SPEC =
-  'https://pkg.pr.new/hotcodepush-team/react-native-code-push/@hotcodepush/react-native-code-push@f7512fe';
+  'https://pkg.pr.new/hotcodepush-team/react-native-code-push/@hotcodepush/react-native-code-push@0e0a90b';
 export const SIGNING_PRIVATE_KEY_FILE_NAME = 'hotcodepush-private-key.pem';
 export const USER_AGENT = `hotcodepush-cli/${PACKAGE_JSON.version}`;
