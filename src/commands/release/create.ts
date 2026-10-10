@@ -26,6 +26,15 @@ import { withTemporaryDirectory } from '../../utils/compressed-files.js';
 import { InvalidParameterError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson, printWarnings } from '../../utils/output.js';
+import type {
+  Progression,
+  ProgressionOptions,
+} from '../../utils/progression.js';
+import {
+  progressionShape,
+  resolveProgression,
+  resolveProgressionText,
+} from '../../utils/progression.js';
 import { readProjectConfig } from '../../utils/project-config.js';
 import { confirmConsequence } from '../../utils/prompts.js';
 import type { ConditionOptions } from '../../utils/release-conditions.js';
@@ -81,7 +90,11 @@ type ReleaseBody = Omit<
 >;
 
 interface ReleaseCreateOptions
-  extends BundleUploadOptions, ConditionOptions, FailurePolicyOptions {
+  extends
+    BundleUploadOptions,
+    ConditionOptions,
+    FailurePolicyOptions,
+    ProgressionOptions {
   bundle?: string;
   channel?: string[];
   dryRun?: boolean;
@@ -91,17 +104,27 @@ interface ReleaseCreateOptions
   rolloutPercentage?: number;
 }
 
+/**
+ * How the release reaches its channels: the starting percentage, the schedule widening it and whether devices must apply it.
+ */
+export interface ReleaseRollout {
+  isMandatory: boolean;
+  progression: Progression | null;
+  rolloutPercentage: number;
+}
+
 export default defineCommand({
   description:
     'Release a bundle to a channel, uploading the build first unless --bundle or --from-channel names one, and wait until it is live.',
   examples: [
     'hotcodepush release create --path dist',
-    'hotcodepush release create --from-channel staging --channel production --binary ">=2.3.0" --rollout-percentage 10 --dry-run',
+    'hotcodepush release create --from-channel staging --channel production --binary ">=2.3.0" --progress --dry-run',
   ],
   options: defineCommandOptions({
     ...bundleUploadOptionShape,
     ...conditionOptionShape,
     ...failurePolicyShape,
+    ...progressionShape,
     bundle: z
       .string()
       .optional()
@@ -140,7 +163,7 @@ export default defineCommand({
       .max(100)
       .optional()
       .describe(
-        'The share of devices the release reaches, 0 to 100; 100 by default.',
+        "The share of devices the release reaches, 0 to 100; 100 by default, the schedule's first percentage with --progress.",
       ),
   }),
   action: options =>
@@ -157,6 +180,7 @@ async function createReleases(
   packagingDirectoryPath: string,
 ): Promise<void> {
   const hotCodePush = createApiClient();
+  const progression = resolveProgression(options);
   const bundleSource = await resolveBundleSource(
     hotCodePush,
     options,
@@ -164,7 +188,8 @@ async function createReleases(
   );
   const fingerprint = resolveSourceFingerprint(bundleSource);
   const isMandatory = options.mandatory ?? false;
-  const rolloutPercentage = options.rolloutPercentage ?? 100;
+  const rolloutPercentage =
+    options.rolloutPercentage ?? progression?.percentages[0] ?? 100;
   const channelAudiences = await fetchChannelAudiences(
     hotCodePush,
     options,
@@ -174,8 +199,7 @@ async function createReleases(
   const consequence = resolveReleaseConsequence(
     bundleSource,
     channelAudiences,
-    rolloutPercentage,
-    isMandatory,
+    { isMandatory, progression, rolloutPercentage },
   );
   if (options.dryRun) {
     await printDryRun(bundleSource, channelAudiences, consequence, options);
@@ -197,6 +221,7 @@ async function createReleases(
       ...resolveFailurePolicy(options),
       isMandatory,
       notes: options.notes ?? null,
+      progression: progression ?? undefined,
       rolloutPercentage,
     };
     for (const { channel } of channelAudiences) {
@@ -229,15 +254,18 @@ async function createReleases(
 export function resolveReleaseConsequence(
   bundleSource: BundleSource,
   channelAudiences: ChannelAudience[],
-  rolloutPercentage: number,
-  isMandatory: boolean,
+  { isMandatory, progression, rolloutPercentage }: ReleaseRollout,
 ): string {
   const audienceText = channelAudiences
     .map(({ audience, channel }) =>
       resolveAudienceText(audience, channel.name, rolloutPercentage),
     )
     .join(' and ');
-  return `${resolveReleaseText(bundleSource)} at ${rolloutPercentage} percent${isMandatory ? ', mandatory' : ''}: ${audienceText}`;
+  const progressionText =
+    progression === null
+      ? ''
+      : `, progressing through ${resolveProgressionText(progression)}`;
+  return `${resolveReleaseText(bundleSource)} at ${rolloutPercentage} percent${progressionText}${isMandatory ? ', mandatory' : ''}: ${audienceText}`;
 }
 
 /**

@@ -4,6 +4,10 @@ import { createApiClient } from '../../utils/api-client.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printDetails, printJson } from '../../utils/output.js';
 import {
+  resolveProgressionStepText,
+  resolveProgressionText,
+} from '../../utils/progression.js';
+import {
   fetchReleaseInChannel,
   releaseOptionShape,
   resolveReleaseBundleLabel,
@@ -12,7 +16,7 @@ import { channelOptionShape } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
   description:
-    'Print a release with its rollout, its state and its counters: attempted, applied and failed by reason.',
+    'Print a release with its rollout, its progression, its state and its counters: attempted, applied and failed by reason.',
   examples: [
     'hotcodepush release get --release 43',
     'hotcodepush release get --channel staging --release 43 --json',
@@ -37,6 +41,7 @@ export default defineCommand({
       ['Bundle', `${resolveReleaseBundleLabel(release)} (${release.bundleId})`],
       ['State', resolveStateText(release)],
       ['Rollout', `${release.rolloutPercentage}%`],
+      ...resolveProgressionDetails(release),
       ['Mandatory', release.isMandatory ? 'yes' : 'no'],
       ['Notes', release.notes ?? 'none'],
       ['Rolled back from', release.rolledBackFromReleaseId ?? 'nothing'],
@@ -62,6 +67,22 @@ function resolveCounterDetails({
     ['Failed crashed', String(counters.failedCrashed)],
     ['Failed ready timeout', String(counters.failedReadyTimeout)],
     ['Failed reported', String(counters.failedReported)],
+  ];
+}
+
+/**
+ * The schedule and, while one runs, the step it reached with the gate the next widening waits on.
+ */
+function resolveProgressionDetails(
+  release: Release,
+): [label: string, value: string][] {
+  const { progression } = release;
+  if (progression === null) {
+    return [['Progression', 'none']];
+  }
+  return [
+    ['Progression', resolveProgressionText(progression)],
+    ['Progression step', resolveProgressionStepText(release, progression)],
   ];
 }
 

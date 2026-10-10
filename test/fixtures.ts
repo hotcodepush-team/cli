@@ -173,6 +173,23 @@ export const PREVIOUS_RELEASE: Release = {
   updatedAt: '2026-09-06T08:00:06.000Z',
 };
 
+/**
+ * Release #43 at the first step of the default schedule, its widening waiting on the step's sample.
+ */
+export const PROGRESSING_RELEASE: Release = {
+  ...LIVE_RELEASE,
+  progression: {
+    minimumSample: 50,
+    minimumSeconds: 3600,
+    percentages: [10, 50, 100],
+  },
+  progressionStep: {
+    gate: { attempted: 12, kind: 'sample', required: 50 },
+    number: 1,
+  },
+  rolloutPercentage: 10,
+};
+
 export const RUNNER_USER: User = {
   createdAt: '2026-09-01T08:00:00.000Z',
   credential: 'session',

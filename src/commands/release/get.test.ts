@@ -4,6 +4,7 @@ import {
   DEMO_APP,
   LIVE_RELEASE,
   PRODUCTION_CHANNEL,
+  PROGRESSING_RELEASE,
   READY_BUNDLE,
   STAGING_CHANNEL,
 } from '../../../test/fixtures.js';
@@ -17,6 +18,21 @@ import releaseGetCommand from './get.js';
 
 describe('release get', () => {
   const harness = useCommandHarness();
+
+  async function readProgressionLines(release: object): Promise<string[]> {
+    respondWithStagingReleases(harness);
+    harness.routes[`GET ${RELEASES_PATH}/${LIVE_RELEASE.id}`] = () =>
+      Response.json({ ...LIVE_RELEASE_WITH_RELATIONS, ...release });
+    await releaseGetCommand.action(
+      {
+        app: DEMO_APP.id,
+        channel: STAGING_CHANNEL.id,
+        release: LIVE_RELEASE.id,
+      },
+      undefined,
+    );
+    return harness.readLines().filter(line => line.startsWith('Progression'));
+  }
 
   it('should find the release by its number in the channel log and print it with its counters', async () => {
     respondWithStagingReleases(harness);
@@ -39,6 +55,7 @@ describe('release get', () => {
       `Bundle                #17 · 1.4.2 (${READY_BUNDLE.id})`,
       'State                 active',
       'Rollout               100%',
+      'Progression           none',
       'Mandatory             no',
       'Notes                 cart fix',
       'Rolled back from      nothing',
@@ -92,5 +109,49 @@ describe('release get', () => {
         undefined,
       ),
     ).rejects.toBeInstanceOf(InvalidParameterError);
+  });
+
+  it('should print the schedule and the step reached with the sample its widening waits on', async () => {
+    expect(await readProgressionLines(PROGRESSING_RELEASE)).toEqual([
+      'Progression           10, 50, 100 percent, each step at least 3600 seconds and 50 attempts',
+      'Progression step      1 of 3, waiting on sample: 12 of 50 attempts',
+    ]);
+  });
+
+  it('should print the time the widening waits for when the sample is met', async () => {
+    expect(
+      await readProgressionLines({
+        ...PROGRESSING_RELEASE,
+        progressionStep: {
+          gate: { kind: 'time', readyAt: '2026-09-07T09:00:05.000Z' },
+          number: 2,
+        },
+        rolloutPercentage: 50,
+      }),
+    ).toEqual([
+      'Progression           10, 50, 100 percent, each step at least 3600 seconds and 50 attempts',
+      'Progression step      2 of 3, ready at 2026-09-07T09:00:05.000Z',
+    ]);
+  });
+
+  it('should print the schedule as complete when the release reached its last step', async () => {
+    expect(
+      await readProgressionLines({
+        ...PROGRESSING_RELEASE,
+        progressionStep: null,
+        rolloutPercentage: 100,
+      }),
+    ).toContain('Progression step      complete');
+  });
+
+  it('should print the schedule as held when the release is paused', async () => {
+    expect(
+      await readProgressionLines({
+        ...PROGRESSING_RELEASE,
+        pausedAt: '2026-09-07T08:30:00.000Z',
+        progressionStep: null,
+        state: 'paused',
+      }),
+    ).toContain('Progression step      held while paused');
   });
 });

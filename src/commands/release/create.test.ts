@@ -13,6 +13,7 @@ import {
   PREVIOUS_BUNDLE,
   PREVIOUS_RELEASE,
   PRODUCTION_CHANNEL,
+  PROGRESSING_RELEASE,
   READY_BUNDLE,
   STAGING_CHANNEL,
   STAGING_CHANNEL_WITH_DEVICE_COUNTS,
@@ -365,6 +366,103 @@ describe('release create', () => {
       failureAction: 'revoke',
       failureMinSample: 50,
       failureThresholdPercent: 5,
+    });
+  });
+
+  describe('when --progress gives the release a schedule', () => {
+    beforeEach(() => {
+      respondWithStagingChannel();
+      harness.routes[`GET ${BUNDLES_PATH}/${READY_BUNDLE.id}`] = () =>
+        Response.json(READY_BUNDLE);
+      harness.routes[`POST ${CHANNEL_PATH}/releases`] = () =>
+        Response.json(
+          { ...PROGRESSING_RELEASE, warnings: [] },
+          { status: 201 },
+        );
+    });
+
+    it("should start at the default schedule's first percentage once confirmed, stating the schedule", async () => {
+      stubInteractiveTerminal();
+      vi.mocked(confirm).mockResolvedValue(true);
+
+      await releaseCreateCommand.action(
+        {
+          app: DEMO_APP.id,
+          bundle: READY_BUNDLE.id,
+          channel: [STAGING_CHANNEL.id],
+          progress: true,
+        },
+        undefined,
+      );
+
+      expect(confirm).toHaveBeenCalledWith({
+        initialValue: false,
+        message:
+          'This releases bundle #17 · 1.4.2 at 10 percent, progressing through 10, 50, 100 percent, each step at least 3600 seconds and 50 attempts: reaches 100 of 120 active devices in staging; about 100 at a 10 percent rollout. Continue?',
+      });
+      expect(readAudienceUrls()[0]?.searchParams.get('rollout')).toBe('10');
+      const [createRequest] = readCreateRequests();
+      expect(await createRequest?.json()).toMatchObject({
+        progression: {
+          minimumSample: 50,
+          minimumSeconds: 3600,
+          percentages: [10, 50, 100],
+        },
+        rolloutPercentage: 10,
+      });
+      expect(harness.readLines()).toEqual([
+        `Released bundle #17 · 1.4.2 to staging as release #43 at 10 percent, progressing through 10, 50, 100 percent, live since ${LIVE_RELEASE.liveAt}.`,
+      ]);
+    });
+
+    it('should send the schedule its flags override from the percentage --rollout-percentage names', async () => {
+      await releaseCreateCommand.action(
+        {
+          app: DEMO_APP.id,
+          bundle: READY_BUNDLE.id,
+          channel: [STAGING_CHANNEL.id],
+          json: true,
+          progress: true,
+          progressMinimumSample: 20,
+          progressMinimumSeconds: 600,
+          progressPercentages: [25, 100],
+          rolloutPercentage: 5,
+          yes: true,
+        },
+        undefined,
+      );
+
+      const [createRequest] = readCreateRequests();
+      expect(await createRequest?.json()).toMatchObject({
+        progression: {
+          minimumSample: 20,
+          minimumSeconds: 600,
+          percentages: [25, 100],
+        },
+        rolloutPercentage: 5,
+      });
+      expect(harness.readJson()).toEqual([
+        { ...PROGRESSING_RELEASE, warnings: [] },
+      ]);
+    });
+
+    it("should refuse a schedule's flag without --progress before any request", async () => {
+      await expect(
+        releaseCreateCommand.action(
+          {
+            app: DEMO_APP.id,
+            bundle: READY_BUNDLE.id,
+            progressMinimumSeconds: 600,
+            yes: true,
+          },
+          undefined,
+        ),
+      ).rejects.toMatchObject({
+        code: 'E_INVALID_PARAMETER',
+        message:
+          "--progress-minimum-seconds: a schedule's flags apply only with --progress",
+      });
+      expect(harness.requests).toEqual([]);
     });
   });
 
@@ -742,8 +840,7 @@ describe('release create', () => {
             },
           },
         ],
-        5,
-        true,
+        { isMandatory: true, progression: null, rolloutPercentage: 5 },
       ),
     ).toBe(
       'releases bundle #17 · 1.4.2 at 5 percent, mandatory: reaches 100 of 120 active devices in staging; about 6 at a 5 percent rollout and reaches 9,995 of 10,000 active devices in production; about 500 at a 5 percent rollout',

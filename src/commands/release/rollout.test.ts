@@ -7,9 +7,11 @@ import {
 import {
   DEMO_APP,
   LIVE_RELEASE,
+  PROGRESSING_RELEASE,
   STAGING_CHANNEL,
 } from '../../../test/fixtures.js';
 import {
+  LIVE_RELEASE_WITH_RELATIONS,
   RELEASES_PATH,
   respondWithStagingReleases,
 } from '../../../test/release-routes.js';
@@ -26,6 +28,13 @@ describe('release rollout', () => {
     respondWithStagingReleases(harness);
     harness.routes[`PATCH ${RELEASES_PATH}/${LIVE_RELEASE.id}`] = () =>
       Response.json(ROLLED_OUT_RELEASE);
+  }
+
+  async function readUpdateBody(): Promise<unknown> {
+    const updateRequest = harness.requests.find(
+      ({ method }) => method === 'PATCH',
+    );
+    return updateRequest?.json();
   }
 
   it('should set the rollout percentage once confirmed, stating that devices already on the release keep it', async () => {
@@ -117,5 +126,119 @@ describe('release rollout', () => {
       code: 'E_MISSING_PARAMETER',
       message: '--rollout-percentage is missing',
     });
+  });
+
+  it('should start the default schedule from the percentage once confirmed, stating the schedule', async () => {
+    stubInteractiveTerminal();
+    vi.mocked(confirm).mockResolvedValue(true);
+    respondWithStagingReleases(harness);
+    harness.routes[`PATCH ${RELEASES_PATH}/${LIVE_RELEASE.id}`] = () =>
+      Response.json(PROGRESSING_RELEASE);
+
+    await releaseRolloutCommand.action(
+      {
+        app: DEMO_APP.id,
+        channel: STAGING_CHANNEL.id,
+        progress: true,
+        release: '43',
+        rolloutPercentage: 10,
+      },
+      undefined,
+    );
+
+    expect(confirm).toHaveBeenCalledWith({
+      initialValue: false,
+      message:
+        'This progresses release #43 of staging from 10 percent through 10, 50, 100 percent, each step at least 3600 seconds and 50 attempts: devices already on it keep it. Continue?',
+    });
+    expect(await readUpdateBody()).toEqual({
+      progression: {
+        minimumSample: 50,
+        minimumSeconds: 3600,
+        percentages: [10, 50, 100],
+      },
+      rolloutPercentage: 10,
+    });
+    expect(harness.readLines()).toEqual([
+      'Set release #43 of staging to 10 percent, progressing through 10, 50, 100 percent.',
+    ]);
+  });
+
+  it('should send the schedule its flags override and leave the percentage as it stands when --rollout-percentage is missing', async () => {
+    respondWithStagingReleases(harness);
+    harness.routes[`GET ${RELEASES_PATH}/${LIVE_RELEASE.id}`] = () =>
+      Response.json({ ...LIVE_RELEASE_WITH_RELATIONS, rolloutPercentage: 5 });
+    harness.routes[`PATCH ${RELEASES_PATH}/${LIVE_RELEASE.id}`] = () =>
+      Response.json(PROGRESSING_RELEASE);
+
+    await releaseRolloutCommand.action(
+      {
+        app: DEMO_APP.id,
+        channel: STAGING_CHANNEL.id,
+        json: true,
+        progress: true,
+        progressMinimumSample: 20,
+        progressMinimumSeconds: 600,
+        progressPercentages: [20, 100],
+        release: '43',
+        yes: true,
+      },
+      undefined,
+    );
+
+    expect(text).not.toHaveBeenCalled();
+    expect(await readUpdateBody()).toEqual({
+      progression: {
+        minimumSample: 20,
+        minimumSeconds: 600,
+        percentages: [20, 100],
+      },
+    });
+    expect(harness.readJson()).toEqual(PROGRESSING_RELEASE);
+  });
+
+  it('should state that a percentage set by hand ends the schedule the release has', async () => {
+    respondWithStagingReleases(harness);
+    harness.routes[`GET ${RELEASES_PATH}/${LIVE_RELEASE.id}`] = () =>
+      Response.json({ ...LIVE_RELEASE_WITH_RELATIONS, ...PROGRESSING_RELEASE });
+
+    await expect(
+      releaseRolloutCommand.action(
+        {
+          app: DEMO_APP.id,
+          channel: STAGING_CHANNEL.id,
+          release: '43',
+          rolloutPercentage: 50,
+        },
+        undefined,
+      ),
+    ).rejects.toMatchObject({
+      code: 'E_CONFIRMATION_REQUIRED',
+      message:
+        'a confirmation is required: sets release #43 of staging to 50 percent: devices already on it keep it, and no new device above 50 percent gets it; its progression ends',
+    });
+  });
+
+  it("should refuse a schedule's flag without --progress before any request", async () => {
+    respondWithRolledOutRelease();
+
+    await expect(
+      releaseRolloutCommand.action(
+        {
+          app: DEMO_APP.id,
+          channel: STAGING_CHANNEL.id,
+          progressPercentages: [20, 100],
+          release: '43',
+          rolloutPercentage: 20,
+          yes: true,
+        },
+        undefined,
+      ),
+    ).rejects.toMatchObject({
+      code: 'E_INVALID_PARAMETER',
+      message:
+        "--progress-percentages: a schedule's flags apply only with --progress",
+    });
+    expect(harness.requests).toEqual([]);
   });
 });

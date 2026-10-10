@@ -9,8 +9,17 @@ export function printReleasedLine(
   bundleLabel: string,
 ): void {
   console.log(
-    `Released bundle ${bundleLabel} to ${channelName} as release #${release.number} at ${release.rolloutPercentage} percent${resolveLiveText(release)}.`,
+    `Released bundle ${bundleLabel} to ${channelName} as release #${release.number} at ${release.rolloutPercentage} percent${resolveProgressingText(release)}${resolveLiveText(release)}.`,
   );
+}
+
+/**
+ * The schedule a release widens through, for the line a command ends on: `, progressing through 10, 50, 100 percent`.
+ */
+export function resolveProgressingText({ progression }: Release): string {
+  return progression === null
+    ? ''
+    : `, progressing through ${progression.percentages.join(', ')} percent`;
 }
 
 function resolveLiveText(release: Release): string {

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { useCommandHarness } from '../../../test/command-harness.js';
-import { DEMO_APP, STAGING_CHANNEL } from '../../../test/fixtures.js';
+import {
+  DEMO_APP,
+  PROGRESSING_RELEASE,
+  READY_BUNDLE,
+  STAGING_CHANNEL,
+} from '../../../test/fixtures.js';
 import {
   CHANNEL_PATH,
   RELEASE_LOG,
@@ -25,9 +30,9 @@ describe('release list', () => {
     );
 
     expect(harness.readLines()).toEqual([
-      'NUMBER  BUNDLE       STATE   ROLLOUT  MANDATORY  DEVICES  LIVE        CREATED',
-      '#43     #17 · 1.4.2  active  100%     no         80       2026-09-07  2026-09-07',
-      '#42     #16 · 1.4.1  active  100%     no         20       2026-09-06  2026-09-06',
+      'NUMBER  BUNDLE       STATE   ROLLOUT  PROGRESSION  MANDATORY  DEVICES  LIVE        CREATED',
+      '#43     #17 · 1.4.2  active  100%     none         no         80       2026-09-07  2026-09-07',
+      '#42     #16 · 1.4.1  active  100%     none         no         20       2026-09-06  2026-09-06',
     ]);
   });
 
@@ -50,5 +55,20 @@ describe('release list', () => {
       nextOffset: 1,
       releases: RELEASE_LOG.slice(0, 1),
     });
+  });
+
+  it('should print the schedule with the step reached and its gate when a release progresses', async () => {
+    respondWithStagingReleases(harness);
+    harness.routes[`GET ${CHANNEL_PATH}/releases`] = () =>
+      Response.json([{ ...PROGRESSING_RELEASE, bundle: READY_BUNDLE }]);
+
+    await releaseListCommand.action(
+      { app: DEMO_APP.id, channel: STAGING_CHANNEL.id },
+      undefined,
+    );
+
+    expect(harness.readLines()[1]).toBe(
+      '#43     #17 · 1.4.2  active  10%      10,50,100% · 1 of 3, waiting on sample: 12 of 50 attempts  no         80       2026-09-07  2026-09-07',
+    );
   });
 });

@@ -1,8 +1,10 @@
+import type { Release } from '@hotcodepush/node';
 import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson, printTable, resolveDate } from '../../utils/output.js';
 import { paginationShape, resolveNextOffset } from '../../utils/pagination.js';
+import { resolveProgressionStepText } from '../../utils/progression.js';
 import { resolveReleaseBundleLabel } from '../../utils/release-resolution.js';
 import {
   channelOptionShape,
@@ -11,7 +13,7 @@ import {
 
 export default defineCommand({
   description:
-    "List a channel's releases, newest first, with the devices on each.",
+    "List a channel's releases, newest first, with the progression and the devices on each.",
   examples: [
     'hotcodepush release list',
     'hotcodepush release list --channel staging --json',
@@ -39,6 +41,7 @@ export default defineCommand({
         'BUNDLE',
         'STATE',
         'ROLLOUT',
+        'PROGRESSION',
         'MANDATORY',
         'DEVICES',
         'LIVE',
@@ -50,6 +53,7 @@ export default defineCommand({
         resolveReleaseBundleLabel(release),
         release.state,
         `${release.rolloutPercentage}%`,
+        resolveProgressionCell(release),
         release.isMandatory ? 'yes' : 'no',
         String(release.deviceCount),
         release.liveAt === null ? 'pending' : resolveDate(release.liveAt),
@@ -58,3 +62,13 @@ export default defineCommand({
     });
   },
 });
+
+/**
+ * The schedule's percentages with the step reached and its gate, `10,50,100% · 1 of 3, waiting on sample: 12 of 50 attempts`.
+ */
+function resolveProgressionCell(release: Release): string {
+  const { progression } = release;
+  return progression === null
+    ? 'none'
+    : `${progression.percentages.join(',')}% · ${resolveProgressionStepText(release, progression)}`;
+}
