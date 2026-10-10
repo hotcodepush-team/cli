@@ -1,11 +1,13 @@
 import { readFileSync } from 'node:fs';
 import type {
   App,
+  Billing,
   Binary,
   Bundle,
   Channel,
   ChannelWithDeviceCounts,
   Device,
+  Limits,
   Organization,
   Release,
   SigningKey,
@@ -36,6 +38,27 @@ export const GLOBEX_ORGANIZATION: Organization = {
   region: 'eu',
   role: 'admin',
   updatedAt: '2026-09-02T08:00:00.000Z',
+};
+
+/**
+ * Globex's billing this month: a $50 cap, under its ceiling, no lower cap waiting.
+ */
+export const GLOBEX_BILLING: Billing = {
+  cappedAt: null,
+  countedMau: 1234,
+  mauCap: 5000,
+  nextSpendingCapCents: null,
+  nextSpendingCapStartsAt: null,
+  plan: 'pay_as_you_go',
+  spendingCapCents: 5000,
+};
+
+/**
+ * Two of Globex's limits, one raised for it.
+ */
+export const GLOBEX_LIMITS: Limits = {
+  appsLimit: { default: 10, isOverridden: true, value: 25 },
+  membersLimit: { default: 20, isOverridden: false, value: 20 },
 };
 
 export const PRODUCTION_CHANNEL: Channel = {
