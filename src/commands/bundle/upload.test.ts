@@ -21,16 +21,13 @@ import {
 } from '../../../test/command-harness.js';
 import { writeNativeGlue } from '../../../test/cordova-project.js';
 import {
-  BINARY,
   DEMO_APP,
-  PREVIOUS_BUNDLE,
   READY_BUNDLE,
   SIGNING_KEY,
   SIGNING_PRIVATE_KEY,
 } from '../../../test/fixtures.js';
 import { PACKAGE_JSON } from '../../config/consts.js';
 import { createApiClient } from '../../utils/api-client.js';
-import { applyBsdiffPatch } from '../../utils/bsdiff.js';
 import { runCli } from '../../utils/cli.js';
 import {
   InvalidParameterError,
@@ -49,8 +46,6 @@ vi.mock('../../utils/package-manager.js', async importOriginal => ({
 }));
 
 const BUNDLES_PATH = `/v1/apps/${DEMO_APP.id}/bundles`;
-
-const BINARIES_PATH = `/v1/apps/${DEMO_APP.id}/binaries`;
 
 const INDEX_HTML = '<h1>v1</h1>';
 const APP_JS = 'console.log(1)';
@@ -86,10 +81,9 @@ describe('bundle upload', () => {
   const harness = useCommandHarness();
   let projectDirectoryPath = '';
   let uploadedFileBytes: Promise<ArrayBuffer> | undefined;
-  let uploadedDeltaPacks = new Map<string, Promise<ArrayBuffer>>();
+  let uploadedPackBytes: Promise<ArrayBuffer> | undefined;
 
   beforeEach(() => {
-    uploadedDeltaPacks = new Map();
     projectDirectoryPath = mkdtempSync(join(tmpdir(), 'hotcodepush-project-'));
     writeProject({ '@capacitor/core': '8.0.0' });
     writeFingerprintInputs(projectDirectoryPath);
@@ -126,24 +120,21 @@ describe('bundle upload', () => {
   }
 
   function respondWithUploadRoutes(
-    previousBundles = [] as (typeof READY_BUNDLE)[],
     warnings = [] as { code: string; details: unknown; message: string }[],
-    missingSha256s = [APP_JS_SHA256],
   ): void {
-    harness.routes[`GET ${BUNDLES_PATH}`] = () =>
-      Response.json(previousBundles);
-    harness.routes[`GET ${BINARIES_PATH}`] = () => Response.json([]);
     harness.routes[`POST ${BUNDLES_PATH}`] = () =>
       Response.json(
         {
           ...READY_BUNDLE,
           state: 'uploading',
           uploads: {
-            files: missingSha256s.map(sha256 => ({
-              sha256,
-              sizeBytes: 14,
-              url: `${API_URL}/v1/apps/${DEMO_APP.id}/files/${sha256}`,
-            })),
+            files: [
+              {
+                sha256: APP_JS_SHA256,
+                sizeBytes: 14,
+                url: `${API_URL}/v1/apps/${DEMO_APP.id}/files/${APP_JS_SHA256}`,
+              },
+            ],
             pack: `${API_URL}${BUNDLES_PATH}/${READY_BUNDLE.id}/pack`,
             patches: [],
           },
@@ -165,35 +156,13 @@ describe('bundle upload', () => {
           { status: 201 },
         );
       };
-    harness.routes[`PUT ${BUNDLES_PATH}/${READY_BUNDLE.id}/pack`] = () =>
-      Response.json({ sizeBytes: 1536 });
+    harness.routes[`PUT ${BUNDLES_PATH}/${READY_BUNDLE.id}/pack`] = request => {
+      // The pack comes from a temporary file the upload removes when it ends, so it is read as the request arrives
+      uploadedPackBytes = request.arrayBuffer();
+      return Response.json({ sizeBytes: 1536 });
+    };
     harness.routes[`POST ${BUNDLES_PATH}/${READY_BUNDLE.id}/complete`] = () =>
       Response.json(READY_BUNDLE);
-  }
-
-  /**
-   * A base's files as the API lists them, and the delta pack against it accepted and kept.
-   */
-  function respondWithBaseFiles(
-    bundleId: string,
-    files: { path: string; sha256: string; sizeBytes: number }[],
-  ): void {
-    harness.routes[`GET ${BUNDLES_PATH}/${bundleId}/files`] = () =>
-      Response.json(files);
-    harness.routes[
-      `PUT ${BUNDLES_PATH}/${READY_BUNDLE.id}/deltas/${bundleId}`
-    ] = request => {
-      // The pack comes from a temporary file the upload removes when it ends, so it is read as the request arrives
-      uploadedDeltaPacks.set(bundleId, request.arrayBuffer());
-      return Response.json({ sizeBytes: 512 });
-    };
-  }
-
-  async function readDeltaPackEntries(
-    baseBundleId: string,
-  ): Promise<Map<string, Buffer> | undefined> {
-    const packBytes = await uploadedDeltaPacks.get(baseBundleId);
-    return packBytes && readPackEntries(packBytes);
   }
 
   function readRequest(
@@ -207,7 +176,7 @@ describe('bundle upload', () => {
     );
   }
 
-  it('should post the manifest without source maps, upload only the files the app lacks as gzip, the pack, and complete', async () => {
+  it('should post the manifest without source maps, upload only the files the app lacks as gzip, the full pack of every file, and complete', async () => {
     respondWithUploadRoutes();
 
     await bundleUploadCommand.action(
@@ -247,10 +216,10 @@ describe('bundle upload', () => {
       ).toString(),
     ).toBe(APP_JS);
     expect(readRequest('PUT', `/files/${INDEX_SHA256}`)).toBeUndefined();
-    const packRequest = readRequest('PUT', '/pack');
-    expect(Number(packRequest?.headers.get('content-length'))).toBeGreaterThan(
-      1024,
+    const packEntries = await readPackEntries(
+      (await uploadedPackBytes) ?? new ArrayBuffer(0),
     );
+    expect([...packEntries.keys()]).toEqual([APP_JS_SHA256, INDEX_SHA256]);
     expect(readRequest('POST', '/complete')).toBeDefined();
     expect(harness.readLines()).toEqual([
       `Uploaded bundle #17 · 1.4.2 (${READY_BUNDLE.id}): 1 files moved, 34 B.`,
@@ -280,16 +249,13 @@ describe('bundle upload', () => {
 
   it('should print the warnings the API answers beside the created bundle on stderr', async () => {
     const message = 'No binary of the app carries this fingerprint.';
-    respondWithUploadRoutes(
-      [],
-      [
-        {
-          code: 'FINGERPRINT_UNKNOWN',
-          details: { fingerprint: CAPACITOR_FINGERPRINT },
-          message,
-        },
-      ],
-    );
+    respondWithUploadRoutes([
+      {
+        code: 'FINGERPRINT_UNKNOWN',
+        details: { fingerprint: CAPACITOR_FINGERPRINT },
+        message,
+      },
+    ]);
     const stderrWrite = vi
       .spyOn(process.stderr, 'write')
       .mockImplementation(() => true);
@@ -306,11 +272,8 @@ describe('bundle upload', () => {
     expect(stderrWrite).toHaveBeenCalledWith(`Warning: ${message}\n`);
   });
 
-  it('should upload a delta pack of the files the previous bundle lacks', async () => {
-    respondWithUploadRoutes([PREVIOUS_BUNDLE]);
-    respondWithBaseFiles(PREVIOUS_BUNDLE.id, [
-      { path: 'index.html', sha256: INDEX_SHA256, sizeBytes: 11 },
-    ]);
+  it('should read no base and upload no delta pack, printing only the files moved and their bytes under --json', async () => {
+    respondWithUploadRoutes();
 
     await bundleUploadCommand.action(
       {
@@ -321,68 +284,22 @@ describe('bundle upload', () => {
       undefined,
     );
 
-    expect([
-      ...((await readDeltaPackEntries(PREVIOUS_BUNDLE.id))?.keys() ?? []),
-    ]).toEqual([APP_JS_SHA256]);
+    expect(
+      harness.requests.map(
+        ({ method, url }) => `${method} ${new URL(url).pathname}`,
+      ),
+    ).toEqual([
+      `POST ${BUNDLES_PATH}`,
+      `PUT /v1/apps/${DEMO_APP.id}/files/${APP_JS_SHA256}`,
+      `PUT ${BUNDLES_PATH}/${READY_BUNDLE.id}/pack`,
+      `POST ${BUNDLES_PATH}/${READY_BUNDLE.id}/complete`,
+    ]);
     expect(harness.readJson()).toEqual([
       {
         ...READY_BUNDLE,
-        upload: {
-          deltaBaseBundleIds: [PREVIOUS_BUNDLE.id],
-          patchCount: 0,
-          uploadedBytes: 34,
-          uploadedFileCount: 1,
-        },
+        upload: { uploadedBytes: 34, uploadedFileCount: 1 },
       },
     ]);
-  });
-
-  it('should carry a large changed file whole in the delta pack when the framework has no main bundle', async () => {
-    const baseScript = Array.from(
-      { length: 2000 },
-      (_, line) => `console.log(${line});\n`,
-    ).join('');
-    const nextScript = baseScript.replace('console.log(1000);', 'v2');
-    writeFileSync(
-      join(projectDirectoryPath, 'dist', 'assets', 'app.js'),
-      nextScript,
-    );
-    respondWithUploadRoutes([PREVIOUS_BUNDLE], [], []);
-    respondWithBaseFiles(PREVIOUS_BUNDLE.id, [
-      {
-        path: 'assets/app.js',
-        sha256: computeSha256(baseScript),
-        sizeBytes: 1,
-      },
-      { path: 'index.html', sha256: INDEX_SHA256, sizeBytes: 11 },
-    ]);
-
-    await bundleUploadCommand.action(
-      { config: join(projectDirectoryPath, 'hotcodepush.json'), noGit: true },
-      undefined,
-    );
-
-    expect([
-      ...((await readDeltaPackEntries(PREVIOUS_BUNDLE.id))?.keys() ?? []),
-    ]).toEqual([computeSha256(nextScript)]);
-    expect(harness.readLines()).toEqual([
-      `Uploaded bundle #17 · 1.4.2 (${READY_BUNDLE.id}): 0 files moved, 0 B, with 1 delta pack.`,
-    ]);
-  });
-
-  it('should make no delta pack against a base that shares no file with the bundle', async () => {
-    respondWithUploadRoutes([PREVIOUS_BUNDLE]);
-    respondWithBaseFiles(PREVIOUS_BUNDLE.id, [
-      { path: 'index.html', sha256: 'f'.repeat(64), sizeBytes: 11 },
-    ]);
-
-    await bundleUploadCommand.action(
-      { config: join(projectDirectoryPath, 'hotcodepush.json'), noGit: true },
-      undefined,
-    );
-
-    expect(uploadedDeltaPacks.size).toBe(0);
-    expect(readRequest('POST', '/complete')).toBeDefined();
   });
 
   function listPublicKey(): string {
@@ -591,8 +508,6 @@ describe('bundle upload', () => {
           writeFileSync(bundleFilePath, `bundle of ${bundleFilePath}`);
         }
       });
-      harness.routes[`GET ${BUNDLES_PATH}`] = () => Response.json([]);
-      harness.routes[`GET ${BINARIES_PATH}`] = () => Response.json([]);
       harness.routes[`POST ${BUNDLES_PATH}`] = () =>
         Response.json(
           {
@@ -677,119 +592,6 @@ describe('bundle upload', () => {
         platforms: ['ios'],
       });
       expect(harness.readJson()).toMatchObject([{ id: READY_BUNDLE.id }]);
-    });
-
-    describe('with earlier bundles and a binary of the fingerprint', () => {
-      // A main bundle of 2,000 lines, and each base's with another line changed
-      const NEXT_SCRIPT = Array.from(
-        { length: 2000 },
-        (_, line) => `console.log(${line});\n`,
-      ).join('');
-      const PREVIOUS_SCRIPT = NEXT_SCRIPT.replace('console.log(1);', 'v1');
-      const OLDER_SCRIPT = NEXT_SCRIPT.replace('console.log(2);', 'v0');
-      const EMBEDDED_SCRIPT = NEXT_SCRIPT.replace('console.log(3);', 'e1');
-      const OLDER_BUNDLE = {
-        ...PREVIOUS_BUNDLE,
-        id: '7a6b5c4d-3e2f-4a1b-9c8d-7e6f5a4b3c2d',
-        number: 15,
-      };
-      let exportDirectoryPath = '';
-
-      beforeEach(() => {
-        exportDirectoryPath = join(projectDirectoryPath, 'export');
-        mkdirSync(join(exportDirectoryPath, 'assets'), { recursive: true });
-        writeFileSync(join(exportDirectoryPath, 'main.jsbundle'), NEXT_SCRIPT);
-        writeFileSync(join(exportDirectoryPath, 'assets', 'logo.png'), 'logo');
-        harness.routes[`GET ${BUNDLES_PATH}`] = () =>
-          Response.json([PREVIOUS_BUNDLE, OLDER_BUNDLE]);
-        harness.routes[`GET ${BINARIES_PATH}`] = () => Response.json([BINARY]);
-        for (const [bundleId, script] of [
-          [PREVIOUS_BUNDLE.id, PREVIOUS_SCRIPT],
-          [OLDER_BUNDLE.id, OLDER_SCRIPT],
-          [BINARY.bundleId, EMBEDDED_SCRIPT],
-        ] as const) {
-          respondWithBaseFiles(bundleId, [
-            {
-              path: 'assets/logo.png',
-              sha256: computeSha256('logo'),
-              sizeBytes: 4,
-            },
-            {
-              path: 'main.jsbundle',
-              sha256: computeSha256(script),
-              sizeBytes: 1,
-            },
-          ]);
-        }
-        for (const script of [PREVIOUS_SCRIPT, EMBEDDED_SCRIPT]) {
-          harness.routes[
-            `GET /files/apps/${DEMO_APP.id}/files/${computeSha256(script)}`
-          ] = () => new Response(script);
-        }
-      });
-
-      async function uploadExport(isJson: boolean): Promise<void> {
-        await bundleUploadCommand.action(
-          {
-            config: join(projectDirectoryPath, 'hotcodepush.json'),
-            json: isJson,
-            noGit: true,
-            path: exportDirectoryPath,
-            platform: ['ios'],
-          },
-          undefined,
-        );
-      }
-
-      it('should carry the main bundle as a patch against the newest earlier bundle and the binary, and whole against an older bundle', async () => {
-        await uploadExport(true);
-
-        const nextSha256 = computeSha256(NEXT_SCRIPT);
-        for (const [bundleId, script] of [
-          [PREVIOUS_BUNDLE.id, PREVIOUS_SCRIPT],
-          [BINARY.bundleId, EMBEDDED_SCRIPT],
-        ] as const) {
-          const entries = await readDeltaPackEntries(bundleId);
-          const patchName = `patches/${computeSha256(script)}/${nextSha256}`;
-          expect([...(entries?.keys() ?? [])]).toEqual([patchName]);
-          expect(
-            applyBsdiffPatch(
-              Buffer.from(script),
-              entries?.get(patchName) ?? Buffer.alloc(0),
-            ),
-          ).toEqual(new Uint8Array(Buffer.from(NEXT_SCRIPT)));
-        }
-        expect([
-          ...((await readDeltaPackEntries(OLDER_BUNDLE.id))?.keys() ?? []),
-        ]).toEqual([nextSha256]);
-        expect(harness.readJson()).toMatchObject([
-          {
-            upload: {
-              deltaBaseBundleIds: [
-                PREVIOUS_BUNDLE.id,
-                OLDER_BUNDLE.id,
-                BINARY.bundleId,
-              ],
-              patchCount: 2,
-            },
-          },
-        ]);
-      });
-
-      it('should carry the main bundle whole against a base whose patch cannot be made', async () => {
-        delete harness.routes[
-          `GET /files/apps/${DEMO_APP.id}/files/${computeSha256(PREVIOUS_SCRIPT)}`
-        ];
-
-        await uploadExport(false);
-
-        expect([
-          ...((await readDeltaPackEntries(PREVIOUS_BUNDLE.id))?.keys() ?? []),
-        ]).toEqual([computeSha256(NEXT_SCRIPT)]);
-        expect(harness.readLines()).toEqual([
-          `Uploaded bundle #17 · 1.4.2 (${READY_BUNDLE.id}): 0 files moved, 0 B, with 3 delta packs and 1 patch.`,
-        ]);
-      });
     });
   });
 

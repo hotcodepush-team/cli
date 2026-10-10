@@ -29,14 +29,6 @@ jobs:
       - run: npm test
       - run: npm run build
 
-  bsdiff-wasm:
-    name: Rebuild the bsdiff module and compare its bytes
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - run: bsdiff-wasm/build.sh
-      - run: git diff --exit-code bsdiff-wasm/bsdiff.wasm
-
   preview:
     name: Publish a preview to pkg.pr.new
     needs: verify

@@ -140,19 +140,6 @@ export function readBuildDirectory(): BuildDirectory {
   };
 }
 
-/**
- * The platform's bundle as React Native's own builds name it, in an uploaded and an embedded bundle alike.
- */
-export function resolveMainBundlePath(
-  files: readonly { path: string }[],
-  platform: Platform,
-): string | undefined {
-  const bundleFileName = BUNDLE_FILE_NAMES[platform];
-  return files.some(({ path }) => path === bundleFileName)
-    ? bundleFileName
-    : undefined;
-}
-
 export function resolveNativeProjectPaths(
   projectDirectoryPath: string,
 ): NativeProjectPaths {

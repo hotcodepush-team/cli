@@ -68,11 +68,6 @@ export interface FrameworkModule {
    * The framework's own build output, read when the upload runs, what `--path` overrides.
    */
   readBuildDirectory: (projectDirectoryPath: string) => BuildDirectory;
-  /**
-   * The main JavaScript bundle among a bundle's files, which a delta pack carries as a patch; without the member the
-   * framework has none.
-   */
-  resolveMainBundlePath?: MainBundlePathResolver;
   resolveNativeProjectPaths: (
     projectDirectoryPath: string,
   ) => NativeProjectPaths;
@@ -136,15 +131,6 @@ export interface PackagingRequest {
   platforms: Platform[] | undefined;
   projectDirectoryPath: string;
 }
-
-/**
- * The path of a bundle's main JavaScript bundle for a platform, none where its files hold none. A base's and a new
- * bundle's are paired by this role, never by an equal path, since a bundle's file name may carry its content hash.
- */
-export type MainBundlePathResolver = (
-  files: readonly { path: string }[],
-  platform: Platform,
-) => string | undefined;
 
 export interface NativeProjectPaths {
   android: string;

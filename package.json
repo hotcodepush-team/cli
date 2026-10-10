@@ -30,9 +30,7 @@
     "hotcodepush": "dist/index.js"
   },
   "files": [
-    "bsdiff-wasm/bsdiff.wasm",
-    "dist",
-    "THIRD-PARTY-NOTICES"
+    "dist"
   ],
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
@@ -44,7 +42,7 @@
   "dependencies": {
     "@clack/prompts": "1.8.1",
     "@hotcodepush/node": "https://pkg.pr.new/hotcodepush-team/hotcodepush-node/@hotcodepush/node@ffffe3b",
-    "@hotcodepush/protocol": "https://pkg.pr.new/hotcodepush-team/protocol/@hotcodepush/protocol@867e33cec9d27031323cf888bf79eaf45a14d761",
+    "@hotcodepush/protocol": "https://pkg.pr.new/hotcodepush-team/protocol/@hotcodepush/protocol@cf04f51425c17de9f1f65d4649b2e7df8eb1dac1",
     "@napi-rs/keyring": "2.1.0",
     "better-auth": "1.7.6",
     "fast-xml-parser": "5.11.2",

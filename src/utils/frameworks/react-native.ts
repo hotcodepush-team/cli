@@ -31,7 +31,6 @@ import {
   collectEmbeddedFiles,
   packageReactNativeBundles,
   readBuildDirectory,
-  resolveMainBundlePath,
   resolveNativeProjectPaths,
 } from './react-native-build.js';
 import {
@@ -91,7 +90,6 @@ export const reactNativeFramework: FrameworkModule = {
   packageBundles: request =>
     packageReactNativeBundles(request, resolveBundlerArgs),
   readBuildDirectory,
-  resolveMainBundlePath,
   resolveNativeProjectPaths,
   resolveWiring,
 };

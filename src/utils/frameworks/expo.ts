@@ -14,7 +14,6 @@ import {
   collectEmbeddedFiles,
   packageReactNativeBundles,
   readBuildDirectory,
-  resolveMainBundlePath,
   resolveNativeProjectPaths,
 } from './react-native-build.js';
 import {
@@ -92,7 +91,6 @@ export const expoFramework: FrameworkModule = {
   packageBundles: request =>
     packageReactNativeBundles(request, () => BUNDLER_ARGS),
   readBuildDirectory,
-  resolveMainBundlePath,
   resolveNativeProjectPaths,
   resolveWiring: project => Promise.resolve(resolveWiring(project)),
 };

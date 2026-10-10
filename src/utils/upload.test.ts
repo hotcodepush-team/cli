@@ -15,12 +15,7 @@ import {
   useCommandHarness,
 } from '../../test/command-harness.js';
 import { writeNativeGlue } from '../../test/cordova-project.js';
-import {
-  DEMO_APP,
-  PREVIOUS_BUNDLE,
-  READY_BUNDLE,
-} from '../../test/fixtures.js';
-import type { DeltaBase } from './delta-bases.js';
+import { DEMO_APP, READY_BUNDLE } from '../../test/fixtures.js';
 import { BundleTooLargeError } from './errors.js';
 import { NATIVE_GLUE_PATHS } from './frameworks/native-glue.js';
 import {
@@ -28,9 +23,7 @@ import {
   buildManifestToSign,
   BUNDLE_BYTES_LIMIT,
   collectUploadFiles,
-  resolveDeltaPack,
   resolveMissingSha256s,
-  uploadDeltaPack,
   uploadMissingFiles,
   uploadPack,
 } from './upload.js';
@@ -73,20 +66,6 @@ const UPLOADS = [
         hotCodePush,
         { appId: DEMO_APP.id, bundleId: READY_BUNDLE.id },
         packFilePath,
-      ),
-  },
-  {
-    kind: 'delta pack',
-    path: `${BUNDLE_PATH}/deltas/${PREVIOUS_BUNDLE.id}`,
-    upload: (hotCodePush: HotCodePush, deltaPackFilePath: string) =>
-      uploadDeltaPack(
-        hotCodePush,
-        {
-          appId: DEMO_APP.id,
-          baseBundleId: PREVIOUS_BUNDLE.id,
-          bundleId: READY_BUNDLE.id,
-        },
-        deltaPackFilePath,
       ),
   },
 ];
@@ -229,58 +208,6 @@ describe('upload', () => {
       ],
       fingerprint: 'fp1:abc',
       platforms: ['android', 'ios'],
-    });
-  });
-
-  describe('resolveDeltaPack', () => {
-    const PACK_FILES = ['a', 'b', 'c'].map(character => ({
-      compressedFilePath: `/tmp/${character}.gz`,
-      sha256: character.repeat(64),
-      sizeBytes: 1,
-    }));
-    const BASE: DeltaBase = {
-      bundleId: PREVIOUS_BUNDLE.id,
-      files: [{ path: 'index.html', sha256: 'a'.repeat(64), sizeBytes: 1 }],
-      isPatchable: true,
-      label: '#16 · 1.4.1',
-      platforms: ['ios'],
-    };
-    const PATCH = {
-      fromSha256: 'd'.repeat(64),
-      patchFilePath: '/tmp/patch',
-      sizeBytes: 1,
-      toSha256: 'c'.repeat(64),
-    };
-
-    it('should carry the files the base lacks', () => {
-      expect(resolveDeltaPack(BASE, PACK_FILES, [])).toEqual({
-        files: PACK_FILES.slice(1),
-        patches: [],
-      });
-    });
-
-    it('should carry a patch in place of the file it makes', () => {
-      expect(resolveDeltaPack(BASE, PACK_FILES, [PATCH])).toEqual({
-        files: PACK_FILES.slice(1, 2),
-        patches: [PATCH],
-      });
-    });
-
-    it.each([
-      ['when the base shares no file', { ...BASE, files: [] }],
-      [
-        'when the base holds every file',
-        {
-          ...BASE,
-          files: PACK_FILES.map(({ sha256 }) => ({
-            path: sha256,
-            sha256,
-            sizeBytes: 1,
-          })),
-        },
-      ],
-    ])('should make no delta pack %s', (_condition, base) => {
-      expect(resolveDeltaPack(base, PACK_FILES, [])).toBeUndefined();
     });
   });
 
