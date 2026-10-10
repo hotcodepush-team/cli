@@ -1,7 +1,11 @@
-import type { Bundle, HotCodePush } from '@hotcodepush/node';
+import type {
+  Bundle,
+  BundleWithDeltaPacks,
+  HotCodePush,
+} from '@hotcodepush/node';
 import { z } from 'zod';
 import type { InteractivityOptions } from './environment.js';
-import { InvalidParameterError, MissingParameterError } from './errors.js';
+import { InvalidParameterError } from './errors.js';
 import { fetchAllPages } from './pagination.js';
 import { promptSelect } from './prompts.js';
 
@@ -17,46 +21,16 @@ export const bundleOptionShape = {
 };
 
 /**
- * The bundle `--bundle` names, by number or id, otherwise a picker over the app's bundles when interactive.
+ * The bundle `--bundle` names, by number or id, otherwise a picker over the app's bundles when interactive, read by its id
+ * whichever way it was named.
  */
 export async function fetchBundle(
   hotCodePush: HotCodePush,
   appId: string,
   options: BundleOptions,
-): Promise<Bundle> {
-  if (options.bundle === undefined) {
-    const bundles = await fetchUploadedBundles(hotCodePush, appId);
-    const bundleId = await promptSelect(
-      '--bundle',
-      'Which bundle?',
-      bundles.map(bundle => ({
-        label: `${resolveBundleLabel(bundle)} (${bundle.state})`,
-        value: bundle.id,
-      })),
-      options,
-    );
-    return resolveBundleById(bundles, bundleId);
-  }
-  if (ID_SCHEMA.safeParse(options.bundle).success) {
-    return hotCodePush.apps.bundles.get({ appId, bundleId: options.bundle });
-  }
-  if (!NUMBER_PATTERN.test(options.bundle)) {
-    throw new InvalidParameterError(
-      `--bundle: "${options.bundle}" is neither a number nor an id`,
-      undefined,
-    );
-  }
-  const number = Number(options.bundle);
-  const bundle = (await fetchUploadedBundles(hotCodePush, appId)).find(
-    candidate => candidate.number === number,
-  );
-  if (bundle === undefined) {
-    throw new InvalidParameterError(
-      `--bundle: the app has no bundle #${number}`,
-      undefined,
-    );
-  }
-  return bundle;
+): Promise<BundleWithDeltaPacks> {
+  const bundleId = await fetchBundleId(hotCodePush, appId, options);
+  return hotCodePush.apps.bundles.get({ appId, bundleId });
 }
 
 /**
@@ -82,10 +56,54 @@ export function resolveBundleLabel({
   return `${number === null ? 'embedded' : `#${number}`} · ${version}`;
 }
 
-function resolveBundleById(bundles: Bundle[], bundleId: string): Bundle {
-  const bundle = bundles.find(({ id }) => id === bundleId);
-  if (bundle === undefined) {
-    throw new MissingParameterError('--bundle');
+async function fetchBundleId(
+  hotCodePush: HotCodePush,
+  appId: string,
+  options: BundleOptions,
+): Promise<string> {
+  if (options.bundle === undefined) {
+    const bundles = await fetchUploadedBundles(hotCodePush, appId);
+    return promptSelect(
+      '--bundle',
+      'Which bundle?',
+      bundles.map(bundle => ({
+        label: `${resolveBundleLabel(bundle)} (${bundle.state})`,
+        value: bundle.id,
+      })),
+      options,
+    );
   }
-  return bundle;
+  if (ID_SCHEMA.safeParse(options.bundle).success) {
+    return options.bundle;
+  }
+  if (!NUMBER_PATTERN.test(options.bundle)) {
+    throw new InvalidParameterError(
+      `--bundle: "${options.bundle}" is neither a number nor an id`,
+      undefined,
+    );
+  }
+  return fetchBundleIdByNumber(hotCodePush, appId, Number(options.bundle));
+}
+
+/**
+ * The id of the bundle carrying the number, found among the bundles the list's search answers, whose numbers contain it.
+ */
+async function fetchBundleIdByNumber(
+  hotCodePush: HotCodePush,
+  appId: string,
+  number: number,
+): Promise<string> {
+  const searchedBundles = await fetchAllPages(page =>
+    hotCodePush.apps.bundles.list({ appId, ...page, query: String(number) }),
+  );
+  const numberedBundle = searchedBundles.find(
+    candidate => candidate.number === number,
+  );
+  if (numberedBundle === undefined) {
+    throw new InvalidParameterError(
+      `--bundle: the app has no bundle #${number}`,
+      undefined,
+    );
+  }
+  return numberedBundle.id;
 }

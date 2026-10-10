@@ -107,6 +107,12 @@ describe('release create', () => {
       .filter(({ pathname }) => pathname.endsWith('/audience'));
   }
 
+  function respondWithBundleNamedByNumber(): void {
+    harness.routes[`GET ${BUNDLES_PATH}`] = () => Response.json([READY_BUNDLE]);
+    harness.routes[`GET ${BUNDLES_PATH}/${READY_BUNDLE.id}`] = () =>
+      Response.json(READY_BUNDLE);
+  }
+
   function respondWithStagingChannel(audience = STAGING_AUDIENCE): void {
     respondWithChannels(harness);
     harness.routes[`GET ${CHANNEL_PATH}`] = () =>
@@ -138,7 +144,7 @@ describe('release create', () => {
     stubInteractiveTerminal();
     vi.mocked(confirm).mockResolvedValue(true);
     respondWithStagingChannel();
-    harness.routes[`GET ${BUNDLES_PATH}`] = () => Response.json([READY_BUNDLE]);
+    respondWithBundleNamedByNumber();
     harness.routes[`POST ${CHANNEL_PATH}/releases`] = () =>
       Response.json(
         { ...LIVE_RELEASE, liveAt: null, warnings: [] },
@@ -224,7 +230,7 @@ describe('release create', () => {
 
   it('should send a new Idempotency-Key on every run, so a second run creates a second release', async () => {
     respondWithStagingChannel();
-    harness.routes[`GET ${BUNDLES_PATH}`] = () => Response.json([READY_BUNDLE]);
+    respondWithBundleNamedByNumber();
     respondWithCreatedRelease();
     const options = {
       bundle: '17',
@@ -247,7 +253,7 @@ describe('release create', () => {
 
   it("should send the same Idempotency-Key on the client's retry when the API answers a server error", async () => {
     respondWithStagingChannel();
-    harness.routes[`GET ${BUNDLES_PATH}`] = () => Response.json([READY_BUNDLE]);
+    respondWithBundleNamedByNumber();
     harness.routes[`POST ${CHANNEL_PATH}/releases`] = vi
       .fn<() => Response>()
       .mockReturnValueOnce(

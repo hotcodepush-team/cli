@@ -280,6 +280,8 @@ describe('release revoke', () => {
     vi.mocked(confirm).mockResolvedValue(true);
     harness.routes[`GET /v1/apps/${DEMO_APP.id}/bundles`] = () =>
       Response.json([READY_BUNDLE, PREVIOUS_BUNDLE]);
+    harness.routes[`GET /v1/apps/${DEMO_APP.id}/bundles/${READY_BUNDLE.id}`] =
+      () => Response.json(READY_BUNDLE);
     harness.routes[`GET ${RELEASES_PATH}`] = () =>
       Response.json([
         PRODUCTION_RELEASE,
