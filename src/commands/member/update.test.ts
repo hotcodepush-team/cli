@@ -1,4 +1,4 @@
-import { select } from '@clack/prompts';
+import { confirm, select } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   respondWithApiError,
@@ -98,6 +98,45 @@ describe('member update', () => {
     expect(readPatchRequests()).toEqual([]);
   });
 
+  it('should transfer the ownership once confirmed when --role is owner, stating the consequence', async () => {
+    stubInteractiveTerminal();
+    vi.mocked(confirm).mockResolvedValue(true);
+    respondWithMember();
+
+    await memberUpdateCommand.action(
+      {
+        member: ADMIN_MEMBER.id,
+        organization: ACME_ORGANIZATION.id,
+        role: 'owner',
+      },
+      undefined,
+    );
+
+    expect(confirm).toHaveBeenCalledWith({
+      initialValue: false,
+      message:
+        'This transfers the ownership of the organization to member bob@example.com and makes you an admin; only they can transfer it back. Continue?',
+    });
+    expect(await readPatchRequests()[0]?.json()).toEqual({ role: 'owner' });
+  });
+
+  it('should transfer the ownership without asking when --role is owner and --yes is passed', async () => {
+    respondWithMember();
+
+    await memberUpdateCommand.action(
+      {
+        member: ADMIN_MEMBER.id,
+        organization: ACME_ORGANIZATION.id,
+        role: 'owner',
+        yes: true,
+      },
+      undefined,
+    );
+
+    expect(confirm).not.toHaveBeenCalled();
+    expect(await readPatchRequests()[0]?.json()).toEqual({ role: 'owner' });
+  });
+
   it("should pass the API's refusal of an ownership transfer through with its code in front", async () => {
     const stderrWrite = vi
       .spyOn(process.stderr, 'write')
@@ -121,6 +160,7 @@ describe('member update', () => {
         ADMIN_MEMBER.id,
         '--role',
         'owner',
+        '--yes',
       ],
       PACKAGE_JSON,
     );

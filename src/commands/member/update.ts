@@ -9,7 +9,7 @@ import {
   resolveMemberEmail,
 } from '../../utils/member-resolution.js';
 import { printJson } from '../../utils/output.js';
-import { promptSelect } from '../../utils/prompts.js';
+import { confirmConsequence, promptSelect } from '../../utils/prompts.js';
 import { fetchOrganizationId } from '../../utils/resource-resolution.js';
 
 const MEMBER_ROLES = [
@@ -51,6 +51,16 @@ export default defineCommand({
         MEMBER_ROLES.map(role => ({ label: role, value: role })),
         options,
       ));
+    const email = resolveMemberEmail(fetchedMember);
+    if (role === 'owner') {
+      const isConfirmed = await confirmConsequence(
+        `transfers the ownership of the organization to member ${email} and makes you an admin; only they can transfer it back`,
+        options,
+      );
+      if (!isConfirmed) {
+        return;
+      }
+    }
     const updatedMember = await hotCodePush.organizations.members.update({
       memberId: fetchedMember.id,
       organizationId,
@@ -60,7 +70,7 @@ export default defineCommand({
       printJson(updatedMember);
     } else {
       console.log(
-        `Updated member ${resolveMemberEmail(fetchedMember)} (${updatedMember.id}) to role ${updatedMember.role}.`,
+        `Updated member ${email} (${updatedMember.id}) to role ${updatedMember.role}.`,
       );
     }
   },
