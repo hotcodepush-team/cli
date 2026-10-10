@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import type {
   App,
+  AuditLog,
   Billing,
   Binary,
   Bundle,
@@ -280,4 +281,19 @@ export const DEVICE: Device = {
   platform: 'ios',
   sdkVersion: '0.1.0',
   updatedAt: '2026-09-08T08:00:00.000Z',
+};
+
+export const AUDIT_LOG: AuditLog = {
+  address: '203.0.113.7',
+  apiKeyId: null,
+  appId: DEMO_APP.id,
+  country: 'DE',
+  createdAt: '2026-09-10T08:00:00.000Z',
+  id: '1e4d7a2b-9c3f-4b8e-a6d5-0f2c7b9e4a13',
+  objectId: STAGING_CHANNEL.id,
+  sessionId: 'a8c3e5f1-2b7d-4e9a-8c6f-3d1b5e7a9c24',
+  snapshot: { name: STAGING_CHANNEL.name },
+  type: 'channel.created',
+  userAgent: 'hotcodepush/0.0.0',
+  userId: RUNNER_USER.id,
 };

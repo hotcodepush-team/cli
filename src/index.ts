@@ -11,6 +11,7 @@ const commandRegistry: CommandRegistry = {
   'app transfer': () => import('./commands/app/transfer.js'),
   'app update': () => import('./commands/app/update.js'),
   'audience get': () => import('./commands/audience/get.js'),
+  'audit-log list': () => import('./commands/audit-log/list.js'),
   'billing get': () => import('./commands/billing/get.js'),
   'billing update': () => import('./commands/billing/update.js'),
   'binary create': () => import('./commands/binary/create.js'),
