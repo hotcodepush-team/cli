@@ -76,8 +76,12 @@ export function resolveDate(timestamp: string): string {
 }
 
 /**
- * A count with its noun, 1 app or 3 apps.
+ * A count with its noun, 1 app or 3 apps; a noun whose plural is not its `s` form names it, 2 patches.
  */
-export function resolveQuantityText(count: number, noun: string): string {
-  return `${count} ${noun}${count === 1 ? '' : 's'}`;
+export function resolveQuantityText(
+  count: number,
+  noun: string,
+  pluralNoun = `${noun}s`,
+): string {
+  return `${count} ${count === 1 ? noun : pluralNoun}`;
 }

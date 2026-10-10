@@ -5,6 +5,7 @@ import type {
   Billing,
   Binary,
   Bundle,
+  BundleWithDeltaPacks,
   Channel,
   ChannelWithDeviceCounts,
   Device,
@@ -163,6 +164,26 @@ export const BINARY: Binary = {
   platform: 'ios',
   updatedAt: '2026-09-06T08:00:00.000Z',
   version: '1.0',
+};
+
+export const READY_BUNDLE_WITH_DELTA_PACKS: BundleWithDeltaPacks = {
+  ...READY_BUNDLE,
+  deltaPacks: [
+    {
+      baseBundleId: PREVIOUS_BUNDLE.id,
+      baseBundleNumber: PREVIOUS_BUNDLE.number,
+      patchCount: 2,
+      sizeBytes: 48213,
+      state: 'built',
+    },
+    {
+      baseBundleId: BINARY.bundleId,
+      baseBundleNumber: null,
+      patchCount: null,
+      sizeBytes: null,
+      state: 'requested',
+    },
+  ],
 };
 
 export const LIVE_RELEASE: Release = {
