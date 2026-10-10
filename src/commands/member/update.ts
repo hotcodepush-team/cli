@@ -21,10 +21,10 @@ const MEMBER_ROLES = [
 
 export default defineCommand({
   description:
-    "Change a member's role; owner transfers the ownership to them and makes you an admin.",
+    "Change a member's role; --role owner transfers the ownership to them, makes you an admin and asks once, --yes confirming in scripts.",
   examples: [
     'hotcodepush member update --member bob@example.com --role admin',
-    'hotcodepush member update --member 5e8a2c71-0b4d-4f39-9a6e-3c1d7b2f8e40 --role billing --json',
+    'hotcodepush member update --member 5e8a2c71-0b4d-4f39-9a6e-3c1d7b2f8e40 --role owner --yes',
   ],
   options: defineCommandOptions({
     ...memberOptionShape,
@@ -54,7 +54,7 @@ export default defineCommand({
     const email = resolveMemberEmail(fetchedMember);
     if (role === 'owner') {
       const isConfirmed = await confirmConsequence(
-        `transfers the ownership of the organization to member ${email} and makes you an admin; only they can transfer it back`,
+        `transfers the ownership of the organization to ${email} and makes you an admin; only the new owner can transfer it back`,
         options,
       );
       if (!isConfirmed) {

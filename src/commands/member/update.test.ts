@@ -115,7 +115,7 @@ describe('member update', () => {
     expect(confirm).toHaveBeenCalledWith({
       initialValue: false,
       message:
-        'This transfers the ownership of the organization to member bob@example.com and makes you an admin; only they can transfer it back. Continue?',
+        'This transfers the ownership of the organization to bob@example.com and makes you an admin; only the new owner can transfer it back. Continue?',
     });
     expect(await readPatchRequests()[0]?.json()).toEqual({ role: 'owner' });
   });
