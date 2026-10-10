@@ -76,6 +76,7 @@ const commandRegistry: CommandRegistry = {
   'sso-provider set': () => import('./commands/sso-provider/set.js'),
   'sso-provider verify': () => import('./commands/sso-provider/verify.js'),
   'statistics get': () => import('./commands/statistics/get.js'),
+  'usage get': () => import('./commands/usage/get.js'),
   'whoami': () => import('./commands/whoami.js'),
 };
 
