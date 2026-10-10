@@ -8,6 +8,7 @@ import type {
   Channel,
   ChannelWithDeviceCounts,
   Device,
+  Invitation,
   Limits,
   Member,
   Organization,
@@ -377,4 +378,17 @@ export const ADMIN_MEMBER: Member = {
     name: 'Bob Example',
   },
   userId: '7f3c9a1e-2d5b-4e80-b6a4-0c9e1d3f5a27',
+};
+
+export const PENDING_INVITATION: Invitation = {
+  createdAt: '2026-09-10T08:00:00.000Z',
+  email: 'carol@example.com',
+  expiresAt: '2026-09-12T08:00:00.000Z',
+  id: '4c8e2a6f-1d3b-4e97-a5c0-8f2d6b4a1e93',
+  inviterId: OWNER_MEMBER.userId,
+  organizationId: ACME_ORGANIZATION.id,
+  organizationName: ACME_ORGANIZATION.name,
+  role: 'member',
+  status: 'pending',
+  updatedAt: '2026-09-10T08:00:00.000Z',
 };
