@@ -12,6 +12,7 @@ import type {
   Organization,
   Release,
   SigningKey,
+  SsoProvider,
   User,
 } from '@hotcodepush/node';
 
@@ -296,4 +297,49 @@ export const AUDIT_LOG: AuditLog = {
   type: 'channel.created',
   userAgent: 'hotcodepush/0.0.0',
   userId: RUNNER_USER.id,
+};
+
+/**
+ * An OIDC provider whose domain still waits for its TXT record.
+ */
+export const SSO_PROVIDER: SsoProvider = {
+  createdAt: '2026-09-11T08:00:00.000Z',
+  domain: 'example.com',
+  id: '5d9e2c7a-4b1f-4e8d-9a3c-6f0b2e8d4a71',
+  isVerified: false,
+  oidc: {
+    clientId: 'hotcodepush',
+    discoveryEndpoint:
+      'https://login.example.com/.well-known/openid-configuration',
+    issuer: 'https://login.example.com',
+    redirectUri: `https://api.example.com/v1/auth/sso/callback/${ACME_ORGANIZATION.id}`,
+    scopes: null,
+  },
+  organizationId: ACME_ORGANIZATION.id,
+  provider: 'oidc',
+  saml: null,
+  signInUrl: `https://console.example.com/login?sso=${ACME_ORGANIZATION.id}`,
+  updatedAt: '2026-09-11T08:00:00.000Z',
+  verification: {
+    name: `_hotcodepush-sso-${ACME_ORGANIZATION.id}.example.com`,
+    value: 'b7Kq2vX9mN4pR8sT1wY6zA3c',
+  },
+};
+
+/**
+ * A SAML provider whose domain is verified.
+ */
+export const VERIFIED_SAML_SSO_PROVIDER: SsoProvider = {
+  ...SSO_PROVIDER,
+  isVerified: true,
+  oidc: null,
+  provider: 'saml',
+  saml: {
+    acsUrl: `https://api.example.com/v1/auth/sso/saml2/sp/acs/${ACME_ORGANIZATION.id}`,
+    entityId: null,
+    entryPoint: 'https://idp.example.com/sso',
+    issuer: 'https://idp.example.com',
+    spMetadataUrl: `https://api.example.com/v1/auth/sso/saml2/sp/metadata?providerId=${ACME_ORGANIZATION.id}`,
+  },
+  verification: null,
 };

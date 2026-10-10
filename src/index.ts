@@ -63,6 +63,10 @@ const commandRegistry: CommandRegistry = {
   'signing-key create': () => import('./commands/signing-key/create.js'),
   'signing-key delete': () => import('./commands/signing-key/delete.js'),
   'signing-key list': () => import('./commands/signing-key/list.js'),
+  'sso-provider delete': () => import('./commands/sso-provider/delete.js'),
+  'sso-provider get': () => import('./commands/sso-provider/get.js'),
+  'sso-provider set': () => import('./commands/sso-provider/set.js'),
+  'sso-provider verify': () => import('./commands/sso-provider/verify.js'),
   'statistics get': () => import('./commands/statistics/get.js'),
   'whoami': () => import('./commands/whoami.js'),
 };

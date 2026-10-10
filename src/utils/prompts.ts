@@ -1,4 +1,4 @@
-import { confirm, isCancel, select, text } from '@clack/prompts';
+import { confirm, isCancel, password, select, text } from '@clack/prompts';
 import type { InteractivityOptions } from './environment.js';
 import { isInteractive } from './environment.js';
 import { ConfirmationRequiredError, MissingParameterError } from './errors.js';
@@ -65,9 +65,30 @@ export async function promptSelect<TValue extends string>(
 }
 
 /**
+ * A required secret the command line left out, asked for without showing what is typed;
+ * without a person to ask, `E_MISSING_PARAMETER` naming the flag.
+ */
+export function promptSecret(
+  flag: string,
+  message: string,
+  options: InteractivityOptions,
+): Promise<string> {
+  return promptInput(password, flag, message, options);
+}
+
+/**
  * A required text parameter the command line left out, asked for; without a person to ask, `E_MISSING_PARAMETER` naming the flag.
  */
-export async function promptText(
+export function promptText(
+  flag: string,
+  message: string,
+  options: InteractivityOptions,
+): Promise<string> {
+  return promptInput(text, flag, message, options);
+}
+
+async function promptInput(
+  ask: typeof password | typeof text,
   flag: string,
   message: string,
   options: InteractivityOptions,
@@ -75,7 +96,7 @@ export async function promptText(
   if (!isInteractive(options)) {
     throw new MissingParameterError(flag);
   }
-  const answer = await text({
+  const answer = await ask({
     message,
     validate: value => (value?.trim() ? undefined : 'Enter a value.'),
   });
