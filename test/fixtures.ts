@@ -150,6 +150,8 @@ export const LIVE_RELEASE: Release = {
   notes: 'cart fix',
   number: 43,
   pausedAt: null,
+  progression: null,
+  progressionStep: null,
   purgedAt: '2026-09-07T08:00:06.000Z',
   rolledBackFromReleaseId: null,
   rolloutPercentage: 100,
