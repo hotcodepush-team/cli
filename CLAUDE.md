@@ -2,7 +2,7 @@
 
 `hotcodepush`, the HotCodePush CLI: the npm package and the binary that set up, release and manage live updates from the terminal and CI.
 The repo is public and MIT; the commands in `src/index.ts`'s registry are built, for Capacitor, Cordova, Expo and React Native projects, and the rest of the spec arrives issue by issue.
-Stack: TypeScript compiled by `tsc` into ESM in `dist/`, zodline and zod for the commands, `@hotcodepush/node` for the API, `@clack/prompts` for the prompts, `@napi-rs/keyring` for the token, our own WebAssembly build of the Rust crate `qbsdiff` for the patches, ESLint, Prettier, Vitest, Node 22 as the floor, developed on 24.
+Stack: TypeScript compiled by `tsc` into ESM in `dist/`, zodline and zod for the commands, `@hotcodepush/node` for the API, `@clack/prompts` for the prompts, `@napi-rs/keyring` for the token, ESLint, Prettier, Vitest, Node 22 as the floor, developed on 24.
 
 The plan is the private `handbook` repo, checked out beside this one: `../handbook/docs/`.
 Its `cli.md` is the spec — every command, flag, file, error code and exit code — and `repositories.md` › _The CLI's structure_ the layout; both are binding, with `api.md` for the API the commands call.
@@ -27,7 +27,7 @@ src/
                the files of a build hashed, their gzip copies,
                the pack writer, the git provenance, the device hosts derived from the API URL,
                the upload flow, the private key an upload is given, read into the pair that signs, and the writer of its file,
-               the delta bases, the main bundle's patches and the bsdiff module behind one function,
+               the progression schedule from its flags, the spending cap in whole dollars, a member or an invitation by id or email,
                the native glue the Capacitor and Cordova modules name, one constant in `frameworks/native-glue.ts`,
                the build step both commands share, the resource file,
                the progress lines, the browser opener, the JSON, tables and details output,
@@ -41,10 +41,6 @@ test/          the command tests' harness, the API faked behind fetch, their fix
                and the Capacitor project a test writes, with the pbxproj of `cap add ios`, its Gradle file and the old resource reference, the fingerprint inputs,
                the Cordova project with its `config.xml` and the native glue a platform copy carries, the React Native project with its pbxproj,
                the protocol's fixtures read from the installed package; never built
-bsdiff-wasm/   the bsdiff module, our build of the Rust crate `qbsdiff`: the crate that wraps it, its `Cargo.lock`,
-               the pure-Rust stand-in for `cdivsufsort` under `patches/`, `build.sh`, and the built `bsdiff.wasm`,
-               committed and shipped in the package; `THIRD-PARTY-NOTICES` at the root carries the notices and licences
-               of what the module is compiled from and ships beside it
 dist/          the build output, never committed
 ```
 
@@ -54,18 +50,16 @@ The one exception is Better Auth's `/v1/auth/*` slice, reached through `better-a
 
 ## Commands
 
-| Command                | Does                                                                     |
-| ---------------------- | ------------------------------------------------------------------------ |
-| `bsdiff-wasm/build.sh` | rebuild `bsdiff-wasm/bsdiff.wasm` in its pinned Rust image; needs Docker |
-| `npm run build`        | compile `src/` into `dist/`                                              |
-| `npm run fmt`          | format with Prettier                                                     |
-| `npm run lint`         | ESLint                                                                   |
-| `npm test`             | Vitest                                                                   |
-| `npm run typecheck`    | `tsc --noEmit`, tests included                                           |
+| Command             | Does                           |
+| ------------------- | ------------------------------ |
+| `npm run build`     | compile `src/` into `dist/`    |
+| `npm run fmt`       | format with Prettier           |
+| `npm run lint`      | ESLint                         |
+| `npm test`          | Vitest                         |
+| `npm run typecheck` | `tsc --noEmit`, tests included |
 
 Run `npm run fmt` before every commit; lint, typecheck, test and build must pass, as `ci.yml` checks on every push to `main` and every pull request, on Ubuntu, macOS and Windows, each on Node 22 and 24.
 A test of a POSIX file mode is skipped on Windows, which has none: a file there is protected by the access list of its folder, the user profile's for `config.json` and the project's own for a private key file.
-Run `bsdiff-wasm/build.sh` after a change in `bsdiff-wasm/` and commit the module with it: the image is pinned by digest so the same sources yield the same bytes, and `ci.yml`'s `bsdiff-wasm` job rebuilds the module and fails when its bytes differ from the committed file.
 `node dist/index.js --help` runs the build locally.
 `ci.yml`'s `preview` job publishes every push to `main` and every pull request to pkg.pr.new, and consumers pin one build by its short commit hash: `npm install --save-dev https://pkg.pr.new/hotcodepush-team/cli/hotcodepush@<sha>`.
 No releases yet: the version stays `0.0.0`, and release-please and npm provenance arrive with the publish decision.
@@ -125,8 +119,7 @@ A project with an app config that is code, or with a JSON one that does not pars
 - **The token** is `readToken()`: `HOTCODEPUSH_TOKEN` when set, then the keyring, then the `config.json` fallback that any keyring failure latches for the rest of the process.
 - **An upload never holds a file in memory**: every file is hashed and gzip-compressed through streams into a temporary directory,
   put as a `Blob` opened from disk so the client can retry it, and the Node client splits it into parts above its `SINGLE_UPLOAD_LIMIT_BYTES`; the packs go the same way.
-  The one exception is a patch: `utils/bsdiff.ts` reads the main bundle and its base whole into the module's memory while it computes one, and holds the patch until it is written.
-  Only the hashes the API answers as missing move, then the full pack and one delta pack per base; the bases and their file lists are read from the API before the bundle is created, and an API that cannot be reached there fails the upload, nothing skipped.
+  Only the hashes the API answers as missing move, then the full pack; the platform derives the delta packs and the patches by its own triggers, so the CLI reads no base, fetches no base file and computes no patch (cli#82, 2026-10-10).
 - **An upload is signed when `hotcodepush.json` lists a public key**, with the private key it is given:
   the file `--private-key-path` names, otherwise the key's text in `HOTCODEPUSH_SIGNING_KEY`, which a CI sets from a secret; an empty variable is unset.
   The CLI stores no private key and looks for none; `bundle upload` and `release create`, where it uploads, take both, and the key must belong to one of the listed public keys.
@@ -142,14 +135,7 @@ A project with an app config that is code, or with a JSON one that does not pars
   `signing-key add` reads the private key file `--private-key-path` names through the same import, derives the public key from it, refuses a key that is no RSA key of at least 2048 bits before any request, registers the public key and appends it to `publicKeys` unless listed; it writes, copies and moves no key file, and its `--json` is `create`'s without `privateKeyPath`.
   A private key never reaches a message, a progress line or an error.
   Signing is RSA alone, `rsa-v1_5-sha256`, the keys of 4096 bits and none under 2048 taken; `binary create` writes each listed public key into the resource file in the encoding the platform's own API imports — PKCS #1 DER on iOS, SPKI DER on Android — beside its key id, through Node's key export in `utils/resource-file.ts`, never by hand.
-- **A delta pack per base, a patch for the main bundle alone**: the bases are the three newest earlier complete uploaded bundles with the bundle's fingerprint that share a platform with it,
-  and the three newest binaries with that fingerprint on each platform the bundle names, by when they were created, the base being the binary's embedded bundle.
-  A delta pack carries the files its base lacks; none is made against a base that would get every file whole, nor against one that holds them all.
-  A framework names its main JavaScript bundle through the hook `resolveMainBundlePath(files, platform)`, asked for the base's files and for the new bundle's, so the two are paired by role, never by path, since a file name may carry its content hash.
-  Only the delta packs against the newest earlier bundle and against the binaries carry it as a patch entry in place of the file, and only when the patch is smaller than the stored object it replaces; the second and third earlier bundle get the file whole.
-  A patch that cannot be made — a base file the files host does not answer or answers with other bytes, a diff that fails — sends the file whole and says so in one line, never failing the upload.
-  A patch is made once per pair of contents, however many bases share it; the base files are fetched by hash from the files host three at a time, and the diffs run one after another.
-  bsdiff goes through `utils/bsdiff.ts` alone, over the module in `bsdiff-wasm/`: the BSDIFF40 format the SDKs apply, the algorithm `qbsdiff`'s and never written here.
+- **The platform makes the delta packs and the patches, never the CLI**: an upload is the files the app lacks, the signed manifest and the full pack, and the delta packs against the bases a channel's devices run, with the main bundle of a React Native or Expo build as a BSDIFF40 patch inside them, are built on the platform after the release.
 - **The build step is two commands over one module, `utils/build-step.ts`**: `resource-file write` resolves the channel and writes the resource file; `binary create` does the same and creates the binary first, so the file carries its embedded bundle's id. An id is taken as it is and never asks the API; a name is resolved through the API, which alone knows the id the resource file carries, and a name the app lacks fails everywhere with `E_INVALID_PARAMETER`. On Capacitor and Cordova the embedded manifest leaves out `NATIVE_GLUE_PATHS`, and `bundle upload`, `release create`'s upload and its dry run leave out the same glue, with one progress line.
   `resource-file write` never fails for want of a token or an API, in CI too: with `HOTCODEPUSH_OFFLINE=1`, read in `utils/environment.ts`, or without a token, the API is asked nothing, the file carries `channelId: null` or the id it was given, one warning is printed and the exit is 0; an API that cannot be reached or refuses while a name is resolved ends the same way.
   `binary create` is the same on a laptop, warning and creating nothing, and loud in CI: without a token the build fails with `E_NOT_LOGGED_IN`, exit 3, its fix naming `HOTCODEPUSH_TOKEN`, and a failed resolution or a failed creation fails the build there, `E_BINARY_CONFLICT` under an unbumped build number being a pipeline mistake. `isCi()` decides that alone; whether a binary is created is the hook script's choice, by the build's own variables, never the CLI's.

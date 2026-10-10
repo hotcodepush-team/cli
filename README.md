@@ -19,6 +19,19 @@ npx hotcodepush open
 npx hotcodepush --help
 npx hotcodepush login
 npx hotcodepush organization create --name Acme
+npx hotcodepush member list
+npx hotcodepush member update --member bob@example.com --role admin
+npx hotcodepush invitation create --email anna@example.com --role member
+npx hotcodepush invitation accept
+npx hotcodepush audit-log list --type "channel.*" --created-since 7d
+npx hotcodepush sso-provider set --domain example.com --oidc-issuer https://login.example.com --oidc-client-id <id> --oidc-client-secret "$OIDC_CLIENT_SECRET"
+npx hotcodepush sso-provider verify
+npx hotcodepush billing get
+npx hotcodepush billing update --spending-cap 100
+npx hotcodepush checkout create --spending-cap 50
+npx hotcodepush customer-portal-session create
+npx hotcodepush limit list
+npx hotcodepush usage get --month 2026-09
 npx hotcodepush app create --name "My App" --framework capacitor
 npx hotcodepush channel create --app "My App" --name staging
 npx hotcodepush channel pause --app "My App" --channel staging
@@ -32,8 +45,10 @@ npx hotcodepush signing-key add --private-key-path my-app-private-key.pem
 npx hotcodepush signing-key list
 npx hotcodepush release create --path dist
 npx hotcodepush release create --bundle 17 --channel staging --rollout-percentage 10
+npx hotcodepush release create --path dist --rollout-percentage 10 --progress
 npx hotcodepush release create --from-channel staging --channel production --binary ">=2.3.0" --dry-run
 npx hotcodepush release rollout --release 43 --rollout-percentage 100
+npx hotcodepush release rollout --release 43 --progress
 npx hotcodepush release rollback
 npx hotcodepush release revoke --release-from 40 --yes
 npx hotcodepush release list --json
@@ -51,11 +66,12 @@ On React Native `init` adds the Xcode phase "Create HotCodePush binary" after "B
 On Expo `init` installs the package and adds its config plugin to the app config, `app.config.json` where the project has one and `app.json` otherwise; the plugin wires the native projects at `npx expo prebuild` as `init` wires a React Native project, so `init` edits no native file and runs no prebuild.
 Beside an app config that is code, or with a JSON one the CLI cannot parse, `init` edits no app config and the entry to add is that step's manual step.
 Every command prints its options and two examples with `--help`, and `--json` turns its output into JSON for scripts and agents.
-An organization, app or channel is named by id or by name, `--app "My App"`; `--app` defaults to the app id in the project's `hotcodepush.json` and `--channel` to the channel it names, `production` unless the file or `HOTCODEPUSH_CHANNEL` says otherwise.
-A command that changes what devices receive or cannot be undone — a release, a rollout, a pause, a revoke, a rollback, a delete — asks once with the consequence, `--yes` confirming in scripts.
+An organization, app or channel is named by id or by name, `--app "My App"`, a member or an invitation by id or by email; `--app` defaults to the app id in the project's `hotcodepush.json` and `--channel` to the channel it names, `production` unless the file or `HOTCODEPUSH_CHANNEL` says otherwise.
+A command that changes what devices receive, sends a mail or cannot be undone — a release, a rollout, a pause, a revoke, a rollback, a delete, a spending-cap change, an invitation — asks once with the consequence, `--yes` confirming in scripts.
+`--progress` on `release create` and `release rollout` steps the rollout through 10, 50 and 100 percent, each step held at least an hour and fifty attempts before the next, the three `--progress-*` flags overriding the schedule; `release get` shows the step reached and what it waits on.
 On React Native and Expo `bundle upload` and `release create` package the bundles themselves: `react-native bundle` per platform, `expo export:embed` on Expo, compiled with Hermes where the app runs it, one bundle per platform and so one release per platform and channel; `--platform ios` limits both to one, and `--path` names a prepared bundle directory for the one platform `--platform` names.
 That directory holds the JavaScript under the name the platform's app loads, `main.jsbundle` on iOS or `index.android.bundle` on Android, and is refused without it, so an `expo export` directory is not one.
-`bundle upload` hashes every file of the build, Capacitor's `webDir` as `capacitor.config` sets it when the upload runs or Cordova's `www`, `--path` overriding, and on those two frameworks leaves out the native glue the binary carries, `cordova.js`, `cordova_plugins.js` and `plugins/`, saying so in one line; it signs the manifest when `hotcodepush.json` lists a public key, uploads only the files the app lacks, then the full pack and one delta pack per base, and records the commit it was built from.
+`bundle upload` hashes every file of the build, Capacitor's `webDir` as `capacitor.config` sets it when the upload runs or Cordova's `www`, `--path` overriding, and on those two frameworks leaves out the native glue the binary carries, `cordova.js`, `cordova_plugins.js` and `plugins/`, saying so in one line; it signs the manifest when `hotcodepush.json` lists a public key, uploads only the files the app lacks, then the full pack, and records the commit it was built from; the platform derives the delta packs and the patches devices download.
 It signs with the private key file `--private-key-path` names, otherwise with the key in `HOTCODEPUSH_SIGNING_KEY`, which CI sets from a secret holding the file's content; `release create` takes both where it uploads.
 The bases are the bundles a device may run before it asks for the new one: the three newest earlier bundles with the same fingerprint and a platform in common, and the bundles the three newest binaries with that fingerprint ship on each of its platforms.
 On React Native and Expo the delta packs against the newest earlier bundle and the binaries carry the main JavaScript bundle as a patch in place of the whole file, where the patch is smaller.
@@ -91,8 +107,7 @@ npm run build
 ```
 
 `npm run fmt` formats the code with Prettier.
-`bsdiff-wasm/build.sh` rebuilds `bsdiff-wasm/bsdiff.wasm`, the module that writes the patches, in a Docker image pinned by digest; run it after a change in `bsdiff-wasm/` and commit the module, which CI rebuilds and compares byte for byte.
 
 ## License
 
-See [LICENSE](./LICENSE), and [THIRD-PARTY-NOTICES](./THIRD-PARTY-NOTICES) for the code compiled into `bsdiff-wasm/bsdiff.wasm`.
+See [LICENSE](./LICENSE).
