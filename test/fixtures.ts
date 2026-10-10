@@ -9,6 +9,7 @@ import type {
   ChannelWithDeviceCounts,
   Device,
   Limits,
+  Member,
   Organization,
   Release,
   SigningKey,
@@ -342,4 +343,38 @@ export const VERIFIED_SAML_SSO_PROVIDER: SsoProvider = {
     spMetadataUrl: `https://api.example.com/v1/auth/sso/saml2/sp/metadata?providerId=${ACME_ORGANIZATION.id}`,
   },
   verification: null,
+};
+
+export const OWNER_MEMBER: Member = {
+  createdAt: '2026-09-01T08:00:00.000Z',
+  id: '2a7d4e91-6c3b-4f58-8e0a-9b1c5d3f7e62',
+  lastSeenAt: '2026-09-08T08:00:00.000Z',
+  organizationId: ACME_ORGANIZATION.id,
+  role: 'owner',
+  updatedAt: '2026-09-01T08:00:00.000Z',
+  user: {
+    email: 'anna@example.com',
+    hasPassword: true,
+    id: '9c4e1b7a-3f2d-4a65-b8e0-7d1a5c3e9f04',
+    isTwoFactorEnabled: true,
+    name: 'Anna Example',
+  },
+  userId: '9c4e1b7a-3f2d-4a65-b8e0-7d1a5c3e9f04',
+};
+
+export const ADMIN_MEMBER: Member = {
+  createdAt: '2026-09-03T08:00:00.000Z',
+  id: '5e8a2c71-0b4d-4f39-9a6e-3c1d7b2f8e40',
+  lastSeenAt: null,
+  organizationId: ACME_ORGANIZATION.id,
+  role: 'admin',
+  updatedAt: '2026-09-03T08:00:00.000Z',
+  user: {
+    email: 'bob@example.com',
+    hasPassword: false,
+    id: '7f3c9a1e-2d5b-4e80-b6a4-0c9e1d3f5a27',
+    isTwoFactorEnabled: false,
+    name: 'Bob Example',
+  },
+  userId: '7f3c9a1e-2d5b-4e80-b6a4-0c9e1d3f5a27',
 };
