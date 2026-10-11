@@ -46,7 +46,7 @@ export const GLOBEX_ORGANIZATION: Organization = {
 };
 
 /**
- * Globex's billing this month: a $50 cap, under its ceiling, no lower cap waiting, its subscription active.
+ * Globex's billing this month: a $50 cap, under its ceiling, its subscription active.
  */
 export const GLOBEX_BILLING: Billing = {
   cancelAtPeriodEnd: false,
@@ -54,8 +54,6 @@ export const GLOBEX_BILLING: Billing = {
   countedMau: 1234,
   currentPeriodEndsAt: '2026-10-02T08:00:00.000Z',
   mauCap: 5000,
-  nextSpendingCapCents: null,
-  nextSpendingCapStartsAt: null,
   plan: 'pay_as_you_go',
   spendingCapCents: 5000,
   subscriptionProvider: 'polar',

@@ -13,8 +13,7 @@ import {
 } from '../../utils/spending-cap.js';
 
 export default defineCommand({
-  description:
-    "Set an organization's spending cap: a raise applies now, a lower cap from the next billing month.",
+  description: "Set an organization's spending cap; the change applies now.",
   examples: [
     'hotcodepush billing update --spending-cap 100',
     'hotcodepush billing update --organization Acme --spending-cap 50 --yes --json',
@@ -30,14 +29,16 @@ export default defineCommand({
       hotCodePush.organizations.get({ organizationId }),
       hotCodePush.organizations.billing.get({ organizationId }),
     ]);
-    const isConfirmed = await confirmConsequence(
-      resolveSpendingCapConsequence(
-        fetchedOrganization.name,
-        fetchedBilling,
-        spendingCapCents,
-      ),
-      options,
-    );
+    const isConfirmed =
+      spendingCapCents === fetchedBilling.spendingCapCents ||
+      (await confirmConsequence(
+        resolveSpendingCapConsequence(
+          fetchedOrganization.name,
+          fetchedBilling.spendingCapCents,
+          spendingCapCents,
+        ),
+        options,
+      ));
     if (!isConfirmed) {
       return;
     }
@@ -51,8 +52,8 @@ export default defineCommand({
       console.log(
         resolveUpdatedLine(
           fetchedOrganization.name,
+          fetchedBilling.spendingCapCents,
           updatedBilling,
-          spendingCapCents,
         ),
       );
     }
@@ -60,40 +61,35 @@ export default defineCommand({
 });
 
 /**
- * What the new cap does against the one the month bills: a raise applies now, a lower cap waits for the next billing month,
- * and the same cap withdraws a lower one waiting.
+ * What a changed cap does against the one in force; either applies now, and a lower one keeps the devices this month counted.
  */
 function resolveSpendingCapConsequence(
   organizationName: string,
-  { nextSpendingCapCents, spendingCapCents }: Billing,
+  previousSpendingCapCents: number,
   newSpendingCapCents: number,
 ): string {
   const capText = `the spending cap of ${organizationName}`;
-  const currentText = resolveDollarText(spendingCapCents);
+  const previousText = resolveDollarText(previousSpendingCapCents);
   const newText = resolveDollarText(newSpendingCapCents);
-  if (newSpendingCapCents < spendingCapCents) {
-    return `lowers ${capText} from ${currentText} to ${newText} a month from the next billing month; this month keeps ${currentText}`;
-  }
-  if (newSpendingCapCents > spendingCapCents) {
-    return `raises ${capText} from ${currentText} to ${newText} a month, applying now`;
-  }
-  const withdrawalText =
-    nextSpendingCapCents === null
-      ? ''
-      : `, withdrawing the lower cap of ${resolveDollarText(nextSpendingCapCents)} waiting for the next billing month`;
-  return `keeps ${capText} at ${currentText} a month${withdrawalText}`;
+  return newSpendingCapCents > previousSpendingCapCents
+    ? `raises ${capText} from ${previousText} to ${newText} a month, applying now`
+    : `lowers ${capText} from ${previousText} to ${newText} a month and applies now; devices counted this month stay counted, and if they already exceed the new cap, no further device is counted until the cap is raised or the month turns`;
 }
 
 /**
- * The line the update ends on, from what the API answered: the cap in force now, or the lower one waiting with its month.
+ * The line the update ends on, from the cap the API answered against the one in force before.
  */
 function resolveUpdatedLine(
   organizationName: string,
-  { nextSpendingCapStartsAt, spendingCapCents }: Billing,
-  newSpendingCapCents: number,
+  previousSpendingCapCents: number,
+  { spendingCapCents }: Billing,
 ): string {
   const capText = `the spending cap of ${organizationName}`;
-  return newSpendingCapCents === spendingCapCents
-    ? `Set ${capText} to ${resolveDollarText(spendingCapCents)} a month.`
-    : `Lowered ${capText} to ${resolveDollarText(newSpendingCapCents)} a month from ${nextSpendingCapStartsAt ?? 'the next billing month'}; this month keeps ${resolveDollarText(spendingCapCents)}.`;
+  const capDollarText = resolveDollarText(spendingCapCents);
+  if (spendingCapCents === previousSpendingCapCents) {
+    return `The spending cap of ${organizationName} is already ${capDollarText} a month; nothing changes.`;
+  }
+  return spendingCapCents > previousSpendingCapCents
+    ? `Set ${capText} to ${capDollarText} a month.`
+    : `Lowered ${capText} to ${capDollarText} a month; it applies now.`;
 }

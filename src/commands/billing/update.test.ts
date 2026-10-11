@@ -12,11 +12,7 @@ vi.mock('@clack/prompts');
 
 const BILLING_PATH = `/v1/organizations/${GLOBEX_ORGANIZATION.id}/billing`;
 
-const LOWERED_BILLING = {
-  ...GLOBEX_BILLING,
-  nextSpendingCapCents: 2000,
-  nextSpendingCapStartsAt: '2026-11-01T00:00:00.000Z',
-};
+const LOWERED_BILLING = { ...GLOBEX_BILLING, spendingCapCents: 2000 };
 
 describe('billing update', () => {
   const harness = useCommandHarness();
@@ -61,7 +57,7 @@ describe('billing update', () => {
     ]);
   });
 
-  it('should lower the cap without asking when --yes is passed and say the month it applies from', async () => {
+  it('should lower the cap without asking when --yes is passed and say it applies now', async () => {
     respondWithBilling(GLOBEX_BILLING, LOWERED_BILLING);
 
     await billingUpdateCommand.action(
@@ -73,11 +69,11 @@ describe('billing update', () => {
     const [updateRequest] = readUpdateRequests();
     expect(await updateRequest?.json()).toEqual({ spendingCapCents: 2000 });
     expect(harness.readLines()).toEqual([
-      'Lowered the spending cap of Globex to $20 a month from 2026-11-01T00:00:00.000Z; this month keeps $50.',
+      'Lowered the spending cap of Globex to $20 a month; it applies now.',
     ]);
   });
 
-  it('should throw E_CONFIRMATION_REQUIRED stating that a lower cap waits for the next month and change nothing when nobody can be asked', async () => {
+  it('should throw E_CONFIRMATION_REQUIRED stating that a lower cap applies now and keeps the counted devices and change nothing when nobody can be asked', async () => {
     respondWithBilling(GLOBEX_BILLING);
 
     await expect(
@@ -87,25 +83,24 @@ describe('billing update', () => {
       ),
     ).rejects.toThrow(
       new ConfirmationRequiredError(
-        'lowers the spending cap of Globex from $50 to $20 a month from the next billing month; this month keeps $50',
+        'lowers the spending cap of Globex from $50 to $20 a month and applies now; devices counted this month stay counted, and if they already exceed the new cap, no further device is counted until the cap is raised or the month turns',
       ),
     );
     expect(readUpdateRequests()).toEqual([]);
   });
 
-  it('should state that the cap in force withdraws the lower one waiting', async () => {
-    respondWithBilling(LOWERED_BILLING);
+  it('should say nothing changes without asking when the cap is the one in force', async () => {
+    respondWithBilling(GLOBEX_BILLING);
 
-    await expect(
-      billingUpdateCommand.action(
-        { organization: GLOBEX_ORGANIZATION.id, spendingCap: 50 },
-        undefined,
-      ),
-    ).rejects.toThrow(
-      new ConfirmationRequiredError(
-        'keeps the spending cap of Globex at $50 a month, withdrawing the lower cap of $20 waiting for the next billing month',
-      ),
+    await billingUpdateCommand.action(
+      { organization: GLOBEX_ORGANIZATION.id, spendingCap: 50 },
+      undefined,
     );
+
+    expect(confirm).not.toHaveBeenCalled();
+    expect(harness.readLines()).toEqual([
+      'The spending cap of Globex is already $50 a month; nothing changes.',
+    ]);
   });
 
   it('should change nothing when the confirmation is declined', async () => {

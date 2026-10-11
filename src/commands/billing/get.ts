@@ -8,7 +8,7 @@ import { resolveDollarText } from '../../utils/spending-cap.js';
 
 export default defineCommand({
   description:
-    "Print an organization's billing this month: the plan, the spending cap and a lower one waiting, and the MAU counted against the ceiling.",
+    "Print an organization's billing this month: the plan, the spending cap and the MAU counted against the ceiling.",
   examples: [
     'hotcodepush billing get',
     'hotcodepush billing get --organization Acme --json',
@@ -29,7 +29,6 @@ export default defineCommand({
         'Spending cap',
         `${resolveDollarText(fetchedBilling.spendingCapCents)} a month`,
       ],
-      ...resolveNextSpendingCapDetails(fetchedBilling),
       ['MAU', resolveMauText(fetchedBilling)],
       [
         'Capped',
@@ -49,21 +48,4 @@ function resolveMauText({ countedMau, mauCap }: Billing): string {
   return mauCap === null
     ? `${countedText}, no ceiling`
     : `${countedText} of ${mauCap.toLocaleString('en-US')}`;
-}
-
-/**
- * A lowered cap waiting for the month it applies from, when one waits.
- */
-function resolveNextSpendingCapDetails({
-  nextSpendingCapCents,
-  nextSpendingCapStartsAt,
-}: Billing): [label: string, value: string][] {
-  return nextSpendingCapCents === null
-    ? []
-    : [
-        [
-          'Next spending cap',
-          `${resolveDollarText(nextSpendingCapCents)} a month from ${nextSpendingCapStartsAt ?? 'the next billing month'}`,
-        ],
-      ];
 }

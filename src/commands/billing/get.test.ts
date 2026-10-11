@@ -27,23 +27,20 @@ describe('billing get', () => {
     ]);
   });
 
-  it('should print the lower cap waiting with its month and when the cap was reached', async () => {
+  it('should print when the month reached the cap', async () => {
     respondWithBilling({
       ...GLOBEX_BILLING,
       cappedAt: '2026-10-08T12:00:00.000Z',
       countedMau: 5000,
-      nextSpendingCapCents: 2000,
-      nextSpendingCapStartsAt: '2026-11-01T00:00:00.000Z',
     });
 
     await billingGetCommand.action({}, undefined);
 
     expect(harness.readLines()).toEqual([
-      'Plan               pay_as_you_go',
-      'Spending cap       $50 a month',
-      'Next spending cap  $20 a month from 2026-11-01T00:00:00.000Z',
-      'MAU                5,000 of 5,000',
-      'Capped             since 2026-10-08T12:00:00.000Z',
+      'Plan          pay_as_you_go',
+      'Spending cap  $50 a month',
+      'MAU           5,000 of 5,000',
+      'Capped        since 2026-10-08T12:00:00.000Z',
     ]);
   });
 
