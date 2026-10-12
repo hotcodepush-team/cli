@@ -41,7 +41,7 @@
   },
   "dependencies": {
     "@clack/prompts": "1.8.1",
-    "@hotcodepush/node": "https://pkg.pr.new/hotcodepush-team/hotcodepush-node/@hotcodepush/node@c052871",
+    "@hotcodepush/node": "https://pkg.pr.new/hotcodepush-team/hotcodepush-node/@hotcodepush/node@7021160",
     "@hotcodepush/protocol": "https://pkg.pr.new/hotcodepush-team/protocol/@hotcodepush/protocol@0922d83207aa585aab1879f5ab45aa4f60c021e2",
     "@napi-rs/keyring": "2.1.0",
     "better-auth": "1.7.6",
