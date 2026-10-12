@@ -93,8 +93,8 @@ A project with an app config that is code, or with a JSON one that does not pars
 - **A command throws, the entry point exits.**
   A command never calls `process.exit`: it throws an error from `utils/errors.ts`, and `runCli` maps it to the message and the exit code once.
   A new code joins that catalog as a class with its code, exit code, message and fix, and gets its section at `hotcodepush.com/docs/cli/errors#<CODE>`.
-- **An error is one line**: the code, what happened, what to do, the docs URL.
-  The message is lowercase without a closing period; the fix is one lowercase sentence carrying its own punctuation; a stack trace only with `--verbose`.
+- **An error is two lines**: what happened and what to do as sentences, then the docs URL, the one place the code appears; `--json` carries the code.
+  The message and the fix each start with a capital letter and end with a full stop, in plain English; a stack trace only with `--verbose`.
 - **API errors pass through verbatim**, their code, message and fix as received and never re-mapped; the CLI's catalog covers only what happens before or without the API.
 - **Exit codes**: `0` done, `1` an error, `2` a missing or invalid parameter, `3` not logged in, `4` a confirmation required without `--yes`.
 - **Parameters are the API's field names**, `--rollout-percentage`, `--channel`: nothing is renamed between the console, the API and the terminal.
