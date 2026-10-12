@@ -29,6 +29,7 @@ export const ACME_ORGANIZATION: Organization = {
   plan: 'free',
   region: 'eu',
   role: 'owner',
+  storageBytes: 0,
   updatedAt: '2026-09-01T08:00:00.000Z',
 };
 
@@ -42,6 +43,7 @@ export const GLOBEX_ORGANIZATION: Organization = {
   plan: 'pay_as_you_go',
   region: 'eu',
   role: 'admin',
+  storageBytes: 0,
   updatedAt: '2026-09-02T08:00:00.000Z',
 };
 
@@ -353,7 +355,7 @@ export const SSO_PROVIDER: SsoProvider = {
   createdAt: '2026-09-11T08:00:00.000Z',
   domain: 'example.com',
   id: '5d9e2c7a-4b1f-4e8d-9a3c-6f0b2e8d4a71',
-  isVerified: false,
+  isDomainVerified: false,
   oidc: {
     clientId: 'hotcodepush',
     discoveryEndpoint:
@@ -363,7 +365,6 @@ export const SSO_PROVIDER: SsoProvider = {
     scopes: null,
   },
   organizationId: ACME_ORGANIZATION.id,
-  provider: 'oidc',
   saml: null,
   signInUrl: `https://console.example.com/login?sso=${ACME_ORGANIZATION.id}`,
   updatedAt: '2026-09-11T08:00:00.000Z',
@@ -378,9 +379,8 @@ export const SSO_PROVIDER: SsoProvider = {
  */
 export const VERIFIED_SAML_SSO_PROVIDER: SsoProvider = {
   ...SSO_PROVIDER,
-  isVerified: true,
+  isDomainVerified: true,
   oidc: null,
-  provider: 'saml',
   saml: {
     acsUrl: `https://api.example.com/v1/auth/sso/saml2/sp/acs/${ACME_ORGANIZATION.id}`,
     entityId: null,

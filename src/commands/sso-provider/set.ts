@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import type { PutSsoProviderOptions, SsoProvider } from '@hotcodepush/node';
+import type { PutSsoProviderOptions } from '@hotcodepush/node';
 import { z } from 'zod';
 import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
@@ -10,6 +10,7 @@ import { printJson } from '../../utils/output.js';
 import { promptSecret, promptSelect, promptText } from '../../utils/prompts.js';
 import { fetchOrganizationId } from '../../utils/resource-resolution.js';
 import { printProviderDetails } from './get.js';
+import type { SsoProviderKind } from './get.js';
 
 interface OidcOptions extends InteractivityOptions {
   oidcClientId?: string;
@@ -18,8 +19,6 @@ interface OidcOptions extends InteractivityOptions {
   oidcIssuer?: string;
   oidcScopes?: string[];
 }
-
-type ProviderKind = SsoProvider['provider'];
 
 interface SamlOptions extends InteractivityOptions {
   samlCertPath?: string;
@@ -105,7 +104,7 @@ export default defineCommand({
       ));
     const providerKind =
       flaggedProviderKind ??
-      (await promptSelect<ProviderKind>(
+      (await promptSelect<SsoProviderKind>(
         PROVIDER_KIND_FLAG,
         'Which protocol does the identity provider speak?',
         [
@@ -126,7 +125,7 @@ export default defineCommand({
       return;
     }
     console.log(
-      `Set the ${updatedProvider.provider} provider for ${updatedProvider.domain}.`,
+      `Set the ${providerKind} provider for ${updatedProvider.domain}.`,
     );
     printProviderDetails(updatedProvider);
   },
@@ -229,7 +228,7 @@ function readDocumentFile(flag: string, filePath: string): string {
  */
 function resolveFlaggedProviderKind(
   options: OidcOptions & SamlOptions,
-): ProviderKind | undefined {
+): SsoProviderKind | undefined {
   const hasOidcFlag = [
     options.oidcClientId,
     options.oidcClientSecret,

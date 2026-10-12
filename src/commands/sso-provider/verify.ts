@@ -32,9 +32,9 @@ export default defineCommand({
 function resolveVerificationText({
   details,
   domain,
-  isVerified,
+  isDomainVerified,
 }: SsoProviderVerification): string {
-  if (isVerified) {
+  if (isDomainVerified) {
     return `Verified ${domain}.`;
   }
   if (details?.reason === 'lookup_failed') {
