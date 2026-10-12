@@ -1,4 +1,5 @@
 import { defineCommand } from 'zodline';
+import { DEFAULT_API_URL } from '../config/consts.js';
 import { createApiClient } from '../utils/api-client.js';
 import {
   fetchCurrentUser,
@@ -7,6 +8,7 @@ import {
 import { defineCommandOptions } from '../utils/global-options.js';
 import { printJson } from '../utils/output.js';
 import { fetchOrganizations } from '../utils/resource-resolution.js';
+import { readApiUrl } from '../utils/user-config.js';
 
 export default defineCommand({
   description:
@@ -18,14 +20,18 @@ export default defineCommand({
     const organizations = (await fetchOrganizations(createApiClient())).map(
       ({ id, name, role }) => ({ id, name, role }),
     );
+    const apiUrl = readApiUrl();
     if (options.json) {
-      printJson({ organizations, user });
+      printJson({ apiUrl, organizations, user });
       return;
     }
     const credentialText = resolveCredentialText(user);
     console.log(
       `${credentialText.charAt(0).toUpperCase()}${credentialText.slice(1)}.`,
     );
+    if (apiUrl !== DEFAULT_API_URL) {
+      console.log(`API: ${apiUrl}`);
+    }
     console.log(
       organizations.length === 0
         ? 'Organizations: none yet.'

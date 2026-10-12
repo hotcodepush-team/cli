@@ -295,6 +295,72 @@ describe('login', () => {
     });
   });
 
+  it('should keep the stored API URL and log in against it when --api-url is not passed', async () => {
+    fetchMock
+      .mockResolvedValueOnce(Response.json(DEVICE_AUTHORIZATION))
+      .mockResolvedValueOnce(Response.json(TOKEN))
+      .mockResolvedValueOnce(Response.json(SESSION));
+
+    const exitCode = await runLogin([]);
+
+    expect(exitCode).toBe(0);
+    expect(readUserConfig()).toEqual({
+      apiUrl: API_URL,
+      sessionId: 'session-1',
+    });
+    expect(readRequests()[0]?.url).toBe(`${API_URL}/v1/auth/device/code`);
+  });
+
+  describe('when --api-url is passed', () => {
+    const OTHER_API_URL = 'https://api.other.example.com';
+
+    it('should store the URL without its trailing slash before the device authorization and log in against it', async () => {
+      let storedUserConfig: unknown;
+      fetchMock
+        .mockImplementationOnce(async () => {
+          storedUserConfig = readUserConfig();
+          return Response.json(DEVICE_AUTHORIZATION);
+        })
+        .mockResolvedValueOnce(Response.json(TOKEN))
+        .mockResolvedValueOnce(Response.json(SESSION));
+
+      const exitCode = await runLogin(['--api-url', `${OTHER_API_URL}/`]);
+
+      expect(exitCode).toBe(0);
+      expect(storedUserConfig).toEqual({ apiUrl: OTHER_API_URL });
+      expect(readUserConfig()).toEqual({
+        apiUrl: OTHER_API_URL,
+        sessionId: 'session-1',
+      });
+      expect(readRequests().map(request => request.url)).toEqual([
+        `${OTHER_API_URL}/v1/auth/device/code`,
+        `${OTHER_API_URL}/v1/auth/device/token`,
+        `${OTHER_API_URL}/v1/auth/get-session`,
+      ]);
+    });
+
+    it.each(['api.example.com', 'ftp://api.example.com', '/v1'])(
+      'should exit 2 with E_INVALID_PARAMETER and keep the stored URL when it is %s',
+      async apiUrl => {
+        const stdout = captureStdout();
+
+        const exitCode = await runLogin(['--api-url', apiUrl, '--json']);
+
+        expect(exitCode).toBe(2);
+        expect(JSON.parse(stdout.read())).toEqual({
+          error: {
+            code: 'E_INVALID_PARAMETER',
+            fix: 'run the command with --help to see its options.',
+            message:
+              '--api-url: an absolute http or https URL such as https://api.example.com',
+          },
+        });
+        expect(readUserConfig()).toEqual({ apiUrl: API_URL });
+        expect(fetchMock).not.toHaveBeenCalled();
+      },
+    );
+  });
+
   describe('when it cannot wait for the approval', () => {
     it('should keep the code and print the URL and the code as JSON, exiting 3 without polling', async () => {
       vi.setSystemTime(new Date('2026-09-29T10:00:00.000Z'));

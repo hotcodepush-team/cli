@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  API_URL,
   respondWithApiError,
   useCommandHarness,
 } from '../../test/command-harness.js';
@@ -11,6 +12,7 @@ import {
 import { PACKAGE_JSON } from '../config/consts.js';
 import { runCli } from '../utils/cli.js';
 import { NotLoggedInError } from '../utils/errors.js';
+import { writeUserConfig } from '../utils/user-config.js';
 import whoamiCommand from './whoami.js';
 
 vi.mock('@napi-rs/keyring', () => ({
@@ -28,7 +30,7 @@ describe('whoami', () => {
       Response.json(organizations);
   }
 
-  it('should print the user and their organizations with their roles', async () => {
+  it('should print the user, the API and their organizations with their roles', async () => {
     respondWithSessionAndOrganizations([
       ACME_ORGANIZATION,
       GLOBEX_ORGANIZATION,
@@ -38,6 +40,7 @@ describe('whoami', () => {
 
     expect(harness.readLines()).toEqual([
       'Logged in as Anna Example (anna@example.com).',
+      `API: ${API_URL}`,
       'Organizations:',
       '  Acme (owner)',
       '  Globex (admin)',
@@ -56,6 +59,7 @@ describe('whoami', () => {
     await whoamiCommand.action({ json: true }, undefined);
 
     expect(harness.readJson()).toEqual({
+      apiUrl: API_URL,
       organizations: [
         { id: ACME_ORGANIZATION.id, name: 'Acme', role: 'owner' },
         { id: GLOBEX_ORGANIZATION.id, name: 'Globex', role: 'admin' },
@@ -63,6 +67,19 @@ describe('whoami', () => {
       user: RUNNER_USER,
     });
     expect(harness.readLines()).toEqual([]);
+  });
+
+  it('should leave the API out when it is the default one', async () => {
+    writeUserConfig({});
+    respondWithSessionAndOrganizations([ACME_ORGANIZATION]);
+
+    await whoamiCommand.action({}, undefined);
+
+    expect(harness.readLines()).toEqual([
+      'Logged in as Anna Example (anna@example.com).',
+      'Organizations:',
+      '  Acme (owner)',
+    ]);
   });
 
   it('should print the user HOTCODEPUSH_TOKEN stands for, as the API names the credential', async () => {

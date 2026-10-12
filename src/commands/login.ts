@@ -1,4 +1,5 @@
 import { setTimeout } from 'node:timers/promises';
+import { z } from 'zod';
 import { defineCommand } from 'zodline';
 import { CLI_CLIENT_ID } from '../config/consts.js';
 import type { AuthClient } from '../utils/auth-client.js';
@@ -45,9 +46,26 @@ export interface LoggedInUser {
 
 export default defineCommand({
   description: 'Log in by approving a one-time code in the browser.',
-  examples: ['hotcodepush login', 'hotcodepush login --json'],
-  options: defineCommandOptions({}),
+  examples: [
+    'hotcodepush login',
+    'hotcodepush login --api-url https://api.example.com --json',
+  ],
+  options: defineCommandOptions({
+    apiUrl: z
+      .url({
+        error: 'an absolute http or https URL such as https://api.example.com',
+        protocol: z.regexes.httpProtocol,
+      })
+      .transform(apiUrl => apiUrl.replace(/\/+$/, ''))
+      .optional()
+      .describe(
+        'The API to log in to, kept in config.json for every later command; the one kept there otherwise.',
+      ),
+  }),
   action: async options => {
+    if (options.apiUrl !== undefined) {
+      writeUserConfig({ ...readUserConfig(), apiUrl: options.apiUrl });
+    }
     const user = await logIn(options);
     if (options.json) {
       printJson({ user });
