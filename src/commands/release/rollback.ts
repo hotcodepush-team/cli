@@ -63,7 +63,11 @@ export default defineCommand({
       isMandatory,
       toReleaseId: targetRelease.id,
     });
-    const liveRelease = await waitUntilLive(hotCodePush, createdRelease);
+    const liveRelease = await waitUntilLive(
+      hotCodePush,
+      fetchedChannel.appId,
+      createdRelease,
+    );
     if (options.json) {
       printJson(liveRelease);
     } else {

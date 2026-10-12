@@ -32,7 +32,7 @@ export default defineCommand({
       return;
     }
     printDetails([
-      ['ID', fetchedDevice.id],
+      ['ID', fetchedDevice.deviceId],
       ['Platform', `${fetchedDevice.platform} ${fetchedDevice.osVersion}`],
       ['Binary', resolveBinaryText(fetchedDevice)],
       ['Fingerprint', fetchedDevice.fingerprint ?? 'none'],

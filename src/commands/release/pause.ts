@@ -34,7 +34,7 @@ export default defineCommand({
       return;
     }
     const pausedRelease = await hotCodePush.apps.releases.pause({
-      appId: release.appId,
+      appId: channel.appId,
       releaseId: release.id,
     });
     if (options.json) {

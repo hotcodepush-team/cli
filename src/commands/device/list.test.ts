@@ -27,7 +27,7 @@ describe('device list', () => {
     expect(readListUrl()?.searchParams.get('attribute')).toBe('userId=42');
     expect(harness.readLines()).toEqual([
       'ID                                    PLATFORM  BINARY      CHANNEL  SDK    LAST SEEN',
-      `${DEVICE.id}  ios       2.4.1 (57)  staging  0.1.0  2026-09-08`,
+      `${DEVICE.deviceId}  ios       2.4.1 (57)  staging  0.1.0  2026-09-08`,
     ]);
   });
 

@@ -52,7 +52,7 @@ export default defineCommand({
       return;
     }
     const updatedRelease = await hotCodePush.apps.releases.update({
-      appId: release.appId,
+      appId: channel.appId,
       isMandatory: options.mandatory,
       notes: options.notes,
       releaseId: release.id,

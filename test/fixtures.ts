@@ -82,6 +82,8 @@ export const PRODUCTION_CHANNEL: Channel = {
   name: 'production',
   pausedAt: null,
   updatedAt: '2026-09-03T08:00:00.000Z',
+  verificationResult: null,
+  verifiedAt: null,
 };
 
 export const DEMO_APP: App = {
@@ -170,22 +172,27 @@ export const READY_BUNDLE_WITH_DELTA_PACKS: BundleWithDeltaPacks = {
     {
       baseBundleId: PREVIOUS_BUNDLE.id,
       baseBundleNumber: PREVIOUS_BUNDLE.number,
+      createdAt: '2026-09-07T08:00:01.000Z',
       patchCount: 2,
+      requestedAt: '2026-09-07T08:00:01.000Z',
       sizeBytes: 48213,
       state: 'built',
+      updatedAt: '2026-09-07T08:00:04.000Z',
     },
     {
       baseBundleId: BINARY.bundleId,
       baseBundleNumber: null,
+      createdAt: '2026-09-07T08:00:01.000Z',
       patchCount: null,
+      requestedAt: '2026-09-07T08:00:01.000Z',
       sizeBytes: null,
       state: 'requested',
+      updatedAt: '2026-09-07T08:00:01.000Z',
     },
   ],
 };
 
 export const LIVE_RELEASE: Release = {
-  appId: DEMO_APP.id,
   bundleId: READY_BUNDLE.id,
   channelId: STAGING_CHANNEL.id,
   conditions: [],
@@ -286,6 +293,7 @@ export const SIGNING_KEY: SigningKey = {
   fingerprint: SIGNING_KEY_PAIR.fingerprint,
   id: '3b1f8e7a-5c2d-4f6b-9a0e-7d4c1b2a3f5e',
   publicKey: SIGNING_KEY_PAIR.publicKey,
+  updatedAt: '2026-09-09T08:00:00.000Z',
 };
 
 export const SIGNING_PRIVATE_KEY = SIGNING_KEY_PAIR.privateKey;
@@ -300,9 +308,9 @@ export const DEVICE: Device = {
   country: 'DE',
   createdAt: '2026-09-02T08:00:00.000Z',
   currentReleaseId: null,
+  deviceId: '6b1e9d37-2f5c-4a80-9c46-d8e3a1f7b259',
   embeddedBundleId: null,
   fingerprint: null,
-  id: '6b1e9d37-2f5c-4a80-9c46-d8e3a1f7b259',
   lastSeenAt: '2026-09-08T08:00:00.000Z',
   osVersion: '17.4',
   platform: 'ios',
@@ -318,6 +326,7 @@ export const AUDIT_LOG: AuditLog = {
   createdAt: '2026-09-10T08:00:00.000Z',
   id: '1e4d7a2b-9c3f-4b8e-a6d5-0f2c7b9e4a13',
   objectId: STAGING_CHANNEL.id,
+  organizationId: ACME_ORGANIZATION.id,
   sessionId: 'a8c3e5f1-2b7d-4e9a-8c6f-3d1b5e7a9c24',
   snapshot: { name: STAGING_CHANNEL.name },
   type: 'channel.created',

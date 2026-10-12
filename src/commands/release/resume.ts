@@ -34,7 +34,7 @@ export default defineCommand({
       return;
     }
     const resumedRelease = await hotCodePush.apps.releases.resume({
-      appId: release.appId,
+      appId: channel.appId,
       releaseId: release.id,
     });
     if (options.json) {

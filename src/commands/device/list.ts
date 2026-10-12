@@ -100,7 +100,7 @@ export default defineCommand({
       headers: ['ID', 'PLATFORM', 'BINARY', 'CHANNEL', 'SDK', 'LAST SEEN'],
       nextOffset,
       rows: listedDevices.map(device => [
-        device.id,
+        device.deviceId,
         device.platform,
         resolveBinaryText(device),
         device.channel?.name ?? device.channelId ?? 'none',

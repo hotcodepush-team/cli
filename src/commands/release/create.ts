@@ -231,7 +231,11 @@ async function createReleases(
         channelId: channel.id,
       });
       printWarnings(createdRelease.warnings);
-      const liveRelease = await waitUntilLive(hotCodePush, createdRelease);
+      const liveRelease = await waitUntilLive(
+        hotCodePush,
+        bundle.appId,
+        createdRelease,
+      );
       releases.push({ ...liveRelease, warnings: createdRelease.warnings });
       if (!options.json) {
         printReleasedLine(

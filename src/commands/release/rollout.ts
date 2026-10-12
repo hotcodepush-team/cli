@@ -63,7 +63,7 @@ export default defineCommand({
       return;
     }
     const updatedRelease = await hotCodePush.apps.releases.update({
-      appId: release.appId,
+      appId: channel.appId,
       progression: progression ?? undefined,
       releaseId: release.id,
       rolloutPercentage,

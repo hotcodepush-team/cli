@@ -8,7 +8,7 @@ import {
 } from '../../../test/fixtures.js';
 import deviceGetCommand from './get.js';
 
-const DEVICE_PATH = `/v1/apps/${DEMO_APP.id}/devices/${DEVICE.id}`;
+const DEVICE_PATH = `/v1/apps/${DEMO_APP.id}/devices/${DEVICE.deviceId}`;
 
 const DEVICE_WITH_OUTCOMES = {
   ...DEVICE,
@@ -33,12 +33,12 @@ describe('device get', () => {
       Response.json(DEVICE_WITH_OUTCOMES);
 
     await deviceGetCommand.action(
-      { app: DEMO_APP.id, device: DEVICE.id },
+      { app: DEMO_APP.id, device: DEVICE.deviceId },
       undefined,
     );
 
     expect(harness.readLines()).toEqual([
-      `ID           ${DEVICE.id}`,
+      `ID           ${DEVICE.deviceId}`,
       'Platform     ios 17.4',
       'Binary       2.4.1 (57)',
       'Fingerprint  none',
@@ -59,7 +59,7 @@ describe('device get', () => {
       Response.json(DEVICE_WITH_OUTCOMES);
 
     await deviceGetCommand.action(
-      { app: DEMO_APP.id, device: DEVICE.id, json: true },
+      { app: DEMO_APP.id, device: DEVICE.deviceId, json: true },
       undefined,
     );
 

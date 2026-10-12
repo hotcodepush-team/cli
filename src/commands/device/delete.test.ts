@@ -10,7 +10,7 @@ import deviceDeleteCommand from './delete.js';
 
 vi.mock('@clack/prompts');
 
-const DEVICE_PATH = `/v1/apps/${DEMO_APP.id}/devices/${DEVICE.id}`;
+const DEVICE_PATH = `/v1/apps/${DEMO_APP.id}/devices/${DEVICE.deviceId}`;
 
 describe('device delete', () => {
   const harness = useCommandHarness();
@@ -26,16 +26,16 @@ describe('device delete', () => {
       new Response(null, { status: 204 });
 
     await deviceDeleteCommand.action(
-      { app: DEMO_APP.id, device: DEVICE.id },
+      { app: DEMO_APP.id, device: DEVICE.deviceId },
       undefined,
     );
 
     expect(confirm).toHaveBeenCalledWith({
       initialValue: false,
-      message: `This deletes device ${DEVICE.id}'s registry row for good, the erasure request; the device reports again with its next check. Continue?`,
+      message: `This deletes device ${DEVICE.deviceId}'s registry row for good, the erasure request; the device reports again with its next check. Continue?`,
     });
     expect(readDeleteRequests()).toHaveLength(1);
-    expect(harness.readLines()).toEqual([`Deleted device ${DEVICE.id}.`]);
+    expect(harness.readLines()).toEqual([`Deleted device ${DEVICE.deviceId}.`]);
   });
 
   it('should print the id with a null name as JSON when --yes and --json are passed', async () => {
@@ -43,17 +43,17 @@ describe('device delete', () => {
       new Response(null, { status: 204 });
 
     await deviceDeleteCommand.action(
-      { app: DEMO_APP.id, device: DEVICE.id, json: true, yes: true },
+      { app: DEMO_APP.id, device: DEVICE.deviceId, json: true, yes: true },
       undefined,
     );
 
-    expect(harness.readJson()).toEqual({ id: DEVICE.id, name: null });
+    expect(harness.readJson()).toEqual({ id: DEVICE.deviceId, name: null });
   });
 
   it('should stop with E_CONFIRMATION_REQUIRED when nobody can confirm', async () => {
     await expect(
       deviceDeleteCommand.action(
-        { app: DEMO_APP.id, device: DEVICE.id },
+        { app: DEMO_APP.id, device: DEVICE.deviceId },
         undefined,
       ),
     ).rejects.toBeInstanceOf(ConfirmationRequiredError);

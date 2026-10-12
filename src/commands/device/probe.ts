@@ -160,7 +160,7 @@ export default defineCommand({
         registryDevice === undefined
           ? null
           : await fetchCurrentRelease(hotCodePush, registryDevice, servedIndex),
-      deviceId: registryDevice?.id ?? '',
+      deviceId: registryDevice?.deviceId ?? '',
       failedBundleIds:
         registryDevice === undefined
           ? []

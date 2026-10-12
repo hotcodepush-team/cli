@@ -123,13 +123,13 @@ describe('device probe', () => {
         attributes: fixture.device.attributes,
         binaryBuild: fixture.device.binaryBuild,
         binaryVersion: fixture.device.binaryVersion,
+        deviceId: fixture.device.deviceId,
         fingerprint: fixture.device.fingerprint,
-        id: fixture.device.deviceId,
         osVersion: fixture.device.osVersion,
         platform: 'ios',
       };
       harness.routes[
-        `GET /v1/apps/${DEMO_APP.id}/devices/${registryDevice.id}`
+        `GET /v1/apps/${DEMO_APP.id}/devices/${registryDevice.deviceId}`
       ] = () => Response.json(registryDevice);
       harness.routes[`GET ${BINARIES_PATH}`] = () =>
         Response.json([
@@ -143,7 +143,7 @@ describe('device probe', () => {
       respondWithIndex({ ...fixture.index, platform: 'ios' });
 
       await deviceProbeCommand.action(
-        { app: DEMO_APP.id, device: registryDevice.id, json: true },
+        { app: DEMO_APP.id, device: registryDevice.deviceId, json: true },
         undefined,
       );
 
@@ -286,8 +286,8 @@ describe('device probe', () => {
   });
 
   it("should take the channel and the facts from the device's registry row, its attributes beside --attribute", async () => {
-    harness.routes[`GET /v1/apps/${DEMO_APP.id}/devices/${DEVICE.id}`] = () =>
-      Response.json({ ...DEVICE, fingerprint: FINGERPRINT, marks: [] });
+    harness.routes[`GET /v1/apps/${DEMO_APP.id}/devices/${DEVICE.deviceId}`] =
+      () => Response.json({ ...DEVICE, fingerprint: FINGERPRINT, marks: [] });
     respondWithIndex({
       ...INDEX,
       releases: [
@@ -309,7 +309,7 @@ describe('device probe', () => {
       {
         app: DEMO_APP.id,
         attribute: ['userId=42'],
-        device: DEVICE.id,
+        device: DEVICE.deviceId,
         json: true,
       },
       undefined,
@@ -321,7 +321,7 @@ describe('device probe', () => {
         attributes: { tier: 'beta', userId: '42' },
         binaryBuild: '57',
         binaryVersion: '2.4.1',
-        deviceId: DEVICE.id,
+        deviceId: DEVICE.deviceId,
         fingerprint: FINGERPRINT,
         osVersion: '17.4',
       },

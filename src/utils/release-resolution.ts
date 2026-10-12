@@ -114,13 +114,14 @@ export function resolveReleaseInLog(
  */
 export async function waitUntilLive(
   hotCodePush: HotCodePush,
+  appId: string,
   release: Release,
 ): Promise<Release> {
   const deadline = Date.now() + LIVE_WAIT_MS;
   let latestRelease = release;
   while (latestRelease.liveAt === null) {
     latestRelease = await hotCodePush.apps.releases.get({
-      appId: release.appId,
+      appId,
       releaseId: release.id,
     });
     if (latestRelease.liveAt !== null || Date.now() >= deadline) {
