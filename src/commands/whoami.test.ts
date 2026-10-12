@@ -131,7 +131,7 @@ describe('whoami', () => {
 
     expect(exitCode).toBe(3);
     expect(stderrWrite).toHaveBeenCalledWith(
-      'E_UNAUTHENTICATED The bearer token is missing, invalid or expired; sign in again or create a new token. https://hotcodepush.com/docs/cli/errors#E_UNAUTHENTICATED\n',
+      'The bearer token is missing, invalid or expired; sign in again or create a new token.\nhttps://hotcodepush.com/docs/cli/errors#E_UNAUTHENTICATED\n',
     );
   });
 });

@@ -219,7 +219,7 @@ describe('doctor', () => {
     expect(result.checks[1]).toEqual({
       check: 'session',
       manualStep:
-        'run the command again with --verbose, and report it at https://github.com/hotcodepush-team/cli/issues if it persists.',
+        'Run the command again with --verbose, and report it at https://github.com/hotcodepush-team/cli/issues if it persists.',
       message: 'the credential cannot be checked: fetch failed',
       status: 'failed',
     });
@@ -239,8 +239,8 @@ describe('doctor', () => {
     const result = harness.readJson() as DoctorResult;
     expect(result.checks[0]).toEqual({
       check: 'configuration',
-      manualStep: 'correct the JSON in that file and run the command again.',
-      message: `${configPath} is no valid JSON: unexpected end of JSON input`,
+      manualStep: 'Correct the JSON in that file and run the command again.',
+      message: `The file ${configPath} is not valid JSON. Unexpected end of JSON input.`,
       status: 'failed',
     });
     expect(result.checks.map(({ check }) => check)).toEqual([
@@ -271,8 +271,8 @@ describe('doctor', () => {
     const result = harness.readJson() as DoctorResult;
     expect(result.checks.find(({ check }) => check === 'framework')).toEqual({
       check: 'framework',
-      manualStep: 'correct the JSON in that file and run the command again.',
-      message: `${packageJsonPath} is no valid JSON: unexpected end of JSON input`,
+      manualStep: 'Correct the JSON in that file and run the command again.',
+      message: `The file ${packageJsonPath} is not valid JSON. Unexpected end of JSON input.`,
       status: 'failed',
     });
   });
@@ -290,17 +290,17 @@ describe('doctor', () => {
     ).rejects.toBeInstanceOf(ReportedFailureError);
 
     const result = harness.readJson() as DoctorResult;
-    const invalidJsonMessage = `${userConfigPath} is no valid JSON: unexpected end of JSON input`;
+    const invalidJsonMessage = `The file ${userConfigPath} is not valid JSON. Unexpected end of JSON input.`;
     expect(result.checks.filter(({ status }) => status === 'failed')).toEqual([
       {
         check: 'session',
-        manualStep: 'correct the JSON in that file and run the command again.',
+        manualStep: 'Correct the JSON in that file and run the command again.',
         message: `the credential cannot be checked: ${invalidJsonMessage}`,
         status: 'failed',
       },
       {
         check: 'hosts',
-        manualStep: 'correct the JSON in that file and run the command again.',
+        manualStep: 'Correct the JSON in that file and run the command again.',
         message: invalidJsonMessage,
         status: 'failed',
       },
@@ -383,9 +383,9 @@ describe('doctor', () => {
     expect(await readSigningKeyCheck(directoryPath)).toEqual({
       check: 'signing-key',
       manualStep:
-        'give the private key of a public key hotcodepush.json lists; "hotcodepush signing-key create" makes a new pair.',
+        'Give the private key of a public key hotcodepush.json lists, or make a new pair with "hotcodepush signing-key create".',
       message:
-        'HOTCODEPUSH_SIGNING_KEY: the private key belongs to no public key hotcodepush.json lists',
+        'The private key from HOTCODEPUSH_SIGNING_KEY belongs to no public key hotcodepush.json lists.',
       status: 'failed',
     });
   });
@@ -520,7 +520,7 @@ describe('doctor', () => {
       check: 'app',
       manualStep: 'run hotcodepush init',
       message:
-        'the API does not know the app or the channel: hotcodepush.json: no channel is named "beta"',
+        'the API does not know the app or the channel: The channel "beta" from hotcodepush.json does not exist.',
       status: 'failed',
     });
   });

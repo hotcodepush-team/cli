@@ -155,7 +155,7 @@ describe('invitation create', () => {
     expect(harness.requests).toEqual([]);
   });
 
-  it("should pass the API's error through with its code in front", async () => {
+  it("should pass the API's error through with its code in the docs link", async () => {
     const stderrWrite = vi
       .spyOn(process.stderr, 'write')
       .mockImplementation(() => true);
@@ -185,7 +185,7 @@ describe('invitation create', () => {
 
     expect(exitCode).toBe(1);
     expect(stderrWrite).toHaveBeenCalledWith(
-      'E_VALIDATION The json field email is invalid: this address is a member already. https://hotcodepush.com/docs/cli/errors#E_VALIDATION\n',
+      'The json field email is invalid: this address is a member already.\nhttps://hotcodepush.com/docs/cli/errors#E_VALIDATION\n',
     );
   });
 });

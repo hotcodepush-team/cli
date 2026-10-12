@@ -113,17 +113,17 @@ export function addPublicKeyToProjectConfig(
 function assertNewFilePath(filePath: string): void {
   if (existsSync(filePath)) {
     throw new InvalidParameterError(
-      `--private-key-path: ${filePath} already exists`,
+      `The file ${filePath} from --private-key-path already exists.`,
       undefined,
-      'pass a path where no file is; signing-key create never overwrites a private key.',
+      'Pass a path where no file is, since signing-key create never overwrites a private key.',
     );
   }
   const directoryPath = dirname(filePath);
   if (!statSync(directoryPath, { throwIfNoEntry: false })?.isDirectory()) {
     throw new InvalidParameterError(
-      `--private-key-path: no folder at ${directoryPath}`,
+      `The folder ${directoryPath} from --private-key-path does not exist.`,
       undefined,
-      'create the folder first, or pass a path in an existing one.',
+      'Create the folder first, or pass a path in an existing one.',
     );
   }
 }

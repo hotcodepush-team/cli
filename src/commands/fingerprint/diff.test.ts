@@ -264,7 +264,7 @@ describe('fingerprint diff', () => {
       fingerprintDiffCommand.action({}, [beforeFilePath, afterFilePath]),
     ).rejects.toMatchObject({
       code: 'E_INVALID_PARAMETER',
-      message: `<file-b>: ${afterFilePath} is not a fingerprint written by fingerprint --json`,
+      message: `The file ${afterFilePath} from <file-b> is not a fingerprint written by fingerprint --json.`,
     });
   });
 
@@ -281,7 +281,7 @@ describe('fingerprint diff', () => {
       ]),
     ).rejects.toMatchObject({
       code: 'E_INVALID_PARAMETER',
-      message: `<file-a>: cannot read ${beforeFilePath}`,
+      message: `The file ${beforeFilePath} from <file-a> cannot be read.`,
     });
   });
 
@@ -291,7 +291,7 @@ describe('fingerprint diff', () => {
     ).rejects.toMatchObject({
       code: 'E_INVALID_PARAMETER',
       message:
-        'c.json: fingerprint diff compares two files, <file-a> and <file-b>',
+        'The fingerprint diff command compares two files, <file-a> and <file-b>. It does not take c.json.',
     });
   });
 
@@ -305,7 +305,7 @@ describe('fingerprint diff', () => {
       ]),
     ).rejects.toMatchObject({
       code: 'E_MISSING_PARAMETER',
-      message: '<file-b> is missing',
+      message: 'No value was given for <file-b>.',
     });
   });
 });

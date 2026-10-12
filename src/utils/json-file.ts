@@ -39,9 +39,8 @@ export function stringifyLikeSource(
 }
 
 /**
- * Where the parse stopped, in V8's words with its first letter lowercase and without the file's text.
+ * Where the parse stopped, in V8's words without the file's text.
  */
 function resolveJsonSyntaxProblem({ message }: SyntaxError): string {
-  const problem = message.replace(QUOTED_TEXT_PATTERN, '$1');
-  return `${problem.charAt(0).toLowerCase()}${problem.slice(1)}`;
+  return message.replace(QUOTED_TEXT_PATTERN, '$1');
 }

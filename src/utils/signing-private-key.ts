@@ -48,17 +48,17 @@ export async function readSigningKeyPair(
   }
   if (publicKeys.length === 0) {
     throw new InvalidParameterError(
-      `${givenPrivateKey.source}: a private key is given and ${PROJECT_CONFIG_FILE_NAME} lists no public key of the app`,
+      `A private key is given from ${givenPrivateKey.source}, and ${PROJECT_CONFIG_FILE_NAME} lists no public key of the app.`,
       undefined,
-      `add its public key to publicKeys in ${PROJECT_CONFIG_FILE_NAME}, as "hotcodepush signing-key list --json" prints it, or give no private key.`,
+      `Add its public key to publicKeys in ${PROJECT_CONFIG_FILE_NAME}, as "hotcodepush signing-key list --json" prints it, or give no private key.`,
     );
   }
   const signingKeyPair = await resolveSigningKeyPair(givenPrivateKey);
   if (!publicKeys.includes(signingKeyPair.publicKey)) {
     throw new InvalidParameterError(
-      `${givenPrivateKey.source}: the private key belongs to no public key ${PROJECT_CONFIG_FILE_NAME} lists`,
+      `The private key from ${givenPrivateKey.source} belongs to no public key ${PROJECT_CONFIG_FILE_NAME} lists.`,
       undefined,
-      `give the private key of a public key ${PROJECT_CONFIG_FILE_NAME} lists; "hotcodepush signing-key create" makes a new pair.`,
+      `Give the private key of a public key ${PROJECT_CONFIG_FILE_NAME} lists, or make a new pair with "hotcodepush signing-key create".`,
     );
   }
   return signingKeyPair;
@@ -133,9 +133,9 @@ function readPrivateKeyFile(filePath: string): string {
     return readFileSync(filePath, 'utf8');
   } catch (error) {
     throw new InvalidParameterError(
-      `--private-key-path: cannot read ${filePath}`,
+      `The file ${filePath} from --private-key-path cannot be read.`,
       error,
-      'pass the path of the private key file, a PEM of PKCS #8 or PKCS #1.',
+      'Pass the path of the private key file, a PEM of PKCS #8 or PKCS #1.',
     );
   }
 }
@@ -159,9 +159,9 @@ async function resolveSigningKeyPair({
 }: GivenPrivateKey): Promise<SigningKeyPair> {
   if (ENCRYPTED_KEY_PATTERN.test(text)) {
     throw new InvalidParameterError(
-      `${source}: an encrypted private key is not supported`,
+      `The private key from ${source} is encrypted, which is not supported.`,
       undefined,
-      'remove its passphrase first, as "openssl pkey -in <file> -out <new file>" does.',
+      'Remove its passphrase first, as "openssl pkey -in <file> -out <new file>" does.',
     );
   }
   try {
@@ -174,9 +174,9 @@ async function resolveSigningKeyPair({
     };
   } catch (error) {
     throw new InvalidParameterError(
-      `${source}: no RSA private key of ${SIGNING_KEY_BITS_MINIMUM} bits or more`,
+      `The key from ${source} is not an RSA private key of ${SIGNING_KEY_BITS_MINIMUM} bits or more.`,
       error,
-      `give an RSA private key of ${SIGNING_KEY_BITS_MINIMUM} bits or more, a PEM of PKCS #8 or PKCS #1.`,
+      `Give an RSA private key of ${SIGNING_KEY_BITS_MINIMUM} bits or more, a PEM of PKCS #8 or PKCS #1.`,
     );
   }
 }

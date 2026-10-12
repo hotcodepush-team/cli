@@ -207,8 +207,9 @@ function assertProjectConfig(
 ): ProjectConfig & { appId: string } {
   if (projectConfig?.appId === undefined) {
     throw new InvalidParameterError(
-      'hotcodepush.json with appId is missing; run "hotcodepush init" or --config',
+      'The project has no hotcodepush.json with an appId.',
       undefined,
+      'Run "hotcodepush init", or pass the file with --config.',
     );
   }
   assertProjectConfigAppId(projectConfig.appId);

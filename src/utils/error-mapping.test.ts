@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { ZodlineError } from 'zodline';
 import {
   buildErrorJson,
-  buildErrorLine,
+  buildErrorLines,
   printError,
   resolveApiError,
   resolveCliError,
@@ -12,6 +12,7 @@ import {
 import {
   ApiError,
   MissingParameterError,
+  NotLoggedInError,
   UnexpectedResponseError,
   UnknownCommandError,
 } from './errors.js';
@@ -69,7 +70,9 @@ describe('error mapping', () => {
 
       expect(cliError).toEqual(new UnexpectedResponseError(502));
       expect(cliError.code).toBe('E_UNEXPECTED_RESPONSE');
-      expect(cliError.message).toBe('the API answered 502 outside its shape');
+      expect(cliError.message).toBe(
+        'The API answered with status 502 in an unexpected shape.',
+      );
     });
   });
 
@@ -126,7 +129,9 @@ describe('error mapping', () => {
 
       expect(cliError.code).toBe('E_INVALID_PARAMETER');
       expect(cliError.exitCode).toBe(2);
-      expect(cliError.message).toMatch(/^--rollout-percentage: /);
+      expect(cliError.message).toMatch(
+        /^The value of --rollout-percentage is invalid\. .+\.$/,
+      );
     });
 
     it('should map a zodline error to E_INVALID_PARAMETER without its colour codes', () => {
@@ -154,53 +159,75 @@ describe('error mapping', () => {
       expect(buildErrorJson(new MissingParameterError('--channel'))).toEqual({
         error: {
           code: 'E_MISSING_PARAMETER',
-          fix: 'pass --channel, or run the command interactively to be asked for it.',
-          message: '--channel is missing',
+          fix: 'Pass --channel, or run the command interactively to be asked for it.',
+          message: 'No value was given for --channel.',
         },
       });
     });
   });
 
-  describe('buildErrorLine', () => {
-    it('should put the code in front and its page behind', () => {
-      const line = buildErrorLine(
-        new UnknownCommandError('relese create', 'release create'),
-        {
-          isColorEnabled: false,
-        },
-      );
+  describe('buildErrorLines', () => {
+    it('should put the message and the fix on the first line and the page on the second', () => {
+      const lines = buildErrorLines(new NotLoggedInError(), {
+        isColorEnabled: false,
+      });
 
-      expect(line).toBe(
-        'E_UNKNOWN_COMMAND "relese create" is not a command — did you mean "release create"? https://hotcodepush.com/docs/cli/errors#E_UNKNOWN_COMMAND',
-      );
+      expect(lines).toEqual([
+        'You are not logged in. Run "hotcodepush login" or set HOTCODEPUSH_TOKEN.',
+        'https://hotcodepush.com/docs/cli/errors#E_NOT_LOGGED_IN',
+      ]);
     });
 
-    it('should leave the fix out when the error carries none', () => {
-      const line = buildErrorLine(
-        new ApiError(
-          'E_UNAUTHENTICATED',
-          'The bearer token is missing, invalid or expired; sign in again or create a new token.',
-          401,
-        ),
+    it('should never start a line with the code', () => {
+      const lines = buildErrorLines(
+        new UnknownCommandError('relese create', 'release create'),
         { isColorEnabled: false },
       );
 
-      expect(line).toBe(
-        'E_UNAUTHENTICATED The bearer token is missing, invalid or expired; sign in again or create a new token. https://hotcodepush.com/docs/cli/errors#E_UNAUTHENTICATED',
+      expect(lines).toEqual([
+        'There is no command "relese create". Did you mean "release create"?',
+        'https://hotcodepush.com/docs/cli/errors#E_UNKNOWN_COMMAND',
+      ]);
+      for (const line of lines) {
+        expect(line).not.toMatch(/^E_/);
+      }
+    });
+
+    it('should leave the fix out and the message as received when the error carries none', () => {
+      const lines = buildErrorLines(
+        new ApiError('invalid_grant', 'Invalid device code', 400),
+        { isColorEnabled: false },
+      );
+
+      expect(lines).toEqual([
+        'Invalid device code',
+        'https://hotcodepush.com/docs/cli/errors#invalid_grant',
+      ]);
+    });
+
+    it('should end a message without its full stop with one when a fix follows', () => {
+      const lines = buildErrorLines(
+        resolveCliError(new ZodlineError('Unknown option: --foo')),
+        { isColorEnabled: false },
+      );
+
+      expect(lines[0]).toBe(
+        'Unknown option: --foo. Run the command with --help to see its options.',
       );
     });
 
-    it('should colour the code when colour is enabled', () => {
-      const line = buildErrorLine(new MissingParameterError('--channel'), {
-        isColorEnabled: true,
-      });
+    it('should colour the message when colour is enabled', () => {
+      const [firstLine] = buildErrorLines(
+        new MissingParameterError('--channel'),
+        { isColorEnabled: true },
+      );
 
-      expect(line).toContain('\x1b[');
+      expect(firstLine).toContain('\x1b[');
     });
   });
 
   describe('printError', () => {
-    it('should print the line on stderr and nothing on stdout', () => {
+    it('should print the two lines on stderr and nothing on stdout', () => {
       const output = captureOutput();
 
       printError(new MissingParameterError('--channel'), {
@@ -208,8 +235,8 @@ describe('error mapping', () => {
         isVerbose: false,
       });
 
-      expect(output.readStderr()).toMatch(
-        /^E_MISSING_PARAMETER --channel is missing — /,
+      expect(output.readStderr()).toBe(
+        'No value was given for --channel. Pass --channel, or run the command interactively to be asked for it.\nhttps://hotcodepush.com/docs/cli/errors#E_MISSING_PARAMETER\n',
       );
       expect(output.readStdout()).toBe('');
     });

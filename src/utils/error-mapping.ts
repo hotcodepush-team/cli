@@ -37,7 +37,7 @@ export interface ErrorJson {
   };
 }
 
-interface ErrorLineOptions {
+interface ErrorLinesOptions {
   isColorEnabled: boolean;
 }
 
@@ -45,6 +45,9 @@ interface PrintErrorOptions {
   isJson: boolean;
   isVerbose: boolean;
 }
+
+// a sentence ends with one of these; a message from outside the catalog, zodline's or an unexpected error's, may lack it
+const SENTENCE_END_PATTERN = /[.!?]$/;
 
 /** The typed client's code for an answer outside the API's shape, which the CLI's catalog renders. */
 const UNEXPECTED_RESPONSE_CODE = 'E_UNEXPECTED_RESPONSE';
@@ -54,18 +57,24 @@ export function buildErrorJson({ code, fix, message }: CliError): ErrorJson {
 }
 
 /**
- * One line: the code in front, what happened, what to do, and the code's page behind it.
- * An API error's message says what to do itself, so its line has no fix.
+ * Two lines: what happened and what to do as sentences, then the code's page, the one place the code appears.
+ * An API error's message says what to do itself, so its first line has no fix.
  */
-export function buildErrorLine(
+export function buildErrorLines(
   { code, fix, message }: CliError,
-  options: ErrorLineOptions,
-): string {
-  const styledCode = options.isColorEnabled
-    ? styleText(['bold', 'red'], code, { validateStream: false })
-    : code;
-  const fixSegment = fix === null ? '' : ` — ${fix}`;
-  return `${styledCode} ${message}${fixSegment} ${ERRORS_DOCS_URL}#${code}`;
+  options: ErrorLinesOptions,
+): string[] {
+  const sentence =
+    fix === null || SENTENCE_END_PATTERN.test(message)
+      ? message
+      : `${message}.`;
+  const styledSentence = options.isColorEnabled
+    ? styleText('red', sentence, { validateStream: false })
+    : sentence;
+  return [
+    fix === null ? styledSentence : `${styledSentence} ${fix}`,
+    `${ERRORS_DOCS_URL}#${code}`,
+  ];
 }
 
 export function printError(
@@ -78,9 +87,10 @@ export function printError(
   if (isJson) {
     printJson(buildErrorJson(cliError));
   } else {
-    process.stderr.write(
-      `${buildErrorLine(cliError, { isColorEnabled: isColorEnabled(process.stderr) })}\n`,
-    );
+    const errorLines = buildErrorLines(cliError, {
+      isColorEnabled: isColorEnabled(process.stderr),
+    });
+    process.stderr.write(`${errorLines.join('\n')}\n`);
   }
 }
 
@@ -142,5 +152,5 @@ function resolveZodErrorMessage(error: ZodError): string {
     return issue.message;
   }
   const flag = `--${key.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)}`;
-  return `${flag}: ${issue.message}`;
+  return `The value of ${flag} is invalid. ${issue.message}.`;
 }

@@ -269,7 +269,7 @@ describe('reactNativeFramework', () => {
         await expect(wiring.wireBinaryCreateStep(undefined)).rejects.toThrow(
           new MissingParameterError(
             '--ios-path',
-            'pass --ios-path and --android-path; neither ios nor android exists.',
+            'Neither ios nor android exists. Pass --ios-path and --android-path.',
           ),
         );
       });

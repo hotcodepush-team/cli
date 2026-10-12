@@ -43,7 +43,7 @@ interface PackageChange {
 }
 
 const FINGERPRINT_FILE_FIX =
-  'write each file with "hotcodepush fingerprint --json > <file>", the earlier one at the commit of the store build.';
+  'Write each file with "hotcodepush fingerprint --json > <file>", the earlier one at the commit of the store build.';
 
 /**
  * What `hotcodepush fingerprint --json` writes: the hash and the contributors behind it.
@@ -76,7 +76,7 @@ export default defineCommand({
   action: async (options, args) => {
     if (args.length > 2) {
       throw new InvalidParameterError(
-        `${args.slice(2).join(' ')}: fingerprint diff compares two files, <file-a> and <file-b>`,
+        `The fingerprint diff command compares two files, <file-a> and <file-b>. It does not take ${args.slice(2).join(' ')}.`,
         undefined,
       );
     }
@@ -138,7 +138,7 @@ async function readFingerprintFile(
 ): Promise<FingerprintFile> {
   const text = await readFile(filePath, 'utf8').catch((error: unknown) => {
     throw new InvalidParameterError(
-      `${argumentName}: cannot read ${filePath}`,
+      `The file ${filePath} from ${argumentName} cannot be read.`,
       error,
       FINGERPRINT_FILE_FIX,
     );
@@ -146,7 +146,7 @@ async function readFingerprintFile(
   const parsedFile = FingerprintFileSchema.safeParse(parseJson(text));
   if (!parsedFile.success) {
     throw new InvalidParameterError(
-      `${argumentName}: ${filePath} is not a fingerprint written by fingerprint --json`,
+      `The file ${filePath} from ${argumentName} is not a fingerprint written by fingerprint --json.`,
       parsedFile.error,
       FINGERPRINT_FILE_FIX,
     );

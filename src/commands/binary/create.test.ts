@@ -262,7 +262,7 @@ describe('binary create', () => {
       ),
     ).rejects.toMatchObject({
       code: 'E_INVALID_PARAMETER',
-      message: 'hotcodepush.json: no channel is named "beta"',
+      message: 'The channel "beta" from hotcodepush.json does not exist.',
     });
     expect(harness.requests.filter(({ method }) => method === 'POST')).toEqual(
       [],
@@ -469,7 +469,7 @@ describe('binary create', () => {
       await expect(createIosBinary(writeChannelById())).rejects.toMatchObject({
         code: 'E_NOT_LOGGED_IN',
         exitCode: 3,
-        fix: 'set HOTCODEPUSH_TOKEN in the pipeline, or HOTCODEPUSH_OFFLINE=1 for a build that is never shipped.',
+        fix: 'Set HOTCODEPUSH_TOKEN in the pipeline, or HOTCODEPUSH_OFFLINE=1 for a build that is never shipped.',
       });
       expect(
         existsSync(

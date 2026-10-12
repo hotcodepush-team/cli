@@ -33,7 +33,7 @@ describe('framework', () => {
     expect(() => detectFramework(projectDirectoryPath)).toThrow(
       expect.objectContaining({
         code: 'E_INVALID_JSON',
-        message: `${packageJsonPath} is no valid JSON: unexpected end of JSON input`,
+        message: `The file ${packageJsonPath} is not valid JSON. Unexpected end of JSON input.`,
       }),
     );
   });
@@ -117,8 +117,8 @@ describe('framework', () => {
       ),
     ).rejects.toMatchObject({
       code: 'E_MISSING_PARAMETER',
-      fix: 'pass --path, since there is no capacitor.config.json or capacitor.config.ts to read webDir from.',
-      message: '--path is missing',
+      fix: 'Pass --path, since there is no capacitor.config.json or capacitor.config.ts to read webDir from.',
+      message: 'No value was given for --path.',
     });
   });
 
@@ -137,7 +137,7 @@ describe('framework', () => {
       ),
     ).rejects.toMatchObject({
       code: 'E_MISSING_PARAMETER',
-      fix: 'pass --path, since capacitor.config.ts sets no webDir the CLI can read as a quoted string.',
+      fix: 'Pass --path, since capacitor.config.ts sets no webDir the CLI can read as a quoted string.',
     });
   });
 });

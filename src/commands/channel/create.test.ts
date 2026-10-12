@@ -125,7 +125,7 @@ describe('channel create', () => {
 
     expect(exitCode).toBe(1);
     expect(stderrWrite).toHaveBeenCalledWith(
-      'E_CHANNEL_NAME_TAKEN A channel of that name exists in the app. https://hotcodepush.com/docs/cli/errors#E_CHANNEL_NAME_TAKEN\n',
+      'A channel of that name exists in the app.\nhttps://hotcodepush.com/docs/cli/errors#E_CHANNEL_NAME_TAKEN\n',
     );
   });
 

@@ -295,7 +295,7 @@ describe('init', () => {
           ({ step }) => step === 'hook',
         )?.manualStep,
       ).toBe(
-        `run init --yes to change ${CAPACITOR_XCODE_PROJECT_FILE_PATH}, ${CAPACITOR_APP_GRADLE_FILE_PATH}`,
+        `Run init --yes to change ${CAPACITOR_XCODE_PROJECT_FILE_PATH}, ${CAPACITOR_APP_GRADLE_FILE_PATH}.`,
       );
     });
 
@@ -344,8 +344,8 @@ describe('init', () => {
     const filesText = `hotcodepush.json, ${CAPACITOR_XCODE_PROJECT_FILE_PATH}, ${CAPACITOR_APP_GRADLE_FILE_PATH}`;
     expect(configurationStep).toEqual({
       code: 'E_CONFIRMATION_REQUIRED',
-      manualStep: `run init --yes to change ${filesText}`,
-      message: `a confirmation is required: changes ${filesText}`,
+      manualStep: `Run init --yes to change ${filesText}.`,
+      message: `A confirmation is required. This changes ${filesText}.`,
       status: 'stopped',
       step: 'configuration',
     });
@@ -475,7 +475,7 @@ describe('init', () => {
     expect(result.steps.find(({ step }) => step === 'hook')).toMatchObject({
       code: 'E_XCODE_PROJECT',
       manualStep:
-        "add a Run Script phase after the app target's last phase that runs node_modules/@hotcodepush/capacitor-live-updates/scripts/binary-create-xcode.sh.",
+        "Add a Run Script phase after the app target's last phase that runs node_modules/@hotcodepush/capacitor-live-updates/scripts/binary-create-xcode.sh.",
       status: 'stopped',
     });
     expect(readStepStatuses(result)).toMatchObject({
@@ -725,8 +725,8 @@ describe('init', () => {
     expect(result.steps.find(({ step }) => step === 'hook')).toEqual({
       code: 'E_MISSING_PARAMETER',
       manualStep:
-        'run "npx cap add ios" and "npx cap add android", or pass --ios-path and --android-path; neither ios nor android exists.',
-      message: '--ios-path is missing',
+        'Neither ios nor android exists. Run "npx cap add ios" and "npx cap add android", or pass --ios-path and --android-path.',
+      message: 'No value was given for --ios-path.',
       status: 'stopped',
       step: 'hook',
     });
@@ -882,7 +882,7 @@ describe('init', () => {
 
       const result = harness.readJson() as InitResult;
       expect(result.steps.find(({ step }) => step === 'hook')?.message).toBe(
-        `a confirmation is required: changes package.json, hotcodepush.json, ${XCODE_PROJECT_FILE_PATH}, ${APP_GRADLE_FILE_PATH}, ${APP_DELEGATE_FILE_PATH}, ${MAIN_APPLICATION_FILE_PATH}, ${PODFILE_PATH}`,
+        `A confirmation is required. This changes package.json, hotcodepush.json, ${XCODE_PROJECT_FILE_PATH}, ${APP_GRADLE_FILE_PATH}, ${APP_DELEGATE_FILE_PATH}, ${MAIN_APPLICATION_FILE_PATH}, ${PODFILE_PATH}.`,
       );
       expect(
         readProjectFile(directoryPath, APP_GRADLE_FILE_PATH),

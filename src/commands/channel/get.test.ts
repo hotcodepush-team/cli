@@ -96,7 +96,7 @@ describe('channel get', () => {
       ),
     ).rejects.toMatchObject({
       code: 'E_INVALID_PARAMETER',
-      message: 'hotcodepush.json: appId is no id',
+      message: 'The appId in hotcodepush.json is not an id.',
     });
     expect(harness.requests).toEqual([]);
   });
@@ -116,7 +116,7 @@ describe('channel get', () => {
       ),
     ).rejects.toMatchObject({
       code: 'E_INVALID_PARAMETER',
-      message: 'hotcodepush.json: no channel is named "beta"',
+      message: 'The channel "beta" from hotcodepush.json does not exist.',
     });
   });
 

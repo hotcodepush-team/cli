@@ -20,7 +20,7 @@ export async function resolveNativeProjects(
   projectDirectoryPath: string,
   defaultPaths: NativeProjectPaths,
   options: WiringOptions,
-  addProjectsStep: string,
+  missingProjectsStep: string,
 ): Promise<NativeProjects> {
   const android =
     options.androidPath === undefined
@@ -37,7 +37,7 @@ export async function resolveNativeProjects(
       ios,
       missingError: new MissingParameterError(
         '--ios-path',
-        `${addProjectsStep}pass --ios-path and --android-path; neither ${relative(projectDirectoryPath, ios)} nor ${relative(projectDirectoryPath, android)} exists.`,
+        `Neither ${relative(projectDirectoryPath, ios)} nor ${relative(projectDirectoryPath, android)} exists. ${missingProjectsStep}`,
       ),
     };
   }

@@ -54,11 +54,14 @@ export const BUNDLE_BYTES_LIMIT = 512_000_000;
 export function assertWithinBundleBytesLimit(files: BundleFile[]): void {
   const largeFile = files.find(file => file.sizeBytes > BUNDLE_BYTES_LIMIT);
   if (largeFile !== undefined) {
-    throw new BundleTooLargeError(largeFile.path, BUNDLE_BYTES_LIMIT);
+    throw new BundleTooLargeError(
+      `The file ${largeFile.path}`,
+      BUNDLE_BYTES_LIMIT,
+    );
   }
   const totalBytes = files.reduce((sum, file) => sum + file.sizeBytes, 0);
   if (totalBytes > BUNDLE_BYTES_LIMIT) {
-    throw new BundleTooLargeError('the bundle', BUNDLE_BYTES_LIMIT);
+    throw new BundleTooLargeError('The bundle', BUNDLE_BYTES_LIMIT);
   }
 }
 

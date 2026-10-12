@@ -208,7 +208,7 @@ describe('resource-file write', () => {
 
     await expect(writeIosResourceFile()).rejects.toMatchObject({
       code: 'E_INVALID_PARAMETER',
-      message: 'hotcodepush.json: no channel is named "beta"',
+      message: 'The channel "beta" from hotcodepush.json does not exist.',
     });
     expect(existsSync(resourceFilePath)).toBe(false);
   });

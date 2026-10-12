@@ -71,7 +71,7 @@ describe('customer-portal-session create', () => {
 
     expect(exitCode).toBe(1);
     expect(stderrWrite).toHaveBeenCalledWith(
-      'E_VALIDATION The organization has no subscription, so it has no customer portal. https://hotcodepush.com/docs/cli/errors#E_VALIDATION\n',
+      'The organization has no subscription, so it has no customer portal.\nhttps://hotcodepush.com/docs/cli/errors#E_VALIDATION\n',
     );
   });
 });

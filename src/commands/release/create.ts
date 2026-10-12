@@ -329,7 +329,7 @@ async function fetchSourceRelease(
   ).find(({ state }) => state === 'active');
   if (sourceRelease === undefined) {
     throw new InvalidParameterError(
-      `--from-channel: the channel ${sourceChannel.name} serves no active release`,
+      `The channel ${sourceChannel.name} from --from-channel serves no active release.`,
       undefined,
     );
   }
@@ -388,8 +388,9 @@ async function resolveBundleSource(
   ].filter(flag => flag !== undefined);
   if (sourceFlags.length > 1) {
     throw new InvalidParameterError(
-      `${sourceFlags.join(' and ')}: pass one of them, the bundle to release, the channel to release from or the build to upload`,
+      `The flags ${sourceFlags.join(' and ')} were passed together.`,
       undefined,
+      'Pass one of them: the bundle to release, the channel to release from or the build to upload.',
     );
   }
   if (options.bundle === undefined && options.fromChannel === undefined) {

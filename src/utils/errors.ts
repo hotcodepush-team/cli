@@ -52,8 +52,8 @@ export class AmbiguousNameError extends CliError {
     super({
       code: 'E_INVALID_PARAMETER',
       exitCode: ExitCode.MissingOrInvalidParameter,
-      fix: `pass the id instead, as "hotcodepush ${noun} list" prints it.`,
-      message: `${source}: several ${noun}s are named "${name}"`,
+      fix: `Pass the id instead, as "hotcodepush ${noun} list" prints it.`,
+      message: `Several ${noun}s carry the name "${name}" from ${source}.`,
     });
   }
 }
@@ -81,8 +81,8 @@ export class BundleTooLargeError extends CliError {
     super({
       code: 'E_BUNDLE_TOO_LARGE',
       exitCode: ExitCode.Error,
-      fix: 'a file or a bundle is at most 512 MB; move large media out of the web build.',
-      message: `${what} is above the limit of ${limitBytes} bytes`,
+      fix: 'A file or a bundle is at most 512 MB. Move large media out of the web build.',
+      message: `${what} is above the limit of ${limitBytes} bytes.`,
     });
   }
 }
@@ -95,19 +95,19 @@ export class CommandFailedError extends CliError {
     super({
       code: 'E_COMMAND_FAILED',
       exitCode: ExitCode.Error,
-      fix: 'run it by hand and read its output.',
-      message: `"${commandLine}" exited with ${exitCode ?? 'a signal'}`,
+      fix: 'Run it by hand and read its output.',
+      message: `The command "${commandLine}" exited with ${exitCode ?? 'a signal'}.`,
     });
   }
 }
 
 export class ConfirmationRequiredError extends CliError {
-  constructor(consequence: string, fix = 'pass --yes to confirm.') {
+  constructor(consequence: string, fix = 'Pass --yes to confirm.') {
     super({
       code: 'E_CONFIRMATION_REQUIRED',
       exitCode: ExitCode.ConfirmationRequired,
       fix,
-      message: `a confirmation is required: ${consequence}`,
+      message: `A confirmation is required. This ${consequence}.`,
     });
   }
 }
@@ -123,8 +123,8 @@ export class FingerprintUnavailableError extends CliError {
       cause,
       code: 'E_FINGERPRINT_UNAVAILABLE',
       exitCode: ExitCode.Error,
-      fix: 'the fingerprint reads the committed lockfile and the installed packages; make both current and run the command again.',
-      message: `the fingerprint cannot be computed: ${cause.message}`,
+      fix: 'The fingerprint reads the committed lockfile and the installed packages. Make both current and run the command again.',
+      message: `The fingerprint cannot be computed because ${cause.message}.`,
     });
   }
 }
@@ -138,8 +138,8 @@ export class InvalidJsonError extends CliError {
     super({
       code: 'E_INVALID_JSON',
       exitCode: ExitCode.Error,
-      fix: 'correct the JSON in that file and run the command again.',
-      message: `${filePath} is no valid JSON: ${problem}`,
+      fix: 'Correct the JSON in that file and run the command again.',
+      message: `The file ${filePath} is not valid JSON. ${problem}.`,
     });
   }
 }
@@ -148,7 +148,7 @@ export class InvalidParameterError extends CliError {
   constructor(
     message: string,
     cause: unknown,
-    fix = 'run the command with --help to see its options.',
+    fix = 'Run the command with --help to see its options.',
   ) {
     super({
       cause,
@@ -165,8 +165,8 @@ export class LoginDeniedError extends CliError {
     super({
       code: 'E_LOGIN_DENIED',
       exitCode: ExitCode.Error,
-      fix: 'run "hotcodepush login" again to approve it.',
-      message: 'the login was denied in the browser',
+      fix: 'Run "hotcodepush login" again to approve it.',
+      message: 'The login was denied in the browser.',
     });
   }
 }
@@ -176,8 +176,8 @@ export class LoginExpiredError extends CliError {
     super({
       code: 'E_LOGIN_EXPIRED',
       exitCode: ExitCode.Error,
-      fix: 'run "hotcodepush login" again and approve the code before it expires.',
-      message: 'the login code expired before it was approved',
+      fix: 'Run "hotcodepush login" again and approve the code before it expires.',
+      message: 'The login code expired before it was approved.',
     });
   }
 }
@@ -185,21 +185,17 @@ export class LoginExpiredError extends CliError {
 export class MissingParameterError extends CliError {
   constructor(
     flag: string,
-    fix = `pass ${flag}, or run the command interactively to be asked for it.`,
+    fix = `Pass ${flag}, or run the command interactively to be asked for it.`,
   ) {
     super({
       code: 'E_MISSING_PARAMETER',
       exitCode: ExitCode.MissingOrInvalidParameter,
       fix,
-      message: `${flag} is missing`,
+      message: `No value was given for ${flag}.`,
     });
   }
 }
 
-/**
- * Without a prompt the fix names `login`; with one, from a login that cannot wait for the approval,
- * it carries the page and the code for an agent to relay.
- */
 /**
  * A native project file the CLI cannot edit: the line its edit replaces or follows is not there, so the fix is the edit by hand.
  */
@@ -214,15 +210,19 @@ export class NativeProjectError extends CliError {
   }
 }
 
+/**
+ * Without a prompt the fix names `login`; with one, from a login that cannot wait for the approval,
+ * it carries the page and the code for an agent to relay.
+ */
 export class NotLoggedInError extends CliError {
   constructor(deviceAuthorizationPrompt?: DeviceAuthorizationPrompt) {
     super({
       code: 'E_NOT_LOGGED_IN',
       exitCode: ExitCode.NotLoggedIn,
       fix: deviceAuthorizationPrompt
-        ? `approve at ${deviceAuthorizationPrompt.verificationUrl} with code ${deviceAuthorizationPrompt.userCode}, then run "hotcodepush login" again.`
-        : 'run "hotcodepush login", or set HOTCODEPUSH_TOKEN.',
-      message: 'you are not logged in',
+        ? `Approve at ${deviceAuthorizationPrompt.verificationUrl} with code ${deviceAuthorizationPrompt.userCode}, then run "hotcodepush login" again.`
+        : 'Run "hotcodepush login" or set HOTCODEPUSH_TOKEN.',
+      message: 'You are not logged in.',
     });
   }
 }
@@ -235,8 +235,9 @@ export class PipelineNotLoggedInError extends CliError {
     super({
       code: 'E_NOT_LOGGED_IN',
       exitCode: ExitCode.NotLoggedIn,
-      fix: 'set HOTCODEPUSH_TOKEN in the pipeline, or HOTCODEPUSH_OFFLINE=1 for a build that is never shipped.',
-      message: 'you are not logged in, and a build in CI must name its channel',
+      fix: 'Set HOTCODEPUSH_TOKEN in the pipeline, or HOTCODEPUSH_OFFLINE=1 for a build that is never shipped.',
+      message:
+        'You are not logged in, and a build in CI must name its channel.',
     });
   }
 }
@@ -251,7 +252,7 @@ export class ReportedFailureError extends CliError {
       code,
       exitCode: ExitCode.Error,
       fix: null,
-      message: 'reported above',
+      message: 'Reported above.',
     });
   }
 }
@@ -265,8 +266,8 @@ export class SigningKeyUnavailableError extends CliError {
     super({
       code: 'E_SIGNING_KEY_UNAVAILABLE',
       exitCode: ExitCode.Error,
-      fix: 'pass --private-key-path with the file "hotcodepush signing-key create" wrote, or set HOTCODEPUSH_SIGNING_KEY to its content.',
-      message: `${PROJECT_CONFIG_FILE_NAME} lists public keys and no private key is given to sign with`,
+      fix: 'Pass --private-key-path with the file "hotcodepush signing-key create" wrote, or set HOTCODEPUSH_SIGNING_KEY to its content.',
+      message: `No private key is given to sign with, and ${PROJECT_CONFIG_FILE_NAME} lists public keys.`,
     });
   }
 }
@@ -277,7 +278,7 @@ export class UnexpectedError extends CliError {
       cause,
       code: 'E_UNEXPECTED',
       exitCode: ExitCode.Error,
-      fix: `run the command again with --verbose, and report it at ${ISSUES_URL} if it persists.`,
+      fix: `Run the command again with --verbose, and report it at ${ISSUES_URL} if it persists.`,
       message: cause instanceof Error ? cause.message : String(cause),
     });
   }
@@ -292,8 +293,8 @@ export class UnexpectedResponseError extends CliError {
     super({
       code: 'E_UNEXPECTED_RESPONSE',
       exitCode: ExitCode.Error,
-      fix: `check the API URL in config.json and the network, and report it at ${ISSUES_URL} if it persists.`,
-      message: `the API answered ${status} outside its shape`,
+      fix: `Check the API URL in config.json and the network, and report it at ${ISSUES_URL} if it persists.`,
+      message: `The API answered with status ${status} in an unexpected shape.`,
     });
   }
 }
@@ -307,7 +308,7 @@ export class XcodeProjectError extends CliError {
     message: string,
     cause: unknown,
     projectFilePath: string,
-    fix = `add hotcodepush.json to the app target's Copy Bundle Resources in ${projectFilePath}.`,
+    fix = `Add hotcodepush.json to the app target's Copy Bundle Resources in ${projectFilePath}.`,
   ) {
     super({
       cause,
@@ -324,8 +325,8 @@ export class UnknownFrameworkError extends CliError {
     super({
       code: 'E_UNKNOWN_FRAMEWORK',
       exitCode: ExitCode.Error,
-      fix: 'run it in a project with @capacitor/core, react-native, expo or cordova among its dependencies.',
-      message: 'no supported framework was found in package.json',
+      fix: 'Run it in a project with @capacitor/core, react-native, expo or cordova among its dependencies.',
+      message: 'No supported framework was found in package.json.',
     });
   }
 }
@@ -336,9 +337,9 @@ export class UnknownCommandError extends CliError {
       code: 'E_UNKNOWN_COMMAND',
       exitCode: ExitCode.Error,
       fix: closestCommandName
-        ? `did you mean "${closestCommandName}"?`
-        : 'run "hotcodepush --help" to list the commands.',
-      message: `"${typedCommand}" is not a command`,
+        ? `Did you mean "${closestCommandName}"?`
+        : 'Run "hotcodepush --help" to list the commands.',
+      message: `There is no command "${typedCommand}".`,
     });
   }
 }
@@ -352,8 +353,8 @@ export class UnknownNameError extends CliError {
     super({
       code: 'E_INVALID_PARAMETER',
       exitCode: ExitCode.MissingOrInvalidParameter,
-      fix: `run "hotcodepush ${noun} list" to see the names.`,
-      message: `${source}: no ${noun} is named "${name}"`,
+      fix: `Run "hotcodepush ${noun} list" to see the names.`,
+      message: `The ${noun} "${name}" from ${source} does not exist.`,
     });
   }
 }

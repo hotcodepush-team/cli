@@ -169,7 +169,7 @@ describe('signing private key', () => {
 
     expect(error).toBeInstanceOf(SigningKeyUnavailableError);
     expect((error as SigningKeyUnavailableError).fix).toBe(
-      'pass --private-key-path with the file "hotcodepush signing-key create" wrote, or set HOTCODEPUSH_SIGNING_KEY to its content.',
+      'Pass --private-key-path with the file "hotcodepush signing-key create" wrote, or set HOTCODEPUSH_SIGNING_KEY to its content.',
     );
   });
 
@@ -185,7 +185,7 @@ describe('signing private key', () => {
 
       expect(error).toBeInstanceOf(InvalidParameterError);
       expect((error as InvalidParameterError).message).toBe(
-        `${source}: a private key is given and hotcodepush.json lists no public key of the app`,
+        `A private key is given from ${source}, and hotcodepush.json lists no public key of the app.`,
       );
     },
   );
@@ -197,7 +197,7 @@ describe('signing private key', () => {
 
     expect(error).toBeInstanceOf(InvalidParameterError);
     expect((error as InvalidParameterError).message).toBe(
-      'HOTCODEPUSH_SIGNING_KEY: the private key belongs to no public key hotcodepush.json lists',
+      'The private key from HOTCODEPUSH_SIGNING_KEY belongs to no public key hotcodepush.json lists.',
     );
   });
 
@@ -208,7 +208,7 @@ describe('signing private key', () => {
 
     expect(error).toBeInstanceOf(InvalidParameterError);
     expect((error as InvalidParameterError).message).toBe(
-      `--private-key-path: cannot read ${filePath}`,
+      `The file ${filePath} from --private-key-path cannot be read.`,
     );
   });
 
@@ -233,7 +233,7 @@ describe('signing private key', () => {
 
       expect(error).toBeInstanceOf(InvalidParameterError);
       expect((error as InvalidParameterError).message).toBe(
-        '--private-key-path: an encrypted private key is not supported',
+        'The private key from --private-key-path is encrypted, which is not supported.',
       );
     },
   );
@@ -257,7 +257,7 @@ describe('signing private key', () => {
 
       expect(error).toBeInstanceOf(InvalidParameterError);
       expect((error as InvalidParameterError).message).toBe(
-        'HOTCODEPUSH_SIGNING_KEY: no RSA private key of 2048 bits or more',
+        'The key from HOTCODEPUSH_SIGNING_KEY is not an RSA private key of 2048 bits or more.',
       );
     },
   );

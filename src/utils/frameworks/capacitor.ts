@@ -156,7 +156,7 @@ function resolveBinaryCreatePhase(
     .join('/');
   return {
     anchorPhaseName: undefined,
-    fix: `add a Run Script phase after the app target's last phase that runs ${BINARY_CREATE_SCRIPT_PATH}.`,
+    fix: `Add a Run Script phase after the app target's last phase that runs ${BINARY_CREATE_SCRIPT_PATH}.`,
     // the lines of the phase as a pbxproj string carries them, the line breaks escaped
     shellScript: [
       'set -e',
@@ -178,7 +178,7 @@ async function resolveWiring(
     directoryPath,
     resolveNativeProjectPaths(directoryPath),
     options,
-    'run "npx cap add ios" and "npx cap add android", or ',
+    'Run "npx cap add ios" and "npx cap add android", or pass --ios-path and --android-path.',
   );
   const xcodeProjectFilePath = resolveXcodeProjectFilePath(nativeProjects.ios);
   const isPackageInstalled = isSdkPackageDeclared(

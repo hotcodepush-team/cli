@@ -83,7 +83,7 @@ describe('billing update', () => {
       ),
     ).rejects.toThrow(
       new ConfirmationRequiredError(
-        'lowers the spending cap of Globex from $50 to $20 a month and applies now; devices counted this month stay counted, and if they already exceed the new cap, no further device is counted until the cap is raised or the month turns',
+        'lowers the spending cap of Globex from $50 to $20 a month and applies now. Devices counted this month stay counted, and if they already exceed the new cap, no further device is counted until the cap is raised or the month turns',
       ),
     );
     expect(readUpdateRequests()).toEqual([]);
@@ -163,7 +163,7 @@ describe('billing update', () => {
       ),
     ).rejects.toMatchObject({
       code: 'E_MISSING_PARAMETER',
-      message: '--spending-cap is missing',
+      message: 'No value was given for --spending-cap.',
     });
     expect(readUpdateRequests()).toEqual([]);
   });

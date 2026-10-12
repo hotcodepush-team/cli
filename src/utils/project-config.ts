@@ -36,9 +36,9 @@ const ID_SCHEMA = z.guid();
 export function assertProjectConfigAppId(appId: string): void {
   if (!ID_SCHEMA.safeParse(appId).success) {
     throw new InvalidParameterError(
-      `${PROJECT_CONFIG_FILE_NAME}: appId is no id`,
+      `The appId in ${PROJECT_CONFIG_FILE_NAME} is not an id.`,
       undefined,
-      'set appId to the id "hotcodepush app list" prints.',
+      'Set appId to the id "hotcodepush app list" prints.',
     );
   }
 }
@@ -87,7 +87,7 @@ export function locateProjectConfigFile(
 ): ProjectConfigFileLocation {
   if (configPath !== undefined && !existsSync(configPath)) {
     throw new InvalidParameterError(
-      `--config: there is no file at ${configPath}`,
+      `The file ${configPath} from --config does not exist.`,
       undefined,
     );
   }

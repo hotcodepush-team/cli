@@ -49,8 +49,8 @@ export function resolveBundleUrlEdit(
         lastImportLine === undefined
       ) {
         throw new NativeProjectError(
-          `${filePath} does not return the template's main.jsbundle from bundleURL()`,
-          `import HotcodepushReactNativeCodePush in ${filePath} and return ${BUNDLE_URL_CALL} from bundleURL() where it returns the embedded bundle.`,
+          `The file ${filePath} does not return the template's main.jsbundle from bundleURL().`,
+          `Import HotcodepushReactNativeCodePush in ${filePath} and return ${BUNDLE_URL_CALL} from bundleURL() where it returns the embedded bundle.`,
         );
       }
       writeFileSync(
@@ -89,9 +89,9 @@ export function resolveCorePodEdit(
       if (commit === undefined || nativeModulesLine === undefined) {
         throw new NativeProjectError(
           commit === undefined
-            ? `${REACT_NATIVE_PACKAGE_NAME} in node_modules names no ${CORE_POD_NAME} commit to pin`
-            : `${filePath} has no use_native_modules! line to add the pod after`,
-          `add "pod '${CORE_POD_NAME}', :git => '${CORE_POD_REPOSITORY_URL}', :commit => '<sha>'" to the app target in ${filePath}, the commit the SDK's README names.`,
+            ? `The package ${REACT_NATIVE_PACKAGE_NAME} in node_modules names no ${CORE_POD_NAME} commit to pin.`
+            : `The Podfile ${filePath} has no use_native_modules! line to add the pod after.`,
+          `Add "pod '${CORE_POD_NAME}', :git => '${CORE_POD_REPOSITORY_URL}', :commit => '<sha>'" to the app target in ${filePath}, the commit the SDK's README names.`,
         );
       }
       const indentation = /^\s*/.exec(nativeModulesLine)?.[0] ?? '';
@@ -128,8 +128,8 @@ export function resolveReactHostEdit(
       const source = readFileSync(filePath, 'utf8');
       if (!source.includes(REACT_NATIVE_REACT_HOST_IMPORT)) {
         throw new NativeProjectError(
-          `${filePath} does not import the template's DefaultReactHost.getDefaultReactHost`,
-          `build the React host in ${filePath} with com.hotcodepush.reactnative.HotCodePushReactHost.getDefaultReactHost, which takes DefaultReactHost.getDefaultReactHost's parameters.`,
+          `The file ${filePath} does not import the template's DefaultReactHost.getDefaultReactHost.`,
+          `Build the React host in ${filePath} with com.hotcodepush.reactnative.HotCodePushReactHost.getDefaultReactHost, which takes DefaultReactHost.getDefaultReactHost's parameters.`,
         );
       }
       writeFileSync(

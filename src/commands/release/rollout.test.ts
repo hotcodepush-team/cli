@@ -124,7 +124,7 @@ describe('release rollout', () => {
       ),
     ).rejects.toMatchObject({
       code: 'E_MISSING_PARAMETER',
-      message: '--rollout-percentage is missing',
+      message: 'No value was given for --rollout-percentage.',
     });
   });
 
@@ -215,7 +215,7 @@ describe('release rollout', () => {
     ).rejects.toMatchObject({
       code: 'E_CONFIRMATION_REQUIRED',
       message:
-        'a confirmation is required: sets release #43 of staging to 50 percent: devices already on it keep it, and no new device above 50 percent gets it; its progression ends',
+        'A confirmation is required. This sets release #43 of staging to 50 percent: devices already on it keep it, and no new device above 50 percent gets it. Its progression ends.',
     });
   });
 
@@ -237,7 +237,7 @@ describe('release rollout', () => {
     ).rejects.toMatchObject({
       code: 'E_INVALID_PARAMETER',
       message:
-        "--progress-percentages: a schedule's flags apply only with --progress",
+        "The schedule's flags --progress-percentages apply only with --progress.",
     });
     expect(harness.requests).toEqual([]);
   });

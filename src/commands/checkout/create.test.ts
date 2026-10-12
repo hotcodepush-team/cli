@@ -76,7 +76,7 @@ describe('checkout create', () => {
       ),
     ).rejects.toMatchObject({
       code: 'E_MISSING_PARAMETER',
-      message: '--spending-cap is missing',
+      message: 'No value was given for --spending-cap.',
     });
     expect(harness.requests).toEqual([]);
   });

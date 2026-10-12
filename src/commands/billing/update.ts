@@ -73,7 +73,7 @@ function resolveSpendingCapConsequence(
   const newText = resolveDollarText(newSpendingCapCents);
   return newSpendingCapCents > previousSpendingCapCents
     ? `raises ${capText} from ${previousText} to ${newText} a month, applying now`
-    : `lowers ${capText} from ${previousText} to ${newText} a month and applies now; devices counted this month stay counted, and if they already exceed the new cap, no further device is counted until the cap is raised or the month turns`;
+    : `lowers ${capText} from ${previousText} to ${newText} a month and applies now. Devices counted this month stay counted, and if they already exceed the new cap, no further device is counted until the cap is raised or the month turns`;
 }
 
 /**

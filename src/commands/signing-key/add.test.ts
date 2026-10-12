@@ -191,7 +191,8 @@ describe('signing-key add', () => {
         ),
       ).rejects.toMatchObject({
         code: 'E_INVALID_PARAMETER',
-        message: '--private-key-path: no RSA private key of 2048 bits or more',
+        message:
+          'The key from --private-key-path is not an RSA private key of 2048 bits or more.',
       });
 
       expect(harness.requests).toHaveLength(0);
@@ -236,7 +237,7 @@ describe('signing-key add', () => {
       signingKeyAddCommand.action({ app: DEMO_APP.id }, undefined),
     ).rejects.toMatchObject({
       code: 'E_MISSING_PARAMETER',
-      message: '--private-key-path is missing',
+      message: 'No value was given for --private-key-path.',
     });
 
     expect(harness.requests).toHaveLength(0);

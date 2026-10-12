@@ -168,7 +168,7 @@ describe('signing-key create', () => {
       signingKeyCreateCommand.action({ app: 'Demo' }, undefined),
     ).rejects.toMatchObject({
       code: 'E_INVALID_PARAMETER',
-      message: `--private-key-path: ${keyFilePath} already exists`,
+      message: `The file ${keyFilePath} from --private-key-path already exists.`,
     });
 
     expect(harness.requests).toHaveLength(0);
@@ -186,7 +186,7 @@ describe('signing-key create', () => {
       ),
     ).rejects.toMatchObject({
       code: 'E_INVALID_PARAMETER',
-      message: `--private-key-path: no folder at ${folderPath}`,
+      message: `The folder ${folderPath} from --private-key-path does not exist.`,
     });
 
     expect(harness.requests).toHaveLength(0);

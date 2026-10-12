@@ -58,7 +58,7 @@ describe('project config', () => {
     expect(() => readProjectConfig(configPath)).toThrow(
       expect.objectContaining({
         code: 'E_INVALID_JSON',
-        message: `${configPath} is no valid JSON: unexpected end of JSON input`,
+        message: `The file ${configPath} is not valid JSON. Unexpected end of JSON input.`,
       }),
     );
   });
@@ -71,8 +71,8 @@ describe('project config', () => {
     expect(() => assertProjectConfigAppId('x & calc')).toThrow(
       expect.objectContaining({
         code: 'E_INVALID_PARAMETER',
-        fix: 'set appId to the id "hotcodepush app list" prints.',
-        message: 'hotcodepush.json: appId is no id',
+        fix: 'Set appId to the id "hotcodepush app list" prints.',
+        message: 'The appId in hotcodepush.json is not an id.',
       }),
     );
   });

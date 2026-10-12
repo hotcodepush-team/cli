@@ -98,7 +98,7 @@ describe('invitation accept', () => {
     expect(harness.requests).toEqual([]);
   });
 
-  it("should pass the API's refusal of a used invitation through with its code in front", async () => {
+  it("should pass the API's refusal of a used invitation through with its code in the docs link", async () => {
     const stderrWrite = vi
       .spyOn(process.stderr, 'write')
       .mockImplementation(() => true);
@@ -124,7 +124,7 @@ describe('invitation accept', () => {
 
     expect(exitCode).toBe(1);
     expect(stderrWrite).toHaveBeenCalledWith(
-      'E_INVITATION_INVALID The invitation is no longer valid. https://hotcodepush.com/docs/cli/errors#E_INVITATION_INVALID\n',
+      'The invitation is no longer valid.\nhttps://hotcodepush.com/docs/cli/errors#E_INVITATION_INVALID\n',
     );
   });
 });

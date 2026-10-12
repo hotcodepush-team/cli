@@ -154,8 +154,8 @@ describe('runCli', () => {
     const exitCode = await runCli(commandRegistry, ['login'], META);
 
     expect(exitCode).toBe(2);
-    expect(output.readStderr()).toMatch(
-      /^E_MISSING_PARAMETER --token is missing — /,
+    expect(output.readStderr()).toBe(
+      'No value was given for --token. Pass --token, or run the command interactively to be asked for it.\nhttps://hotcodepush.com/docs/cli/errors#E_MISSING_PARAMETER\n',
     );
   });
 
@@ -168,8 +168,8 @@ describe('runCli', () => {
     expect(JSON.parse(output.readStdout())).toEqual({
       error: {
         code: 'E_MISSING_PARAMETER',
-        fix: 'pass --token, or run the command interactively to be asked for it.',
-        message: '--token is missing',
+        fix: 'Pass --token, or run the command interactively to be asked for it.',
+        message: 'No value was given for --token.',
       },
     });
     expect(output.readStderr()).toBe('');
@@ -203,8 +203,8 @@ describe('runCli', () => {
     );
 
     expect(exitCode).toBe(2);
-    expect(output.readStderr()).toMatch(
-      /^E_INVALID_PARAMETER Unknown option: --colour — /,
+    expect(output.readStderr()).toBe(
+      'Unknown option: --colour. Run the command with --help to see its options.\nhttps://hotcodepush.com/docs/cli/errors#E_INVALID_PARAMETER\n',
     );
   });
 
@@ -215,8 +215,8 @@ describe('runCli', () => {
     const exitCode = await runCli(commandRegistry, ['chanel', 'create'], META);
 
     expect(exitCode).toBe(1);
-    expect(output.readStderr()).toContain(
-      'E_UNKNOWN_COMMAND "chanel create" is not a command — did you mean "channel create"?',
+    expect(output.readStderr()).toBe(
+      'There is no command "chanel create". Did you mean "channel create"?\nhttps://hotcodepush.com/docs/cli/errors#E_UNKNOWN_COMMAND\n',
     );
   });
 

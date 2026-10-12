@@ -67,7 +67,10 @@ export const channelFieldsShape = {
     ),
   expiresIn: z
     .string()
-    .regex(DURATION_PATTERN, 'a number of days or hours such as 14d or 12h')
+    .regex(
+      DURATION_PATTERN,
+      'Expected a number of days or hours such as 14d or 12h',
+    )
     .optional()
     .describe('How long until the preview channel expires, 14d or 12h.'),
   ...failurePolicyShape,
@@ -114,8 +117,9 @@ function resolveExpiresAt({
   }
   if (expiresAt !== undefined) {
     throw new InvalidParameterError(
-      '--expires-in and --expires-at: pass only one of them',
+      'The flags --expires-in and --expires-at were passed together.',
       undefined,
+      'Pass only one of them.',
     );
   }
   return new Date(

@@ -32,7 +32,7 @@ describe('device delete', () => {
 
     expect(confirm).toHaveBeenCalledWith({
       initialValue: false,
-      message: `This deletes device ${DEVICE.deviceId}'s registry row for good, the erasure request; the device reports again with its next check. Continue?`,
+      message: `This deletes device ${DEVICE.deviceId}'s registry row for good, the erasure request. The device reports again with its next check. Continue?`,
     });
     expect(readDeleteRequests()).toHaveLength(1);
     expect(harness.readLines()).toEqual([`Deleted device ${DEVICE.deviceId}.`]);

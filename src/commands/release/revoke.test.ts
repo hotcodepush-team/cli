@@ -88,7 +88,7 @@ describe('release revoke', () => {
     expect(confirm).toHaveBeenCalledWith({
       initialValue: false,
       message:
-        'This revokes release #43 of staging for good: 80 devices move to release #42; revoked is final, and "release create --bundle 17" releases its bundle again. Continue?',
+        'This revokes release #43 of staging for good: 80 devices move to release #42. Revoked is final, and "release create --bundle 17" releases its bundle again. Continue?',
     });
     expect(
       readRevokeRequests().map(({ url }) => new URL(url).pathname),
@@ -139,7 +139,7 @@ describe('release revoke', () => {
       ),
     ).rejects.toThrow(
       new ConfirmationRequiredError(
-        'revokes release #43 of staging for good: 80 devices return to the embedded bundle; revoked is final, and "release create --bundle 17" releases its bundle again',
+        'revokes release #43 of staging for good: 80 devices return to the embedded bundle. Revoked is final, and "release create --bundle 17" releases its bundle again',
       ),
     );
   });
@@ -159,7 +159,7 @@ describe('release revoke', () => {
       ),
     ).rejects.toThrow(
       new ConfirmationRequiredError(
-        'revokes release #43 of staging for good: 80 devices move to release #41; revoked is final, and "release create --bundle 17" releases its bundle again',
+        'revokes release #43 of staging for good: 80 devices move to release #41. Revoked is final, and "release create --bundle 17" releases its bundle again',
       ),
     );
     expect(stderrWrite).toHaveBeenCalledWith(
@@ -214,7 +214,7 @@ describe('release revoke', () => {
     expect(confirm).toHaveBeenCalledWith({
       initialValue: false,
       message:
-        'This revokes releases #43 and #42 of staging for good: 100 devices return to the embedded bundle; revoked is final, and "release create --bundle <number>" releases a bundle again. Continue?',
+        'This revokes releases #43 and #42 of staging for good: 100 devices return to the embedded bundle. Revoked is final, and "release create --bundle <number>" releases a bundle again. Continue?',
     });
     const [revokeRequest] = readRevokeRequests();
     expect(await revokeRequest?.json()).toEqual({
@@ -310,7 +310,7 @@ describe('release revoke', () => {
     expect(confirm).toHaveBeenCalledWith({
       initialValue: false,
       message:
-        'This revokes release #7 of production and release #43 of staging for good: 900 devices return to the embedded bundle in production; 80 devices move to release #42 in staging; revoked is final, and "release create --bundle 17" releases its bundle again. Continue?',
+        'This revokes release #7 of production and release #43 of staging for good: 900 devices return to the embedded bundle in production, 80 devices move to release #42 in staging. Revoked is final, and "release create --bundle 17" releases its bundle again. Continue?',
     });
     expect(
       await Promise.all(

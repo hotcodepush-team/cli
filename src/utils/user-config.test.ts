@@ -46,7 +46,7 @@ describe('user config', () => {
     expect(() => readUserConfig()).toThrow(
       expect.objectContaining({
         code: 'E_INVALID_JSON',
-        message: `${join(configDirectoryPath, 'config.json')} is no valid JSON: unexpected token 's'`,
+        message: `The file ${join(configDirectoryPath, 'config.json')} is not valid JSON. Unexpected token 's'.`,
       }),
     );
   });

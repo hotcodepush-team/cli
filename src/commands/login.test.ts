@@ -350,9 +350,9 @@ describe('login', () => {
         expect(JSON.parse(stdout.read())).toEqual({
           error: {
             code: 'E_INVALID_PARAMETER',
-            fix: 'run the command with --help to see its options.',
+            fix: 'Run the command with --help to see its options.',
             message:
-              '--api-url: an absolute http or https URL such as https://api.example.com',
+              'The value of --api-url is invalid. Expected an absolute http or https URL such as https://api.example.com.',
           },
         });
         expect(readUserConfig()).toEqual({ apiUrl: API_URL });
@@ -373,8 +373,8 @@ describe('login', () => {
       expect(JSON.parse(stdout.read())).toEqual({
         error: {
           code: 'E_NOT_LOGGED_IN',
-          fix: 'approve at https://console.example.com/device?user_code=WDJBMJHT with code WDJBMJHT, then run "hotcodepush login" again.',
-          message: 'you are not logged in',
+          fix: 'Approve at https://console.example.com/device?user_code=WDJBMJHT with code WDJBMJHT, then run "hotcodepush login" again.',
+          message: 'You are not logged in.',
         },
       });
       expect(readUserConfig()).toEqual({
@@ -496,8 +496,8 @@ describe('login', () => {
       expect(JSON.parse(stdout.read())).toEqual({
         error: {
           code: 'E_NOT_LOGGED_IN',
-          fix: `approve at ${KEPT_VERIFICATION_URL} with code KEPTCODE, then run "hotcodepush login" again.`,
-          message: 'you are not logged in',
+          fix: `Approve at ${KEPT_VERIFICATION_URL} with code KEPTCODE, then run "hotcodepush login" again.`,
+          message: 'You are not logged in.',
         },
       });
       expect(fetchMock).toHaveBeenCalledOnce();

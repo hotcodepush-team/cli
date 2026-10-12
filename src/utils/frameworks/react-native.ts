@@ -53,7 +53,7 @@ import type {
  */
 const BINARY_CREATE_PHASE: BinaryCreatePhase = {
   anchorPhaseName: 'Bundle React Native code and images',
-  fix: `add a Run Script phase after "Bundle React Native code and images" that runs node_modules/${REACT_NATIVE_PACKAGE_NAME}/scripts/binary-create-xcode.sh through React Native's with-environment.sh.`,
+  fix: `Add a Run Script phase after "Bundle React Native code and images" that runs node_modules/${REACT_NATIVE_PACKAGE_NAME}/scripts/binary-create-xcode.sh through React Native's with-environment.sh.`,
   // the lines of the phase as a pbxproj string carries them, the line breaks escaped
   shellScript: [
     'set -e',
@@ -175,7 +175,7 @@ async function resolveWiring(
     directoryPath,
     resolveNativeProjectPaths(directoryPath),
     options,
-    '',
+    'Pass --ios-path and --android-path.',
   );
   const isPackageInstalled = isSdkPackageDeclared(
     packageJson,

@@ -138,7 +138,7 @@ describe('app transfer', () => {
 
     expect(exitCode).toBe(1);
     expect(stderrWrite).toHaveBeenCalledWith(
-      'E_APP_NAME_TAKEN An app of that name exists in the organization. https://hotcodepush.com/docs/cli/errors#E_APP_NAME_TAKEN\n',
+      'An app of that name exists in the organization.\nhttps://hotcodepush.com/docs/cli/errors#E_APP_NAME_TAKEN\n',
     );
   });
 });

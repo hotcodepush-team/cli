@@ -30,7 +30,7 @@ import {
 
 const APPENDED_PHASE: BinaryCreatePhase = {
   anchorPhaseName: undefined,
-  fix: 'add the phase by hand.',
+  fix: 'Add the phase by hand.',
   shellScript: '/bin/sh scripts/binary-create-xcode.sh\\n',
 };
 
@@ -125,8 +125,7 @@ describe('xcode-project', () => {
       }),
     ).rejects.toMatchObject({
       code: 'E_INVALID_PARAMETER',
-      message:
-        '--xcode-target: no app target is named Widget; the targets are App',
+      message: 'No app target is named Widget. The targets are App.',
     });
   });
 
@@ -147,7 +146,7 @@ describe('xcode-project', () => {
     ).rejects.toMatchObject({
       code: 'E_XCODE_PROJECT',
       fix: ANCHORED_PHASE.fix,
-      message: `${projectFilePath} has no "Bundle React Native code and images" phase to run the build step after`,
+      message: `The Xcode project ${projectFilePath} has no "Bundle React Native code and images" phase to run the build step after.`,
     });
     expect(hasBinaryCreatePhase(projectFilePath)).toBe(false);
   });

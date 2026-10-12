@@ -216,9 +216,9 @@ function readDocumentFile(flag: string, filePath: string): string {
     return readFileSync(filePath, 'utf8');
   } catch (error) {
     throw new InvalidParameterError(
-      `${flag}: cannot read ${filePath}`,
+      `The file ${filePath} from ${flag} cannot be read.`,
       error,
-      'pass the path of a file you can read.',
+      'Pass the path of a file you can read.',
     );
   }
 }
@@ -246,9 +246,9 @@ function resolveFlaggedProviderKind(
   ].some(value => value !== undefined);
   if (hasOidcFlag && hasSamlFlag) {
     throw new InvalidParameterError(
-      'the --oidc- and --saml- flags were passed together',
+      'The --oidc- and --saml- flags were passed together.',
       undefined,
-      'pass the --oidc- flags for an OIDC provider or the --saml- flags for a SAML one, since a provider speaks one protocol.',
+      'Pass the --oidc- flags for an OIDC provider or the --saml- flags for a SAML one, since a provider speaks one protocol.',
     );
   }
   if (hasOidcFlag) {

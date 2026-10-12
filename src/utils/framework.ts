@@ -74,7 +74,7 @@ export async function resolveInputDirectoryPath(
   if (!isInteractive(options)) {
     throw new MissingParameterError(
       pathFlag,
-      `pass ${pathFlag}, since ${buildDirectory.missingReason}.`,
+      `Pass ${pathFlag}, since ${buildDirectory.missingReason}.`,
     );
   }
   return resolve(

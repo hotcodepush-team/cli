@@ -368,7 +368,7 @@ async function resolveEditBlocker(
     return undefined;
   }
   const consequence = `changes ${filePaths.join(', ')}`;
-  const manualStep = `run init --yes to change ${filePaths.join(', ')}`;
+  const manualStep = `Run init --yes to change ${filePaths.join(', ')}.`;
   try {
     return (await confirmConsequence(consequence, options))
       ? undefined
@@ -614,7 +614,7 @@ function printFinish(app: App): void {
 function assertName(flag: string, reference: string): void {
   if (ID_SCHEMA.safeParse(reference).success) {
     throw new InvalidParameterError(
-      `${flag}: nothing has the id ${reference}`,
+      `Nothing has the id ${reference} from ${flag}.`,
       undefined,
     );
   }
@@ -678,7 +678,7 @@ function requireById<TResource extends { id: string }>(
 ): TResource {
   const resource = resources.find(candidate => candidate.id === id);
   if (resource === undefined) {
-    throw new InvalidParameterError(`nothing has the id ${id}`, undefined);
+    throw new InvalidParameterError(`Nothing has the id ${id}.`, undefined);
   }
   return resource;
 }
@@ -688,7 +688,7 @@ function requireById<TResource extends { id: string }>(
  */
 function requireValue<TValue>(value: TValue | undefined): TValue {
   if (value === undefined) {
-    throw new UnexpectedError(new Error('an earlier step did not run'));
+    throw new UnexpectedError(new Error('An earlier step did not run.'));
   }
   return value;
 }

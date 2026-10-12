@@ -464,7 +464,7 @@ describe('release create', () => {
       ).rejects.toMatchObject({
         code: 'E_INVALID_PARAMETER',
         message:
-          "--progress-minimum-seconds: a schedule's flags apply only with --progress",
+          "The schedule's flags --progress-minimum-seconds apply only with --progress.",
       });
       expect(harness.requests).toEqual([]);
     });
@@ -524,7 +524,7 @@ describe('release create', () => {
       ).rejects.toMatchObject({
         code: 'E_INVALID_PARAMETER',
         message:
-          '--from-channel: the channel production serves no active release',
+          'The channel production from --from-channel serves no active release.',
       });
       expect(readCreateRequests()).toEqual([]);
     });

@@ -53,7 +53,8 @@ export default defineCommand({
   options: defineCommandOptions({
     apiUrl: z
       .url({
-        error: 'an absolute http or https URL such as https://api.example.com',
+        error:
+          'Expected an absolute http or https URL such as https://api.example.com',
         protocol: z.regexes.httpProtocol,
       })
       .transform(apiUrl => apiUrl.replace(/\/+$/, ''))

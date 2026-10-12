@@ -239,7 +239,7 @@ describe('expoFramework', () => {
         const directoryPath = writeProject();
         const editBlocker = new ConfirmationRequiredError(
           'changes app.json',
-          'run init --yes to change app.json',
+          'Run init --yes to change app.json.',
         );
         const wiring = await expoFramework.resolveWiring(
           readProject(directoryPath),
@@ -263,8 +263,8 @@ describe('expoFramework', () => {
 
         await expect(wiring.wireBinaryCreateStep(undefined)).rejects.toThrow(
           new NativeProjectError(
-            'app.json is not JSON the CLI can parse',
-            'add "@hotcodepush/expo-ota-updates" to the plugins in app.json.',
+            'The app config app.json is not JSON the CLI can parse.',
+            'Add "@hotcodepush/expo-ota-updates" to the plugins in app.json.',
           ),
         );
         expect(wiring.packageFilePaths).toEqual(['package.json']);
@@ -285,8 +285,8 @@ describe('expoFramework', () => {
 
         await expect(wiring.wireBinaryCreateStep(undefined)).rejects.toThrow(
           new NativeProjectError(
-            'app.config.ts is code the CLI does not edit',
-            'add "@hotcodepush/expo-ota-updates" to the plugins in app.config.ts.',
+            'The app config app.config.ts is code, which the CLI does not edit.',
+            'Add "@hotcodepush/expo-ota-updates" to the plugins in app.config.ts.',
           ),
         );
         expect(wiring.packageFilePaths).toEqual(['package.json']);
@@ -321,7 +321,7 @@ describe('expoFramework', () => {
         {
           check: 'hook',
           manualStep:
-            'add "@hotcodepush/expo-ota-updates" to the plugins in app.json',
+            'Add "@hotcodepush/expo-ota-updates" to the plugins in app.json.',
           message:
             'app.json does not list the config plugin @hotcodepush/expo-ota-updates',
           status: 'failed',
@@ -338,7 +338,7 @@ describe('expoFramework', () => {
         {
           check: 'hook',
           manualStep:
-            'add "@hotcodepush/expo-ota-updates" to the plugins in app.config.js',
+            'Add "@hotcodepush/expo-ota-updates" to the plugins in app.config.js.',
           message:
             'app.config.js does not list the config plugin @hotcodepush/expo-ota-updates',
           status: 'failed',

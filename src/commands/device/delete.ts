@@ -23,7 +23,7 @@ export default defineCommand({
       options,
     );
     const isConfirmed = await confirmConsequence(
-      `deletes device ${deviceId}'s registry row for good, the erasure request; the device reports again with its next check`,
+      `deletes device ${deviceId}'s registry row for good, the erasure request. The device reports again with its next check`,
       options,
     );
     if (!isConfirmed) {

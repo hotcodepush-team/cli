@@ -115,7 +115,7 @@ export async function addBinaryCreatePhase(
         );
   if (anchorPhaseIndex === -1) {
     throw new XcodeProjectError(
-      `${projectFilePath} has no "${phase.anchorPhaseName}" phase to run the build step after`,
+      `The Xcode project ${projectFilePath} has no "${phase.anchorPhaseName}" phase to run the build step after.`,
       undefined,
       projectFilePath,
       phase.fix,
@@ -196,8 +196,9 @@ async function resolveAppTarget(
     );
     if (namedTarget === undefined) {
       throw new InvalidParameterError(
-        `--xcode-target: no app target is named ${options.xcodeTarget}; the targets are ${appTargets.map(({ name }) => name).join(', ')}`,
+        `No app target is named ${options.xcodeTarget}. The targets are ${appTargets.map(({ name }) => name).join(', ')}.`,
         undefined,
+        'Pass one of them with --xcode-target.',
       );
     }
     return namedTarget;
@@ -297,7 +298,7 @@ function parseProject(projectFilePath: string, fix?: string): EditableProject {
     return { keptNumbers, project };
   } catch (error) {
     throw new XcodeProjectError(
-      `${projectFilePath} could not be parsed`,
+      `The Xcode project ${projectFilePath} could not be parsed.`,
       error,
       projectFilePath,
       fix,

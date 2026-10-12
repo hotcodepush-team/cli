@@ -115,7 +115,7 @@ describe('member update', () => {
     expect(confirm).toHaveBeenCalledWith({
       initialValue: false,
       message:
-        'This transfers the ownership of the organization to bob@example.com and makes you an admin; only the new owner can transfer it back. Continue?',
+        'This transfers the ownership of the organization to bob@example.com and makes you an admin. Only the new owner can transfer it back. Continue?',
     });
     expect(await readPatchRequests()[0]?.json()).toEqual({ role: 'owner' });
   });
@@ -137,7 +137,7 @@ describe('member update', () => {
     expect(await readPatchRequests()[0]?.json()).toEqual({ role: 'owner' });
   });
 
-  it("should pass the API's refusal of an ownership transfer through with its code in front", async () => {
+  it("should pass the API's refusal of an ownership transfer through with its code in the docs link", async () => {
     const stderrWrite = vi
       .spyOn(process.stderr, 'write')
       .mockImplementation(() => true);
@@ -167,7 +167,7 @@ describe('member update', () => {
 
     expect(exitCode).toBe(1);
     expect(stderrWrite).toHaveBeenCalledWith(
-      'E_FORBIDDEN Only the Owner may transfer the ownership. https://hotcodepush.com/docs/cli/errors#E_FORBIDDEN\n',
+      'Only the Owner may transfer the ownership.\nhttps://hotcodepush.com/docs/cli/errors#E_FORBIDDEN\n',
     );
   });
 });

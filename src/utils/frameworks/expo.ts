@@ -210,7 +210,7 @@ function parseAppJson(appJsonText: string): AppJson | undefined {
 }
 
 function resolvePluginEntryStep(appConfigFileName: string): string {
-  return `add "${EXPO_PACKAGE_NAME}" to the plugins in ${appConfigFileName}`;
+  return `Add "${EXPO_PACKAGE_NAME}" to the plugins in ${appConfigFileName}.`;
 }
 
 function resolveWiring({
@@ -262,14 +262,14 @@ async function wirePluginEntry(
   const { codeFileName, jsonFileName } = appConfigFileNames;
   if (codeFileName !== undefined) {
     throw new NativeProjectError(
-      `${codeFileName} is code the CLI does not edit`,
-      `${resolvePluginEntryStep(codeFileName)}.`,
+      `The app config ${codeFileName} is code, which the CLI does not edit.`,
+      resolvePluginEntryStep(codeFileName),
     );
   }
   if (!isPluginEntryEditable(projectDirectoryPath, appConfigFileNames)) {
     throw new NativeProjectError(
-      `${jsonFileName} is not JSON the CLI can parse`,
-      `${resolvePluginEntryStep(jsonFileName)}.`,
+      `The app config ${jsonFileName} is not JSON the CLI can parse.`,
+      resolvePluginEntryStep(jsonFileName),
     );
   }
   if (editBlocker !== undefined) {

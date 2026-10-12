@@ -32,7 +32,7 @@ describe('json file', () => {
         code: 'E_INVALID_JSON',
         exitCode: ExitCode.Error,
         message: expect.stringContaining(
-          `${filePath} is no valid JSON: expected double-quoted property name in JSON at position 24`,
+          `The file ${filePath} is not valid JSON. Expected double-quoted property name in JSON at position 24`,
         ),
       }),
     );
@@ -43,7 +43,7 @@ describe('json file', () => {
 
     expect(() => readJsonFile(filePath)).toThrow(
       expect.objectContaining({
-        message: `${filePath} is no valid JSON: unexpected token 's'`,
+        message: `The file ${filePath} is not valid JSON. Unexpected token 's'.`,
       }),
     );
   });

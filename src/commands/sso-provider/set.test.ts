@@ -335,7 +335,9 @@ describe('sso-provider set', () => {
         },
         undefined,
       ),
-    ).rejects.toThrow(`--saml-metadata-path: cannot read ${missingFilePath}`);
+    ).rejects.toThrow(
+      `The file ${missingFilePath} from --saml-metadata-path cannot be read.`,
+    );
     expect(harness.requests).toEqual([]);
   });
 });

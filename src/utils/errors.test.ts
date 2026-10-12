@@ -69,9 +69,9 @@ describe('errors', () => {
     );
 
     expect(error.message).toBe(
-      'a confirmation is required: reaches 10 devices in production',
+      'A confirmation is required. This reaches 10 devices in production.',
     );
-    expect(error.fix).toBe('pass --yes to confirm.');
+    expect(error.fix).toBe('Pass --yes to confirm.');
   });
 
   it('should carry the page and the code when a login cannot wait for the approval', () => {
@@ -81,45 +81,47 @@ describe('errors', () => {
     });
 
     expect(error.fix).toBe(
-      'approve at https://console.example.com/device?user_code=WDJBMJHT with code WDJBMJHT, then run "hotcodepush login" again.',
+      'Approve at https://console.example.com/device?user_code=WDJBMJHT with code WDJBMJHT, then run "hotcodepush login" again.',
     );
   });
 
   it('should name the flag when a parameter is missing', () => {
     const error = new MissingParameterError('--channel');
 
-    expect(error.message).toBe('--channel is missing');
-    expect(error.fix).toContain('pass --channel');
+    expect(error.message).toBe('No value was given for --channel.');
+    expect(error.fix).toContain('Pass --channel');
   });
 
   it('should suggest the closest command when one is known', () => {
     const error = new UnknownCommandError('relese create', 'release create');
 
-    expect(error.message).toBe('"relese create" is not a command');
-    expect(error.fix).toBe('did you mean "release create"?');
+    expect(error.message).toBe('There is no command "relese create".');
+    expect(error.fix).toBe('Did you mean "release create"?');
   });
 
   it('should point at the help when no command is close', () => {
     const error = new UnknownCommandError('deploy', undefined);
 
-    expect(error.fix).toBe('run "hotcodepush --help" to list the commands.');
+    expect(error.fix).toBe('Run "hotcodepush --help" to list the commands.');
   });
 
   it('should name the flag and the list command when no resource carries a name', () => {
     const error = new UnknownNameError('channel', 'staging');
 
-    expect(error.message).toBe('--channel: no channel is named "staging"');
-    expect(error.fix).toBe('run "hotcodepush channel list" to see the names.');
+    expect(error.message).toBe(
+      'The channel "staging" from --channel does not exist.',
+    );
+    expect(error.fix).toBe('Run "hotcodepush channel list" to see the names.');
   });
 
   it('should ask for the id when several resources carry a name', () => {
     const error = new AmbiguousNameError('organization', 'Acme');
 
     expect(error.message).toBe(
-      '--organization: several organizations are named "Acme"',
+      'Several organizations carry the name "Acme" from --organization.',
     );
     expect(error.fix).toBe(
-      'pass the id instead, as "hotcodepush organization list" prints it.',
+      'Pass the id instead, as "hotcodepush organization list" prints it.',
     );
   });
 

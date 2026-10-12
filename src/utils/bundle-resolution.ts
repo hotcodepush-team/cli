@@ -78,7 +78,7 @@ async function fetchBundleId(
   }
   if (!NUMBER_PATTERN.test(options.bundle)) {
     throw new InvalidParameterError(
-      `--bundle: "${options.bundle}" is neither a number nor an id`,
+      `The value "${options.bundle}" of --bundle is neither a number nor an id.`,
       undefined,
     );
   }
@@ -101,7 +101,7 @@ async function fetchBundleIdByNumber(
   );
   if (numberedBundle === undefined) {
     throw new InvalidParameterError(
-      `--bundle: the app has no bundle #${number}`,
+      `The app has no bundle #${number} from --bundle.`,
       undefined,
     );
   }

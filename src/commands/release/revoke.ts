@@ -178,15 +178,17 @@ async function fetchRevocations(
   ].filter(flag => flag !== undefined);
   if (formFlags.length > 1) {
     throw new InvalidParameterError(
-      `${formFlags.join(' and ')}: pass one of them`,
+      `The flags ${formFlags.join(' and ')} were passed together.`,
       undefined,
+      'Pass one of them.',
     );
   }
   if (options.bundle !== undefined) {
     if (options.channel !== undefined) {
       throw new InvalidParameterError(
-        "--bundle and --channel: --bundle revokes the bundle's releases in every channel; pass it alone",
+        "With --bundle, the bundle's releases are revoked in every channel, so --channel does not apply.",
         undefined,
+        'Pass --bundle alone.',
       );
     }
     return fetchBundleRevocations(hotCodePush, options);
@@ -372,7 +374,7 @@ function resolveRevocationConsequence(
     revocations
       .map(revocation => resolveMovesText(revocation, isChannelNamed))
       .filter(text => text !== undefined)
-      .join('; ') || 'no device runs them';
+      .join(', ') || 'no device runs them';
   const bundleNumbers = new Set(
     revocations.flatMap(({ revokedReleases }) =>
       revokedReleases.map(({ bundle }) => bundle?.number),
@@ -383,7 +385,7 @@ function resolveRevocationConsequence(
     bundleNumbers.size === 1 && bundleNumber !== undefined
       ? `"release create --bundle ${bundleNumber}" releases its bundle again`
       : '"release create --bundle <number>" releases a bundle again';
-  return `revokes ${releasesText} for good: ${movesText}; revoked is final, and ${reReleaseText}`;
+  return `revokes ${releasesText} for good: ${movesText}. Revoked is final, and ${reReleaseText}`;
 }
 
 /**

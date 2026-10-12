@@ -135,9 +135,9 @@ function buildUnusablePublicKeyError(
   cause?: unknown,
 ): InvalidParameterError {
   return new InvalidParameterError(
-    `${PROJECT_CONFIG_FILE_NAME}: publicKeys lists ${publicKey.slice(0, 32)}…, which is no rsa-v1_5-sha256 key of ${SIGNING_KEY_BITS_MINIMUM} bits or more`,
+    `The publicKeys in ${PROJECT_CONFIG_FILE_NAME} list ${publicKey.slice(0, 32)}…, which is not an rsa-v1_5-sha256 key of ${SIGNING_KEY_BITS_MINIMUM} bits or more.`,
     cause,
-    'replace it with the public key "hotcodepush signing-key create" writes.',
+    'Replace it with the public key "hotcodepush signing-key create" writes.',
   );
 }
 

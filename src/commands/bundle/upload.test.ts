@@ -425,7 +425,9 @@ describe('bundle upload', () => {
       ),
     ).rejects.toMatchObject({
       code: 'E_INVALID_PARAMETER',
-      message: expect.stringMatching(/^--private-key-path: /),
+      message: expect.stringMatching(
+        / from --private-key-path cannot be read\.$/,
+      ),
     });
   });
 
@@ -473,7 +475,7 @@ describe('bundle upload', () => {
 
     expect(exitCode).toBe(2);
     expect(stderrWrite).toHaveBeenCalledWith(
-      expect.stringMatching(/^E_INVALID_PARAMETER --platform: /),
+      expect.stringMatching(/^The value of --platform is invalid\. /),
     );
   });
 
