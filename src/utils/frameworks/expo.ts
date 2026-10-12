@@ -118,7 +118,7 @@ function checkPluginEntry({ directoryPath }: FrameworkProject): FrameworkCheck {
   if (pluginEntryFileName !== undefined) {
     return {
       check: 'hook',
-      message: `${pluginEntryFileName} lists the config plugin, which wires the build step at prebuild`,
+      message: `The app config ${pluginEntryFileName} lists the config plugin, which wires the build step at prebuild.`,
       status: 'ok',
     };
   }
@@ -129,7 +129,7 @@ function checkPluginEntry({ directoryPath }: FrameworkProject): FrameworkCheck {
     manualStep: isPluginEntryEditable(directoryPath, appConfigFileNames)
       ? INIT_MANUAL_STEP
       : resolvePluginEntryStep(appConfigFileName),
-    message: `${appConfigFileName} does not list the config plugin ${EXPO_PACKAGE_NAME}`,
+    message: `The app config ${appConfigFileName} does not list the config plugin ${EXPO_PACKAGE_NAME}.`,
     status: 'failed',
   };
 }
@@ -254,7 +254,7 @@ async function wirePluginEntry(
   );
   if (pluginEntryFileName !== undefined) {
     return {
-      message: `${pluginEntryFileName} already lists the config plugin`,
+      message: `The app config ${pluginEntryFileName} already lists the config plugin.`,
       status: 'skipped',
       value: undefined,
     };
@@ -277,7 +277,7 @@ async function wirePluginEntry(
   }
   addPluginEntry(join(projectDirectoryPath, jsonFileName));
   return {
-    message: `added the config plugin ${EXPO_PACKAGE_NAME} to ${jsonFileName}`,
+    message: `Added the config plugin ${EXPO_PACKAGE_NAME} to ${jsonFileName}.`,
     status: 'done',
     value: undefined,
   };

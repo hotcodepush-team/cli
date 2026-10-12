@@ -270,7 +270,7 @@ async function wireBinaryCreateStep(
   );
   if (isPhaseWired && pendingEdits.length === 0) {
     return {
-      message: 'the Xcode phase and the Gradle task already wired',
+      message: 'The Xcode phase and the Gradle task are already wired.',
       status: 'skipped',
       value: undefined,
     };
@@ -292,7 +292,7 @@ async function wireBinaryCreateStep(
     options,
   );
   return {
-    message: `wired ${wired.join(', ')}`,
+    message: `Wired ${wired.join(', ')}.`,
     status: 'done',
     value: undefined,
   };

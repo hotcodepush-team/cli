@@ -36,7 +36,9 @@ describe('errors', () => {
       4,
     ],
     [
-      new FingerprintUnavailableError(new Error('the project has no lockfile')),
+      new FingerprintUnavailableError(
+        new Error('The project has no lockfile.'),
+      ),
       'E_FINGERPRINT_UNAVAILABLE',
       1,
     ],

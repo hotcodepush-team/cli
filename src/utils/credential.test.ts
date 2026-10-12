@@ -27,10 +27,10 @@ describe('credential', () => {
 
     expect(user).toEqual(RUNNER_USER);
     expect(resolveCredentialText(user)).toBe(
-      'logged in as Anna Example (anna@example.com)',
+      'Logged in as Anna Example (anna@example.com).',
     );
     expect(resolveCredentialText({ ...RUNNER_USER, credential: 'token' })).toBe(
-      'authenticated with HOTCODEPUSH_TOKEN as Anna Example (anna@example.com)',
+      'Authenticated with HOTCODEPUSH_TOKEN as Anna Example (anna@example.com).',
     );
   });
 

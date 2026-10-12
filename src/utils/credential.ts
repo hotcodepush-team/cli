@@ -27,6 +27,6 @@ export function isUnauthenticatedError(error: unknown): boolean {
 export function resolveCredentialText(user: User): string {
   const who = `${user.name} (${user.email})`;
   return user.credential === 'token'
-    ? `authenticated with HOTCODEPUSH_TOKEN as ${who}`
-    : `logged in as ${who}`;
+    ? `Authenticated with HOTCODEPUSH_TOKEN as ${who}.`
+    : `Logged in as ${who}.`;
 }

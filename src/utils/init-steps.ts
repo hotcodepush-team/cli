@@ -1,4 +1,4 @@
-import { resolveCliError } from './error-mapping.js';
+import { resolveCliError, resolveSentence } from './error-mapping.js';
 import type { OutcomeRow } from './outcome.js';
 
 export type StepStatus = 'done' | 'skipped' | 'stopped';
@@ -48,7 +48,7 @@ export class InitRun {
     const unmetStep = dependsOn.find(name => this.unmetSteps.has(name));
     if (unmetStep !== undefined) {
       this.steps.push({
-        message: `waits on the ${unmetStep} step`,
+        message: `Waits on the ${unmetStep} step.`,
         status: 'skipped',
         step,
       });
@@ -61,10 +61,11 @@ export class InitRun {
       return value;
     } catch (error) {
       const { code, fix, message } = resolveCliError(error);
+      const messageSentence = resolveSentence(message);
       this.steps.push({
         code,
-        manualStep: fix ?? message,
-        message,
+        manualStep: fix ?? messageSentence,
+        message: messageSentence,
         status: 'stopped',
         step,
       });
@@ -75,10 +76,10 @@ export class InitRun {
 }
 
 export function resolveStepRows(steps: InitStep[]): OutcomeRow[] {
-  return steps.map(({ code, manualStep, message, status, step }) => ({
+  return steps.map(({ manualStep, message, status, step }) => ({
     label: step,
     manualStep,
-    message: code === undefined ? message : `${code} ${message}`,
+    message,
     status,
   }));
 }

@@ -131,7 +131,7 @@ describe('expoFramework', () => {
       );
 
       expect(wiring.installPackage()).toMatch(
-        /^installed @hotcodepush\/expo-ota-updates from https:\/\/pkg\.pr\.new\/hotcodepush-team\/expo-ota-updates\/@hotcodepush\/expo-ota-updates@[0-9a-f]{7}$/,
+        /^Installed @hotcodepush\/expo-ota-updates from https:\/\/pkg\.pr\.new\/hotcodepush-team\/expo-ota-updates\/@hotcodepush\/expo-ota-updates@[0-9a-f]{7}\.$/,
       );
     });
 
@@ -147,7 +147,7 @@ describe('expoFramework', () => {
 
         expect(outcome).toEqual({
           message:
-            'added the config plugin @hotcodepush/expo-ota-updates to app.json',
+            'Added the config plugin @hotcodepush/expo-ota-updates to app.json.',
           status: 'done',
           value: undefined,
         });
@@ -171,7 +171,7 @@ describe('expoFramework', () => {
         );
 
         expect(await wiring.wireBinaryCreateStep(undefined)).toEqual({
-          message: 'app.json already lists the config plugin',
+          message: 'The app config app.json already lists the config plugin.',
           status: 'skipped',
           value: undefined,
         });
@@ -222,7 +222,7 @@ describe('expoFramework', () => {
 
         expect(await wiring.wireBinaryCreateStep(undefined)).toEqual({
           message:
-            'added the config plugin @hotcodepush/expo-ota-updates to app.config.json',
+            'Added the config plugin @hotcodepush/expo-ota-updates to app.config.json.',
           status: 'done',
           value: undefined,
         });
@@ -304,9 +304,9 @@ describe('expoFramework', () => {
       ).toEqual([
         {
           check: 'hook',
-          manualStep: 'run hotcodepush init',
+          manualStep: 'Run "hotcodepush init".',
           message:
-            'app.json does not list the config plugin @hotcodepush/expo-ota-updates',
+            'The app config app.json does not list the config plugin @hotcodepush/expo-ota-updates.',
           status: 'failed',
         },
       ]);
@@ -323,7 +323,7 @@ describe('expoFramework', () => {
           manualStep:
             'Add "@hotcodepush/expo-ota-updates" to the plugins in app.json.',
           message:
-            'app.json does not list the config plugin @hotcodepush/expo-ota-updates',
+            'The app config app.json does not list the config plugin @hotcodepush/expo-ota-updates.',
           status: 'failed',
         },
       ]);
@@ -340,7 +340,7 @@ describe('expoFramework', () => {
           manualStep:
             'Add "@hotcodepush/expo-ota-updates" to the plugins in app.config.js.',
           message:
-            'app.config.js does not list the config plugin @hotcodepush/expo-ota-updates',
+            'The app config app.config.js does not list the config plugin @hotcodepush/expo-ota-updates.',
           status: 'failed',
         },
       ]);
@@ -360,7 +360,7 @@ describe('expoFramework', () => {
         {
           check: 'hook',
           message:
-            'app.json lists the config plugin, which wires the build step at prebuild',
+            'The app config app.json lists the config plugin, which wires the build step at prebuild.',
           status: 'ok',
         },
       ]);
@@ -379,7 +379,7 @@ describe('expoFramework', () => {
         {
           check: 'hook',
           message:
-            'app.config.ts lists the config plugin, which wires the build step at prebuild',
+            'The app config app.config.ts lists the config plugin, which wires the build step at prebuild.',
           status: 'ok',
         },
       ]);

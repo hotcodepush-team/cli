@@ -119,7 +119,7 @@ describe('doctor', () => {
       'versions:ok',
     ]);
     expect(result.checks.at(-1)?.message).toMatch(
-      /^hotcodepush \d+\.\d+\.\d+, node v\d+.*, @capacitor\/core 8\.0\.0, @hotcodepush\/capacitor-live-updates 8\.0\.0$/,
+      /^The versions are hotcodepush \d+\.\d+\.\d+, node v\d+.*, @capacitor\/core 8\.0\.0, @hotcodepush\/capacitor-live-updates 8\.0\.0\.$/,
     );
   });
 
@@ -146,7 +146,7 @@ describe('doctor', () => {
         .map(({ check, status }) => `${check}:${status}`),
     ).toEqual(['package:ok', 'hook:ok', 'android-file-mode:ok']);
     expect(result.checks.at(-1)?.message).toMatch(
-      /, cordova 13\.0\.0, cordova-android 15\.1\.0, cordova-ios missing, @hotcodepush\/cordova-code-push 0\.1\.0$/,
+      /, cordova 13\.0\.0, cordova-android 15\.1\.0, cordova-ios missing, @hotcodepush\/cordova-code-push 0\.1\.0\.$/,
     );
   });
 
@@ -176,17 +176,17 @@ describe('doctor', () => {
     ).rejects.toBeInstanceOf(ReportedFailureError);
 
     expect(harness.readLines()).toEqual([
-      `✓ configuration  hotcodepush.json names app ${DEMO_APP.id} and channel production`,
-      '✓ session        logged in as Anna Example (anna@example.com)',
-      '✓ app            app Demo, channel production',
-      '✗ package        @hotcodepush/capacitor-live-updates is not in package.json',
-      '                 run hotcodepush init',
-      `✗ hook           not wired in ${CAPACITOR_APP_GRADLE_FILE_PATH}`,
-      '                 run hotcodepush init',
-      '✗ hosts          unreachable: api (https://api.example.com/health)',
-      '                 check the network, the API URL in config.json and the HOTCODEPUSH_*_BASE_URL variables',
-      '– signing-key    code signing is off; signing-key create turns it on',
-      expect.stringMatching(/^✓ versions +hotcodepush /),
+      `✓ configuration  The file hotcodepush.json names app ${DEMO_APP.id} and channel production.`,
+      '✓ session        Logged in as Anna Example (anna@example.com).',
+      '✓ app            The app Demo and the channel production exist.',
+      '✗ package        The package @hotcodepush/capacitor-live-updates is not in package.json.',
+      '                 Run "hotcodepush init".',
+      `✗ hook           The wiring is missing from ${CAPACITOR_APP_GRADLE_FILE_PATH}.`,
+      '                 Run "hotcodepush init".',
+      '✗ hosts          The CLI cannot reach api (https://api.example.com/health).',
+      '                 Check the network, the API URL in config.json and the HOTCODEPUSH_*_BASE_URL variables.',
+      '– signing-key    Code signing is off. Run "hotcodepush signing-key create" to turn it on.',
+      expect.stringMatching(/^✓ versions +The versions are hotcodepush /),
     ]);
   });
 
@@ -220,7 +220,7 @@ describe('doctor', () => {
       check: 'session',
       manualStep:
         'Run the command again with --verbose, and report it at https://github.com/hotcodepush-team/cli/issues if it persists.',
-      message: 'the credential cannot be checked: fetch failed',
+      message: 'The credential cannot be checked. fetch failed.',
       status: 'failed',
     });
     expect(result.checks[4]?.status).toBe('failed');
@@ -295,7 +295,7 @@ describe('doctor', () => {
       {
         check: 'session',
         manualStep: 'Correct the JSON in that file and run the command again.',
-        message: `the credential cannot be checked: ${invalidJsonMessage}`,
+        message: `The credential cannot be checked. ${invalidJsonMessage}`,
         status: 'failed',
       },
       {
@@ -351,7 +351,7 @@ describe('doctor', () => {
 
     expect(await readSigningKeyCheck(directoryPath)).toEqual({
       check: 'signing-key',
-      message: `HOTCODEPUSH_SIGNING_KEY signs with key ${SIGNING_KEY.fingerprint}`,
+      message: `HOTCODEPUSH_SIGNING_KEY signs with key ${SIGNING_KEY.fingerprint}.`,
       status: 'ok',
     });
   });
@@ -365,7 +365,7 @@ describe('doctor', () => {
     expect(await readSigningKeyCheck(directoryPath)).toEqual({
       check: 'signing-key',
       message:
-        'code signing is on; an upload signs with --private-key-path or HOTCODEPUSH_SIGNING_KEY',
+        'Code signing is on. An upload signs with --private-key-path or HOTCODEPUSH_SIGNING_KEY.',
       status: 'ok',
     });
   });
@@ -399,8 +399,9 @@ describe('doctor', () => {
     expect(await readSigningKeyCheck(directoryPath)).toEqual({
       check: 'signing-key',
       manualStep:
-        'run hotcodepush signing-key list --json and keep in publicKeys only the keys it prints',
-      message: 'hotcodepush.json lists 1 public key the app has not registered',
+        'Run "hotcodepush signing-key list --json" and keep in publicKeys only the keys it prints.',
+      message:
+        'The file hotcodepush.json lists 1 public key the app has not registered.',
       status: 'failed',
     });
   });
@@ -414,8 +415,8 @@ describe('doctor', () => {
     expect(await readSigningKeyCheck(directoryPath)).toEqual({
       check: 'signing-key',
       manualStep:
-        'run hotcodepush signing-key list --json and add each publicKey to publicKeys in hotcodepush.json',
-      message: 'the app has a signing key and hotcodepush.json lists none',
+        'Run "hotcodepush signing-key list --json" and add each publicKey to publicKeys in hotcodepush.json.',
+      message: 'The app has a signing key and hotcodepush.json lists none.',
       status: 'failed',
     });
   });
@@ -437,10 +438,14 @@ describe('doctor', () => {
       {
         check: 'session',
         message:
-          'authenticated with HOTCODEPUSH_TOKEN as Anna Example (anna@example.com)',
+          'Authenticated with HOTCODEPUSH_TOKEN as Anna Example (anna@example.com).',
         status: 'ok',
       },
-      { check: 'app', message: 'app Demo, channel production', status: 'ok' },
+      {
+        check: 'app',
+        message: 'The app Demo and the channel production exist.',
+        status: 'ok',
+      },
     ]);
   });
 
@@ -464,8 +469,9 @@ describe('doctor', () => {
 
     expect((harness.readJson() as DoctorResult).checks[0]).toEqual({
       check: 'configuration',
-      manualStep: 'run hotcodepush init',
-      message: 'hotcodepush.json has a channel that is no channel name',
+      manualStep: 'Run "hotcodepush init".',
+      message:
+        'The file hotcodepush.json has a channel that is not a channel name.',
       status: 'failed',
     });
   });
@@ -494,9 +500,9 @@ describe('doctor', () => {
 
     expect((harness.readJson() as DoctorResult).checks[0]).toEqual({
       check: 'configuration',
-      manualStep: 'rename each stale key as named and remove a gone one',
+      manualStep: 'Rename each stale key as named and remove a gone one.',
       message:
-        'hotcodepush.json carries stale keys: autoCheck, now checkStrategy, "auto" for true and "manual" for false; dir, gone, the upload reading the framework\'s build output and --path overriding it; installStrategy, now applyStrategy; nativeSources, now extraFingerprintPaths',
+        'The file hotcodepush.json carries stale keys. The key autoCheck is now checkStrategy, "auto" for true and "manual" for false. The key dir is gone, the upload reading the framework\'s build output and --path overriding it. The key installStrategy is now applyStrategy. The key nativeSources is now extraFingerprintPaths.',
       status: 'failed',
     });
   });
@@ -518,9 +524,9 @@ describe('doctor', () => {
 
     expect((harness.readJson() as DoctorResult).checks[2]).toEqual({
       check: 'app',
-      manualStep: 'run hotcodepush init',
+      manualStep: 'Run "hotcodepush init".',
       message:
-        'the API does not know the app or the channel: The channel "beta" from hotcodepush.json does not exist.',
+        'The API does not know the app or the channel. The channel "beta" from hotcodepush.json does not exist.',
       status: 'failed',
     });
   });
@@ -540,13 +546,14 @@ describe('doctor', () => {
     expect(result.checks.slice(0, 2)).toEqual([
       {
         check: 'configuration',
-        manualStep: 'run hotcodepush init',
-        message: `no hotcodepush.json up from ${directoryPath}`,
+        manualStep: 'Run "hotcodepush init".',
+        message: `There is no hotcodepush.json in ${directoryPath} or a directory above it.`,
         status: 'failed',
       },
       {
         check: 'session',
-        message: 'not logged in; the app is not checked against the API',
+        message:
+          'You are not logged in, so the app is not checked against the API.',
         status: 'skipped',
       },
     ]);
@@ -582,7 +589,7 @@ describe('doctor', () => {
     const result = harness.readJson() as DoctorResult;
     expect(result.status).toBe('clean');
     expect(result.checks[0]?.message).toBe(
-      `hotcodepush.json names app ${DEMO_APP.id} and channel production`,
+      `The file hotcodepush.json names app ${DEMO_APP.id} and channel production.`,
     );
     expect(
       result.checks.map(({ check, status }) => `${check}:${status}`),

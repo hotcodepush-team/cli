@@ -40,13 +40,13 @@ export function checkBinaryCreateStep(
   if (xcodeProjectFilePath === undefined && gradleEdit === undefined) {
     return {
       check: 'hook',
-      message: 'no native project to check',
+      message: 'There is no native project to check.',
       status: 'skipped',
     };
   }
   return checkEdits(
     'hook',
-    'the Xcode phase and the Gradle task run the build step',
+    'The Xcode phase and the Gradle task run the build step.',
     gradleEdit === undefined ? [] : [gradleEdit],
     projectDirectoryPath,
     xcodeProjectFilePath !== undefined &&
@@ -68,13 +68,17 @@ export function checkEdits(
     .filter(edit => !edit.isApplied())
     .map(({ filePath }) => relative(projectDirectoryPath, filePath));
   if (edits.length === 0 && !isPhaseMissing) {
-    return { check, message: 'no native project to check', status: 'skipped' };
+    return {
+      check,
+      message: 'There is no native project to check.',
+      status: 'skipped',
+    };
   }
   if (missingFilePaths.length > 0 || isPhaseMissing) {
     return {
       check,
       manualStep: INIT_MANUAL_STEP,
-      message: `not wired in ${[...(isPhaseMissing ? ['the Xcode project'] : []), ...missingFilePaths].join(' and ')}`,
+      message: `The wiring is missing from ${[...(isPhaseMissing ? ['the Xcode project'] : []), ...missingFilePaths].join(' and ')}.`,
       status: 'failed',
     };
   }

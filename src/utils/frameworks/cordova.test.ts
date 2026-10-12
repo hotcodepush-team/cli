@@ -73,10 +73,10 @@ describe('cordova', () => {
     ).toEqual({
       check: 'hook',
       manualStep: expect.stringMatching(
-        /^run npx cordova plugin add https:\/\/pkg\.pr\.new\//,
+        /^Run "npx cordova plugin add https:\/\/pkg\.pr\.new\//,
       ) as string,
       message:
-        "@hotcodepush/cordova-code-push is not among package.json's cordova plugins",
+        "The plugin @hotcodepush/cordova-code-push is not among package.json's cordova plugins.",
       status: 'failed',
     });
   });
@@ -95,9 +95,9 @@ describe('cordova', () => {
     ).toEqual({
       check: 'android-file-mode',
       manualStep:
-        'remove the preference; the plugin serves no update from file:// and stays off',
+        'The plugin serves no update from file:// and stays off. Remove the preference.',
       message:
-        'config.xml sets AndroidInsecureFileModeEnabled, which loads the Android app from file://',
+        'The file config.xml sets AndroidInsecureFileModeEnabled, which loads the Android app from file://.',
       status: 'failed',
     });
   });
@@ -125,7 +125,7 @@ describe('cordova', () => {
 
     expect(wiring.isPackageInstalled).toBe(false);
     expect(wiring.packageFilePaths).toEqual(['package.json']);
-    expect(wiring.installPackage()).toMatch(/through cordova plugin add$/);
+    expect(wiring.installPackage()).toMatch(/through "cordova plugin add"\.$/);
     expect(runCommandLineVisibly).toHaveBeenCalledWith(
       {
         args: [
@@ -140,7 +140,7 @@ describe('cordova', () => {
     );
     expect(await wiring.wireBinaryCreateStep(undefined)).toEqual({
       message:
-        'the plugin wires its Xcode phase and Gradle task itself; nothing to wire',
+        'The plugin wires its Xcode phase and Gradle task itself, so there is nothing to wire.',
       status: 'skipped',
       value: undefined,
     });

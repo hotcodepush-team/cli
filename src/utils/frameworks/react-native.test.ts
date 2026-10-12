@@ -128,7 +128,7 @@ describe('reactNativeFramework', () => {
       );
 
       expect(wiring.installPackage()).toMatch(
-        /^installed @hotcodepush\/react-native-code-push from https:\/\/pkg\.pr\.new\/hotcodepush-team\/react-native-code-push\/@hotcodepush\/react-native-code-push@[0-9a-f]{7}$/,
+        /^Installed @hotcodepush\/react-native-code-push from https:\/\/pkg\.pr\.new\/hotcodepush-team\/react-native-code-push\/@hotcodepush\/react-native-code-push@[0-9a-f]{7}\.$/,
       );
     });
 
@@ -145,7 +145,7 @@ describe('reactNativeFramework', () => {
 
         expect(outcome).toEqual({
           message:
-            'wired the Create HotCodePush binary phase in Xcode, the Gradle task that runs the build step, HotCodePush.bundleURL() in AppDelegate.swift, HotCodePushReactHost in MainApplication.kt, the HotCodePushCore pod in the Podfile, the pods through pod install',
+            'Wired the Create HotCodePush binary phase in Xcode, the Gradle task that runs the build step, HotCodePush.bundleURL() in AppDelegate.swift, HotCodePushReactHost in MainApplication.kt, the HotCodePushCore pod in the Podfile, the pods through "pod install".',
           status: 'done',
           value: undefined,
         });
@@ -209,7 +209,7 @@ describe('reactNativeFramework', () => {
         ).wireBinaryCreateStep(undefined);
 
         expect(outcome).toEqual({
-          message: 'the build step and the bundle wiring already wired',
+          message: 'The build step and the bundle wiring are already wired.',
           status: 'skipped',
           value: undefined,
         });
@@ -285,14 +285,14 @@ describe('reactNativeFramework', () => {
       ).toEqual([
         {
           check: 'hook',
-          manualStep: 'run hotcodepush init',
-          message: `not wired in the Xcode project and ${APP_GRADLE_FILE_PATH}`,
+          manualStep: 'Run "hotcodepush init".',
+          message: `The wiring is missing from the Xcode project and ${APP_GRADLE_FILE_PATH}.`,
           status: 'failed',
         },
         {
           check: 'host',
-          manualStep: 'run hotcodepush init',
-          message: `not wired in ${APP_DELEGATE_FILE_PATH} and ${MAIN_APPLICATION_FILE_PATH}`,
+          manualStep: 'Run "hotcodepush init".',
+          message: `The wiring is missing from ${APP_DELEGATE_FILE_PATH} and ${MAIN_APPLICATION_FILE_PATH}.`,
           status: 'failed',
         },
       ]);
@@ -312,17 +312,18 @@ describe('reactNativeFramework', () => {
       ).toEqual([
         {
           check: 'package',
-          message: '@hotcodepush/react-native-code-push 0.1.0 installed',
+          message:
+            'The package @hotcodepush/react-native-code-push 0.1.0 is installed.',
           status: 'ok',
         },
         {
           check: 'hook',
-          message: 'the Xcode phase and the Gradle task run the build step',
+          message: 'The Xcode phase and the Gradle task run the build step.',
           status: 'ok',
         },
         {
           check: 'host',
-          message: 'React Native runs the bundle the SDK serves',
+          message: 'React Native runs the bundle the SDK serves.',
           status: 'ok',
         },
       ]);

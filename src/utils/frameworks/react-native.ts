@@ -102,7 +102,7 @@ function checkBundleWiring({
 }: FrameworkProject): FrameworkCheck {
   return checkEdits(
     'host',
-    'React Native runs the bundle the SDK serves',
+    'React Native runs the bundle the SDK serves.',
     resolveBundleWiringEdits(resolveNativeProjectPaths(directoryPath)),
     directoryPath,
   );
@@ -236,7 +236,7 @@ async function wireBinaryCreateStep(
   const arePodsInstalled = isPodInstalled(nativeProjects.ios);
   if (isPhaseWired && pendingEdits.length === 0 && arePodsInstalled) {
     return {
-      message: 'the build step and the bundle wiring already wired',
+      message: 'The build step and the bundle wiring are already wired.',
       status: 'skipped',
       value: undefined,
     };
@@ -256,10 +256,10 @@ async function wireBinaryCreateStep(
       { args: ['install'], command: 'pod' },
       nativeProjects.ios,
     );
-    wired.push('the pods through pod install');
+    wired.push('the pods through "pod install"');
   }
   return {
-    message: `wired ${wired.join(', ')}`,
+    message: `Wired ${wired.join(', ')}.`,
     status: 'done',
     value: undefined,
   };

@@ -194,15 +194,15 @@ describe('init', () => {
       'signing-key': 'skipped',
     });
     expect(result.steps.map(({ message }) => message)).toEqual([
-      'logged in as Anna Example (anna@example.com)',
-      'used organization Acme',
-      'created app Demo',
-      `installed @hotcodepush/capacitor-live-updates from ${CAPACITOR_PACKAGE_SPEC}`,
-      'wrote hotcodepush.json',
-      'wired the Create HotCodePush binary phase in Xcode, the Gradle task that runs the build step',
-      'run signing-key create to enable code signing',
-      'no release follows: run npm run build, then release create',
-      'run release create to publish the first release',
+      'Logged in as Anna Example (anna@example.com).',
+      'Used organization Acme.',
+      'Created app Demo.',
+      `Installed @hotcodepush/capacitor-live-updates from ${CAPACITOR_PACKAGE_SPEC}.`,
+      'Wrote hotcodepush.json.',
+      'Wired the Create HotCodePush binary phase in Xcode, the Gradle task that runs the build step.',
+      'Run "hotcodepush signing-key create" to enable code signing.',
+      'No release follows. Run "npm run build", then "hotcodepush release create".',
+      'Run "hotcodepush release create" to publish the first release.',
     ]);
   }, 15_000);
 
@@ -225,15 +225,15 @@ describe('init', () => {
 
     expect(runCommandLineVisibly).not.toHaveBeenCalled();
     expect(harness.readLines()).toEqual([
-      '– sign-in        logged in as Anna Example (anna@example.com)',
-      "✓ organization   used organization Acme, the one of hotcodepush.json's app",
-      '✓ app            used app Demo, as hotcodepush.json names it',
-      '– package        @hotcodepush/capacitor-live-updates already installed',
-      '– configuration  hotcodepush.json already present',
-      '– hook           the Xcode phase and the Gradle task already wired',
-      '– signing-key    run signing-key create to enable code signing',
-      '– build          no release follows: run npm run build, then release create',
-      '– release        run release create to publish the first release',
+      '– sign-in        Logged in as Anna Example (anna@example.com).',
+      "✓ organization   Used organization Acme, the one of hotcodepush.json's app.",
+      '✓ app            Used app Demo, as hotcodepush.json names it.',
+      '– package        The package @hotcodepush/capacitor-live-updates is already installed.',
+      '– configuration  The file hotcodepush.json is already present.',
+      '– hook           The Xcode phase and the Gradle task are already wired.',
+      '– signing-key    Run "hotcodepush signing-key create" to enable code signing.',
+      '– build          No release follows. Run "npm run build", then "hotcodepush release create".',
+      '– release        Run "hotcodepush release create" to publish the first release.',
       '',
       'Build the app natively once and run it; change a line, run the build and "npx hotcodepush release create", then reopen the app.',
       `Console: http://localhost:4300/apps/${DEMO_APP.id}`,
@@ -295,7 +295,7 @@ describe('init', () => {
           ({ step }) => step === 'hook',
         )?.manualStep,
       ).toBe(
-        `Run init --yes to change ${CAPACITOR_XCODE_PROJECT_FILE_PATH}, ${CAPACITOR_APP_GRADLE_FILE_PATH}.`,
+        `Run "hotcodepush init --yes" to change ${CAPACITOR_XCODE_PROJECT_FILE_PATH}, ${CAPACITOR_APP_GRADLE_FILE_PATH}.`,
       );
     });
 
@@ -322,7 +322,7 @@ describe('init', () => {
           ({ step }) => step === 'hook',
         )?.message,
       ).toBe(
-        'wired the Create HotCodePush binary phase in Xcode, the Xcode project without its hotcodepush.json reference, the Gradle task that runs the build step',
+        'Wired the Create HotCodePush binary phase in Xcode, the Xcode project without its hotcodepush.json reference, the Gradle task that runs the build step.',
       );
     });
   });
@@ -344,7 +344,7 @@ describe('init', () => {
     const filesText = `hotcodepush.json, ${CAPACITOR_XCODE_PROJECT_FILE_PATH}, ${CAPACITOR_APP_GRADLE_FILE_PATH}`;
     expect(configurationStep).toEqual({
       code: 'E_CONFIRMATION_REQUIRED',
-      manualStep: `Run init --yes to change ${filesText}.`,
+      manualStep: `Run "hotcodepush init --yes" to change ${filesText}.`,
       message: `A confirmation is required. This changes ${filesText}.`,
       status: 'stopped',
       step: 'configuration',
@@ -356,9 +356,27 @@ describe('init', () => {
       release: 'skipped',
     });
     expect(result.steps.find(({ step }) => step === 'release')?.message).toBe(
-      'waits on the configuration step',
+      'Waits on the configuration step.',
     );
     expect(existsSync(join(directoryPath, 'hotcodepush.json'))).toBe(false);
+  });
+
+  it("should print a stopped step's row without its code, the manual step under it", async () => {
+    const directoryPath = writeProject({ isPackageInstalled: true });
+    respondWithSession([ACME_ORGANIZATION]);
+    harness.routes[`GET ${APPS_PATH}`] = () => Response.json([DEMO_APP]);
+
+    await expect(
+      initCommand.action(withCwd(directoryPath), undefined),
+    ).rejects.toBeInstanceOf(ReportedFailureError);
+
+    const filesText = `hotcodepush.json, ${CAPACITOR_XCODE_PROJECT_FILE_PATH}, ${CAPACITOR_APP_GRADLE_FILE_PATH}`;
+    expect(harness.readLines()).toEqual(
+      expect.arrayContaining([
+        `✗ configuration  A confirmation is required. This changes ${filesText}.`,
+        `                 Run "hotcodepush init --yes" to change ${filesText}.`,
+      ]),
+    );
   });
 
   it('should skip the sign-in under HOTCODEPUSH_TOKEN, an API token no session answers for, and never start a device login', async () => {
@@ -387,7 +405,7 @@ describe('init', () => {
     expect(result.status).toBe('complete');
     expect(result.steps[0]).toEqual({
       message:
-        'authenticated with HOTCODEPUSH_TOKEN as Anna Example (anna@example.com)',
+        'Authenticated with HOTCODEPUSH_TOKEN as Anna Example (anna@example.com).',
       status: 'skipped',
       step: 'sign-in',
     });
@@ -448,7 +466,7 @@ describe('init', () => {
 
     const result = harness.readJson() as InitResult;
     expect(result.steps[0]).toEqual({
-      message: 'logged in as Anna Example (anna@example.com)',
+      message: 'Logged in as Anna Example (anna@example.com).',
       status: 'done',
       step: 'sign-in',
     });
@@ -512,9 +530,9 @@ describe('init', () => {
       'signing-key': 'skipped',
     });
     expect(result.steps[1]?.code).toBe('E_MISSING_PARAMETER');
-    expect(result.steps[2]?.message).toBe('waits on the organization step');
-    expect(result.steps[4]?.message).toBe('waits on the app step');
-    expect(result.steps[8]?.message).toBe('waits on the configuration step');
+    expect(result.steps[2]?.message).toBe('Waits on the organization step.');
+    expect(result.steps[4]?.message).toBe('Waits on the app step.');
+    expect(result.steps[8]?.message).toBe('Waits on the configuration step.');
   });
 
   it("should stop at the organization with the API's error when the API does not know the app hotcodepush.json names, and still run the independent steps", async () => {
@@ -586,8 +604,8 @@ describe('init', () => {
       ],
     });
     expect(harness.readLines().slice(1, 3)).toEqual([
-      '✓ organization   used organization Acme',
-      '✓ app            used app Demo',
+      '✓ organization   Used organization Acme.',
+      '✓ app            Used app Demo.',
     ]);
   });
 
@@ -626,7 +644,7 @@ describe('init', () => {
       ).publicKeys,
     ).toEqual([expect.stringMatching(/^rsa-v1_5-sha256:/)]);
     expect(harness.readLines()).toContain(
-      '✓ signing-key    generated a signing key pair, its private key in the file named above',
+      '✓ signing-key    Generated a signing key pair, its private key in the file named above.',
     );
     expect(existsSync(join(directoryPath, 'hotcodepush-private-key.pem'))).toBe(
       true,
@@ -660,7 +678,7 @@ describe('init', () => {
         ({ step }) => step === 'signing-key',
       ),
     ).toEqual({
-      message: 'the app already has a signing key',
+      message: 'The app already has a signing key.',
       status: 'skipped',
       step: 'signing-key',
     });
@@ -767,7 +785,7 @@ describe('init', () => {
       package: 'done',
     });
     expect(result.steps.find(({ step }) => step === 'hook')?.message).toBe(
-      'the plugin wires its Xcode phase and Gradle task itself; nothing to wire',
+      'The plugin wires its Xcode phase and Gradle task itself, so there is nothing to wire.',
     );
   });
 
@@ -858,13 +876,13 @@ describe('init', () => {
       expect(result.status).toBe('complete');
       expect(result.steps.slice(3).map(({ message }) => message)).toEqual([
         expect.stringMatching(
-          /^installed @hotcodepush\/react-native-code-push from https:\/\/pkg\.pr\.new\//,
+          /^Installed @hotcodepush\/react-native-code-push from https:\/\/pkg\.pr\.new\//,
         ),
-        'wrote hotcodepush.json',
-        'wired the Create HotCodePush binary phase in Xcode, the Gradle task that runs the build step, HotCodePush.bundleURL() in AppDelegate.swift, HotCodePushReactHost in MainApplication.kt, the HotCodePushCore pod in the Podfile, the pods through pod install',
-        'run signing-key create to enable code signing',
-        'release create packages the bundles itself',
-        'run release create to publish the first release',
+        'Wrote hotcodepush.json.',
+        'Wired the Create HotCodePush binary phase in Xcode, the Gradle task that runs the build step, HotCodePush.bundleURL() in AppDelegate.swift, HotCodePushReactHost in MainApplication.kt, the HotCodePushCore pod in the Podfile, the pods through "pod install".',
+        'Run "hotcodepush signing-key create" to enable code signing.',
+        'The command "hotcodepush release create" packages the bundles itself.',
+        'Run "hotcodepush release create" to publish the first release.',
       ]);
     }, 15_000);
 

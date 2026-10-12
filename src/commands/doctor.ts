@@ -16,7 +16,7 @@ import {
   isUnauthenticatedError,
   resolveCredentialText,
 } from '../utils/credential.js';
-import { resolveCliError } from '../utils/error-mapping.js';
+import { resolveCliError, resolveSentence } from '../utils/error-mapping.js';
 import {
   CliError,
   InvalidJsonError,
@@ -183,7 +183,7 @@ function checkConfiguration({
     return {
       check: 'configuration',
       manualStep: INIT_MANUAL_STEP,
-      message: `no ${PROJECT_CONFIG_FILE_NAME} up from ${directoryPath}`,
+      message: `There is no ${PROJECT_CONFIG_FILE_NAME} in ${directoryPath} or a directory above it.`,
       status: 'failed',
     };
   }
@@ -192,7 +192,7 @@ function checkConfiguration({
     return {
       check: 'configuration',
       manualStep: INIT_MANUAL_STEP,
-      message: `${PROJECT_CONFIG_FILE_NAME} ${problems.join(', ')}`,
+      message: `The file ${PROJECT_CONFIG_FILE_NAME} ${problems.join(' and ')}.`,
       status: 'failed',
     };
   }
@@ -202,14 +202,14 @@ function checkConfiguration({
   if (staleKeys.length > 0) {
     return {
       check: 'configuration',
-      manualStep: 'rename each stale key as named and remove a gone one',
-      message: `${PROJECT_CONFIG_FILE_NAME} carries stale keys: ${staleKeys.map(key => `${key}, ${STALE_PROJECT_CONFIG_KEYS[key]}`).join('; ')}`,
+      manualStep: 'Rename each stale key as named and remove a gone one.',
+      message: `The file ${PROJECT_CONFIG_FILE_NAME} carries stale keys. ${staleKeys.map(key => `The key ${key} is ${STALE_PROJECT_CONFIG_KEYS[key]}.`).join(' ')}`,
       status: 'failed',
     };
   }
   return {
     check: 'configuration',
-    message: `${PROJECT_CONFIG_FILE_NAME} names app ${projectConfig.appId} and channel ${resolveProjectChannel(projectConfig)}`,
+    message: `The file ${PROJECT_CONFIG_FILE_NAME} names app ${projectConfig.appId} and channel ${resolveProjectChannel(projectConfig)}.`,
     status: 'ok',
   };
 }
@@ -222,13 +222,13 @@ function resolveConfigurationProblems(projectConfig: ProjectConfig): string[] {
   if (projectConfig.appId === undefined) {
     problems.push('lacks appId');
   } else if (!ID_SCHEMA.safeParse(projectConfig.appId).success) {
-    problems.push('has an appId that is no id');
+    problems.push('has an appId that is not an id');
   }
   if (
     projectConfig.channel !== undefined &&
     !CHANNEL_NAME_SCHEMA.safeParse(projectConfig.channel).success
   ) {
-    problems.push('has a channel that is no channel name');
+    problems.push('has a channel that is not a channel name');
   }
   return problems;
 }
@@ -248,7 +248,8 @@ async function checkSessionAndApp({
         checks: [
           {
             check: 'session',
-            message: 'not logged in; the app is not checked against the API',
+            message:
+              'You are not logged in, so the app is not checked against the API.',
             status: 'skipped',
           },
         ],
@@ -271,8 +272,8 @@ function resolveFailedSessionCheck(error: unknown): DoctorCheck {
   if (isUnauthenticatedError(error) || error instanceof NotLoggedInError) {
     return {
       check: 'session',
-      manualStep: 'run hotcodepush login, or set a valid HOTCODEPUSH_TOKEN',
-      message: 'the API does not accept the credential',
+      manualStep: 'Run "hotcodepush login", or set a valid HOTCODEPUSH_TOKEN.',
+      message: 'The API does not accept the credential.',
       status: 'failed',
     };
   }
@@ -280,7 +281,7 @@ function resolveFailedSessionCheck(error: unknown): DoctorCheck {
   return {
     check: 'session',
     manualStep: fix ?? undefined,
-    message: `the credential cannot be checked: ${message}`,
+    message: `The credential cannot be checked. ${resolveSentence(message)}`,
     status: 'failed',
   };
 }
@@ -296,7 +297,7 @@ async function checkApp(
       app: undefined,
       check: {
         check: 'app',
-        message: 'the configuration names no app and channel to check',
+        message: 'The configuration names no app and channel to check.',
         status: 'skipped',
       },
     };
@@ -317,7 +318,7 @@ async function checkApp(
       app,
       check: {
         check: 'app',
-        message: `app ${app.name}, channel ${channel.name}`,
+        message: `The app ${app.name} and the channel ${channel.name} exist.`,
         status: 'ok',
       },
     };
@@ -327,7 +328,7 @@ async function checkApp(
       check: {
         check: 'app',
         manualStep: INIT_MANUAL_STEP,
-        message: `the API does not know the app or the channel: ${error instanceof Error ? error.message : String(error)}`,
+        message: `The API does not know the app or the channel. ${resolveSentence(error instanceof Error ? error.message : String(error))}`,
         status: 'failed',
       },
     };
@@ -349,8 +350,8 @@ async function checkSigningKey(
   if (publicKeys.length === 0 && app?.hasSigningKey) {
     return {
       check: 'signing-key',
-      manualStep: `run hotcodepush signing-key list --json and add each publicKey to publicKeys in ${PROJECT_CONFIG_FILE_NAME}`,
-      message: `the app has a signing key and ${PROJECT_CONFIG_FILE_NAME} lists none`,
+      manualStep: `Run "hotcodepush signing-key list --json" and add each publicKey to publicKeys in ${PROJECT_CONFIG_FILE_NAME}.`,
+      message: `The app has a signing key and ${PROJECT_CONFIG_FILE_NAME} lists none.`,
       status: 'failed',
     };
   }
@@ -363,8 +364,8 @@ async function checkSigningKey(
       return {
         check: 'signing-key',
         manualStep:
-          'run hotcodepush signing-key list --json and keep in publicKeys only the keys it prints',
-        message: `${PROJECT_CONFIG_FILE_NAME} lists ${resolveQuantityText(unregisteredKeyCount, 'public key')} the app has not registered`,
+          'Run "hotcodepush signing-key list --json" and keep in publicKeys only the keys it prints.',
+        message: `The file ${PROJECT_CONFIG_FILE_NAME} lists ${resolveQuantityText(unregisteredKeyCount, 'public key')} the app has not registered.`,
         status: 'failed',
       };
     }
@@ -386,12 +387,13 @@ async function checkSigningPrivateKey(
     return signingKeyPair === null
       ? {
           check: 'signing-key',
-          message: 'code signing is off; signing-key create turns it on',
+          message:
+            'Code signing is off. Run "hotcodepush signing-key create" to turn it on.',
           status: 'skipped',
         }
       : {
           check: 'signing-key',
-          message: `HOTCODEPUSH_SIGNING_KEY signs with key ${resolveSigningKeyFingerprint(signingKeyPair.publicKey)}`,
+          message: `HOTCODEPUSH_SIGNING_KEY signs with key ${resolveSigningKeyFingerprint(signingKeyPair.publicKey)}.`,
           status: 'ok',
         };
   } catch (error) {
@@ -399,7 +401,7 @@ async function checkSigningPrivateKey(
       return {
         check: 'signing-key',
         message:
-          'code signing is on; an upload signs with --private-key-path or HOTCODEPUSH_SIGNING_KEY',
+          'Code signing is on. An upload signs with --private-key-path or HOTCODEPUSH_SIGNING_KEY.',
         status: 'ok',
       };
     }
@@ -462,14 +464,14 @@ async function checkHosts(): Promise<DoctorCheck> {
     return {
       check: 'hosts',
       manualStep:
-        'check the network, the API URL in config.json and the HOTCODEPUSH_*_BASE_URL variables',
-      message: `unreachable: ${unreachable.join(', ')}`,
+        'Check the network, the API URL in config.json and the HOTCODEPUSH_*_BASE_URL variables.',
+      message: `The CLI cannot reach ${unreachable.join(', ')}.`,
       status: 'failed',
     };
   }
   return {
     check: 'hosts',
-    message: `${hosts.map(([name]) => name).join(', ')} reachable`,
+    message: `The hosts ${hosts.map(([name]) => name).join(', ')} are reachable.`,
     status: 'ok',
   };
 }
@@ -495,7 +497,11 @@ function checkVersions({
       ),
     );
   }
-  return { check: 'versions', message: versions.join(', '), status: 'ok' };
+  return {
+    check: 'versions',
+    message: `The versions are ${versions.join(', ')}.`,
+    status: 'ok',
+  };
 }
 
 /**
@@ -506,7 +512,7 @@ function resolveFailedCheck(check: string, error: unknown): DoctorCheck {
   return {
     check,
     manualStep: fix ?? undefined,
-    message,
+    message: resolveSentence(message),
     status: 'failed',
   };
 }

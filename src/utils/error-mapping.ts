@@ -57,6 +57,13 @@ export function buildErrorJson({ code, fix, message }: CliError): ErrorJson {
 }
 
 /**
+ * The message with its full stop, which a message from outside the catalog may lack.
+ */
+export function resolveSentence(message: string): string {
+  return SENTENCE_END_PATTERN.test(message) ? message : `${message}.`;
+}
+
+/**
  * Two lines: what happened and what to do as sentences, then the code's page, the one place the code appears.
  * An API error's message says what to do itself, so its first line has no fix.
  */
@@ -64,10 +71,7 @@ export function buildErrorLines(
   { code, fix, message }: CliError,
   options: ErrorLinesOptions,
 ): string[] {
-  const sentence =
-    fix === null || SENTENCE_END_PATTERN.test(message)
-      ? message
-      : `${message}.`;
+  const sentence = fix === null ? message : resolveSentence(message);
   const styledSentence = options.isColorEnabled
     ? styleText('red', sentence, { validateStream: false })
     : sentence;

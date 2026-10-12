@@ -170,8 +170,8 @@ describe('fingerprint', () => {
         readFingerprint(projectDirectoryPath, ['native']),
       ).rejects.toMatchObject({
         code: 'E_FINGERPRINT_UNAVAILABLE',
-        message:
-          "The fingerprint cannot be computed because the extra fingerprint path native is not inside the lockfile's directory.",
+        fix: "The extra fingerprint path native is not inside the lockfile's directory.",
+        message: 'The fingerprint cannot be computed.',
       });
     } finally {
       rmSync(outsideDirectoryPath, { force: true, recursive: true });
@@ -185,8 +185,8 @@ describe('fingerprint', () => {
       readFingerprint(projectDirectoryPath, ['native']),
     ).rejects.toMatchObject({
       code: 'E_FINGERPRINT_UNAVAILABLE',
-      message:
-        'The fingerprint cannot be computed because the extra fingerprint path native does not exist.',
+      fix: 'The extra fingerprint path native does not exist.',
+      message: 'The fingerprint cannot be computed.',
     });
   });
 
@@ -195,8 +195,8 @@ describe('fingerprint', () => {
       readFingerprint(projectDirectoryPath, []),
     ).rejects.toMatchObject({
       code: 'E_FINGERPRINT_UNAVAILABLE',
-      message:
-        'The fingerprint cannot be computed because the project has no lockfile; commit one of package-lock.json, pnpm-lock.yaml, yarn.lock.',
+      fix: 'The project has no lockfile. Commit one of package-lock.json, pnpm-lock.yaml, yarn.lock.',
+      message: 'The fingerprint cannot be computed.',
     });
   });
 });

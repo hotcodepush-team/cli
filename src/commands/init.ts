@@ -221,7 +221,7 @@ async function signIn(options: InitOptions): Promise<StepOutcome<HotCodePush>> {
   }
   const user = await logIn(options);
   return {
-    message: `logged in as ${user.name} (${user.email})`,
+    message: `Logged in as ${user.name} (${user.email}).`,
     status: 'done',
     value: createApiClient(),
   };
@@ -242,7 +242,7 @@ async function resolveOrganization(
       organizationId: app.organizationId,
     });
     return {
-      message: `used organization ${organization.name}, the one of ${PROJECT_CONFIG_FILE_NAME}'s app`,
+      message: `Used organization ${organization.name}, the one of ${PROJECT_CONFIG_FILE_NAME}'s app.`,
       status: 'done',
       value: { app, organization },
     };
@@ -295,7 +295,7 @@ async function resolveApp(
 ): Promise<StepOutcome<App>> {
   if (app !== undefined) {
     return {
-      message: `used app ${app.name}, as ${PROJECT_CONFIG_FILE_NAME} names it`,
+      message: `Used app ${app.name}, as ${PROJECT_CONFIG_FILE_NAME} names it.`,
       status: 'done',
       value: app,
     };
@@ -368,7 +368,7 @@ async function resolveEditBlocker(
     return undefined;
   }
   const consequence = `changes ${filePaths.join(', ')}`;
-  const manualStep = `Run init --yes to change ${filePaths.join(', ')}.`;
+  const manualStep = `Run "hotcodepush init --yes" to change ${filePaths.join(', ')}.`;
   try {
     return (await confirmConsequence(consequence, options))
       ? undefined
@@ -400,7 +400,7 @@ function installPackage(
 ): Promise<StepOutcome<undefined>> {
   if (wiring.isPackageInstalled) {
     return Promise.resolve({
-      message: `${framework.packageName} already installed`,
+      message: `The package ${framework.packageName} is already installed.`,
       status: 'skipped',
       value: undefined,
     });
@@ -426,7 +426,7 @@ async function writeConfiguration(
 ): Promise<StepOutcome<undefined>> {
   if (isConfigurationComplete(projectConfig)) {
     return {
-      message: `${PROJECT_CONFIG_FILE_NAME} already present`,
+      message: `The file ${PROJECT_CONFIG_FILE_NAME} is already present.`,
       status: 'skipped',
       value: undefined,
     };
@@ -450,7 +450,7 @@ async function writeConfiguration(
     ),
   );
   return {
-    message: `${projectConfig === undefined ? 'wrote' : 'completed'} ${PROJECT_CONFIG_FILE_NAME}`,
+    message: `${projectConfig === undefined ? 'Wrote' : 'Completed'} ${PROJECT_CONFIG_FILE_NAME}.`,
     status: 'done',
     value: undefined,
   };
@@ -484,7 +484,7 @@ async function createSigningKey(
 ): Promise<StepOutcome<undefined>> {
   if (app?.hasSigningKey) {
     return {
-      message: 'the app already has a signing key',
+      message: 'The app already has a signing key.',
       status: 'skipped',
       value: undefined,
     };
@@ -494,7 +494,7 @@ async function createSigningKey(
     !(await promptYesNo('Generate a signing key pair?', options))
   ) {
     return {
-      message: 'run signing-key create to enable code signing',
+      message: 'Run "hotcodepush signing-key create" to enable code signing.',
       status: 'skipped',
       value: undefined,
     };
@@ -510,7 +510,7 @@ async function createSigningKey(
   );
   return {
     message:
-      'generated a signing key pair, its private key in the file named above',
+      'Generated a signing key pair, its private key in the file named above.',
     status: 'done',
     value: undefined,
   };
@@ -525,7 +525,8 @@ function buildProject(
 ): Promise<StepOutcome<boolean>> {
   if (framework.packageBundles !== undefined) {
     return Promise.resolve({
-      message: 'release create packages the bundles itself',
+      message:
+        'The command "hotcodepush release create" packages the bundles itself.',
       status: 'skipped',
       value: false,
     });
@@ -533,7 +534,7 @@ function buildProject(
   const buildCommandLine = resolveBuildCommandLine(directoryPath, packageJson);
   if (buildCommandLine === undefined) {
     return Promise.resolve({
-      message: 'no build script in package.json',
+      message: 'There is no build script in package.json.',
       status: 'skipped',
       value: false,
     });
@@ -541,14 +542,14 @@ function buildProject(
   const buildText = resolveCommandLineText(buildCommandLine);
   if (!isReleaseWanted) {
     return Promise.resolve({
-      message: `no release follows: run ${buildText}, then release create`,
+      message: `No release follows. Run "${buildText}", then "hotcodepush release create".`,
       status: 'skipped',
       value: false,
     });
   }
   runCommandLineVisibly(buildCommandLine, directoryPath);
   return Promise.resolve({
-    message: `ran ${buildText}`,
+    message: `Ran "${buildText}".`,
     status: 'done',
     value: true,
   });
@@ -565,7 +566,7 @@ async function releaseFirst(
 ): Promise<StepOutcome<undefined>> {
   if (!isReleaseWanted) {
     return {
-      message: 'run release create to publish the first release',
+      message: 'Run "hotcodepush release create" to publish the first release.',
       status: 'skipped',
       value: undefined,
     };
@@ -582,7 +583,7 @@ async function releaseFirst(
       packageJson,
     );
     return {
-      message: `${buildCommandLine === undefined ? 'no build script and ' : ''}no output at ${buildDirectory.path}; build, then release create`,
+      message: `There is ${buildCommandLine === undefined ? 'no build script and ' : ''}no output at ${buildDirectory.path}. Build, then run "hotcodepush release create".`,
       status: 'skipped',
       value: undefined,
     };
@@ -596,7 +597,7 @@ async function releaseFirst(
     undefined,
   );
   return {
-    message: 'released to production',
+    message: 'Released to production.',
     status: 'done',
     value: undefined,
   };
@@ -707,7 +708,7 @@ function resolveBuildCommandLine(
 
 function resolveCreatedScope(organization: Organization): StepOutcome<Scope> {
   return {
-    message: `created organization ${organization.name}`,
+    message: `Created organization ${organization.name}.`,
     status: 'done',
     value: { app: undefined, organization },
   };
@@ -715,7 +716,7 @@ function resolveCreatedScope(organization: Organization): StepOutcome<Scope> {
 
 function resolveUsedScope(organization: Organization): StepOutcome<Scope> {
   return {
-    message: `used organization ${organization.name}`,
+    message: `Used organization ${organization.name}.`,
     status: 'done',
     value: { app: undefined, organization },
   };
@@ -726,7 +727,7 @@ function resolveCreated<TResource extends { name: string }>(
   resource: TResource,
 ): StepOutcome<TResource> {
   return {
-    message: `created ${noun} ${resource.name}`,
+    message: `Created ${noun} ${resource.name}.`,
     status: 'done',
     value: resource,
   };
@@ -737,7 +738,7 @@ function resolveUsed<TResource extends { name: string }>(
   resource: TResource,
 ): StepOutcome<TResource> {
   return {
-    message: `used ${noun} ${resource.name}`,
+    message: `Used ${noun} ${resource.name}.`,
     status: 'done',
     value: resource,
   };

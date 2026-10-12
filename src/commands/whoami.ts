@@ -25,10 +25,7 @@ export default defineCommand({
       printJson({ apiUrl, organizations, user });
       return;
     }
-    const credentialText = resolveCredentialText(user);
-    console.log(
-      `${credentialText.charAt(0).toUpperCase()}${credentialText.slice(1)}.`,
-    );
+    console.log(resolveCredentialText(user));
     if (apiUrl !== DEFAULT_API_URL) {
       console.log(`API: ${apiUrl}`);
     }

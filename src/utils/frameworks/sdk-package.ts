@@ -21,7 +21,7 @@ export function checkSdkPackage(
     return {
       check: 'package',
       manualStep: INIT_MANUAL_STEP,
-      message: `${packageName} is not in package.json`,
+      message: `The package ${packageName} is not in package.json.`,
       status: 'failed',
     };
   }
@@ -32,14 +32,14 @@ export function checkSdkPackage(
   if (installedVersion === undefined) {
     return {
       check: 'package',
-      manualStep: 'install the dependencies',
-      message: `${packageName} is declared but not in node_modules`,
+      manualStep: 'Install the dependencies.',
+      message: `The package ${packageName} is declared but not in node_modules.`,
       status: 'failed',
     };
   }
   return {
     check: 'package',
-    message: `${packageName} ${installedVersion} installed`,
+    message: `The package ${packageName} ${installedVersion} is installed.`,
     status: 'ok',
   };
 }
@@ -59,7 +59,7 @@ export function installSdkPackage(
     ),
     projectDirectoryPath,
   );
-  return `installed ${packageName} from ${packageSpec}`;
+  return `Installed ${packageName} from ${packageSpec}.`;
 }
 
 export function isSdkPackageDeclared(

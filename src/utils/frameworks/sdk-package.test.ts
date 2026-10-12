@@ -39,7 +39,7 @@ describe('sdk-package', () => {
     it('should install the package from its spec with the package manager of the project and answer the sentence the step prints', () => {
       expect(
         installSdkPackage(directoryPath, SDK_PACKAGE_NAME, PACKAGE_SPEC),
-      ).toBe(`installed ${SDK_PACKAGE_NAME} from ${PACKAGE_SPEC}`);
+      ).toBe(`Installed ${SDK_PACKAGE_NAME} from ${PACKAGE_SPEC}.`);
       expect(runCommandLineVisibly).toHaveBeenCalledWith(
         { args: ['install', '--save-exact', PACKAGE_SPEC], command: 'npm' },
         directoryPath,

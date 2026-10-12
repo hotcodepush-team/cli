@@ -85,13 +85,13 @@ function checkHook({ packageJson }: FrameworkProject): FrameworkCheck {
   return isPluginListed(packageJson)
     ? {
         check: 'hook',
-        message: "the plugin's Xcode phase and Gradle task run the build step",
+        message: "The plugin's Xcode phase and Gradle task run the build step.",
         status: 'ok',
       }
     : {
         check: 'hook',
-        manualStep: `run ${resolveCommandLineText(PLUGIN_ADD_COMMAND_LINE)}`,
-        message: `${CORDOVA_PACKAGE_NAME} is not among package.json's cordova plugins`,
+        manualStep: `Run "${resolveCommandLineText(PLUGIN_ADD_COMMAND_LINE)}".`,
+        message: `The plugin ${CORDOVA_PACKAGE_NAME} is not among package.json's cordova plugins.`,
         status: 'failed',
       };
 }
@@ -106,13 +106,13 @@ function checkInsecureFileMode({
     ? {
         check: 'android-file-mode',
         manualStep:
-          'remove the preference; the plugin serves no update from file:// and stays off',
-        message: `${CONFIG_FILE_NAME} sets ${INSECURE_FILE_MODE_PREFERENCE_NAME}, which loads the Android app from file://`,
+          'The plugin serves no update from file:// and stays off. Remove the preference.',
+        message: `The file ${CONFIG_FILE_NAME} sets ${INSECURE_FILE_MODE_PREFERENCE_NAME}, which loads the Android app from file://.`,
         status: 'failed',
       }
     : {
         check: 'android-file-mode',
-        message: `${CONFIG_FILE_NAME} leaves ${INSECURE_FILE_MODE_PREFERENCE_NAME} off`,
+        message: `The file ${CONFIG_FILE_NAME} leaves ${INSECURE_FILE_MODE_PREFERENCE_NAME} off.`,
         status: 'ok',
       };
 }
@@ -176,12 +176,12 @@ function resolveWiring({
     packageFilePaths: isPackageInstalled ? [] : ['package.json'],
     installPackage: () => {
       runCommandLineVisibly(PLUGIN_ADD_COMMAND_LINE, directoryPath);
-      return `installed ${CORDOVA_PACKAGE_NAME} from ${CORDOVA_PACKAGE_SPEC} through cordova plugin add`;
+      return `Installed ${CORDOVA_PACKAGE_NAME} from ${CORDOVA_PACKAGE_SPEC} through "cordova plugin add".`;
     },
     wireBinaryCreateStep: () =>
       Promise.resolve({
         message:
-          'the plugin wires its Xcode phase and Gradle task itself; nothing to wire',
+          'The plugin wires its Xcode phase and Gradle task itself, so there is nothing to wire.',
         status: 'skipped',
         value: undefined,
       }),
