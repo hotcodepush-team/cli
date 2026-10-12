@@ -29,8 +29,16 @@ describe('invitation accept', () => {
   const harness = useCommandHarness();
 
   function respondWithJoinedMember(): void {
-    harness.routes['GET /v1/invitations'] = () =>
-      Response.json([PENDING_INVITATION]);
+    harness.routes['GET /v1/invitations?relations=organization'] = () =>
+      Response.json([
+        {
+          ...PENDING_INVITATION,
+          organization: {
+            id: ACME_ORGANIZATION.id,
+            name: ACME_ORGANIZATION.name,
+          },
+        },
+      ]);
     harness.routes[`POST ${ACCEPT_PATH}`] = () =>
       Response.json(JOINED_MEMBER, { status: 201 });
   }

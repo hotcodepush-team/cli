@@ -1,8 +1,4 @@
-import type {
-  Bundle,
-  BundleWithDeltaPacks,
-  HotCodePush,
-} from '@hotcodepush/node';
+import type { Bundle, HotCodePush } from '@hotcodepush/node';
 import { z } from 'zod';
 import type { InteractivityOptions } from './environment.js';
 import { InvalidParameterError } from './errors.js';
@@ -28,7 +24,7 @@ export async function fetchBundle(
   hotCodePush: HotCodePush,
   appId: string,
   options: BundleOptions,
-): Promise<BundleWithDeltaPacks> {
+): Promise<Bundle> {
   const bundleId = await fetchBundleId(hotCodePush, appId, options);
   return hotCodePush.apps.bundles.get({ appId, bundleId });
 }

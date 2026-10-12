@@ -10,27 +10,34 @@ import deviceGetCommand from './get.js';
 
 const DEVICE_PATH = `/v1/apps/${DEMO_APP.id}/devices/${DEVICE.deviceId}`;
 
-const DEVICE_WITH_OUTCOMES = {
+const DEVICE_WITH_CHANNEL = {
   ...DEVICE,
   channel: STAGING_CHANNEL,
   currentReleaseId: LIVE_RELEASE.id,
-  marks: [
-    {
-      createdAt: '2026-09-08T07:00:00.000Z',
-      kind: 'failed' as const,
-      reason: 'READINESS_TIMED_OUT',
-      releaseId: LIVE_RELEASE.id,
-      updatedAt: '2026-09-08T07:00:00.000Z',
-    },
-  ],
 };
+
+const MARKS = [
+  {
+    createdAt: '2026-09-08T07:00:00.000Z',
+    deviceId: DEVICE.deviceId,
+    kind: 'failed' as const,
+    reason: 'READINESS_TIMED_OUT',
+    releaseId: LIVE_RELEASE.id,
+    updatedAt: '2026-09-08T07:00:00.000Z',
+  },
+];
 
 describe('device get', () => {
   const harness = useCommandHarness();
 
-  it('should print what the device runs and its last outcomes', async () => {
+  function respondWithDeviceAndMarks(): void {
     harness.routes[`GET ${DEVICE_PATH}`] = () =>
-      Response.json(DEVICE_WITH_OUTCOMES);
+      Response.json(DEVICE_WITH_CHANNEL);
+    harness.routes[`GET ${DEVICE_PATH}/marks`] = () => Response.json(MARKS);
+  }
+
+  it('should print what the device runs and its last outcomes', async () => {
+    respondWithDeviceAndMarks();
 
     await deviceGetCommand.action(
       { app: DEMO_APP.id, device: DEVICE.deviceId },
@@ -54,16 +61,18 @@ describe('device get', () => {
     ]);
   });
 
-  it('should print the device as JSON', async () => {
-    harness.routes[`GET ${DEVICE_PATH}`] = () =>
-      Response.json(DEVICE_WITH_OUTCOMES);
+  it('should print the device with its marks as JSON', async () => {
+    respondWithDeviceAndMarks();
 
     await deviceGetCommand.action(
       { app: DEMO_APP.id, device: DEVICE.deviceId, json: true },
       undefined,
     );
 
-    expect(harness.readJson()).toEqual(DEVICE_WITH_OUTCOMES);
+    expect(harness.readJson()).toEqual({
+      ...DEVICE_WITH_CHANNEL,
+      marks: MARKS,
+    });
   });
 
   it('should fail with E_MISSING_PARAMETER naming --device when nobody can answer', async () => {

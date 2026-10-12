@@ -1,4 +1,4 @@
-import type { Binary, DeviceWithMarks } from '@hotcodepush/node';
+import type { Binary, Device } from '@hotcodepush/node';
 import type { ChannelIndex } from '@hotcodepush/protocol';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { API_URL, useCommandHarness } from '../../../test/command-harness.js';
@@ -117,9 +117,8 @@ describe('device probe', () => {
   it.each(REGISTRY_FIXTURES.map(fixture => [fixture.name, fixture]))(
     "should yield the protocol's outcome for the facts of the device's registry row: %s",
     async (_name, fixture: EvaluationFixture) => {
-      const registryDevice: DeviceWithMarks = {
+      const registryDevice: Device = {
         ...DEVICE,
-        marks: [],
         attributes: fixture.device.attributes,
         binaryBuild: fixture.device.binaryBuild,
         binaryVersion: fixture.device.binaryVersion,
@@ -131,6 +130,9 @@ describe('device probe', () => {
       harness.routes[
         `GET /v1/apps/${DEMO_APP.id}/devices/${registryDevice.deviceId}`
       ] = () => Response.json(registryDevice);
+      harness.routes[
+        `GET /v1/apps/${DEMO_APP.id}/devices/${registryDevice.deviceId}/marks`
+      ] = () => Response.json([]);
       harness.routes[`GET ${BINARIES_PATH}`] = () =>
         Response.json([
           {
@@ -287,7 +289,10 @@ describe('device probe', () => {
 
   it("should take the channel and the facts from the device's registry row, its attributes beside --attribute", async () => {
     harness.routes[`GET /v1/apps/${DEMO_APP.id}/devices/${DEVICE.deviceId}`] =
-      () => Response.json({ ...DEVICE, fingerprint: FINGERPRINT, marks: [] });
+      () => Response.json({ ...DEVICE, fingerprint: FINGERPRINT });
+    harness.routes[
+      `GET /v1/apps/${DEMO_APP.id}/devices/${DEVICE.deviceId}/marks`
+    ] = () => Response.json([]);
     respondWithIndex({
       ...INDEX,
       releases: [

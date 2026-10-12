@@ -1,4 +1,9 @@
-import type { Binary, DeviceWithMarks, HotCodePush } from '@hotcodepush/node';
+import type {
+  Binary,
+  Device,
+  DeviceMark,
+  HotCodePush,
+} from '@hotcodepush/node';
 import type {
   ChannelIndex,
   ChannelIndexEvaluation,
@@ -164,7 +169,16 @@ export default defineCommand({
       failedBundleIds:
         registryDevice === undefined
           ? []
-          : resolveFailedBundleIds(registryDevice, servedIndex.index),
+          : resolveFailedBundleIds(
+              await fetchAllPages(page =>
+                hotCodePush.apps.devices.marks.list({
+                  appId,
+                  deviceId: registryDevice.deviceId,
+                  ...page,
+                }),
+              ),
+              servedIndex.index,
+            ),
       fingerprint: registryDevice?.fingerprint ?? binary?.fingerprint ?? null,
       osVersion: registryDevice?.osVersion ?? '',
       reportedAt: registryDevice?.lastSeenAt ?? null,
@@ -231,7 +245,7 @@ export default defineCommand({
  */
 async function fetchCurrentRelease(
   hotCodePush: HotCodePush,
-  registryDevice: DeviceWithMarks,
+  registryDevice: Device,
   servedIndex: ServedIndex,
 ): Promise<DeviceInfo['currentRelease']> {
   const releaseId = registryDevice.currentReleaseId;
@@ -337,11 +351,11 @@ function resolveConditionsText(
  * The bundles the device failed before, from its failed marks of the releases the index carries.
  */
 function resolveFailedBundleIds(
-  registryDevice: DeviceWithMarks,
+  marks: readonly DeviceMark[],
   index: ChannelIndex | null,
 ): string[] {
   const failedReleaseIds = new Set(
-    registryDevice.marks
+    marks
       .filter(({ kind }) => kind === 'failed')
       .map(({ releaseId }) => releaseId),
   );
@@ -389,7 +403,7 @@ function resolveServedIndexText({
 }
 
 function resolveUnknownFacts(
-  registryDevice: DeviceWithMarks | undefined,
+  registryDevice: Device | undefined,
   binary: Binary | undefined,
 ): UnknownFact[] {
   if (registryDevice !== undefined) {

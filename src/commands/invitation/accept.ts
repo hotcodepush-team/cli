@@ -61,16 +61,16 @@ async function promptInvitationId(
   if (!isInteractive(options)) {
     throw new MissingParameterError('--invitation');
   }
-  const fetchedInvitations = await hotCodePush.invitations.list();
+  const fetchedInvitations = await hotCodePush.invitations.list({
+    relations: ['organization'],
+  });
   return promptSelect(
     '--invitation',
     'Which invitation?',
-    fetchedInvitations.map(
-      ({ id, organizationId, organizationName, role }) => ({
-        label: `${organizationName ?? organizationId} with role ${role}`,
-        value: id,
-      }),
-    ),
+    fetchedInvitations.map(({ id, organization, organizationId, role }) => ({
+      label: `${organization?.name ?? organizationId} with role ${role}`,
+      value: id,
+    })),
     options,
   );
 }

@@ -54,8 +54,12 @@ import {
   promptText,
   promptYesNo,
 } from '../utils/prompts.js';
-import { fetchApps, fetchOrganizations } from '../utils/resource-resolution.js';
-import { readToken } from '../utils/token-store.js';
+import {
+  fetchApps,
+  fetchHasSigningKey,
+  fetchOrganizations,
+} from '../utils/resource-resolution.js';
+import { isEnvironmentToken, readToken } from '../utils/token-store.js';
 import { readApiUrl } from '../utils/user-config.js';
 import { logIn } from './login.js';
 import releaseCreateCommand from './release/create.js';
@@ -206,7 +210,10 @@ async function signIn(options: InitOptions): Promise<StepOutcome<HotCodePush>> {
   if (readToken() !== undefined) {
     try {
       return {
-        message: resolveCredentialText(await fetchCurrentUser()),
+        message: resolveCredentialText(
+          await fetchCurrentUser(),
+          isEnvironmentToken(),
+        ),
         status: 'skipped',
         value: createApiClient(),
       };
@@ -482,7 +489,10 @@ async function createSigningKey(
   { directoryPath }: ProjectFiles,
   options: InitOptions,
 ): Promise<StepOutcome<undefined>> {
-  if (app?.hasSigningKey) {
+  if (
+    app !== undefined &&
+    (await fetchHasSigningKey(createApiClient(), app.id))
+  ) {
     return {
       message: 'The app already has a signing key.',
       status: 'skipped',

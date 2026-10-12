@@ -160,6 +160,17 @@ export async function fetchResourceId(
     .id;
 }
 
+/**
+ * Whether the app holds a signing key, so that it releases only signed bundles: its keys' count.
+ */
+export async function fetchHasSigningKey(
+  hotCodePush: HotCodePush,
+  appId: string,
+): Promise<boolean> {
+  const { total } = await hotCodePush.apps.signingKeys.count({ appId });
+  return total > 0;
+}
+
 export function fetchSigningKeys(
   hotCodePush: HotCodePush,
   appId: string,

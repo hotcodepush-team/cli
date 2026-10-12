@@ -11,6 +11,7 @@ import {
   printTable,
   resolveDate,
 } from '../../utils/output.js';
+import { fetchAllPages } from '../../utils/pagination.js';
 import { resolveBinaryText } from './list.js';
 
 export default defineCommand({
@@ -23,12 +24,16 @@ export default defineCommand({
   options: defineCommandOptions(deviceOptionShape),
   action: async options => {
     const hotCodePush = createApiClient();
+    const deviceReference = await resolveDeviceReference(hotCodePush, options);
     const fetchedDevice = await hotCodePush.apps.devices.get({
-      ...(await resolveDeviceReference(hotCodePush, options)),
+      ...deviceReference,
       relations: ['channel'],
     });
+    const fetchedMarks = await fetchAllPages(page =>
+      hotCodePush.apps.devices.marks.list({ ...deviceReference, ...page }),
+    );
     if (options.json) {
-      printJson(fetchedDevice);
+      printJson({ ...fetchedDevice, marks: fetchedMarks });
       return;
     }
     printDetails([
@@ -56,14 +61,12 @@ export default defineCommand({
       emptyText: 'No outcomes yet: the device has not checked a release.',
       headers: ['RELEASE', 'OUTCOME', 'REASON', 'DATE'],
       nextOffset: null,
-      rows: fetchedDevice.marks.map(
-        ({ createdAt, kind, reason, releaseId }) => [
-          releaseId,
-          kind,
-          reason ?? '',
-          resolveDate(createdAt),
-        ],
-      ),
+      rows: fetchedMarks.map(({ createdAt, kind, reason, releaseId }) => [
+        releaseId,
+        kind,
+        reason ?? '',
+        resolveDate(createdAt),
+      ]),
     });
   },
 });

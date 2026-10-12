@@ -8,6 +8,7 @@ import {
 import { defineCommandOptions } from '../utils/global-options.js';
 import { printJson } from '../utils/output.js';
 import { fetchOrganizations } from '../utils/resource-resolution.js';
+import { isEnvironmentToken } from '../utils/token-store.js';
 import { readApiUrl } from '../utils/user-config.js';
 
 export default defineCommand({
@@ -25,7 +26,7 @@ export default defineCommand({
       printJson({ apiUrl, organizations, user });
       return;
     }
-    console.log(resolveCredentialText(user));
+    console.log(resolveCredentialText(user, isEnvironmentToken()));
     if (apiUrl !== DEFAULT_API_URL) {
       console.log(`API: ${apiUrl}`);
     }

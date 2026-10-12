@@ -20,16 +20,20 @@ vi.mock('@napi-rs/keyring', () => ({
 describe('credential', () => {
   const harness = useCommandHarness();
 
-  it('should read the user behind the bearer from the API and say which credential it is', async () => {
+  it('should read the user behind the bearer from the API', async () => {
     harness.routes['GET /v1/users/me'] = () => Response.json(RUNNER_USER);
 
-    const user = await fetchCurrentUser();
+    expect(await fetchCurrentUser()).toEqual(RUNNER_USER);
+  });
 
-    expect(user).toEqual(RUNNER_USER);
-    expect(resolveCredentialText(user)).toBe(
+  it('should say logged in for the stored session', () => {
+    expect(resolveCredentialText(RUNNER_USER, false)).toBe(
       'Logged in as Anna Example (anna@example.com).',
     );
-    expect(resolveCredentialText({ ...RUNNER_USER, credential: 'token' })).toBe(
+  });
+
+  it('should name HOTCODEPUSH_TOKEN when the token variable authenticates', () => {
+    expect(resolveCredentialText(RUNNER_USER, true)).toBe(
       'Authenticated with HOTCODEPUSH_TOKEN as Anna Example (anna@example.com).',
     );
   });

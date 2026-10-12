@@ -21,6 +21,13 @@ export function deleteToken(): void {
 }
 
 /**
+ * Whether `HOTCODEPUSH_TOKEN` is the token `readToken` answers, rather than the session `login` stored.
+ */
+export function isEnvironmentToken(): boolean {
+  return Boolean(process.env.HOTCODEPUSH_TOKEN);
+}
+
+/**
  * The token: `HOTCODEPUSH_TOKEN` when set, otherwise the stored one.
  */
 export function readToken(): string | undefined {

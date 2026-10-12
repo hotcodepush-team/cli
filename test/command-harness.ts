@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, vi } from 'vitest';
 import type { ProjectConfig } from '../src/utils/project-config.js';
-import { writeUserConfig } from '../src/utils/user-config.js';
+import { readUserConfig, writeUserConfig } from '../src/utils/user-config.js';
 
 /**
  * What the fake API answers per route, keyed by method and path, `GET /v1/organizations`,
@@ -35,6 +35,14 @@ export function respondWithApiError(
   message: string,
 ): Response {
   return Response.json({ code, details: null, message }, { status });
+}
+
+/**
+ * The token as `login` stores it, a session in `config.json`, in place of the environment's: the case the CLI words as logged in.
+ */
+export function useStoredSession(): void {
+  vi.stubEnv('HOTCODEPUSH_TOKEN', '');
+  writeUserConfig({ ...readUserConfig(), token: TOKEN });
 }
 
 export function stubInteractiveTerminal(): void {

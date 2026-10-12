@@ -6,7 +6,11 @@ import {
   wireCapacitorProject,
   writeCapacitorProject,
 } from '../../test/capacitor-project.js';
-import { useCommandHarness } from '../../test/command-harness.js';
+import {
+  TOKEN,
+  useCommandHarness,
+  useStoredSession,
+} from '../../test/command-harness.js';
 import { writeCordovaProject } from '../../test/cordova-project.js';
 import {
   DEMO_APP,
@@ -79,9 +83,12 @@ describe('doctor', () => {
   }
 
   function respondWithSessionAndApp(): void {
+    useStoredSession();
     harness.routes['GET /v1/users/me'] = () => Response.json(RUNNER_USER);
     harness.routes[`GET /v1/apps/${DEMO_APP.id}`] = () =>
       Response.json(DEMO_APP);
+    harness.routes[`GET /v1/apps/${DEMO_APP.id}/signing-keys/count`] = () =>
+      Response.json({ total: 0 });
     respondWithChannels(harness);
     harness.routes[
       `GET /v1/apps/${DEMO_APP.id}/channels/${PRODUCTION_CHANNEL.id}`
@@ -409,8 +416,8 @@ describe('doctor', () => {
   it('should fail the signing key when the app has one and the configuration lists none', async () => {
     const directoryPath = await writeSetUpProject();
     respondWithSessionAndApp();
-    harness.routes[`GET /v1/apps/${DEMO_APP.id}`] = () =>
-      Response.json({ ...DEMO_APP, hasSigningKey: true });
+    harness.routes[`GET /v1/apps/${DEMO_APP.id}/signing-keys/count`] = () =>
+      Response.json({ total: 1 });
 
     expect(await readSigningKeyCheck(directoryPath)).toEqual({
       check: 'signing-key',
@@ -424,8 +431,7 @@ describe('doctor', () => {
   it('should accept HOTCODEPUSH_TOKEN as an API token, the credential CI and agents hold', async () => {
     const directoryPath = await writeSetUpProject();
     respondWithSessionAndApp();
-    harness.routes['GET /v1/users/me'] = () =>
-      Response.json({ ...RUNNER_USER, credential: 'token' });
+    vi.stubEnv('HOTCODEPUSH_TOKEN', TOKEN);
 
     await doctorCommand.action(
       { config: join(directoryPath, 'hotcodepush.json'), json: true },

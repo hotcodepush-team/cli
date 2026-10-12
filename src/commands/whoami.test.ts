@@ -2,7 +2,9 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   API_URL,
   respondWithApiError,
+  TOKEN,
   useCommandHarness,
+  useStoredSession,
 } from '../../test/command-harness.js';
 import {
   ACME_ORGANIZATION,
@@ -25,6 +27,7 @@ describe('whoami', () => {
   const harness = useCommandHarness();
 
   function respondWithSessionAndOrganizations(organizations: object[]): void {
+    useStoredSession();
     harness.routes['GET /v1/users/me'] = () => Response.json(RUNNER_USER);
     harness.routes['GET /v1/organizations?limit=100&offset=0'] = () =>
       Response.json(organizations);
@@ -82,10 +85,9 @@ describe('whoami', () => {
     ]);
   });
 
-  it('should print the user HOTCODEPUSH_TOKEN stands for, as the API names the credential', async () => {
+  it('should print the user HOTCODEPUSH_TOKEN stands for when the variable authenticates', async () => {
     respondWithSessionAndOrganizations([ACME_ORGANIZATION]);
-    harness.routes['GET /v1/users/me'] = () =>
-      Response.json({ ...RUNNER_USER, credential: 'token' });
+    vi.stubEnv('HOTCODEPUSH_TOKEN', TOKEN);
 
     await whoamiCommand.action({}, undefined);
 

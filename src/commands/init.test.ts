@@ -20,6 +20,7 @@ import {
 import {
   stubInteractiveTerminal,
   useCommandHarness,
+  useStoredSession,
 } from '../../test/command-harness.js';
 import { writeCordovaProject } from '../../test/cordova-project.js';
 import {
@@ -105,9 +106,11 @@ describe('init', () => {
   }
 
   function respondWithSession(organizations: object[]): void {
+    useStoredSession();
     harness.routes['GET /v1/users/me'] = () => Response.json(RUNNER_USER);
     harness.routes['GET /v1/organizations'] = () =>
       Response.json(organizations);
+    respondWithSigningKeyCount(0);
   }
 
   function respondWithConfiguredApp(): void {
@@ -115,6 +118,11 @@ describe('init', () => {
       Response.json(DEMO_APP);
     harness.routes[`GET /v1/organizations/${ACME_ORGANIZATION.id}`] = () =>
       Response.json(ACME_ORGANIZATION);
+  }
+
+  function respondWithSigningKeyCount(total: number): void {
+    harness.routes[`GET /v1/apps/${DEMO_APP.id}/signing-keys/count`] = () =>
+      Response.json({ total });
   }
 
   function readStepStatuses(result: InitResult): Record<string, string> {
@@ -388,9 +396,9 @@ describe('init', () => {
       },
     });
     rmSync(join(directoryPath, 'ios'), { force: true, recursive: true });
-    harness.routes['GET /v1/users/me'] = () =>
-      Response.json({ ...RUNNER_USER, credential: 'token' });
+    harness.routes['GET /v1/users/me'] = () => Response.json(RUNNER_USER);
     respondWithConfiguredApp();
+    respondWithSigningKeyCount(0);
 
     await initCommand.action(
       {
@@ -454,6 +462,7 @@ describe('init', () => {
     harness.routes['GET /v1/organizations'] = () =>
       Response.json([ACME_ORGANIZATION]);
     respondWithConfiguredApp();
+    respondWithSigningKeyCount(0);
 
     await initCommand.action(
       {
@@ -661,8 +670,7 @@ describe('init', () => {
     });
     respondWithSession([ACME_ORGANIZATION]);
     respondWithConfiguredApp();
-    harness.routes[`GET /v1/apps/${DEMO_APP.id}`] = () =>
-      Response.json({ ...DEMO_APP, hasSigningKey: true });
+    respondWithSigningKeyCount(1);
 
     await initCommand.action(
       {

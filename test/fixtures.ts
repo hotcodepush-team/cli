@@ -5,7 +5,7 @@ import type {
   Billing,
   Binary,
   Bundle,
-  BundleWithDeltaPacks,
+  BundleDelta,
   Channel,
   ChannelWithDeviceCounts,
   Device,
@@ -91,7 +91,6 @@ export const DEMO_APP: App = {
   createdAt: '2026-09-03T08:00:00.000Z',
   defaultChannelId: PRODUCTION_CHANNEL.id,
   framework: 'capacitor',
-  hasSigningKey: false,
   id: PRODUCTION_CHANNEL.appId,
   name: 'Demo',
   organizationId: ACME_ORGANIZATION.id,
@@ -166,31 +165,37 @@ export const BINARY: Binary = {
   version: '1.0',
 };
 
-export const READY_BUNDLE_WITH_DELTA_PACKS: BundleWithDeltaPacks = {
-  ...READY_BUNDLE,
-  deltaPacks: [
-    {
-      baseBundleId: PREVIOUS_BUNDLE.id,
-      baseBundleNumber: PREVIOUS_BUNDLE.number,
-      createdAt: '2026-09-07T08:00:01.000Z',
-      patchCount: 2,
-      requestedAt: '2026-09-07T08:00:01.000Z',
-      sizeBytes: 48213,
-      state: 'built',
-      updatedAt: '2026-09-07T08:00:04.000Z',
+/** The ready bundle's delta packs with their bases embedded: one built against the previous bundle, one requested against the binary's. */
+export const READY_BUNDLE_DELTA_PACKS: BundleDelta[] = [
+  {
+    baseBundle: PREVIOUS_BUNDLE,
+    baseBundleId: PREVIOUS_BUNDLE.id,
+    bundleId: READY_BUNDLE.id,
+    createdAt: '2026-09-07T08:00:01.000Z',
+    patchCount: 2,
+    requestedAt: '2026-09-07T08:00:01.000Z',
+    sizeBytes: 48213,
+    state: 'built',
+    updatedAt: '2026-09-07T08:00:04.000Z',
+  },
+  {
+    baseBundle: {
+      ...PREVIOUS_BUNDLE,
+      fingerprint: null,
+      id: BINARY.bundleId,
+      number: null,
+      type: 'embedded',
     },
-    {
-      baseBundleId: BINARY.bundleId,
-      baseBundleNumber: null,
-      createdAt: '2026-09-07T08:00:01.000Z',
-      patchCount: null,
-      requestedAt: '2026-09-07T08:00:01.000Z',
-      sizeBytes: null,
-      state: 'requested',
-      updatedAt: '2026-09-07T08:00:01.000Z',
-    },
-  ],
-};
+    baseBundleId: BINARY.bundleId,
+    bundleId: READY_BUNDLE.id,
+    createdAt: '2026-09-07T08:00:01.000Z',
+    patchCount: null,
+    requestedAt: '2026-09-07T08:00:01.000Z',
+    sizeBytes: null,
+    state: 'requested',
+    updatedAt: '2026-09-07T08:00:01.000Z',
+  },
+];
 
 export const LIVE_RELEASE: Release = {
   bundleId: READY_BUNDLE.id,
@@ -215,7 +220,6 @@ export const LIVE_RELEASE: Release = {
   rolloutPercentage: 100,
   state: 'active',
   updatedAt: '2026-09-07T08:00:06.000Z',
-  verifier: null,
 };
 
 export const PREVIOUS_RELEASE: Release = {
@@ -250,11 +254,19 @@ export const PROGRESSING_RELEASE: Release = {
 
 export const RUNNER_USER: User = {
   createdAt: '2026-09-01T08:00:00.000Z',
-  credential: 'session',
+  discoverySource: null,
   email: 'anna@example.com',
   id: 'user-1',
+  image: null,
+  intendedFramework: null,
   isEmailVerified: true,
+  jobRole: null,
+  lastSeenAt: '2026-09-08T08:00:00.000Z',
+  locale: null,
   name: 'Anna Example',
+  timeFormat: null,
+  timeZone: null,
+  updatedAt: '2026-09-01T08:00:00.000Z',
 };
 
 interface ProtocolSigningKey {
@@ -420,7 +432,6 @@ export const PENDING_INVITATION: Invitation = {
   id: '4c8e2a6f-1d3b-4e97-a5c0-8f2d6b4a1e93',
   inviterId: OWNER_MEMBER.userId,
   organizationId: ACME_ORGANIZATION.id,
-  organizationName: ACME_ORGANIZATION.name,
   role: 'member',
   status: 'pending',
   updatedAt: '2026-09-10T08:00:00.000Z',

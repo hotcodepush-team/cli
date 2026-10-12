@@ -49,11 +49,12 @@ import {
 } from '../utils/project-config.js';
 import {
   fetchChannels,
+  fetchHasSigningKey,
   fetchResourceId,
   fetchSigningKeys,
 } from '../utils/resource-resolution.js';
 import { readSigningKeyPair } from '../utils/signing-private-key.js';
-import { readToken } from '../utils/token-store.js';
+import { isEnvironmentToken, readToken } from '../utils/token-store.js';
 import { readApiUrl } from '../utils/user-config.js';
 
 /**
@@ -261,7 +262,7 @@ async function checkSessionAndApp({
   }
   const sessionCheck: DoctorCheck = {
     check: 'session',
-    message: resolveCredentialText(user),
+    message: resolveCredentialText(user, isEnvironmentToken()),
     status: 'ok',
   };
   const { app, check } = await checkApp(projectConfig);
@@ -347,15 +348,19 @@ async function checkSigningKey(
 ): Promise<DoctorCheck> {
   const publicKeys =
     projectConfig?.appId === undefined ? [] : (projectConfig.publicKeys ?? []);
-  if (publicKeys.length === 0 && app?.hasSigningKey) {
-    return {
-      check: 'signing-key',
-      manualStep: `Run "hotcodepush signing-key list --json" and add each publicKey to publicKeys in ${PROJECT_CONFIG_FILE_NAME}.`,
-      message: `The app has a signing key and ${PROJECT_CONFIG_FILE_NAME} lists none.`,
-      status: 'failed',
-    };
-  }
   try {
+    if (
+      publicKeys.length === 0 &&
+      app !== undefined &&
+      (await fetchHasSigningKey(createApiClient(), app.id))
+    ) {
+      return {
+        check: 'signing-key',
+        manualStep: `Run "hotcodepush signing-key list --json" and add each publicKey to publicKeys in ${PROJECT_CONFIG_FILE_NAME}.`,
+        message: `The app has a signing key and ${PROJECT_CONFIG_FILE_NAME} lists none.`,
+        status: 'failed',
+      };
+    }
     const unregisteredKeyCount =
       app === undefined || publicKeys.length === 0
         ? 0
