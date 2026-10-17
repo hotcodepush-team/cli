@@ -211,7 +211,7 @@ function printUpdateStatistics(
   ] as const) {
     printTable({
       emptyText: `${header}: none in the period.`,
-      headers: [header, 'COUNT'],
+      headers: [header, 'EVENTS'],
       nextOffset: null,
       rows: reasons.map(({ eventCount, reason }) => [
         reason,

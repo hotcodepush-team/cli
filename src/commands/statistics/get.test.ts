@@ -140,7 +140,7 @@ describe('statistics get', () => {
       '2026-09-01  9        1       0',
       'RELEASE  LIVE                      APPLIED  50% AT                    90% AT',
       '#43      2026-09-01T07:00:00.000Z  9        2026-09-01T08:00:00.000Z  not yet',
-      'FAILURE REASON       COUNT',
+      'FAILURE REASON       EVENTS',
       'READINESS_TIMED_OUT  1',
       'SKIP REASON: none in the period.',
     ]);
