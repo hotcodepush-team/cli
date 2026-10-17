@@ -61,7 +61,7 @@ export default defineCommand({
     console.log(
       `${audienceText.charAt(0).toUpperCase()}${audienceText.slice(1)}.`,
     );
-    if (audience.reached === 0) {
+    if (audience.reachedDeviceCount === 0) {
       return;
     }
     for (const [header, deviceCounts] of [
@@ -72,9 +72,9 @@ export default defineCommand({
         emptyText: '',
         headers: [header, 'DEVICES'],
         nextOffset: null,
-        rows: deviceCounts.map(({ count, value }) => [
+        rows: deviceCounts.map(({ deviceCount, value }) => [
           value ?? 'none',
-          String(count),
+          String(deviceCount),
         ]),
       });
     }

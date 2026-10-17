@@ -153,9 +153,9 @@ describe('release rollout', () => {
     });
     expect(await readUpdateBody()).toEqual({
       progression: {
-        minimumSample: 50,
-        minimumSeconds: 3600,
         percentages: [10, 50, 100],
+        stepMinimumSeconds: 3600,
+        stepMinimumUpdateCount: 50,
       },
       rolloutPercentage: 10,
     });
@@ -189,9 +189,9 @@ describe('release rollout', () => {
     expect(text).not.toHaveBeenCalled();
     expect(await readUpdateBody()).toEqual({
       progression: {
-        minimumSample: 20,
-        minimumSeconds: 600,
         percentages: [20, 100],
+        stepMinimumSeconds: 600,
+        stepMinimumUpdateCount: 20,
       },
     });
     expect(harness.readJson()).toEqual(PROGRESSING_RELEASE);

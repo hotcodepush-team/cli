@@ -120,9 +120,9 @@ describe('init', () => {
       Response.json(ACME_ORGANIZATION);
   }
 
-  function respondWithSigningKeyCount(total: number): void {
+  function respondWithSigningKeyCount(count: number): void {
     harness.routes[`GET /v1/apps/${DEMO_APP.id}/signing-keys/count`] = () =>
-      Response.json({ total });
+      Response.json({ count });
   }
 
   function readStepStatuses(result: InitResult): Record<string, string> {

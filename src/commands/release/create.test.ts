@@ -219,7 +219,7 @@ describe('release create', () => {
     const [createRequest] = readCreateRequests();
     expect(await createRequest?.json()).toEqual({
       bundleId: READY_BUNDLE.id,
-      conditions: [{ hash: CAPACITOR_FINGERPRINT, type: 'fingerprint' }],
+      conditions: [{ fingerprint: CAPACITOR_FINGERPRINT, type: 'fingerprint' }],
       isMandatory: true,
       notes: 'cart fix',
       rolloutPercentage: 10,
@@ -312,7 +312,7 @@ describe('release create', () => {
           },
           { range: '>=2.3.0 <3.0.0', type: 'binary' },
           { hashedIds: [hashDeviceId(DEVICE_ID)], type: 'device' },
-          { hash: CAPACITOR_FINGERPRINT, type: 'fingerprint' },
+          { fingerprint: CAPACITOR_FINGERPRINT, type: 'fingerprint' },
           { range: '>=17', type: 'os' },
         ],
       });
@@ -328,7 +328,7 @@ describe('release create', () => {
         device: DEVICE_ID,
         fingerprint: CAPACITOR_FINGERPRINT,
         os: '>=17',
-        rollout: '100',
+        rolloutPercentage: '100',
       });
     });
 
@@ -367,7 +367,7 @@ describe('release create', () => {
     const [createRequest] = readCreateRequests();
     expect(await createRequest?.json()).toMatchObject({
       failureAction: 'revoke',
-      failureMinSample: 50,
+      failureMinimumUpdateCount: 50,
       failureThresholdPercent: 5,
     });
   });
@@ -403,13 +403,15 @@ describe('release create', () => {
         message:
           'This releases bundle #17 · 1.4.2 at 10 percent, progressing through 10, 50, 100 percent, each step at least 3600 seconds and 50 attempts: reaches 100 of 120 active devices in staging; about 100 at a 10 percent rollout. Continue?',
       });
-      expect(readAudienceUrls()[0]?.searchParams.get('rollout')).toBe('10');
+      expect(readAudienceUrls()[0]?.searchParams.get('rolloutPercentage')).toBe(
+        '10',
+      );
       const [createRequest] = readCreateRequests();
       expect(await createRequest?.json()).toMatchObject({
         progression: {
-          minimumSample: 50,
-          minimumSeconds: 3600,
           percentages: [10, 50, 100],
+          stepMinimumSeconds: 3600,
+          stepMinimumUpdateCount: 50,
         },
         rolloutPercentage: 10,
       });
@@ -438,9 +440,9 @@ describe('release create', () => {
       const [createRequest] = readCreateRequests();
       expect(await createRequest?.json()).toMatchObject({
         progression: {
-          minimumSample: 20,
-          minimumSeconds: 600,
           percentages: [25, 100],
+          stepMinimumSeconds: 600,
+          stepMinimumUpdateCount: 20,
         },
         rolloutPercentage: 5,
       });
@@ -541,7 +543,7 @@ describe('release create', () => {
     beforeEach(() => {
       respondWithStagingChannel({
         ...STAGING_AUDIENCE,
-        estimatedAtRollout: 5,
+        estimatedDeviceCount: 5,
         warnings: [UNSUPPORTED_CONDITION_SHARE_WARNING],
       });
       harness.routes[`GET ${BUNDLES_PATH}/${READY_BUNDLE.id}`] = () =>
@@ -568,7 +570,7 @@ describe('release create', () => {
         {
           ...STAGING_AUDIENCE,
           channelId: STAGING_CHANNEL.id,
-          estimatedAtRollout: 5,
+          estimatedDeviceCount: 5,
           warnings: [UNSUPPORTED_CONDITION_SHARE_WARNING],
         },
       ]);
@@ -644,7 +646,11 @@ describe('release create', () => {
           embeddedDeviceCount: 100,
         });
       harness.routes[`GET ${PRODUCTION_CHANNEL_PATH}/audience`] = () =>
-        Response.json({ ...STAGING_AUDIENCE, reached: 900, total: 1000 });
+        Response.json({
+          ...STAGING_AUDIENCE,
+          deviceCount: 1000,
+          reachedDeviceCount: 900,
+        });
       harness.routes[`GET ${BUNDLES_PATH}/${READY_BUNDLE.id}`] = () =>
         Response.json(READY_BUNDLE);
       respondWithCreatedRelease();
@@ -822,15 +828,15 @@ describe('release create', () => {
         { bundle: READY_BUNDLE },
         [
           {
-            audience: { ...STAGING_AUDIENCE, estimatedAtRollout: 6 },
+            audience: { ...STAGING_AUDIENCE, estimatedDeviceCount: 6 },
             channel: STAGING_CHANNEL_WITH_DEVICE_COUNTS,
           },
           {
             audience: {
               ...STAGING_AUDIENCE,
-              estimatedAtRollout: 500,
-              reached: 9995,
-              total: 10_000,
+              deviceCount: 10_000,
+              estimatedDeviceCount: 500,
+              reachedDeviceCount: 9995,
             },
             channel: {
               ...PRODUCTION_CHANNEL,

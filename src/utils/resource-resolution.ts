@@ -167,8 +167,8 @@ export async function fetchHasSigningKey(
   hotCodePush: HotCodePush,
   appId: string,
 ): Promise<boolean> {
-  const { total } = await hotCodePush.apps.signingKeys.count({ appId });
-  return total > 0;
+  const { count } = await hotCodePush.apps.signingKeys.count({ appId });
+  return count > 0;
 }
 
 export function fetchSigningKeys(

@@ -16,20 +16,20 @@ import statisticsGetCommand from './get.js';
 const STATISTICS_PATH = `/v1/apps/${DEMO_APP.id}/statistics`;
 
 const FLEET_STATISTICS: FleetStatistics = {
-  binaryVersion: [{ count: 70, value: '2.4.1' }],
-  country: [{ count: 70, value: 'DE' }],
-  osVersion: [{ count: 70, platform: 'ios', value: '17.4' }],
-  platform: [{ count: 70, value: 'ios' }],
+  binaryVersion: [{ deviceCount: 70, value: '2.4.1' }],
+  country: [{ deviceCount: 70, value: 'DE' }],
+  osVersion: [{ deviceCount: 70, platform: 'ios', value: '17.4' }],
+  platform: [{ deviceCount: 70, value: 'ios' }],
   release: [
     {
       channelId: STAGING_CHANNEL.id,
-      count: 50,
+      deviceCount: 50,
       number: 43,
       value: LIVE_RELEASE.id,
     },
-    { channelId: null, count: 20, number: null, value: null },
+    { channelId: null, deviceCount: 20, number: null, value: null },
   ],
-  sdkVersion: [{ count: 70, value: '0.1.0' }],
+  sdkVersion: [{ deviceCount: 70, value: '0.1.0' }],
 };
 
 const UPDATE_STATISTICS: UpdateStatistics = {
@@ -42,7 +42,7 @@ const UPDATE_STATISTICS: UpdateStatistics = {
       rolledBackUpdateCount: 0,
     },
   ],
-  failureReasons: [{ count: 1, reason: 'READINESS_TIMED_OUT' }],
+  failureReasons: [{ eventCount: 1, reason: 'READINESS_TIMED_OUT' }],
   releases: [
     {
       adoption: [{ appliedUpdateCount: 9, at: '2026-09-01T08:00:00.000Z' }],

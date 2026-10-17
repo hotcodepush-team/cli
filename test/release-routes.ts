@@ -16,16 +16,16 @@ import {
  */
 export const STAGING_AUDIENCE: Audience = {
   byBinaryVersion: [
-    { count: 70, value: '2.4.1' },
-    { count: 30, value: '2.3.0' },
+    { deviceCount: 70, value: '2.4.1' },
+    { deviceCount: 30, value: '2.3.0' },
   ],
   byPlatform: [
-    { count: 60, value: 'ios' },
-    { count: 40, value: 'android' },
+    { deviceCount: 60, value: 'ios' },
+    { deviceCount: 40, value: 'android' },
   ],
-  estimatedAtRollout: 100,
-  reached: 100,
-  total: 120,
+  deviceCount: 120,
+  estimatedDeviceCount: 100,
+  reachedDeviceCount: 100,
   warnings: [],
 };
 

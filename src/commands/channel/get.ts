@@ -43,7 +43,7 @@ export default defineCommand({
       ],
       [
         'Failure min sample',
-        String(fetchedChannel.failureMinSample ?? DEFAULT_POLICY_TEXT),
+        String(fetchedChannel.failureMinimumUpdateCount ?? DEFAULT_POLICY_TEXT),
       ],
       ['Failure action', fetchedChannel.failureAction ?? DEFAULT_POLICY_TEXT],
       ['Active devices', String(fetchedChannel.activeDeviceCount)],

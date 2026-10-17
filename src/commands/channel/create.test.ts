@@ -60,7 +60,7 @@ describe('channel create', () => {
     expect(await harness.requests[0]?.json()).toEqual({
       expiresAt: '2026-10-13T12:00:00.000Z',
       failureAction: 'pause',
-      failureMinSample: 20,
+      failureMinimumUpdateCount: 20,
       failureThresholdPercent: 10,
       isDiscoverable: false,
       isProtected: true,

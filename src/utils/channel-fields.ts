@@ -18,7 +18,7 @@ interface ChannelFieldOptions extends FailurePolicyOptions {
 
 type FailurePolicy = Pick<
   ChannelFields,
-  'failureAction' | 'failureMinSample' | 'failureThresholdPercent'
+  'failureAction' | 'failureMinimumUpdateCount' | 'failureThresholdPercent'
 >;
 
 export interface FailurePolicyOptions {
@@ -103,8 +103,7 @@ export function resolveFailurePolicy(
 ): FailurePolicy {
   return {
     failureAction: options.failureAction,
-    // phase 2: the SDK's body field is failureMinimumUpdateCount
-    failureMinSample: options.failureMinimumUpdateCount,
+    failureMinimumUpdateCount: options.failureMinimumUpdateCount,
     failureThresholdPercent: options.failureThreshold,
   };
 }

@@ -17,9 +17,9 @@ export interface ProgressionOptions {
 }
 
 const DEFAULT_PROGRESSION: Progression = {
-  minimumSample: 50,
-  minimumSeconds: 3600,
   percentages: [10, 50, 100],
+  stepMinimumSeconds: 3600,
+  stepMinimumUpdateCount: 50,
 };
 
 // `10,50,100` as typed, each percentage checked in the schema so a wrong one is answered under the flag's name
@@ -71,12 +71,12 @@ export function resolveProgression(
     return null;
   }
   return {
-    // phase 2: the SDK's body fields are stepMinimumSeconds and stepMinimumUpdateCount
-    minimumSample:
-      options.progressMinimumUpdateCount ?? DEFAULT_PROGRESSION.minimumSample,
-    minimumSeconds:
-      options.progressMinimumSeconds ?? DEFAULT_PROGRESSION.minimumSeconds,
     percentages: options.progressPercentages ?? DEFAULT_PROGRESSION.percentages,
+    stepMinimumSeconds:
+      options.progressMinimumSeconds ?? DEFAULT_PROGRESSION.stepMinimumSeconds,
+    stepMinimumUpdateCount:
+      options.progressMinimumUpdateCount ??
+      DEFAULT_PROGRESSION.stepMinimumUpdateCount,
   };
 }
 
@@ -105,11 +105,11 @@ export function resolveProgressionStepText(
  * The schedule as a confirmation states it: `10, 50, 100 percent, each step at least 3600 seconds and 50 attempts`.
  */
 export function resolveProgressionText({
-  minimumSample,
-  minimumSeconds,
   percentages,
+  stepMinimumSeconds,
+  stepMinimumUpdateCount,
 }: Progression): string {
-  return `${percentages.join(', ')} percent, each step at least ${minimumSeconds} seconds and ${minimumSample} attempts`;
+  return `${percentages.join(', ')} percent, each step at least ${stepMinimumSeconds} seconds and ${stepMinimumUpdateCount} attempts`;
 }
 
 function assertNoProgressionFlags(options: ProgressionOptions): void {
@@ -134,7 +134,7 @@ function assertNoProgressionFlags(options: ProgressionOptions): void {
 }
 
 function resolveGateText(gate: ProgressionGate): string {
-  return gate.kind === 'sample'
-    ? `waiting on sample: ${gate.attemptedUpdateCount} of ${gate.required} attempts`
+  return gate.type === 'sample'
+    ? `waiting on sample: ${gate.attemptedUpdateCount} of ${gate.requiredUpdateCount} attempts`
     : `ready at ${gate.readyAt}`;
 }

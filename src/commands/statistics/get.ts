@@ -162,9 +162,9 @@ function printFleetStatistics(
       emptyText: `${header}: no device seen in the last thirty days.`,
       headers: [header, 'DEVICES'],
       nextOffset: null,
-      rows: statistics[dimension].map(({ count, value }) => [
+      rows: statistics[dimension].map(({ deviceCount, value }) => [
         value ?? (dimension === 'release' ? 'embedded' : 'none'),
-        String(count),
+        String(deviceCount),
       ]),
     });
   }
@@ -213,7 +213,10 @@ function printUpdateStatistics(
       emptyText: `${header}: none in the period.`,
       headers: [header, 'COUNT'],
       nextOffset: null,
-      rows: reasons.map(({ count, reason }) => [reason, String(count)]),
+      rows: reasons.map(({ eventCount, reason }) => [
+        reason,
+        String(eventCount),
+      ]),
     });
   }
 }

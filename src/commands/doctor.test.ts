@@ -88,7 +88,7 @@ describe('doctor', () => {
     harness.routes[`GET /v1/apps/${DEMO_APP.id}`] = () =>
       Response.json(DEMO_APP);
     harness.routes[`GET /v1/apps/${DEMO_APP.id}/signing-keys/count`] = () =>
-      Response.json({ total: 0 });
+      Response.json({ count: 0 });
     respondWithChannels(harness);
     harness.routes[
       `GET /v1/apps/${DEMO_APP.id}/channels/${PRODUCTION_CHANNEL.id}`
@@ -417,7 +417,7 @@ describe('doctor', () => {
     const directoryPath = await writeSetUpProject();
     respondWithSessionAndApp();
     harness.routes[`GET /v1/apps/${DEMO_APP.id}/signing-keys/count`] = () =>
-      Response.json({ total: 1 });
+      Response.json({ count: 1 });
 
     expect(await readSigningKeyCheck(directoryPath)).toEqual({
       check: 'signing-key',

@@ -64,7 +64,7 @@ export function buildAudienceQuery(
     device: options.device ?? [],
     fingerprint: resolveList(fingerprint ?? undefined),
     os: resolveList(options.os),
-    rollout: rolloutPercentage,
+    rolloutPercentage,
   };
 }
 
@@ -97,11 +97,12 @@ export function buildReleaseConditions(
             type: 'device',
           } satisfies ReleaseCondition,
         ]),
-    // phase 2: the SDK's fingerprint condition is { type: 'fingerprint', fingerprint }
-    ...resolveList(fingerprint ?? undefined).map((hash): ReleaseCondition => ({
-      hash,
-      type: 'fingerprint',
-    })),
+    ...resolveList(fingerprint ?? undefined).map(
+      (fingerprint): ReleaseCondition => ({
+        fingerprint,
+        type: 'fingerprint',
+      }),
+    ),
     ...resolveList(options.os).map((range): ReleaseCondition => ({
       range,
       type: 'os',

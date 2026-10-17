@@ -44,7 +44,7 @@ describe('audience get', () => {
 
   it('should print the devices the conditions reach with the platforms and binary versions among them', async () => {
     harness.routes[`GET ${CHANNEL_PATH}/audience`] = () =>
-      Response.json({ ...STAGING_AUDIENCE, estimatedAtRollout: 10 });
+      Response.json({ ...STAGING_AUDIENCE, estimatedDeviceCount: 10 });
 
     await audienceGetCommand.action(
       {
@@ -64,7 +64,7 @@ describe('audience get', () => {
       binary: '>=2.3.0',
       device: DEVICE_ID,
       os: '>=17',
-      rollout: '10',
+      rolloutPercentage: '10',
     });
     expect(harness.readLines()).toEqual([
       'Reaches 100 of 120 active devices in staging; about 10 at a 10 percent rollout.',
@@ -89,7 +89,7 @@ describe('audience get', () => {
 
     expect(Object.fromEntries(readAudienceUrl()?.searchParams ?? [])).toEqual({
       fingerprint: CAPACITOR_FINGERPRINT,
-      rollout: '100',
+      rolloutPercentage: '100',
     });
   });
 
@@ -99,8 +99,8 @@ describe('audience get', () => {
         ...STAGING_AUDIENCE,
         byBinaryVersion: [],
         byPlatform: [],
-        estimatedAtRollout: 0,
-        reached: 0,
+        estimatedDeviceCount: 0,
+        reachedDeviceCount: 0,
       });
 
     await audienceGetCommand.action(
