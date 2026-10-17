@@ -138,27 +138,13 @@ function printUploadedBundles(
   }
 }
 
-function resolveUploadedBundleJson({
-  bundle,
-  uploadedBytes,
-  uploadedFileCount,
-}: UploadedBundle): object {
-  return {
-    ...bundle,
-    upload: {
-      uploadedBytes,
-      uploadedFileCount,
-    },
-  };
+function resolveUploadedBundleJson({ bundle, upload }: UploadedBundle): object {
+  return { ...bundle, upload };
 }
 
-function printUploadedBundle({
-  bundle,
-  uploadedBytes,
-  uploadedFileCount,
-}: UploadedBundle): void {
+function printUploadedBundle({ bundle, upload }: UploadedBundle): void {
   console.log(
-    `Uploaded bundle ${resolveBundleLabel(bundle)} (${bundle.id}): ${uploadedFileCount} files moved, ${resolveByteText(uploadedBytes)}.`,
+    `Uploaded bundle ${resolveBundleLabel(bundle)} (${bundle.id}): ${upload.fileCount} files moved, ${resolveByteText(upload.sizeBytes)}.`,
   );
 }
 

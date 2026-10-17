@@ -332,8 +332,7 @@ describe('binary create', () => {
     expect(harness.readJson()).toEqual({
       binary: { ...BINARY, platform: 'android' },
       resourceFilePath: buildOptions.resourceFilePath,
-      uploadedBytes: 0,
-      uploadedFileCount: 0,
+      upload: { fileCount: 0, sizeBytes: 0 },
     });
   });
 
@@ -757,8 +756,7 @@ describe('binary create', () => {
         expect(harness.readJson()).toEqual({
           binary: null,
           resourceFilePath: join(appDirectoryPath, 'hotcodepush.json'),
-          uploadedBytes: 0,
-          uploadedFileCount: 0,
+          upload: { fileCount: 0, sizeBytes: 0 },
         });
       });
     });

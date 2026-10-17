@@ -43,10 +43,11 @@ interface BinaryIdentity {
  * What the API answered for the build: the channel's id, null when the build names none, and the binary created,
  * or the one warning that says what was skipped and why.
  */
-interface BinaryCreation extends UploadedFiles {
+interface BinaryCreation {
   binary: Binary | null;
   channelId: string | null;
   skippedReason: string | null;
+  upload: UploadedFiles;
 }
 
 /**
@@ -59,7 +60,7 @@ interface BinaryCreationRequest extends BinaryIdentity {
   platform: Platform;
 }
 
-const NO_UPLOAD: UploadedFiles = { uploadedBytes: 0, uploadedFileCount: 0 };
+const NO_UPLOAD: UploadedFiles = { fileCount: 0, sizeBytes: 0 };
 
 export default defineCommand({
   description:
@@ -99,7 +100,7 @@ export default defineCommand({
         `No binary created: the ${platform} build bundled no JavaScript, as a debug build served by the development server does. Wrote ${resourceFilePath} without an embedded bundle: live updates are off in this build.\n`,
       );
       if (options.json) {
-        printJson({ binary: null, resourceFilePath, ...NO_UPLOAD });
+        printJson({ binary: null, resourceFilePath, upload: NO_UPLOAD });
       }
       return;
     }
@@ -129,15 +130,14 @@ export default defineCommand({
       printJson({
         binary: binaryCreation.binary,
         resourceFilePath,
-        uploadedBytes: binaryCreation.uploadedBytes,
-        uploadedFileCount: binaryCreation.uploadedFileCount,
+        upload: binaryCreation.upload,
       });
       return;
     }
     console.log(`Wrote ${resourceFilePath} for ${platform}.`);
     if (binaryCreation.binary !== null) {
       console.log(
-        `Created the binary ${platform} ${identity.binaryVersion} (${identity.binaryBuild}): ${binaryCreation.uploadedFileCount} files uploaded, ${resolveByteText(binaryCreation.uploadedBytes)}.`,
+        `Created the binary ${platform} ${identity.binaryVersion} (${identity.binaryBuild}): ${binaryCreation.upload.fileCount} files uploaded, ${resolveByteText(binaryCreation.upload.sizeBytes)}.`,
       );
     }
   },
@@ -162,10 +162,10 @@ async function createBuildBinary(
   }
   if (offlineCause !== undefined) {
     return {
-      ...NO_UPLOAD,
       binary: null,
       channelId: channelIdByShape,
       skippedReason: resolveOfflineText(offlineCause, channelIdByShape),
+      upload: NO_UPLOAD,
     };
   }
   const hotCodePush = createApiClient();
@@ -178,10 +178,10 @@ async function createBuildBinary(
       throw error;
     }
     return {
-      ...NO_UPLOAD,
       binary: null,
       channelId: null,
       skippedReason: `the channel could not be resolved, so the build names none and takes no updates, and no binary was created: ${resolveFailureText(error)}`,
+      upload: NO_UPLOAD,
     };
   }
   try {
@@ -196,10 +196,10 @@ async function createBuildBinary(
       throw error;
     }
     return {
-      ...NO_UPLOAD,
       binary: null,
       channelId,
       skippedReason: `the binary was not created: ${resolveFailureText(error)}`,
+      upload: NO_UPLOAD,
     };
   }
 }
@@ -209,7 +209,7 @@ async function createBinaryWithUploads(
   request: BinaryCreationRequest,
   files: BundleFile[],
   reporter: ReturnType<typeof createReporter>,
-): Promise<UploadedFiles & { binary: Binary }> {
+): Promise<{ binary: Binary; upload: UploadedFiles }> {
   const { binaryBuild, binaryVersion, ...identityless } = request;
   const createOptions = {
     ...identityless,
@@ -223,7 +223,7 @@ async function createBinaryWithUploads(
   };
   try {
     const binary = await hotCodePush.apps.binaries.create(createOptions);
-    return { ...NO_UPLOAD, binary };
+    return { binary, upload: NO_UPLOAD };
   } catch (error) {
     const missingSha256s = resolveMissingSha256s(error);
     if (missingSha256s === undefined) {
@@ -244,7 +244,7 @@ async function createBinaryWithUploads(
         ),
     );
     const binary = await hotCodePush.apps.binaries.create(createOptions);
-    return { ...uploadedFiles, binary };
+    return { binary, upload: uploadedFiles };
   }
 }
 

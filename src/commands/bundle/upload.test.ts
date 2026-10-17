@@ -297,7 +297,7 @@ describe('bundle upload', () => {
     expect(harness.readJson()).toEqual([
       {
         ...READY_BUNDLE,
-        upload: { uploadedBytes: 34, uploadedFileCount: 1 },
+        upload: { fileCount: 1, sizeBytes: 34 },
       },
     ]);
   });

@@ -134,8 +134,7 @@ describe('release create', () => {
     ]);
     vi.mocked(uploadBundle).mockResolvedValue({
       bundle: { ...READY_BUNDLE, fingerprint: CAPACITOR_FINGERPRINT },
-      uploadedBytes: 0,
-      uploadedFileCount: 0,
+      upload: { fileCount: 0, sizeBytes: 0 },
       warnings,
     });
   }
@@ -744,8 +743,7 @@ describe('release create', () => {
       for (const bundle of [READY_BUNDLE, PREVIOUS_BUNDLE]) {
         vi.mocked(uploadBundle).mockResolvedValueOnce({
           bundle: { ...bundle, fingerprint: CAPACITOR_FINGERPRINT },
-          uploadedBytes: 0,
-          uploadedFileCount: 0,
+          upload: { fileCount: 0, sizeBytes: 0 },
           warnings: [],
         });
       }

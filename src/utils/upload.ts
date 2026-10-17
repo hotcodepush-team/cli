@@ -34,15 +34,17 @@ export interface UploadBundleOptions {
 
 export interface UploadedBundle {
   bundle: Bundle;
-  uploadedBytes: number;
-  uploadedFileCount: number;
+  upload: UploadedFiles;
   /** What the API answered beside the created bundle, the fingerprint no binary was created with among them. */
   warnings: BundleWithUploads['warnings'];
 }
 
+/**
+ * What an upload moved: the files the app lacked and the size of their gzip copies.
+ */
 export interface UploadedFiles {
-  uploadedBytes: number;
-  uploadedFileCount: number;
+  fileCount: number;
+  sizeBytes: number;
 }
 
 /** The one public size limit, in decimal bytes as the limits are. */
@@ -168,7 +170,7 @@ export async function uploadBundle(
     });
     return {
       bundle: completedBundle,
-      ...uploadedFiles,
+      upload: uploadedFiles,
       warnings: createdBundle.warnings,
     };
   });
@@ -211,7 +213,7 @@ export async function uploadMissingFiles(
   compressedFiles: Map<string, CompressedFile>,
   reporter: Reporter,
 ): Promise<UploadedFiles> {
-  let uploadedBytes = 0;
+  let sizeBytes = 0;
   for (const [index, sha256] of missingSha256s.entries()) {
     const compressedFile = compressedFiles.get(sha256);
     if (compressedFile === undefined) {
@@ -221,9 +223,9 @@ export async function uploadMissingFiles(
       `  ${index + 1}/${missingSha256s.length} ${sha256.slice(0, 12)} (${resolveByteText(compressedFile.sizeBytes)})`,
     );
     await uploadFile(hotCodePush, appId, compressedFile);
-    uploadedBytes += compressedFile.sizeBytes;
+    sizeBytes += compressedFile.sizeBytes;
   }
-  return { uploadedBytes, uploadedFileCount: missingSha256s.length };
+  return { fileCount: missingSha256s.length, sizeBytes };
 }
 
 /**
