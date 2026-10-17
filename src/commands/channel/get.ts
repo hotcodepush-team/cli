@@ -42,7 +42,7 @@ export default defineCommand({
           : `${fetchedChannel.failureThresholdPercent}%`,
       ],
       [
-        'Failure min sample',
+        'Failure minimum update count',
         String(fetchedChannel.failureMinimumUpdateCount ?? DEFAULT_POLICY_TEXT),
       ],
       ['Failure action', fetchedChannel.failureAction ?? DEFAULT_POLICY_TEXT],

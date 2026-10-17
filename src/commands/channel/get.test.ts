@@ -36,19 +36,19 @@ describe('channel get', () => {
     );
 
     expect(harness.readLines()).toEqual([
-      `ID                  ${STAGING_CHANNEL.id}`,
-      'Name                staging',
-      'State               running',
-      'Protected           no',
-      'Discoverable        no',
-      'Expires             never',
-      'Failure threshold   10%',
-      'Failure min sample  20',
-      'Failure action      pause',
-      'Active devices      120',
-      'Current devices     100',
-      'Embedded devices    20',
-      'Created             2026-09-04T08:00:00.000Z',
+      `ID                            ${STAGING_CHANNEL.id}`,
+      'Name                          staging',
+      'State                         running',
+      'Protected                     no',
+      'Discoverable                  no',
+      'Expires                       never',
+      'Failure threshold             10%',
+      'Failure minimum update count  20',
+      'Failure action                pause',
+      'Active devices                120',
+      'Current devices               100',
+      'Embedded devices              20',
+      'Created                       2026-09-04T08:00:00.000Z',
     ]);
   });
 
