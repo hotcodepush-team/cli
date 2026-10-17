@@ -10,7 +10,7 @@ import { printJson } from '../../utils/output.js';
 import { promptSecret, promptSelect, promptText } from '../../utils/prompts.js';
 import { fetchOrganizationId } from '../../utils/resource-resolution.js';
 import { printProviderDetails } from './get.js';
-import type { SsoProviderKind } from './get.js';
+import type { SsoProviderType } from './get.js';
 
 interface OidcOptions extends InteractivityOptions {
   oidcClientId?: string;
@@ -29,7 +29,7 @@ interface SamlOptions extends InteractivityOptions {
 }
 
 // a missing protocol names the first flag each protocol asks for
-const PROVIDER_KIND_FLAG = '--oidc-issuer or --saml-entry-point';
+const PROVIDER_TYPE_FLAG = '--oidc-issuer or --saml-entry-point';
 
 export default defineCommand({
   description:
@@ -92,7 +92,7 @@ export default defineCommand({
       .describe("SAML: the identity provider's metadata XML file."),
   }),
   action: async options => {
-    const flaggedProviderKind = resolveFlaggedProviderKind(options);
+    const flaggedProviderType = resolveFlaggedProviderType(options);
     const hotCodePush = createApiClient();
     const organizationId = await fetchOrganizationId(hotCodePush, options);
     const domain =
@@ -102,10 +102,10 @@ export default defineCommand({
         'Which email domain signs in through the provider?',
         options,
       ));
-    const providerKind =
-      flaggedProviderKind ??
-      (await promptSelect<SsoProviderKind>(
-        PROVIDER_KIND_FLAG,
+    const providerType =
+      flaggedProviderType ??
+      (await promptSelect<SsoProviderType>(
+        PROVIDER_TYPE_FLAG,
         'Which protocol does the identity provider speak?',
         [
           { label: 'OIDC', value: 'oidc' },
@@ -116,7 +116,7 @@ export default defineCommand({
     const updatedProvider = await hotCodePush.organizations.ssoProvider.put({
       domain,
       organizationId,
-      ...(providerKind === 'oidc'
+      ...(providerType === 'oidc'
         ? { oidc: await promptOidcBlock(options) }
         : { saml: await promptSamlBlock(options) }),
     });
@@ -125,7 +125,7 @@ export default defineCommand({
       return;
     }
     console.log(
-      `Set the ${providerKind} provider for ${updatedProvider.domain}.`,
+      `Set the ${providerType} provider for ${updatedProvider.domain}.`,
     );
     printProviderDetails(updatedProvider);
   },
@@ -226,9 +226,9 @@ function readDocumentFile(flag: string, filePath: string): string {
  * The protocol the flags name, OIDC by an --oidc- flag and SAML by a --saml- one, or none when neither appears;
  * a provider speaks one protocol, so both are refused.
  */
-function resolveFlaggedProviderKind(
+function resolveFlaggedProviderType(
   options: OidcOptions & SamlOptions,
-): SsoProviderKind | undefined {
+): SsoProviderType | undefined {
   const hasOidcFlag = [
     options.oidcClientId,
     options.oidcClientSecret,

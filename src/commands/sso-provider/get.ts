@@ -7,7 +7,7 @@ import { fetchOrganizationId } from '../../utils/resource-resolution.js';
 
 type Detail = [label: string, value: string];
 
-export type SsoProviderKind = 'oidc' | 'saml';
+export type SsoProviderType = 'oidc' | 'saml';
 
 export default defineCommand({
   description:
@@ -37,7 +37,7 @@ export default defineCommand({
 export function printProviderDetails(provider: SsoProvider): void {
   printDetails([
     ['ID', provider.id],
-    ['Provider', resolveSsoProviderKind(provider)],
+    ['Type', resolveSsoProviderType(provider)],
     ['Domain', provider.domain],
     ['Verified', provider.isDomainVerified ? 'yes' : 'no'],
     ['Sign-in URL', provider.signInUrl],
@@ -47,9 +47,9 @@ export function printProviderDetails(provider: SsoProvider): void {
 }
 
 /**
- * The block that is present says the kind: a provider carries its `oidc` block or its `saml` one.
+ * The block that is present says the type: a provider carries its `oidc` block or its `saml` one.
  */
-function resolveSsoProviderKind({ oidc }: SsoProvider): SsoProviderKind {
+function resolveSsoProviderType({ oidc }: SsoProvider): SsoProviderType {
   return oidc === null ? 'saml' : 'oidc';
 }
 

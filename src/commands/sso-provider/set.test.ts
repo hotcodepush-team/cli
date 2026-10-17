@@ -96,7 +96,7 @@ describe('sso-provider set', () => {
     expect(harness.readLines()).toEqual([
       'Set the oidc provider for example.com.',
       `ID            ${SSO_PROVIDER.id}`,
-      'Provider      oidc',
+      'Type          oidc',
       'Domain        example.com',
       'Verified      no',
       `Sign-in URL   https://console.example.com/login?sso=${ACME_ORGANIZATION.id}`,

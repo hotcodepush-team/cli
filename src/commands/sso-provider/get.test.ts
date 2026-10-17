@@ -23,7 +23,7 @@ describe('sso-provider get', () => {
 
     expect(harness.readLines()).toEqual([
       `ID            ${SSO_PROVIDER.id}`,
-      'Provider      oidc',
+      'Type          oidc',
       'Domain        example.com',
       'Verified      no',
       `Sign-in URL   https://console.example.com/login?sso=${ACME_ORGANIZATION.id}`,
@@ -44,7 +44,7 @@ describe('sso-provider get', () => {
 
     expect(harness.readLines()).toEqual([
       `ID               ${SSO_PROVIDER.id}`,
-      'Provider         saml',
+      'Type             saml',
       'Domain           example.com',
       'Verified         yes',
       `Sign-in URL      https://console.example.com/login?sso=${ACME_ORGANIZATION.id}`,

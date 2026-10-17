@@ -31,7 +31,7 @@ describe('sso-provider verify', () => {
     expect(harness.readLines().slice(0, 5)).toEqual([
       'Verified example.com.',
       `ID               ${SSO_PROVIDER.id}`,
-      'Provider         saml',
+      'Type             saml',
       'Domain           example.com',
       'Verified         yes',
     ]);
