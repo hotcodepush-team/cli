@@ -10,9 +10,9 @@ import billingUpdateCommand from './update.js';
 
 vi.mock('@clack/prompts');
 
-const BILLING_PATH = `/v1/organizations/${GLOBEX_ORGANIZATION.id}/billing`;
+const ORGANIZATION_PATH = `/v1/organizations/${GLOBEX_ORGANIZATION.id}`;
 
-const LOWERED_BILLING = { ...GLOBEX_BILLING, spendingCapCents: 2000 };
+const BILLING_PATH = `${ORGANIZATION_PATH}/billing`;
 
 describe('billing update', () => {
   const harness = useCommandHarness();
@@ -21,24 +21,26 @@ describe('billing update', () => {
     return harness.requests.filter(({ method }) => method === 'PATCH');
   }
 
-  function respondWithBilling(
-    billing: object,
-    updatedBilling: object = billing,
-  ): void {
-    harness.routes[`GET /v1/organizations/${GLOBEX_ORGANIZATION.id}`] = () =>
-      Response.json(GLOBEX_ORGANIZATION);
-    harness.routes[`GET ${BILLING_PATH}`] = () => Response.json(billing);
-    harness.routes[`PATCH ${BILLING_PATH}`] = () =>
-      Response.json(updatedBilling);
+  /**
+   * Globex at its $50 cap until the update writes the cap it is sent, as the reloaded organization then answers.
+   */
+  function respondWithBilling(): void {
+    let servedOrganization = GLOBEX_ORGANIZATION;
+    harness.routes[`GET ${ORGANIZATION_PATH}`] = () =>
+      Response.json(servedOrganization);
+    harness.routes[`PATCH ${BILLING_PATH}`] = async request => {
+      const { spendingCapCents } = (await request.json()) as {
+        spendingCapCents: number;
+      };
+      servedOrganization = { ...GLOBEX_ORGANIZATION, spendingCapCents };
+      return Response.json(GLOBEX_BILLING);
+    };
   }
 
   it('should raise the cap in cents once confirmed, stating that a raise applies now', async () => {
     stubInteractiveTerminal();
     vi.mocked(confirm).mockResolvedValue(true);
-    respondWithBilling(GLOBEX_BILLING, {
-      ...GLOBEX_BILLING,
-      spendingCapCents: 10_000,
-    });
+    respondWithBilling();
 
     await billingUpdateCommand.action(
       { organization: GLOBEX_ORGANIZATION.id, spendingCap: 100 },
@@ -58,7 +60,7 @@ describe('billing update', () => {
   });
 
   it('should lower the cap without asking when --yes is passed and say it applies now', async () => {
-    respondWithBilling(GLOBEX_BILLING, LOWERED_BILLING);
+    respondWithBilling();
 
     await billingUpdateCommand.action(
       { organization: GLOBEX_ORGANIZATION.id, spendingCap: 20, yes: true },
@@ -74,7 +76,7 @@ describe('billing update', () => {
   });
 
   it('should throw E_CONFIRMATION_REQUIRED stating that a lower cap applies now and keeps the counted devices and change nothing when nobody can be asked', async () => {
-    respondWithBilling(GLOBEX_BILLING);
+    respondWithBilling();
 
     await expect(
       billingUpdateCommand.action(
@@ -90,7 +92,7 @@ describe('billing update', () => {
   });
 
   it('should say nothing changes without asking when the cap is the one in force', async () => {
-    respondWithBilling(GLOBEX_BILLING);
+    respondWithBilling();
 
     await billingUpdateCommand.action(
       { organization: GLOBEX_ORGANIZATION.id, spendingCap: 50 },
@@ -106,7 +108,7 @@ describe('billing update', () => {
   it('should change nothing when the confirmation is declined', async () => {
     stubInteractiveTerminal();
     vi.mocked(confirm).mockResolvedValue(false);
-    respondWithBilling(GLOBEX_BILLING);
+    respondWithBilling();
 
     await billingUpdateCommand.action(
       { organization: GLOBEX_ORGANIZATION.id, spendingCap: 100 },
@@ -116,8 +118,8 @@ describe('billing update', () => {
     expect(readUpdateRequests()).toEqual([]);
   });
 
-  it("should print the API's billing as JSON when --json and --yes are passed", async () => {
-    respondWithBilling(GLOBEX_BILLING, LOWERED_BILLING);
+  it('should print the billing, the derived ceiling and the reloaded organization as JSON when --json and --yes are passed', async () => {
+    respondWithBilling();
 
     await billingUpdateCommand.action(
       {
@@ -129,14 +131,18 @@ describe('billing update', () => {
       undefined,
     );
 
-    expect(harness.readJson()).toEqual(LOWERED_BILLING);
+    expect(harness.readJson()).toEqual({
+      ...GLOBEX_BILLING,
+      monthlyActiveDeviceCountLimit: 20_000,
+      organization: { ...GLOBEX_ORGANIZATION, spendingCapCents: 2000 },
+    });
   });
 
   it('should ask for the cap in whole dollars when --spending-cap is missing and someone can answer', async () => {
     stubInteractiveTerminal();
     vi.mocked(text).mockResolvedValue('100');
     vi.mocked(confirm).mockResolvedValue(true);
-    respondWithBilling(GLOBEX_BILLING);
+    respondWithBilling();
 
     await billingUpdateCommand.action(
       { organization: GLOBEX_ORGANIZATION.id },
@@ -154,7 +160,7 @@ describe('billing update', () => {
   });
 
   it('should name the flag with E_MISSING_PARAMETER when it is missing and nobody can answer', async () => {
-    respondWithBilling(GLOBEX_BILLING);
+    respondWithBilling();
 
     await expect(
       billingUpdateCommand.action(

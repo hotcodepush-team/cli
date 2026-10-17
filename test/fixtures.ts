@@ -67,18 +67,10 @@ export const GLOBEX_ORGANIZATION: Organization = {
 };
 
 /**
- * Globex's billing this month: a $50 cap, under its ceiling, its subscription active.
+ * Globex's billing this month: the devices counted so far, no suggestion on a paying plan.
  */
 export const GLOBEX_BILLING: Billing = {
-  cancelAtPeriodEnd: false,
-  cappedAt: null,
-  countedMau: 1234,
-  currentPeriodEndsAt: '2026-10-02T08:00:00.000Z',
-  mauCap: 5000,
-  plan: 'pay_as_you_go',
-  spendingCapCents: 5000,
-  subscriptionProvider: 'polar',
-  subscriptionStatus: 'active',
+  monthlyActiveDeviceCount: 1234,
   suggestedSpendingCapCents: null,
 };
 

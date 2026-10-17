@@ -1,10 +1,13 @@
-import type { Billing } from '@hotcodepush/node';
 import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printDetails, printJson } from '../../utils/output.js';
 import { fetchOrganizationId } from '../../utils/resource-resolution.js';
-import { resolveDollarText } from '../../utils/spending-cap.js';
+import {
+  buildBillingJson,
+  resolveDollarText,
+  resolveMonthlyActiveDeviceCountLimit,
+} from '../../utils/spending-cap.js';
 
 export default defineCommand({
   description:
@@ -16,36 +19,64 @@ export default defineCommand({
   options: defineCommandOptions({}),
   action: async options => {
     const hotCodePush = createApiClient();
-    const fetchedBilling = await hotCodePush.organizations.billing.get({
-      organizationId: await fetchOrganizationId(hotCodePush, options),
-    });
+    const organizationId = await fetchOrganizationId(hotCodePush, options);
+    const [fetchedBilling, fetchedOrganization] = await Promise.all([
+      hotCodePush.organizations.billing.get({ organizationId }),
+      hotCodePush.organizations.get({ organizationId }),
+    ]);
     if (options.json) {
-      printJson(fetchedBilling);
+      printJson(buildBillingJson(fetchedBilling, fetchedOrganization));
       return;
     }
+    const cappedAt = resolveCappedAtOfMonth(
+      fetchedOrganization.cappedAt,
+      new Date(),
+    );
     printDetails([
-      ['Plan', fetchedBilling.plan],
+      ['Plan', fetchedOrganization.plan],
       [
         'Spending cap',
-        `${resolveDollarText(fetchedBilling.spendingCapCents)} a month`,
+        `${resolveDollarText(fetchedOrganization.spendingCapCents)} a month`,
       ],
-      ['MAU', resolveMauText(fetchedBilling)],
       [
-        'Capped',
-        fetchedBilling.cappedAt === null
-          ? 'no'
-          : `since ${fetchedBilling.cappedAt}`,
+        'MAU',
+        resolveMonthlyActiveDeviceText(
+          fetchedBilling.monthlyActiveDeviceCount,
+          resolveMonthlyActiveDeviceCountLimit(fetchedOrganization),
+        ),
       ],
+      ['Capped', cappedAt === null ? 'no' : `since ${cappedAt}`],
     ]);
   },
 });
 
 /**
+ * `cappedAt` when it falls in the current UTC month; an earlier month's stamp stays on the organization until the
+ * month's first report clears it and no longer applies.
+ */
+function resolveCappedAtOfMonth(
+  cappedAt: string | null,
+  now: Date,
+): string | null {
+  if (cappedAt === null) {
+    return null;
+  }
+  const cappedDate = new Date(cappedAt);
+  return cappedDate.getUTCFullYear() === now.getUTCFullYear() &&
+    cappedDate.getUTCMonth() === now.getUTCMonth()
+    ? cappedAt
+    : null;
+}
+
+/**
  * The devices counted this month against what the month counts at most; an Enterprise deal may set no ceiling.
  */
-function resolveMauText({ countedMau, mauCap }: Billing): string {
-  const countedText = countedMau.toLocaleString('en-US');
-  return mauCap === null
-    ? `${countedText}, no ceiling`
-    : `${countedText} of ${mauCap.toLocaleString('en-US')}`;
+function resolveMonthlyActiveDeviceText(
+  monthlyActiveDeviceCount: number,
+  monthlyActiveDeviceCountLimit: number | null,
+): string {
+  const countText = monthlyActiveDeviceCount.toLocaleString('en-US');
+  return monthlyActiveDeviceCountLimit === null
+    ? `${countText}, no ceiling`
+    : `${countText} of ${monthlyActiveDeviceCountLimit.toLocaleString('en-US')}`;
 }

@@ -1,4 +1,3 @@
-import type { Billing } from '@hotcodepush/node';
 import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
@@ -6,6 +5,7 @@ import { printJson } from '../../utils/output.js';
 import { confirmConsequence } from '../../utils/prompts.js';
 import { fetchOrganizationId } from '../../utils/resource-resolution.js';
 import {
+  buildBillingJson,
   promptSpendingCap,
   resolveCents,
   resolveDollarText,
@@ -25,16 +25,15 @@ export default defineCommand({
     const spendingCapCents = resolveCents(
       options.spendingCap ?? (await promptSpendingCap(options)),
     );
-    const [fetchedOrganization, fetchedBilling] = await Promise.all([
-      hotCodePush.organizations.get({ organizationId }),
-      hotCodePush.organizations.billing.get({ organizationId }),
-    ]);
+    const fetchedOrganization = await hotCodePush.organizations.get({
+      organizationId,
+    });
     const isConfirmed =
-      spendingCapCents === fetchedBilling.spendingCapCents ||
+      spendingCapCents === fetchedOrganization.spendingCapCents ||
       (await confirmConsequence(
         resolveSpendingCapConsequence(
           fetchedOrganization.name,
-          fetchedBilling.spendingCapCents,
+          fetchedOrganization.spendingCapCents,
           spendingCapCents,
         ),
         options,
@@ -46,14 +45,17 @@ export default defineCommand({
       organizationId,
       spendingCapCents,
     });
+    const reloadedOrganization = await hotCodePush.organizations.get({
+      organizationId,
+    });
     if (options.json) {
-      printJson(updatedBilling);
+      printJson(buildBillingJson(updatedBilling, reloadedOrganization));
     } else {
       console.log(
         resolveUpdatedLine(
           fetchedOrganization.name,
-          fetchedBilling.spendingCapCents,
-          updatedBilling,
+          fetchedOrganization.spendingCapCents,
+          reloadedOrganization.spendingCapCents,
         ),
       );
     }
@@ -77,12 +79,12 @@ function resolveSpendingCapConsequence(
 }
 
 /**
- * The line the update ends on, from the cap the API answered against the one in force before.
+ * The line the update ends on, from the cap the reloaded organization holds against the one in force before.
  */
 function resolveUpdatedLine(
   organizationName: string,
   previousSpendingCapCents: number,
-  { spendingCapCents }: Billing,
+  spendingCapCents: number,
 ): string {
   const capText = `the spending cap of ${organizationName}`;
   const capDollarText = resolveDollarText(spendingCapCents);
