@@ -22,12 +22,14 @@ export default defineCommand({
   action: async options => {
     const hotCodePush = createApiClient();
     const organizationId = await fetchOrganizationId(hotCodePush, options);
+    // the billing read refuses a Member, so the role is checked before any question
+    const [, fetchedOrganization] = await Promise.all([
+      hotCodePush.organizations.billing.get({ organizationId }),
+      hotCodePush.organizations.get({ organizationId }),
+    ]);
     const spendingCapCents = resolveCents(
       options.spendingCap ?? (await promptSpendingCap(options)),
     );
-    const fetchedOrganization = await hotCodePush.organizations.get({
-      organizationId,
-    });
     const isConfirmed =
       spendingCapCents === fetchedOrganization.spendingCapCents ||
       (await confirmConsequence(

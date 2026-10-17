@@ -1,6 +1,7 @@
 import { confirm, text } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  respondWithApiError,
   stubInteractiveTerminal,
   useCommandHarness,
 } from '../../../test/command-harness.js';
@@ -28,6 +29,7 @@ describe('billing update', () => {
     let servedOrganization = GLOBEX_ORGANIZATION;
     harness.routes[`GET ${ORGANIZATION_PATH}`] = () =>
       Response.json(servedOrganization);
+    harness.routes[`GET ${BILLING_PATH}`] = () => Response.json(GLOBEX_BILLING);
     harness.routes[`PATCH ${BILLING_PATH}`] = async request => {
       const { spendingCapCents } = (await request.json()) as {
         spendingCapCents: number;
@@ -171,6 +173,27 @@ describe('billing update', () => {
       code: 'E_MISSING_PARAMETER',
       message: 'No value was given for --spending-cap.',
     });
+    expect(readUpdateRequests()).toEqual([]);
+  });
+
+  it('should refuse before the confirmation when the caller is a Member', async () => {
+    stubInteractiveTerminal();
+    respondWithBilling();
+    harness.routes[`GET ${BILLING_PATH}`] = () =>
+      respondWithApiError(
+        403,
+        'E_FORBIDDEN',
+        'Only an Owner, an Admin or a Billing member can do this.',
+      );
+
+    await expect(
+      billingUpdateCommand.action(
+        { organization: GLOBEX_ORGANIZATION.id },
+        undefined,
+      ),
+    ).rejects.toMatchObject({ code: 'E_FORBIDDEN' });
+    expect(text).not.toHaveBeenCalled();
+    expect(confirm).not.toHaveBeenCalled();
     expect(readUpdateRequests()).toEqual([]);
   });
 });
