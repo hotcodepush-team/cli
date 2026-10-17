@@ -44,7 +44,7 @@ describe('usage list', () => {
     await usageListCommand.action({}, undefined);
 
     expect(harness.readLines()).toEqual([
-      'APP   MAU   BANDWIDTH',
+      'APP   MAU   DATA TRANSFER',
       'Demo  1200  2.5 MB',
       'Shop  34    800 B',
     ]);

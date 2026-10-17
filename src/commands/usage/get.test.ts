@@ -26,9 +26,9 @@ describe('usage get', () => {
       `https://api.example.com${USAGE_PATH}`,
     );
     expect(harness.readLines()).toEqual([
-      'Month      October 2026',
-      'MAU        1234',
-      'Bandwidth  2.5 MB',
+      'Month          October 2026',
+      'MAU            1234',
+      'Data transfer  2.5 MB',
     ]);
   });
 

@@ -8,7 +8,7 @@ import { monthOptionShape, resolveMonthText } from '../../utils/usage-month.js';
 
 export default defineCommand({
   description:
-    "Print an organization's monthly active devices and bandwidth in a month, the totals the invoice counts.",
+    "Print an organization's monthly active devices and data transfer in a month, the totals the invoice counts.",
   examples: [
     'hotcodepush usage get',
     'hotcodepush usage get --organization Acme --month 2026-09 --json',
@@ -27,7 +27,7 @@ export default defineCommand({
     printDetails([
       ['Month', resolveMonthText(fetchedUsage.month)],
       ['MAU', String(fetchedUsage.mau)],
-      ['Bandwidth', resolveByteText(fetchedUsage.bytes)],
+      ['Data transfer', resolveByteText(fetchedUsage.bytes)],
     ]);
   },
 });
