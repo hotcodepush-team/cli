@@ -49,7 +49,7 @@ describe('channel create', () => {
         discoverable: false,
         expiresIn: '14d',
         failureAction: 'pause',
-        failureMinSample: 20,
+        failureMinimumUpdateCount: 20,
         failureThreshold: 10,
         name: 'staging',
         protected: true,

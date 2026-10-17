@@ -11,8 +11,8 @@ type ProgressionGate = NonNullable<Release['progressionStep']>['gate'];
 
 export interface ProgressionOptions {
   progress?: boolean;
-  progressMinimumSample?: number;
   progressMinimumSeconds?: number;
+  progressMinimumUpdateCount?: number;
   progressPercentages?: number[];
 }
 
@@ -38,19 +38,19 @@ export const progressionShape = {
     .describe(
       'Widen the rollout step by step while the release stays healthy: 10, 50 and 100 percent by default, each step after at least an hour and 50 update attempts.',
     ),
-  progressMinimumSample: z.coerce
-    .number()
-    .int()
-    .optional()
-    .describe(
-      'The update attempts a step waits for before the next one, with --progress; 50 by default.',
-    ),
   progressMinimumSeconds: z.coerce
     .number()
     .int()
     .optional()
     .describe(
       'The seconds a step lasts at least before the next one, with --progress; 3600 by default.',
+    ),
+  progressMinimumUpdateCount: z.coerce
+    .number()
+    .int()
+    .optional()
+    .describe(
+      'The update attempts a step waits for before the next one, with --progress; 50 by default.',
     ),
   progressPercentages: percentageListSchema
     .optional()
@@ -71,8 +71,9 @@ export function resolveProgression(
     return null;
   }
   return {
+    // phase 2: the SDK's body fields are stepMinimumSeconds and stepMinimumUpdateCount
     minimumSample:
-      options.progressMinimumSample ?? DEFAULT_PROGRESSION.minimumSample,
+      options.progressMinimumUpdateCount ?? DEFAULT_PROGRESSION.minimumSample,
     minimumSeconds:
       options.progressMinimumSeconds ?? DEFAULT_PROGRESSION.minimumSeconds,
     percentages: options.progressPercentages ?? DEFAULT_PROGRESSION.percentages,
@@ -113,12 +114,12 @@ export function resolveProgressionText({
 
 function assertNoProgressionFlags(options: ProgressionOptions): void {
   const progressionFlags = [
-    options.progressMinimumSample === undefined
-      ? undefined
-      : '--progress-minimum-sample',
     options.progressMinimumSeconds === undefined
       ? undefined
       : '--progress-minimum-seconds',
+    options.progressMinimumUpdateCount === undefined
+      ? undefined
+      : '--progress-minimum-update-count',
     options.progressPercentages === undefined
       ? undefined
       : '--progress-percentages',

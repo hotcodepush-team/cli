@@ -23,7 +23,7 @@ type FailurePolicy = Pick<
 
 export interface FailurePolicyOptions {
   failureAction?: ChannelFields['failureAction'];
-  failureMinSample?: number;
+  failureMinimumUpdateCount?: number;
   failureThreshold?: number;
 }
 
@@ -37,7 +37,7 @@ export const failurePolicyShape = {
     .describe(
       'What auto-pause does when a release fails too often: pause, revoke or notify; the default policy without it.',
     ),
-  failureMinSample: z.coerce
+  failureMinimumUpdateCount: z.coerce
     .number()
     .int()
     .optional()
@@ -103,7 +103,8 @@ export function resolveFailurePolicy(
 ): FailurePolicy {
   return {
     failureAction: options.failureAction,
-    failureMinSample: options.failureMinSample,
+    // phase 2: the SDK's body field is failureMinimumUpdateCount
+    failureMinSample: options.failureMinimumUpdateCount,
     failureThresholdPercent: options.failureThreshold,
   };
 }
