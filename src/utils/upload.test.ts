@@ -7,6 +7,7 @@ import {
   PART_SIZE_BYTES,
   SINGLE_UPLOAD_LIMIT_BYTES,
 } from '@hotcodepush/node';
+import { BUNDLE_BYTES_LIMIT } from '@hotcodepush/protocol';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   API_URL,
@@ -21,7 +22,6 @@ import { NATIVE_GLUE_PATHS } from './frameworks/native-glue.js';
 import {
   assertWithinBundleBytesLimit,
   buildManifestToSign,
-  BUNDLE_BYTES_LIMIT,
   collectUploadFiles,
   resolveMissingSha256s,
   uploadMissingFiles,

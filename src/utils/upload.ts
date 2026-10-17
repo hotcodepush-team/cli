@@ -2,7 +2,7 @@ import { openAsBlob } from 'node:fs';
 import { join } from 'node:path';
 import type { Bundle, BundleWithUploads, HotCodePush } from '@hotcodepush/node';
 import { HotCodePushError } from '@hotcodepush/node';
-import { signManifest } from '@hotcodepush/protocol';
+import { BUNDLE_BYTES_LIMIT, signManifest } from '@hotcodepush/protocol';
 import type { ManifestToSign } from '@hotcodepush/protocol';
 import type { BundleFile } from './bundle-files.js';
 import { collectBundleFiles } from './bundle-files.js';
@@ -46,9 +46,6 @@ export interface UploadedFiles {
   fileCount: number;
   sizeBytes: number;
 }
-
-/** The one public size limit, in decimal bytes as the limits are. */
-export const BUNDLE_BYTES_LIMIT = 512_000_000;
 
 /**
  * A file or the whole build above the limit is refused before a byte is sent.
