@@ -488,9 +488,11 @@ describe('doctor', () => {
       join(directoryPath, 'hotcodepush.json'),
       JSON.stringify({
         appId: DEMO_APP.id,
+        applyOnResumeAfterSeconds: 60,
         autoCheck: false,
         channel: PRODUCTION_CHANNEL.name,
         dir: 'www',
+        enabledInDebugBuilds: false,
         installStrategy: 'immediate',
         nativeSources: ['native'],
       }),
@@ -508,7 +510,7 @@ describe('doctor', () => {
       check: 'configuration',
       manualStep: 'Rename each stale key as named and remove a gone one.',
       message:
-        'The file hotcodepush.json carries stale keys. The key autoCheck is now checkStrategy, "auto" for true and "manual" for false. The key dir is gone, the upload reading the framework\'s build output and --path overriding it. The key installStrategy is now applyStrategy. The key nativeSources is now extraFingerprintPaths.',
+        'The file hotcodepush.json carries stale keys. The key applyOnResumeAfterSeconds is now nextResumeMinimumBackgroundSeconds. The key autoCheck is now checkStrategy, "auto" for true and "manual" for false. The key dir is gone, the upload reading the framework\'s build output and --path overriding it. The key enabledInDebugBuilds is now isEnabledInDebugBuilds. The key installStrategy is now applyStrategy. The key nativeSources is now extraFingerprintPaths.',
       status: 'failed',
     });
   });

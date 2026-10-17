@@ -92,14 +92,17 @@ const ID_SCHEMA = z.guid();
 const PROBE_TIMEOUT_MS = 5000;
 
 /**
- * The keys `hotcodepush.json` carried before the naming of 2026-10-08, each with what replaced it: the SDK and the CLI
- * read none of them, so a file still carrying one runs on the defaults. `doctor` names them; nothing rewrites the file.
+ * The keys `hotcodepush.json` carried before the namings of 2026-10-08 and 2026-10-17, each with what replaced it: the
+ * SDK and the CLI read none of them, so a file still carrying one runs on the defaults. `doctor` names them; nothing
+ * rewrites the file.
  */
 const STALE_PROJECT_CONFIG_KEYS: Record<string, string> = {
+  applyOnResumeAfterSeconds: 'now nextResumeMinimumBackgroundSeconds',
   autoCheck: 'now checkStrategy, "auto" for true and "manual" for false',
   checkInterval: 'now checkIntervalSeconds',
   dir: "gone, the upload reading the framework's build output and --path overriding it",
-  installOnResumeAfter: 'now applyOnResumeAfterSeconds',
+  enabledInDebugBuilds: 'now isEnabledInDebugBuilds',
+  installOnResumeAfter: 'now nextResumeMinimumBackgroundSeconds',
   installStrategy: 'now applyStrategy',
   mandatoryInstallStrategy: 'now mandatoryApplyStrategy',
   nativeSources: 'now extraFingerprintPaths',
