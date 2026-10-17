@@ -19,9 +19,9 @@ describe('limit list', () => {
     await limitListCommand.action({}, undefined);
 
     expect(harness.readLines()).toEqual([
-      'LIMIT         VALUE  DEFAULT  OVERRIDDEN',
-      'appsLimit     25     10       yes',
-      'membersLimit  20     20       no',
+      'LIMIT             VALUE  DEFAULT  OVERRIDDEN',
+      'appCountLimit     25     10       yes',
+      'memberCountLimit  20     20       no',
     ]);
   });
 

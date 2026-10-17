@@ -35,17 +35,17 @@ const FLEET_STATISTICS: FleetStatistics = {
 const UPDATE_STATISTICS: UpdateStatistics = {
   days: [
     {
-      activeDevices: 70,
-      applied: 9,
+      activeDeviceCount: 70,
+      appliedUpdateCount: 9,
       day: '2026-09-01',
-      failed: 1,
-      rolledBack: 0,
+      failureCount: 1,
+      rolledBackUpdateCount: 0,
     },
   ],
   failureReasons: [{ count: 1, reason: 'READINESS_TIMED_OUT' }],
   releases: [
     {
-      adoption: [{ applied: 9, at: '2026-09-01T08:00:00.000Z' }],
+      adoption: [{ appliedUpdateCount: 9, at: '2026-09-01T08:00:00.000Z' }],
       channelId: STAGING_CHANNEL.id,
       liveAt: '2026-09-01T07:00:00.000Z',
       number: 43,
@@ -60,8 +60,21 @@ const UPDATE_STATISTICS: UpdateStatistics = {
 };
 
 const USAGE_STATISTICS: UsageStatistics = {
-  days: [{ bytes: 2048, checks: 40, day: '2026-09-01', downloadedBytes: 1024 }],
-  months: [{ bytes: 2048, mau: 12, month: '2026-09-01' }],
+  days: [
+    {
+      checkCount: 40,
+      dataTransferBytes: 2048,
+      day: '2026-09-01',
+      deviceDownloadBytes: 1024,
+    },
+  ],
+  months: [
+    {
+      dataTransferBytes: 2048,
+      month: '2026-09-01',
+      monthlyActiveDeviceCount: 12,
+    },
+  ],
 };
 
 describe('statistics get', () => {
@@ -155,10 +168,10 @@ describe('statistics get', () => {
     );
 
     expect(harness.readLines()).toEqual([
-      'MONTH    MAU  BYTES',
+      'MONTH    MAU  DATA TRANSFER',
       '2026-09  12   2.0 kB',
-      'DAY         CHECKS  BYTES   DOWNLOADED',
-      '2026-09-01  40      2.0 kB  1.0 kB',
+      'DAY         CHECKS  DATA TRANSFER  DEVICE DOWNLOADS',
+      '2026-09-01  40      2.0 kB         1.0 kB',
     ]);
   });
 

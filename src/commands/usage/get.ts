@@ -26,8 +26,8 @@ export default defineCommand({
     }
     printDetails([
       ['Month', resolveMonthText(fetchedUsage.month)],
-      ['MAU', String(fetchedUsage.mau)],
-      ['Data transfer', resolveByteText(fetchedUsage.bytes)],
+      ['MAU', String(fetchedUsage.monthlyActiveDeviceCount)],
+      ['Data transfer', resolveByteText(fetchedUsage.dataTransferBytes)],
     ]);
   },
 });

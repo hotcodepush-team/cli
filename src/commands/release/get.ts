@@ -60,13 +60,16 @@ function resolveCounterDetails({
     return [];
   }
   return [
-    ['Attempted', String(counters.attempted)],
-    ['Applied', String(counters.applied)],
-    ['Failed download', String(counters.failedDownload)],
-    ['Failed verification', String(counters.failedVerification)],
-    ['Failed crashed', String(counters.failedCrashed)],
-    ['Failed ready timeout', String(counters.failedReadyTimeout)],
-    ['Failed reported', String(counters.failedReported)],
+    ['Attempted', String(counters.attemptedUpdateCount)],
+    ['Applied', String(counters.appliedUpdateCount)],
+    ['Download failures', String(counters.downloadFailureCount)],
+    ['Verification failures', String(counters.verificationFailureCount)],
+    ['Crash failures', String(counters.crashFailureCount)],
+    [
+      'Readiness timeout failures',
+      String(counters.readinessTimeoutFailureCount),
+    ],
+    ['Reported failures', String(counters.reportedFailureCount)],
   ];
 }
 

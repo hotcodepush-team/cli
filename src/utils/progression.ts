@@ -134,6 +134,6 @@ function assertNoProgressionFlags(options: ProgressionOptions): void {
 
 function resolveGateText(gate: ProgressionGate): string {
   return gate.kind === 'sample'
-    ? `waiting on sample: ${gate.attempted} of ${gate.required} attempts`
+    ? `waiting on sample: ${gate.attemptedUpdateCount} of ${gate.required} attempts`
     : `ready at ${gate.readyAt}`;
 }

@@ -33,11 +33,13 @@ export default defineCommand({
       emptyText: 'No app had monthly active devices in the month.',
       headers: ['APP', 'MAU', 'DATA TRANSFER'],
       nextOffset,
-      rows: listedApps.map(({ app, appId, bytes, mau }) => [
-        app?.name ?? appId,
-        String(mau),
-        resolveByteText(bytes),
-      ]),
+      rows: listedApps.map(
+        ({ app, appId, dataTransferBytes, monthlyActiveDeviceCount }) => [
+          app?.name ?? appId,
+          String(monthlyActiveDeviceCount),
+          resolveByteText(dataTransferBytes),
+        ],
+      ),
     });
   },
 });

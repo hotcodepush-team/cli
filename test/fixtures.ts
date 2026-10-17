@@ -20,30 +20,49 @@ import type {
 } from '@hotcodepush/node';
 
 export const ACME_ORGANIZATION: Organization = {
+  cancelAtPeriodEnd: false,
+  cappedAt: null,
   countryAllowlist: null,
   createdAt: '2026-09-01T08:00:00.000Z',
+  currentPeriodEndsAt: null,
+  enterpriseMonthlyActiveDeviceCountLimit: null,
   id: '0f8fad5b-d9cb-469f-a165-70867728950e',
   ipAllowlist: null,
   isTwoFactorRequired: false,
   name: 'Acme',
+  pastDueAt: null,
   plan: 'free',
   region: 'eu',
   role: 'owner',
+  spendingCapCents: 0,
   storageBytes: 0,
+  subscriptionProvider: null,
+  subscriptionStatus: null,
   updatedAt: '2026-09-01T08:00:00.000Z',
 };
 
+/**
+ * Globex on pay-as-you-go: a $50 cap, under its ceiling, its subscription active.
+ */
 export const GLOBEX_ORGANIZATION: Organization = {
+  cancelAtPeriodEnd: false,
+  cappedAt: null,
   countryAllowlist: null,
   createdAt: '2026-09-02T08:00:00.000Z',
+  currentPeriodEndsAt: '2026-10-02T08:00:00.000Z',
+  enterpriseMonthlyActiveDeviceCountLimit: null,
   id: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
   ipAllowlist: null,
   isTwoFactorRequired: false,
   name: 'Globex',
+  pastDueAt: null,
   plan: 'pay_as_you_go',
   region: 'eu',
   role: 'admin',
+  spendingCapCents: 5000,
   storageBytes: 0,
+  subscriptionProvider: 'polar',
+  subscriptionStatus: 'active',
   updatedAt: '2026-09-02T08:00:00.000Z',
 };
 
@@ -67,8 +86,8 @@ export const GLOBEX_BILLING: Billing = {
  * Two of Globex's limits, one raised for it.
  */
 export const GLOBEX_LIMITS: Limits = {
-  appsLimit: { default: 10, isOverridden: true, value: 25 },
-  membersLimit: { default: 20, isOverridden: false, value: 20 },
+  appCountLimit: { default: 10, isOverridden: true, value: 25 },
+  memberCountLimit: { default: 20, isOverridden: false, value: 20 },
 };
 
 export const PRODUCTION_CHANNEL: Channel = {
@@ -248,7 +267,7 @@ export const PROGRESSING_RELEASE: Release = {
     percentages: [10, 50, 100],
   },
   progressionStep: {
-    gate: { attempted: 12, kind: 'sample', required: 50 },
+    gate: { attemptedUpdateCount: 12, kind: 'sample', required: 50 },
     number: 1,
   },
   rolloutPercentage: 10,
@@ -262,6 +281,7 @@ export const RUNNER_USER: User = {
   image: null,
   intendedFramework: null,
   isEmailVerified: true,
+  isTwoFactorEnabled: false,
   jobRole: null,
   lastSeenAt: '2026-09-08T08:00:00.000Z',
   locale: null,

@@ -77,12 +77,12 @@ export class ApiError extends CliError {
  * The one public size limit, checked before a byte is sent so the API's own refusal is never reached with a wasted upload.
  */
 export class BundleTooLargeError extends CliError {
-  constructor(what: string, limitBytes: number) {
+  constructor(what: string, bundleBytesLimit: number) {
     super({
       code: 'E_BUNDLE_TOO_LARGE',
       exitCode: ExitCode.Error,
       fix: 'A file or a bundle is at most 512 MB. Move large media out of the web build.',
-      message: `${what} is above the limit of ${limitBytes} bytes.`,
+      message: `${what} is above the limit of ${bundleBytesLimit} bytes.`,
     });
   }
 }

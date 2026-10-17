@@ -11,8 +11,8 @@ export default defineCommand({
   description:
     "Print one limit in effect for an organization: its value, the plan's default and whether it is overridden.",
   examples: [
-    'hotcodepush limit get --limit appsLimit',
-    'hotcodepush limit get --organization Acme --limit membersLimit --json',
+    'hotcodepush limit get --limit appCountLimit',
+    'hotcodepush limit get --organization Acme --limit memberCountLimit --json',
   ],
   options: defineCommandOptions({
     limit: z

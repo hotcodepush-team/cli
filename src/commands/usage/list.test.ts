@@ -12,16 +12,16 @@ const APP_USAGE_MONTHS: AppUsageMonth[] = [
   {
     app: { id: DEMO_APP.id, name: 'Demo' },
     appId: DEMO_APP.id,
-    bytes: 2_500_000,
-    mau: 1200,
+    dataTransferBytes: 2_500_000,
     month: '2026-10',
+    monthlyActiveDeviceCount: 1200,
   },
   {
     app: { id: SHOP_APP_ID, name: 'Shop' },
     appId: SHOP_APP_ID,
-    bytes: 800,
-    mau: 34,
+    dataTransferBytes: 800,
     month: '2026-10',
+    monthlyActiveDeviceCount: 34,
   },
 ];
 

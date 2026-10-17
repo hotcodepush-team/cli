@@ -182,12 +182,14 @@ function printUpdateStatistics(
     emptyText: 'No days in the period.',
     headers: ['DAY', 'APPLIED', 'FAILED', 'ROLLED BACK'],
     nextOffset: null,
-    rows: statistics.days.map(({ applied, day, failed, rolledBack }) => [
-      day,
-      String(applied),
-      String(failed),
-      String(rolledBack),
-    ]),
+    rows: statistics.days.map(
+      ({ appliedUpdateCount, day, failureCount, rolledBackUpdateCount }) => [
+        day,
+        String(appliedUpdateCount),
+        String(failureCount),
+        String(rolledBackUpdateCount),
+      ],
+    ),
   });
   printTable({
     emptyText: 'No release went live recently.',
@@ -197,7 +199,7 @@ function printUpdateStatistics(
       ({ adoption, liveAt, number, timeToAdoption }) => [
         `#${number}`,
         liveAt,
-        String(adoption.at(-1)?.applied ?? 0),
+        String(adoption.at(-1)?.appliedUpdateCount ?? 0),
         timeToAdoption.percent50At ?? 'not yet',
         timeToAdoption.percent90At ?? 'not yet',
       ],
@@ -226,23 +228,27 @@ function printUsageStatistics(
   }
   printTable({
     emptyText: 'No months in the period.',
-    headers: ['MONTH', 'MAU', 'BYTES'],
+    headers: ['MONTH', 'MAU', 'DATA TRANSFER'],
     nextOffset: null,
-    rows: statistics.months.map(({ bytes, mau, month }) => [
-      month.slice(0, 7),
-      String(mau),
-      resolveByteText(bytes),
-    ]),
+    rows: statistics.months.map(
+      ({ dataTransferBytes, month, monthlyActiveDeviceCount }) => [
+        month.slice(0, 7),
+        String(monthlyActiveDeviceCount),
+        resolveByteText(dataTransferBytes),
+      ],
+    ),
   });
   printTable({
     emptyText: 'No days in the period.',
-    headers: ['DAY', 'CHECKS', 'BYTES', 'DOWNLOADED'],
+    headers: ['DAY', 'CHECKS', 'DATA TRANSFER', 'DEVICE DOWNLOADS'],
     nextOffset: null,
-    rows: statistics.days.map(({ bytes, checks, day, downloadedBytes }) => [
-      day,
-      String(checks),
-      resolveByteText(bytes),
-      resolveByteText(downloadedBytes),
-    ]),
+    rows: statistics.days.map(
+      ({ checkCount, dataTransferBytes, day, deviceDownloadBytes }) => [
+        day,
+        String(checkCount),
+        resolveByteText(dataTransferBytes),
+        resolveByteText(deviceDownloadBytes),
+      ],
+    ),
   });
 }

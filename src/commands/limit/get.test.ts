@@ -22,12 +22,12 @@ describe('limit get', () => {
     respondWithLimits();
 
     await limitGetCommand.action(
-      { limit: 'appsLimit', organization: GLOBEX_ORGANIZATION.id },
+      { limit: 'appCountLimit', organization: GLOBEX_ORGANIZATION.id },
       undefined,
     );
 
     expect(harness.readLines()).toEqual([
-      'Limit       appsLimit',
+      'Limit       appCountLimit',
       'Value       25',
       'Default     10',
       'Overridden  yes',
@@ -40,20 +40,20 @@ describe('limit get', () => {
     await limitGetCommand.action(
       {
         json: true,
-        limit: 'membersLimit',
+        limit: 'memberCountLimit',
         organization: GLOBEX_ORGANIZATION.id,
       },
       undefined,
     );
 
     expect(harness.readJson()).toEqual({
-      membersLimit: GLOBEX_LIMITS.membersLimit,
+      memberCountLimit: GLOBEX_LIMITS.memberCountLimit,
     });
   });
 
   it('should ask which limit when --limit is missing and someone can answer', async () => {
     stubInteractiveTerminal();
-    vi.mocked(select).mockResolvedValue('membersLimit');
+    vi.mocked(select).mockResolvedValue('memberCountLimit');
     respondWithLimits();
 
     await limitGetCommand.action(
@@ -64,11 +64,11 @@ describe('limit get', () => {
     expect(select).toHaveBeenCalledWith({
       message: 'Which limit?',
       options: [
-        { label: 'appsLimit', value: 'appsLimit' },
-        { label: 'membersLimit', value: 'membersLimit' },
+        { label: 'appCountLimit', value: 'appCountLimit' },
+        { label: 'memberCountLimit', value: 'memberCountLimit' },
       ],
     });
-    expect(harness.readLines()[0]).toBe('Limit       membersLimit');
+    expect(harness.readLines()[0]).toBe('Limit       memberCountLimit');
   });
 
   it('should throw E_MISSING_PARAMETER when --limit is missing and nobody can answer', async () => {

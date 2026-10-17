@@ -6,7 +6,11 @@ import usageGetCommand from './get.js';
 
 const USAGE_PATH = `/v1/organizations/${GLOBEX_ORGANIZATION.id}/usage`;
 
-const USAGE: Usage = { bytes: 2_500_800, mau: 1234, month: '2026-10' };
+const USAGE: Usage = {
+  dataTransferBytes: 2_500_800,
+  month: '2026-10',
+  monthlyActiveDeviceCount: 1234,
+};
 
 describe('usage get', () => {
   const harness = useCommandHarness();
