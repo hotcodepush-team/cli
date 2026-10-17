@@ -228,7 +228,7 @@ export default defineCommand({
         nextOffset: null,
         rows: evaluation.verdicts.map(verdict => [
           `#${verdict.release.number}`,
-          `${verdict.release.rollout}%`,
+          `${verdict.release.rolloutPercentage}%`,
           resolveConditionsText(verdict, unknownFacts),
           verdict.isEligible
             ? 'eligible'
@@ -311,7 +311,9 @@ function evaluateKnownFacts(
       conditions: release.conditions.filter(
         ({ type }) => !(unknownFacts as string[]).includes(type),
       ),
-      rollout: unknownFacts.includes('rollout') ? 100 : release.rollout,
+      rolloutPercentage: unknownFacts.includes('rollout')
+        ? 100
+        : release.rolloutPercentage,
     })),
   };
   const { outcome, verdicts } = evaluateChannelIndex(knownIndex, device);

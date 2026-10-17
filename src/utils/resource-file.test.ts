@@ -79,7 +79,6 @@ describe('resource file', () => {
     expect(ConfigurationSchema.parse(resourceFile)).toEqual(resourceFile);
     expect(resourceFile).toEqual({
       appId: 'ec266350-15f9-44c6-9d85-82f1363ede75',
-      applyOnResumeAfterSeconds: 300,
       applyStrategy: 'next-start',
       builtAt: '2026-09-29T12:00:00.000Z',
       channelId: CHANNEL_ID,
@@ -95,10 +94,11 @@ describe('resource file', () => {
         keyId: null,
         platforms: ['ios'],
       },
-      enabledInDebugBuilds: true,
       filesBaseUrl: 'http://localhost:8787/files',
       fingerprint: CAPACITOR_FINGERPRINT,
+      isEnabledInDebugBuilds: true,
       mandatoryApplyStrategy: 'immediate',
+      nextResumeMinimumBackgroundSeconds: 300,
       publicKeys: [],
       readySignal: 'render',
       readyTimeoutSeconds: 10,

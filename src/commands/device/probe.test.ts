@@ -44,7 +44,7 @@ const RELEASE = {
   manifestUrl: `${API_URL}/files/apps/${DEMO_APP.id}/bundles/c56a4180-65aa-42ec-a945-5fd21dec0538/manifest.json`,
   notes: null,
   number: 43,
-  rollout: 100,
+  rolloutPercentage: 100,
   sizeBytes: 1000,
 };
 
@@ -59,10 +59,10 @@ const INDEX: ChannelIndex = {
       ...RELEASE,
       conditions: [
         { range: '>=2.0.0', type: 'binary' },
-        { hash: FINGERPRINT, type: 'fingerprint' },
+        { fingerprint: FINGERPRINT, type: 'fingerprint' },
         { range: '>=99', type: 'os' },
       ],
-      rollout: 0,
+      rolloutPercentage: 0,
     },
   ],
   revokedReleaseIds: [],
@@ -238,7 +238,7 @@ describe('device probe', () => {
       verdicts: [
         {
           isEligible: true,
-          release: { id: RELEASE.id, rollout: 0 },
+          release: { id: RELEASE.id, rolloutPercentage: 0 },
         },
       ],
     });

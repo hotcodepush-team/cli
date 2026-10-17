@@ -97,6 +97,7 @@ export function buildReleaseConditions(
             type: 'device',
           } satisfies ReleaseCondition,
         ]),
+    // phase 2: the SDK's fingerprint condition is { type: 'fingerprint', fingerprint }
     ...resolveList(fingerprint ?? undefined).map((hash): ReleaseCondition => ({
       hash,
       type: 'fingerprint',
