@@ -33,7 +33,13 @@ describe('audit-log list', () => {
           },
         },
         { ...AUDIT_LOG, type: 'channel.deleted' },
-        { ...AUDIT_LOG, objectId: null, type: 'bundle.expired', userId: null },
+        {
+          ...AUDIT_LOG,
+          actorType: 'system',
+          objectId: null,
+          type: 'bundle.expired',
+          userId: null,
+        },
       ]);
 
     await auditLogListCommand.action(
@@ -46,7 +52,7 @@ describe('audit-log list', () => {
       'TIME                      TYPE             ACTOR             OBJECT',
       `2026-09-10T08:00:00.000Z  channel.created  anna@example.com  ${AUDIT_LOG.objectId}`,
       `2026-09-10T08:00:00.000Z  channel.deleted  user-1            ${AUDIT_LOG.objectId}`,
-      '2026-09-10T08:00:00.000Z  bundle.expired   system',
+      '2026-09-10T08:00:00.000Z  bundle.expired   System',
     ]);
   });
 
@@ -59,6 +65,7 @@ describe('audit-log list', () => {
     await auditLogListCommand.action(
       {
         actor: ACTOR_ID,
+        actorType: 'user',
         app: DEMO_APP.name,
         createdSince: '7d',
         createdUntil: '2026-09-10T00:00:00.000Z',
@@ -70,6 +77,7 @@ describe('audit-log list', () => {
     vi.useRealTimers();
 
     expect(Object.fromEntries(readListUrl()?.searchParams ?? [])).toEqual({
+      actorType: 'user',
       appId: DEMO_APP.id,
       createdSince: '2026-09-03T12:00:00.000Z',
       createdUntil: '2026-09-10T00:00:00.000Z',

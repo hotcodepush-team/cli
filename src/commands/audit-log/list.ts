@@ -12,6 +12,8 @@ import {
   fetchResourceId,
 } from '../../utils/resource-resolution.js';
 
+const ACTOR_TYPES = ['system', 'user'] as const;
+
 export default defineCommand({
   description:
     "List the organization's audit log, newest first, filtered by type, actor, app and time; paying plans only.",
@@ -22,6 +24,10 @@ export default defineCommand({
   options: defineCommandOptions({
     ...paginationShape,
     actor: z.string().optional().describe('The user who acted, by id.'),
+    actorType: z
+      .enum(ACTOR_TYPES)
+      .optional()
+      .describe('user, the rows a user wrote, or system, the ones none did.'),
     createdSince: z
       .string()
       .optional()
@@ -46,6 +52,7 @@ export default defineCommand({
     const organizationId = await fetchOrganizationId(hotCodePush, options);
     // the log is the organization's: --app filters it, and hotcodepush.json's app never does
     const listedAuditLogs = await hotCodePush.organizations.auditLogs.list({
+      actorType: options.actorType,
       appId:
         options.app === undefined
           ? undefined
@@ -81,8 +88,12 @@ export default defineCommand({
 });
 
 /**
- * Who acted, as the console names them: the user's email while the user is live, their id after, the system without one.
+ * Who acted, as the console names them: the system on a system row, otherwise the user's email while the user is live
+ * and their id after.
  */
-function resolveActorText({ user, userId }: AuditLog): string {
-  return user?.email ?? userId ?? 'system';
+function resolveActorText({ actorType, user, userId }: AuditLog): string {
+  if (actorType === 'system') {
+    return 'System';
+  }
+  return user?.email ?? userId ?? '';
 }
