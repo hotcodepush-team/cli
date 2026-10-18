@@ -18,10 +18,31 @@ interface ChannelFieldOptions extends FailurePolicyOptions {
   protected?: boolean;
 }
 
+type EffectiveFailurePolicy = {
+  [Field in keyof FailurePolicyValues]: EffectiveFailurePolicyValue<
+    FailurePolicyValues[Field]
+  >;
+};
+
+interface EffectiveFailurePolicyValue<TValue> {
+  level: FailurePolicyLevel;
+  value: TValue;
+}
+
 type FailurePolicy = Pick<
   ChannelFields,
   'failureAction' | 'failureMinimumUpdateCount' | 'failureThresholdPercent'
 >;
+
+type FailurePolicyFields = Pick<
+  Channel,
+  'failureAction' | 'failureMinimumUpdateCount' | 'failureThresholdPercent'
+>;
+
+/**
+ * Where an effective auto-pause value comes from: the channel's or the release's own field, the release's channel, or the default.
+ */
+type FailurePolicyLevel = 'channel' | 'default' | 'own';
 
 export interface FailurePolicyOptions {
   clearFailureAction?: boolean;
@@ -32,15 +53,26 @@ export interface FailurePolicyOptions {
   failureThreshold?: number;
 }
 
+type FailurePolicyValues = {
+  [Field in keyof FailurePolicyFields]: NonNullable<FailurePolicyFields[Field]>;
+};
+
+// The plan pins these defaults; the API and the console carry the same constant
+export const FAILURE_POLICY_DEFAULTS: FailurePolicyValues = {
+  failureAction: 'pause',
+  failureMinimumUpdateCount: 50,
+  failureThresholdPercent: 5,
+};
+
 /**
  * The auto-pause policy's flags, set on a channel by `channel create` and `channel update` and overridden per release by `release create` and `release update`.
  */
 export const failurePolicyShape = {
   failureAction: z
-    .enum(['notify', 'pause', 'revoke'])
+    .enum(['none', 'notify', 'pause', 'revoke'])
     .optional()
     .describe(
-      'What auto-pause does when a release fails too often: pause, revoke or notify.',
+      'What auto-pause does when a release fails too often: pause, revoke, notify or none.',
     ),
   failureMinimumUpdateCount: z.coerce
     .number()
@@ -120,6 +152,33 @@ export function resolveChannelFields(
 }
 
 /**
+ * The auto-pause policy that applies to a channel, or to a release with its channel: per field the own value,
+ * else the channel's, else the default, each with the level it comes from.
+ */
+export function resolveEffectiveFailurePolicy(
+  ownFields: FailurePolicyFields,
+  channelFields?: FailurePolicyFields,
+): EffectiveFailurePolicy {
+  return {
+    failureAction: resolveEffectiveFailurePolicyValue(
+      ownFields.failureAction,
+      channelFields?.failureAction,
+      FAILURE_POLICY_DEFAULTS.failureAction,
+    ),
+    failureMinimumUpdateCount: resolveEffectiveFailurePolicyValue(
+      ownFields.failureMinimumUpdateCount,
+      channelFields?.failureMinimumUpdateCount,
+      FAILURE_POLICY_DEFAULTS.failureMinimumUpdateCount,
+    ),
+    failureThresholdPercent: resolveEffectiveFailurePolicyValue(
+      ownFields.failureThresholdPercent,
+      channelFields?.failureThresholdPercent,
+      FAILURE_POLICY_DEFAULTS.failureThresholdPercent,
+    ),
+  };
+}
+
+/**
  * The auto-pause fields from their flags, `--failure-threshold` the percent field; a `--clear-` flag sends null,
  * and a flag left out is a field left out.
  */
@@ -146,32 +205,58 @@ export function resolveFailurePolicy(
 }
 
 /**
- * The auto-pause policy as `channel get` and `release get` print it, a null field as the text saying what applies instead.
+ * The effective auto-pause policy as `channel get` and `release get` print it: an own value plain,
+ * an inherited one with its level, `5% (channel)`, `pause (default)`.
  */
-export function resolveFailurePolicyDetails(
-  {
-    failureAction,
-    failureMinimumUpdateCount,
-    failureThresholdPercent,
-  }: Pick<
-    Channel,
-    'failureAction' | 'failureMinimumUpdateCount' | 'failureThresholdPercent'
-  >,
-  nullText: string,
-): [label: string, value: string][] {
+export function resolveFailurePolicyDetails({
+  failureAction,
+  failureMinimumUpdateCount,
+  failureThresholdPercent,
+}: EffectiveFailurePolicy): [label: string, value: string][] {
   return [
     [
       'Failure threshold',
-      failureThresholdPercent === null
-        ? nullText
-        : `${failureThresholdPercent}%`,
+      resolveEffectiveFailurePolicyText(
+        `${failureThresholdPercent.value}%`,
+        failureThresholdPercent.level,
+      ),
     ],
     [
       'Failure minimum update count',
-      String(failureMinimumUpdateCount ?? nullText),
+      resolveEffectiveFailurePolicyText(
+        String(failureMinimumUpdateCount.value),
+        failureMinimumUpdateCount.level,
+      ),
     ],
-    ['Failure action', failureAction ?? nullText],
+    [
+      'Failure action',
+      resolveEffectiveFailurePolicyText(
+        failureAction.value,
+        failureAction.level,
+      ),
+    ],
   ];
+}
+
+function resolveEffectiveFailurePolicyText(
+  valueText: string,
+  level: FailurePolicyLevel,
+): string {
+  return level === 'own' ? valueText : `${valueText} (${level})`;
+}
+
+function resolveEffectiveFailurePolicyValue<TValue>(
+  ownValue: TValue | null,
+  channelValue: TValue | null | undefined,
+  defaultValue: TValue,
+): EffectiveFailurePolicyValue<TValue> {
+  if (ownValue !== null) {
+    return { level: 'own', value: ownValue };
+  }
+  if (channelValue !== null && channelValue !== undefined) {
+    return { level: 'channel', value: channelValue };
+  }
+  return { level: 'default', value: defaultValue };
 }
 
 function resolveExpiresAt({

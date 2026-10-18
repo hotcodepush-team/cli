@@ -7,8 +7,10 @@ import {
   PROGRESSING_RELEASE,
   READY_BUNDLE,
   STAGING_CHANNEL,
+  STAGING_CHANNEL_WITH_DEVICE_COUNTS,
 } from '../../../test/fixtures.js';
 import {
+  CHANNEL_PATH,
   LIVE_RELEASE_WITH_RELATIONS,
   RELEASES_PATH,
   respondWithStagingReleases,
@@ -34,7 +36,7 @@ describe('release get', () => {
     return harness.readLines().filter(line => line.startsWith('Progression'));
   }
 
-  it('should find the release by its number in the channel log and print it with its counters', async () => {
+  it("should find the release by its number in the channel log and print it with its counters and its channel's auto-pause policy", async () => {
     respondWithStagingReleases(harness);
 
     await releaseGetCommand.action(
@@ -56,9 +58,9 @@ describe('release get', () => {
       'Status                        active',
       'Rollout                       100%',
       'Progression                   none',
-      'Failure threshold             inherited',
-      'Failure minimum update count  inherited',
-      'Failure action                inherited',
+      'Failure threshold             10% (channel)',
+      'Failure minimum update count  20 (channel)',
+      'Failure action                pause (channel)',
       'Mandatory                     no',
       'Notes                         cart fix',
       'Rolled back from              nothing',
@@ -114,7 +116,7 @@ describe('release get', () => {
     ).rejects.toBeInstanceOf(InvalidParameterError);
   });
 
-  it("should print the release's auto-pause overrides", async () => {
+  it("should print the release's own auto-pause values plain", async () => {
     respondWithStagingReleases(harness);
     harness.routes[`GET ${RELEASES_PATH}/${LIVE_RELEASE.id}`] = () =>
       Response.json({
@@ -139,6 +141,34 @@ describe('release get', () => {
       'Failure threshold             10%',
       'Failure minimum update count  20',
       'Failure action                revoke',
+    ]);
+  });
+
+  it('should print the default with its level when neither the release nor its channel sets an auto-pause field', async () => {
+    respondWithStagingReleases(harness);
+    harness.routes[`GET ${CHANNEL_PATH}`] = () =>
+      Response.json({
+        ...STAGING_CHANNEL_WITH_DEVICE_COUNTS,
+        failureAction: null,
+        failureMinimumUpdateCount: null,
+        failureThresholdPercent: null,
+      });
+
+    await releaseGetCommand.action(
+      {
+        app: DEMO_APP.id,
+        channel: STAGING_CHANNEL.id,
+        release: LIVE_RELEASE.id,
+      },
+      undefined,
+    );
+
+    expect(
+      harness.readLines().filter(line => line.startsWith('Failure')),
+    ).toEqual([
+      'Failure threshold             5% (default)',
+      'Failure minimum update count  50 (default)',
+      'Failure action                pause (default)',
     ]);
   });
 

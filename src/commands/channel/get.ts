@@ -1,6 +1,9 @@
 import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
-import { resolveFailurePolicyDetails } from '../../utils/channel-fields.js';
+import {
+  resolveEffectiveFailurePolicy,
+  resolveFailurePolicyDetails,
+} from '../../utils/channel-fields.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printDetails, printJson } from '../../utils/output.js';
 import {
@@ -34,7 +37,9 @@ export default defineCommand({
       ['Protected', fetchedChannel.isProtected ? 'yes' : 'no'],
       ['Discoverable', fetchedChannel.isDiscoverable ? 'yes' : 'no'],
       ['Expires', fetchedChannel.expiresAt ?? 'never'],
-      ...resolveFailurePolicyDetails(fetchedChannel, 'the default'),
+      ...resolveFailurePolicyDetails(
+        resolveEffectiveFailurePolicy(fetchedChannel),
+      ),
       ['Active devices', String(fetchedChannel.activeDeviceCount)],
       ['Current devices', String(fetchedChannel.currentDeviceCount)],
       ['Embedded devices', String(fetchedChannel.embeddedDeviceCount)],

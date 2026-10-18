@@ -52,6 +52,31 @@ describe('channel get', () => {
     ]);
   });
 
+  it('should print the default with its level for every auto-pause field the channel leaves unset', async () => {
+    harness.routes[
+      `GET /v1/apps/${DEMO_APP.id}/channels/${STAGING_CHANNEL.id}`
+    ] = () =>
+      Response.json({
+        ...STAGING_CHANNEL_WITH_DEVICE_COUNTS,
+        failureAction: null,
+        failureMinimumUpdateCount: null,
+        failureThresholdPercent: null,
+      });
+
+    await channelGetCommand.action(
+      { app: DEMO_APP.id, channel: STAGING_CHANNEL.id },
+      undefined,
+    );
+
+    expect(
+      harness.readLines().filter(line => line.startsWith('Failure')),
+    ).toEqual([
+      'Failure threshold             5% (default)',
+      'Failure minimum update count  50 (default)',
+      'Failure action                pause (default)',
+    ]);
+  });
+
   it("should look --channel's name up among the app's channels and print the channel as JSON", async () => {
     respondWithChannel();
 

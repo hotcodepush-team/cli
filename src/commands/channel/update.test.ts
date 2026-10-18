@@ -149,6 +149,30 @@ describe('channel update', () => {
     expect(harness.requests).toEqual([]);
   });
 
+  it('should read --failure-action none from the command line and send it', async () => {
+    respondWithChannel();
+
+    const exitCode = await runCli(
+      { 'channel update': () => import('./update.js') },
+      [
+        'channel',
+        'update',
+        '--app',
+        DEMO_APP.id,
+        '--channel',
+        STAGING_CHANNEL.id,
+        '--failure-action',
+        'none',
+      ],
+      PACKAGE_JSON,
+    );
+
+    expect(exitCode).toBe(0);
+    expect(await harness.requests.at(-1)?.json()).toEqual({
+      failureAction: 'none',
+    });
+  });
+
   it('should refuse a --failure-threshold that is no whole number', async () => {
     const stderrWrite = vi
       .spyOn(process.stderr, 'write')

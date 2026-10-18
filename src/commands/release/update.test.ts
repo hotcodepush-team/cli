@@ -227,6 +227,32 @@ describe('release update', () => {
     },
   );
 
+  it('should read --failure-action none from the command line and send it', async () => {
+    respondWithUpdatedRelease();
+
+    const exitCode = await runCli(
+      { 'release update': () => import('./update.js') },
+      [
+        'release',
+        'update',
+        '--app',
+        DEMO_APP.id,
+        '--channel',
+        STAGING_CHANNEL.id,
+        '--release',
+        '43',
+        '--failure-action',
+        'none',
+        '--yes',
+      ],
+      PACKAGE_JSON,
+    );
+
+    expect(exitCode).toBe(0);
+    const [updateRequest] = readUpdateRequests();
+    expect(await updateRequest?.json()).toEqual({ failureAction: 'none' });
+  });
+
   it('should read a bare --clear-notes from the command line as the notes set to null', async () => {
     respondWithUpdatedRelease();
 
