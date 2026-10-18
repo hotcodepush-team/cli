@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
 import {
+  channelFieldsClearShape,
   channelFieldsShape,
   resolveChannelFields,
 } from '../../utils/channel-fields.js';
@@ -20,6 +21,7 @@ export default defineCommand({
     'hotcodepush channel update --channel pr-42 --expires-in 7d --json',
   ],
   options: defineCommandOptions({
+    ...channelFieldsClearShape,
     ...channelFieldsShape,
     ...channelOptionShape,
     name: z
@@ -31,9 +33,10 @@ export default defineCommand({
   }),
   action: async options => {
     const hotCodePush = createApiClient();
+    const channelFields = resolveChannelFields(options);
     const fetchedChannel = await fetchChannel(hotCodePush, options);
     const updatedChannel = await hotCodePush.apps.channels.update({
-      ...resolveChannelFields(options),
+      ...channelFields,
       appId: fetchedChannel.appId,
       channelId: fetchedChannel.id,
       name: options.name,

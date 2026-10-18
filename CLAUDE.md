@@ -19,7 +19,7 @@ src/
                the auth client, the API client, hotcodepush.json and its directory, the JSON files a person edits read as `E_INVALID_JSON` when they do not parse, a resource by id or name,
                the project's fingerprint through the protocol's recipe,
                a bundle by number or id, a release by number or id in its channel with the wait until it is live,
-               the released line, the prompts and the confirmation, the pages of a list, the boolean flag, the channel fields,
+               the released line, the prompts and the confirmation, the pages of a list, the boolean flag, a nullable field from its flag and its clear flag, the channel fields,
                the release conditions from their flags, the audience in one clause, a device by id, a duration as a time bound,
                the framework and the build's directory, `frameworks/` with one module per framework behind one interface
                and the registry line that makes the CLI package it, beside them React Native's release build, which
@@ -102,6 +102,7 @@ A project with an app config that is code, or with a JSON one that does not pars
   The schema key is the camelCase field, and zodline takes the kebab-case flag.
 - **Options are optional in the schema.**
   A missing required parameter is a prompt when interactive and a `MissingParameterError` naming the flag otherwise, never a zod error.
+- **A nullable field a command updates has a `--clear-<field>` flag that sends null**; `--<field>` and `--clear-<field>` together are refused, and a flag left out is a field left out.
 - **Interactive** means a TTY, no `CI`, and neither `--json` nor `--yes`, which `isInteractive(options)` decides; nothing prompts without it.
 - **A command confirms once** when it changes what devices receive, sends something to a person or cannot be undone, stating the consequence.
   `--yes` skips the question; non-interactive without `--yes` throws `ConfirmationRequiredError`; creates and reads never confirm.

@@ -1,6 +1,7 @@
 import type { Release } from '@hotcodepush/node';
 import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
+import { resolveFailurePolicyDetails } from '../../utils/channel-fields.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printDetails, printJson } from '../../utils/output.js';
 import {
@@ -16,7 +17,7 @@ import { channelOptionShape } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
   description:
-    'Print a release with its rollout, its progression, its status and its counters: attempted, applied and failed by reason.',
+    'Print a release with its rollout, its progression, its auto-pause overrides, its status and its counters: attempted, applied and failed by reason.',
   examples: [
     'hotcodepush release get --release 43',
     'hotcodepush release get --channel staging --release 43 --json',
@@ -42,6 +43,7 @@ export default defineCommand({
       ['Status', resolveStatusText(release)],
       ['Rollout', `${release.rolloutPercentage}%`],
       ...resolveProgressionDetails(release),
+      ...resolveFailurePolicyDetails(release, 'inherited'),
       ['Mandatory', release.isMandatory ? 'yes' : 'no'],
       ['Notes', release.notes ?? 'none'],
       ['Rolled back from', release.rolledBackFromReleaseId ?? 'nothing'],

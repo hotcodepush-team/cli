@@ -1,13 +1,12 @@
 import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
+import { resolveFailurePolicyDetails } from '../../utils/channel-fields.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printDetails, printJson } from '../../utils/output.js';
 import {
   channelOptionShape,
   fetchChannel,
 } from '../../utils/resource-resolution.js';
-
-const DEFAULT_POLICY_TEXT = 'the default';
 
 export default defineCommand({
   description:
@@ -35,17 +34,7 @@ export default defineCommand({
       ['Protected', fetchedChannel.isProtected ? 'yes' : 'no'],
       ['Discoverable', fetchedChannel.isDiscoverable ? 'yes' : 'no'],
       ['Expires', fetchedChannel.expiresAt ?? 'never'],
-      [
-        'Failure threshold',
-        fetchedChannel.failureThresholdPercent === null
-          ? DEFAULT_POLICY_TEXT
-          : `${fetchedChannel.failureThresholdPercent}%`,
-      ],
-      [
-        'Failure minimum update count',
-        String(fetchedChannel.failureMinimumUpdateCount ?? DEFAULT_POLICY_TEXT),
-      ],
-      ['Failure action', fetchedChannel.failureAction ?? DEFAULT_POLICY_TEXT],
+      ...resolveFailurePolicyDetails(fetchedChannel, 'the default'),
       ['Active devices', String(fetchedChannel.activeDeviceCount)],
       ['Current devices', String(fetchedChannel.currentDeviceCount)],
       ['Embedded devices', String(fetchedChannel.embeddedDeviceCount)],

@@ -49,26 +49,29 @@ describe('release get', () => {
     );
 
     expect(harness.readLines()).toEqual([
-      `ID                          ${LIVE_RELEASE.id}`,
-      'Number                      #43',
-      'Channel                     staging',
-      `Bundle                      #17 · 1.4.2 (${READY_BUNDLE.id})`,
-      'Status                      active',
-      'Rollout                     100%',
-      'Progression                 none',
-      'Mandatory                   no',
-      'Notes                       cart fix',
-      'Rolled back from            nothing',
-      `Live                        ${LIVE_RELEASE.liveAt}`,
-      'Devices                     80',
-      'Attempted                   100',
-      'Applied                     90',
-      'Download failures           3',
-      'Verification failures       1',
-      'Crash failures              2',
-      'Readiness timeout failures  1',
-      'Reported failures           3',
-      `Created                     ${LIVE_RELEASE.createdAt}`,
+      `ID                            ${LIVE_RELEASE.id}`,
+      'Number                        #43',
+      'Channel                       staging',
+      `Bundle                        #17 · 1.4.2 (${READY_BUNDLE.id})`,
+      'Status                        active',
+      'Rollout                       100%',
+      'Progression                   none',
+      'Failure threshold             inherited',
+      'Failure minimum update count  inherited',
+      'Failure action                inherited',
+      'Mandatory                     no',
+      'Notes                         cart fix',
+      'Rolled back from              nothing',
+      `Live                          ${LIVE_RELEASE.liveAt}`,
+      'Devices                       80',
+      'Attempted                     100',
+      'Applied                       90',
+      'Download failures             3',
+      'Verification failures         1',
+      'Crash failures                2',
+      'Readiness timeout failures    1',
+      'Reported failures             3',
+      `Created                       ${LIVE_RELEASE.createdAt}`,
     ]);
   });
 
@@ -111,10 +114,38 @@ describe('release get', () => {
     ).rejects.toBeInstanceOf(InvalidParameterError);
   });
 
+  it("should print the release's auto-pause overrides", async () => {
+    respondWithStagingReleases(harness);
+    harness.routes[`GET ${RELEASES_PATH}/${LIVE_RELEASE.id}`] = () =>
+      Response.json({
+        ...LIVE_RELEASE_WITH_RELATIONS,
+        failureAction: 'revoke',
+        failureMinimumUpdateCount: 20,
+        failureThresholdPercent: 10,
+      });
+
+    await releaseGetCommand.action(
+      {
+        app: DEMO_APP.id,
+        channel: STAGING_CHANNEL.id,
+        release: LIVE_RELEASE.id,
+      },
+      undefined,
+    );
+
+    expect(
+      harness.readLines().filter(line => line.startsWith('Failure')),
+    ).toEqual([
+      'Failure threshold             10%',
+      'Failure minimum update count  20',
+      'Failure action                revoke',
+    ]);
+  });
+
   it('should print the schedule and the step reached with the sample its widening waits on', async () => {
     expect(await readProgressionLines(PROGRESSING_RELEASE)).toEqual([
-      'Progression                 10, 50, 100 percent, each step at least 3600 seconds and 50 attempts',
-      'Progression step            1 of 3, waiting on sample: 12 of 50 attempts',
+      'Progression                   10, 50, 100 percent, each step at least 3600 seconds and 50 attempts',
+      'Progression step              1 of 3, waiting on sample: 12 of 50 attempts',
     ]);
   });
 
@@ -129,8 +160,8 @@ describe('release get', () => {
         rolloutPercentage: 50,
       }),
     ).toEqual([
-      'Progression                 10, 50, 100 percent, each step at least 3600 seconds and 50 attempts',
-      'Progression step            2 of 3, ready at 2026-09-07T09:00:05.000Z',
+      'Progression                   10, 50, 100 percent, each step at least 3600 seconds and 50 attempts',
+      'Progression step              2 of 3, ready at 2026-09-07T09:00:05.000Z',
     ]);
   });
 
@@ -141,7 +172,7 @@ describe('release get', () => {
         progressionStep: null,
         rolloutPercentage: 100,
       }),
-    ).toContain('Progression step            complete');
+    ).toContain('Progression step              complete');
   });
 
   it('should print the schedule as held when the release is paused', async () => {
@@ -152,6 +183,6 @@ describe('release get', () => {
         progressionStep: null,
         status: 'paused',
       }),
-    ).toContain('Progression step            held while paused');
+    ).toContain('Progression step              held while paused');
   });
 });
