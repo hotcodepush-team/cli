@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { useCommandHarness } from '../../../test/command-harness.js';
+import {
+  respondWithApiError,
+  useCommandHarness,
+} from '../../../test/command-harness.js';
 import {
   ACME_ORGANIZATION,
   SSO_PROVIDER,
@@ -12,13 +15,13 @@ const VERIFICATIONS_PATH = `/v1/organizations/${ACME_ORGANIZATION.id}/sso-provid
 describe('sso-provider verify', () => {
   const harness = useCommandHarness();
 
-  function respondWithVerification(verification: object): void {
+  function respondWithCheckedProvider(provider: object): void {
     harness.routes[`POST ${VERIFICATIONS_PATH}`] = () =>
-      Response.json(verification);
+      Response.json(provider);
   }
 
   it('should run the TXT-record check and print the verified provider', async () => {
-    respondWithVerification({ ...VERIFIED_SAML_SSO_PROVIDER, details: null });
+    respondWithCheckedProvider(VERIFIED_SAML_SSO_PROVIDER);
 
     await ssoProviderVerifyCommand.action(
       { organization: ACME_ORGANIZATION.id },
@@ -38,7 +41,7 @@ describe('sso-provider verify', () => {
   });
 
   it('should print the TXT record to set when the record is not found yet', async () => {
-    respondWithVerification({ ...SSO_PROVIDER, details: null });
+    respondWithCheckedProvider(SSO_PROVIDER);
 
     await ssoProviderVerifyCommand.action(
       { organization: ACME_ORGANIZATION.id },
@@ -55,31 +58,31 @@ describe('sso-provider verify', () => {
     ]);
   });
 
-  it('should say the lookup could not be made when the resolver could not be asked', async () => {
-    respondWithVerification({
-      ...SSO_PROVIDER,
-      details: { reason: 'lookup_failed' },
-    });
+  it("should pass the API's E_DNS_LOOKUP_FAILED through when the lookup could not run", async () => {
+    harness.routes[`POST ${VERIFICATIONS_PATH}`] = () =>
+      respondWithApiError(
+        502,
+        'E_DNS_LOOKUP_FAILED',
+        'The DNS lookup could not be made; try again in a moment.',
+      );
 
-    await ssoProviderVerifyCommand.action(
-      { organization: ACME_ORGANIZATION.id },
-      undefined,
-    );
-
-    expect(harness.readLines()[0]).toBe(
-      'The DNS lookup for example.com could not be made; run the command again in a moment.',
-    );
+    await expect(
+      ssoProviderVerifyCommand.action(
+        { organization: ACME_ORGANIZATION.id },
+        undefined,
+      ),
+    ).rejects.toMatchObject({ code: 'E_DNS_LOOKUP_FAILED', status: 502 });
+    expect(harness.readLines()).toEqual([]);
   });
 
-  it("should print the API's answer when --json is passed", async () => {
-    const verification = { ...SSO_PROVIDER, details: null };
-    respondWithVerification(verification);
+  it("should print the provider's row the API answers when --json is passed", async () => {
+    respondWithCheckedProvider(SSO_PROVIDER);
 
     await ssoProviderVerifyCommand.action(
       { json: true, organization: ACME_ORGANIZATION.id },
       undefined,
     );
 
-    expect(harness.readJson()).toEqual(verification);
+    expect(harness.readJson()).toEqual(SSO_PROVIDER);
   });
 });

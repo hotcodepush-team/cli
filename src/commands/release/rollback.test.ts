@@ -14,6 +14,7 @@ import {
 } from '../../../test/fixtures.js';
 import {
   CHANNEL_PATH,
+  FLEET_PATH,
   RELEASES_PATH,
   respondWithStagingReleases,
 } from '../../../test/release-routes.js';
@@ -67,6 +68,10 @@ describe('release rollback', () => {
       message:
         'This rolls channel staging back to bundle #16 · 1.4.1 of release #42 as a new mandatory release, reaching its 120 active devices. Continue?',
     });
+    const fleetUrl = harness.requests
+      .map(({ url }) => new URL(url))
+      .find(({ pathname }) => pathname === FLEET_PATH);
+    expect(fleetUrl?.searchParams.get('channelId')).toBe(STAGING_CHANNEL.id);
     const [rollbackRequest] = readRollbackRequests();
     expect(await rollbackRequest?.json()).toEqual({
       isMandatory: true,

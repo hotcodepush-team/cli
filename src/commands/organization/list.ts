@@ -1,6 +1,7 @@
 import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
+import { resolveMemberRole } from '../../utils/member-resolution.js';
 import { printJson, printTable, resolveDate } from '../../utils/output.js';
 import { paginationShape, resolveNextOffset } from '../../utils/pagination.js';
 
@@ -22,14 +23,18 @@ export default defineCommand({
       printJson({ nextOffset, organizations: listedOrganizations });
       return;
     }
+    const { members = [] } = await hotCodePush.users.get({
+      relations: ['members'],
+      userId: 'me',
+    });
     printTable({
       emptyText: 'No organizations.',
       headers: ['ID', 'NAME', 'ROLE', 'CREATED'],
       nextOffset,
-      rows: listedOrganizations.map(({ createdAt, id, name, role }) => [
+      rows: listedOrganizations.map(({ createdAt, id, name }) => [
         id,
         name,
-        role ?? '',
+        resolveMemberRole(members, id) ?? '',
         resolveDate(createdAt),
       ]),
     });

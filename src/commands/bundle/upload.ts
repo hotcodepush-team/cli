@@ -17,7 +17,7 @@ import { resolveFrameworkModule } from '../../utils/frameworks/index.js';
 import type { GitProvenanceOptions } from '../../utils/git-provenance.js';
 import { resolveGitProvenance } from '../../utils/git-provenance.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson, printWarnings } from '../../utils/output.js';
+import { printJson } from '../../utils/output.js';
 import { readPackageJson } from '../../utils/package-json.js';
 import { createReporter, resolveByteText } from '../../utils/progress.js';
 import type { ProjectConfig } from '../../utils/project-config.js';
@@ -42,6 +42,9 @@ export interface BundleUploadOptions
   platform?: Platform[];
   privateKeyPath?: string;
 }
+
+const FINGERPRINT_UNKNOWN_TEXT =
+  'No binary of the app carries this fingerprint.';
 
 const PLATFORMS: Platform[] = ['android', 'ios'];
 
@@ -113,6 +116,11 @@ export default defineCommand({
           packagingDirectoryPath,
         )) {
           bundles.push(await uploadBundle(hotCodePush, uploadBundleOptions));
+          if (
+            await fetchIsFingerprintUnknown(hotCodePush, uploadBundleOptions)
+          ) {
+            process.stderr.write(`Warning: ${FINGERPRINT_UNKNOWN_TEXT}\n`);
+          }
         }
         return bundles;
       },
@@ -122,15 +130,31 @@ export default defineCommand({
 });
 
 /**
+ * Whether no binary of the app carries the bundle's fingerprint, so no store build in the field can take it; an app
+ * without a binary yet stays silent, its first store build still to come.
+ */
+async function fetchIsFingerprintUnknown(
+  hotCodePush: HotCodePush,
+  { appId, fingerprint }: Pick<UploadBundleOptions, 'appId' | 'fingerprint'>,
+): Promise<boolean> {
+  const { count: fingerprintBinaryCount } =
+    await hotCodePush.apps.binaries.count({ appId, fingerprint });
+  if (fingerprintBinaryCount > 0) {
+    return false;
+  }
+  const { count: binaryCount } = await hotCodePush.apps.binaries.count({
+    appId,
+  });
+  return binaryCount > 0;
+}
+
+/**
  * A line per bundle, or under `--json` always an array, one bundle or one per platform, as `release create` prints its releases.
  */
 function printUploadedBundles(
   uploadedBundles: UploadedBundle[],
   isJson: boolean | undefined,
 ): void {
-  for (const { warnings } of uploadedBundles) {
-    printWarnings(warnings);
-  }
   if (isJson) {
     printJson(uploadedBundles.map(resolveUploadedBundleJson));
   } else {

@@ -1,3 +1,4 @@
+import type { Member } from '@hotcodepush/node';
 import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
@@ -33,10 +34,20 @@ export default defineCommand({
       ['Name', fetchedMember.user?.name ?? ''],
       ['Email', resolveMemberEmail(fetchedMember)],
       ['Role', fetchedMember.role],
-      ['Password', fetchedMember.user?.hasPassword ? 'yes' : 'no'],
-      ['Two-factor', fetchedMember.user?.isTwoFactorEnabled ? 'yes' : 'no'],
+      ['Password', hasPasswordAccount(fetchedMember) ? 'yes' : 'no'],
+      ['Two-factor', fetchedMember.user?.twoFactorEnabled ? 'yes' : 'no'],
       ['Last seen', fetchedMember.lastSeenAt ?? 'never'],
       ['Joined', fetchedMember.createdAt],
     ]);
   },
 });
+
+/**
+ * Whether the member signs in with a password: Better Auth keeps it as an account of the provider `credential`.
+ */
+function hasPasswordAccount({ user }: Member): boolean {
+  return (
+    user?.accounts?.some(({ providerId }) => providerId === 'credential') ??
+    false
+  );
+}

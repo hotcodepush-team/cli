@@ -50,8 +50,12 @@ export default defineCommand({
         : resolveReleaseInLog(releases, options.toRelease, '--to-release');
     const bundleLabel = resolveReleaseBundleLabel(targetRelease);
     const isMandatory = options.mandatory ?? true;
+    const { deviceCount } = await hotCodePush.apps.statistics.fleet.get({
+      appId: fetchedChannel.appId,
+      channelId: fetchedChannel.id,
+    });
     const isConfirmed = await confirmConsequence(
-      `rolls channel ${fetchedChannel.name} back to bundle ${bundleLabel} of release #${targetRelease.number} as a new ${isMandatory ? 'mandatory ' : ''}release, reaching its ${fetchedChannel.activeDeviceCount} active devices`,
+      `rolls channel ${fetchedChannel.name} back to bundle ${bundleLabel} of release #${targetRelease.number} as a new ${isMandatory ? 'mandatory ' : ''}release, reaching its ${deviceCount} active devices`,
       options,
     );
     if (!isConfirmed) {

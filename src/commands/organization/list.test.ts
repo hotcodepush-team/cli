@@ -1,15 +1,23 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { useCommandHarness } from '../../../test/command-harness.js';
 import {
   ACME_ORGANIZATION,
   GLOBEX_ORGANIZATION,
+  RUNNER_USER,
+  RUNNER_USER_WITH_MEMBERS,
 } from '../../../test/fixtures.js';
 import organizationListCommand from './list.js';
+
+const USER_PATH = 'GET /v1/users/me?relations=members';
 
 describe('organization list', () => {
   const harness = useCommandHarness();
 
-  it('should print the organizations as a table with the role in each', async () => {
+  beforeEach(() => {
+    harness.routes[USER_PATH] = () => Response.json(RUNNER_USER_WITH_MEMBERS);
+  });
+
+  it("should print the organizations as a table with the role of the user's member row in each", async () => {
     harness.routes['GET /v1/organizations'] = () =>
       Response.json([GLOBEX_ORGANIZATION, ACME_ORGANIZATION]);
 
@@ -19,6 +27,23 @@ describe('organization list', () => {
       'ID                                    NAME    ROLE   CREATED',
       `${GLOBEX_ORGANIZATION.id}  Globex  admin  2026-09-02`,
       `${ACME_ORGANIZATION.id}  Acme    owner  2026-09-01`,
+    ]);
+    expect(
+      harness.requests.filter(({ url }) => url.includes('/v1/users/me')),
+    ).toHaveLength(1);
+  });
+
+  it('should leave the role empty for an organization the user has no member row in', async () => {
+    harness.routes['GET /v1/organizations'] = () =>
+      Response.json([ACME_ORGANIZATION]);
+    harness.routes[USER_PATH] = () =>
+      Response.json({ ...RUNNER_USER, members: [] });
+
+    await organizationListCommand.action({}, undefined);
+
+    expect(harness.readLines()).toEqual([
+      'ID                                    NAME  ROLE  CREATED',
+      `${ACME_ORGANIZATION.id}  Acme        2026-09-01`,
     ]);
   });
 
@@ -41,6 +66,9 @@ describe('organization list', () => {
       nextOffset: null,
       organizations: [ACME_ORGANIZATION],
     });
+    expect(
+      harness.requests.filter(({ url }) => url.includes('/v1/users/me')),
+    ).toEqual([]);
   });
 
   it('should say so when there is no organization', async () => {

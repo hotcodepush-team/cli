@@ -2,9 +2,7 @@ import type {
   Audience,
   Bundle,
   Channel,
-  ChannelWithDeviceCounts,
   CreateReleaseOptions,
-  CreatedRelease,
   HotCodePush,
   Release,
 } from '@hotcodepush/node';
@@ -81,7 +79,7 @@ export type BundleSource =
  */
 export interface ChannelAudience {
   audience: Audience;
-  channel: ChannelWithDeviceCounts;
+  channel: Channel;
 }
 
 type ReleaseBody = Omit<
@@ -208,7 +206,7 @@ async function createReleases(
   if (!(await confirmConsequence(consequence, options))) {
     return;
   }
-  const releases: CreatedRelease[] = [];
+  const releases: Release[] = [];
   for (const bundle of await resolveReleasedBundles(
     hotCodePush,
     bundleSource,
@@ -224,19 +222,19 @@ async function createReleases(
       progression: progression ?? undefined,
       rolloutPercentage,
     };
-    for (const { channel } of channelAudiences) {
+    for (const { audience, channel } of channelAudiences) {
       const createdRelease = await hotCodePush.apps.channels.releases.create({
         ...releaseBody,
         appId: bundle.appId,
         channelId: channel.id,
       });
-      printWarnings(createdRelease.warnings);
+      printWarnings(audience.warnings);
       const liveRelease = await waitUntilLive(
         hotCodePush,
         bundle.appId,
         createdRelease,
       );
-      releases.push({ ...liveRelease, warnings: createdRelease.warnings });
+      releases.push(liveRelease);
       if (!options.json) {
         printReleasedLine(
           liveRelease,
@@ -414,7 +412,7 @@ async function resolveBundleSource(
 }
 
 /**
- * The bundles the release carries: the one named, or each build uploaded first when that is the source, its warnings printed.
+ * The bundles the release carries: the one named, or each build uploaded first when that is the source.
  */
 async function resolveReleasedBundles(
   hotCodePush: HotCodePush,
@@ -425,9 +423,7 @@ async function resolveReleasedBundles(
   }
   const bundles: Bundle[] = [];
   for (const uploadBundleOptions of bundleSource.bundleUploads) {
-    const uploadedBundle = await uploadBundle(hotCodePush, uploadBundleOptions);
-    printWarnings(uploadedBundle.warnings);
-    bundles.push(uploadedBundle.bundle);
+    bundles.push((await uploadBundle(hotCodePush, uploadBundleOptions)).bundle);
   }
   return bundles;
 }

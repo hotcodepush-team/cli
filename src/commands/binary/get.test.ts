@@ -4,7 +4,8 @@ import {
   stubInteractiveTerminal,
   useCommandHarness,
 } from '../../../test/command-harness.js';
-import { BINARY, DEMO_APP } from '../../../test/fixtures.js';
+import { BINARY, DEMO_APP, FLEET } from '../../../test/fixtures.js';
+import { FLEET_PATH, respondWithFleet } from '../../../test/release-routes.js';
 import { MissingParameterError } from '../../utils/errors.js';
 import binaryGetCommand from './get.js';
 
@@ -13,9 +14,10 @@ vi.mock('@clack/prompts');
 describe('binary get', () => {
   const harness = useCommandHarness();
 
-  it('should print the store build with the bundle it ships and its devices', async () => {
+  it("should print the store build with the bundle it ships and the devices of its bucket in the app's fleet", async () => {
     harness.routes[`GET /v1/apps/${DEMO_APP.id}/binaries/${BINARY.id}`] = () =>
       Response.json(BINARY);
+    respondWithFleet(harness);
 
     await binaryGetCommand.action(
       { app: DEMO_APP.id, binary: BINARY.id },
@@ -30,8 +32,25 @@ describe('binary get', () => {
       'Fingerprint  none',
       `Bundle       ${BINARY.bundleId}`,
       'Devices      12',
-      `Last seen    ${BINARY.lastSeenAt}`,
+      'Last seen    2026-09-08T08:00:00.000Z',
       `Created      ${BINARY.createdAt}`,
+    ]);
+  });
+
+  it('should print no devices and never seen when the fleet has no bucket for the binary', async () => {
+    harness.routes[`GET /v1/apps/${DEMO_APP.id}/binaries/${BINARY.id}`] = () =>
+      Response.json(BINARY);
+    harness.routes[`GET ${FLEET_PATH}`] = () =>
+      Response.json({ ...FLEET, binary: [] });
+
+    await binaryGetCommand.action(
+      { app: DEMO_APP.id, binary: BINARY.id },
+      undefined,
+    );
+
+    expect(harness.readLines().slice(6, 8)).toEqual([
+      'Devices      0',
+      'Last seen    never',
     ]);
   });
 
@@ -48,6 +67,7 @@ describe('binary get', () => {
       Response.json([BINARY]);
     harness.routes[`GET /v1/apps/${DEMO_APP.id}/binaries/${BINARY.id}`] = () =>
       Response.json(BINARY);
+    respondWithFleet(harness);
 
     await binaryGetCommand.action({ app: DEMO_APP.id }, undefined);
 

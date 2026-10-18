@@ -1,9 +1,4 @@
-import type {
-  Channel,
-  ChannelWithDeviceCounts,
-  HotCodePush,
-  Release,
-} from '@hotcodepush/node';
+import type { Channel, HotCodePush, Release } from '@hotcodepush/node';
 import { z } from 'zod';
 import { resolveBundleLabel } from './bundle-resolution.js';
 import { InvalidParameterError } from './errors.js';
@@ -13,7 +8,7 @@ import type { ChannelOptions } from './resource-resolution.js';
 import { fetchChannel } from './resource-resolution.js';
 
 export interface ReleaseInChannel {
-  channel: ChannelWithDeviceCounts;
+  channel: Channel;
   release: Release;
 }
 
@@ -135,7 +130,7 @@ export async function waitUntilLive(
 
 async function resolveReleaseId(
   hotCodePush: HotCodePush,
-  channel: ChannelWithDeviceCounts,
+  channel: Channel,
   options: ReleaseOptions,
 ): Promise<string> {
   if (

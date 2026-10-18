@@ -4,7 +4,6 @@ import {
   DEMO_APP,
   PRODUCTION_CHANNEL,
   STAGING_CHANNEL,
-  STAGING_CHANNEL_WITH_DEVICE_COUNTS,
 } from '../../../test/fixtures.js';
 import { PACKAGE_JSON } from '../../config/consts.js';
 import { runCli } from '../../utils/cli.js';
@@ -19,7 +18,7 @@ describe('channel update', () => {
     harness.routes[`GET /v1/apps/${DEMO_APP.id}/channels`] = () =>
       Response.json([STAGING_CHANNEL, PRODUCTION_CHANNEL]);
     harness.routes[`GET ${CHANNEL_PATH}`] = () =>
-      Response.json(STAGING_CHANNEL_WITH_DEVICE_COUNTS);
+      Response.json(STAGING_CHANNEL);
     harness.routes[`PATCH ${CHANNEL_PATH}`] = () =>
       Response.json({ ...STAGING_CHANNEL, name: 'beta' });
   }

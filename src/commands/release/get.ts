@@ -5,6 +5,7 @@ import {
   resolveEffectiveFailurePolicy,
   resolveFailurePolicyDetails,
 } from '../../utils/channel-fields.js';
+import { resolveReleaseDeviceCount } from '../../utils/fleet.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printDetails, printJson } from '../../utils/output.js';
 import {
@@ -30,14 +31,19 @@ export default defineCommand({
     ...releaseOptionShape,
   }),
   action: async options => {
+    const hotCodePush = createApiClient();
     const { channel, release } = await fetchReleaseInChannel(
-      createApiClient(),
+      hotCodePush,
       options,
     );
     if (options.json) {
       printJson(release);
       return;
     }
+    const fleet = await hotCodePush.apps.statistics.fleet.get({
+      appId: channel.appId,
+      channelId: channel.id,
+    });
     printDetails([
       ['ID', release.id],
       ['Number', `#${release.number}`],
@@ -53,7 +59,7 @@ export default defineCommand({
       ['Notes', release.notes ?? 'none'],
       ['Rolled back from', release.rolledBackFromReleaseId ?? 'nothing'],
       ['Live', release.liveAt ?? 'not yet'],
-      ['Devices', String(release.deviceCount)],
+      ['Devices', String(resolveReleaseDeviceCount(fleet, release.id))],
       ...resolveCounterDetails(release),
       ['Created', release.createdAt],
     ]);

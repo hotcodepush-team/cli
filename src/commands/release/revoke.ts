@@ -1,9 +1,15 @@
-import type { Channel, HotCodePush, Release } from '@hotcodepush/node';
+import type {
+  Channel,
+  FleetStatistics,
+  HotCodePush,
+  Release,
+} from '@hotcodepush/node';
 import { z } from 'zod';
 import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
 import { fetchBundle } from '../../utils/bundle-resolution.js';
 import { InvalidParameterError } from '../../utils/errors.js';
+import { resolveReleaseDeviceCount } from '../../utils/fleet.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson, resolveQuantityText } from '../../utils/output.js';
 import { fetchAllPages } from '../../utils/pagination.js';
@@ -91,17 +97,22 @@ export default defineCommand({
   action: async options => {
     const hotCodePush = createApiClient();
     const revocations = await fetchRevocations(hotCodePush, options);
+    const [firstRevocation] = revocations;
     if (
+      firstRevocation === undefined ||
       revocations.every(({ revokedReleases }) => revokedReleases.length === 0)
     ) {
       printNothingToRevoke(options.json);
       return;
     }
-    for (const pausedText of resolvePausedLandingTexts(revocations)) {
+    const fleet = await hotCodePush.apps.statistics.fleet.get({
+      appId: firstRevocation.channel.appId,
+    });
+    for (const pausedText of resolvePausedLandingTexts(revocations, fleet)) {
       process.stderr.write(`Warning: ${pausedText}\n`);
     }
     const isConfirmed = await confirmConsequence(
-      resolveRevocationConsequence(revocations),
+      resolveRevocationConsequence(revocations, fleet),
       options,
     );
     if (!isConfirmed) {
@@ -277,12 +288,17 @@ function printNothingToRevoke(isJson: boolean | undefined): void {
 
 /**
  * Where each revoked release's devices go, as the API moves them: the newest active release older than it that is not
- * revoked with it, or the embedded bundle; the devices summed per destination, the releases with none left out.
+ * revoked with it, or the embedded bundle; the devices the fleet counts on each summed per destination, the releases
+ * with none left out.
  */
-function resolveDeviceMoves(revocation: ChannelRevocation): DeviceMove[] {
+function resolveDeviceMoves(
+  revocation: ChannelRevocation,
+  fleet: FleetStatistics,
+): DeviceMove[] {
   const moves = new Map<string, DeviceMove>();
   for (const revokedRelease of revocation.revokedReleases) {
-    if (revokedRelease.deviceCount === 0) {
+    const deviceCount = resolveReleaseDeviceCount(fleet, revokedRelease.id);
+    if (deviceCount === 0) {
       continue;
     }
     const targetRelease = resolveOlderReleases(revocation, revokedRelease).find(
@@ -290,7 +306,7 @@ function resolveDeviceMoves(revocation: ChannelRevocation): DeviceMove[] {
     );
     const key = targetRelease?.id ?? 'embedded';
     const move = moves.get(key) ?? { deviceCount: 0, targetRelease };
-    move.deviceCount += revokedRelease.deviceCount;
+    move.deviceCount += deviceCount;
     moves.set(key, move);
   }
   return [...moves.values()];
@@ -298,9 +314,10 @@ function resolveDeviceMoves(revocation: ChannelRevocation): DeviceMove[] {
 
 function resolveMovesText(
   revocation: ChannelRevocation,
+  fleet: FleetStatistics,
   isChannelNamed: boolean,
 ): string | undefined {
-  const moves = resolveDeviceMoves(revocation);
+  const moves = resolveDeviceMoves(revocation, fleet);
   if (moves.length === 0) {
     return undefined;
   }
@@ -339,13 +356,16 @@ function resolveOlderReleases(
  * The release a revoked release's devices would land on when it is paused: a paused release takes no device,
  * so they land one further back.
  */
-function resolvePausedLandingTexts(revocations: ChannelRevocation[]): string[] {
+function resolvePausedLandingTexts(
+  revocations: ChannelRevocation[],
+  fleet: FleetStatistics,
+): string[] {
   const texts = new Set<string>();
   for (const revocation of revocations) {
     for (const revokedRelease of revocation.revokedReleases) {
       const [landingRelease] = resolveOlderReleases(revocation, revokedRelease);
       if (
-        revokedRelease.deviceCount > 0 &&
+        resolveReleaseDeviceCount(fleet, revokedRelease.id) > 0 &&
         landingRelease?.status === 'paused'
       ) {
         texts.add(
@@ -362,6 +382,7 @@ function resolvePausedLandingTexts(revocations: ChannelRevocation[]): string[] {
  */
 function resolveRevocationConsequence(
   revocations: ChannelRevocation[],
+  fleet: FleetStatistics,
 ): string {
   const isChannelNamed = revocations.length > 1;
   const releasesText = revocations
@@ -372,7 +393,7 @@ function resolveRevocationConsequence(
     .join(' and ');
   const movesText =
     revocations
-      .map(revocation => resolveMovesText(revocation, isChannelNamed))
+      .map(revocation => resolveMovesText(revocation, fleet, isChannelNamed))
       .filter(text => text !== undefined)
       .join(', ') || 'no device runs them';
   const bundleNumbers = new Set(

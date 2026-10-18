@@ -8,7 +8,6 @@ import {
   ACME_ORGANIZATION,
   DEMO_APP,
   STAGING_CHANNEL,
-  STAGING_CHANNEL_WITH_DEVICE_COUNTS,
 } from '../../test/fixtures.js';
 import { openBrowser } from '../utils/browser.js';
 import {
@@ -50,7 +49,7 @@ describe('open', () => {
   it("should print the channel's page as JSON without opening it when --channel names one and --json is passed", async () => {
     harness.routes[
       `GET /v1/apps/${DEMO_APP.id}/channels/${STAGING_CHANNEL.id}`
-    ] = () => Response.json(STAGING_CHANNEL_WITH_DEVICE_COUNTS);
+    ] = () => Response.json(STAGING_CHANNEL);
 
     await openCommand.action(
       { app: DEMO_APP.id, channel: STAGING_CHANNEL.id, json: true },

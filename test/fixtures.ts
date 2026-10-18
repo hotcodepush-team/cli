@@ -7,8 +7,8 @@ import type {
   Bundle,
   BundleDelta,
   Channel,
-  ChannelWithDeviceCounts,
   Device,
+  FleetStatistics,
   Invitation,
   Limits,
   Member,
@@ -20,22 +20,34 @@ import type {
 } from '@hotcodepush/node';
 
 export const ACME_ORGANIZATION: Organization = {
+  appCountLimit: null,
   cancelAtPeriodEnd: false,
   cappedAt: null,
+  channelCountPerAppLimit: null,
   countryAllowlist: null,
   createdAt: '2026-09-01T08:00:00.000Z',
   currentPeriodEndsAt: null,
+  dataTransferBytesPerMonthlyActiveDeviceLimit: null,
+  deletedAt: null,
   enterpriseMonthlyActiveDeviceCountLimit: null,
+  fileCountPerBundleLimit: null,
   id: '0f8fad5b-d9cb-469f-a165-70867728950e',
   ipAllowlist: null,
   isTwoFactorRequired: false,
+  lastSpendingCapReachedSentAt: null,
+  lastSpendingCapWarningSentAt: null,
+  lastStorageLimitReachedSentAt: null,
+  lastStorageWarningSentAt: null,
+  memberCountLimit: null,
   name: 'Acme',
   pastDueAt: null,
   plan: 'free',
   region: 'eu',
-  role: 'owner',
+  releaseCountPerAppPerDayLimit: null,
+  retentionDays: null,
   spendingCapCents: 0,
   storageBytes: 0,
+  storageBytesLimit: null,
   subscriptionProvider: null,
   subscriptionStatus: null,
   updatedAt: '2026-09-01T08:00:00.000Z',
@@ -45,22 +57,13 @@ export const ACME_ORGANIZATION: Organization = {
  * Globex on pay-as-you-go: a $50 cap, under its ceiling, its subscription active.
  */
 export const GLOBEX_ORGANIZATION: Organization = {
-  cancelAtPeriodEnd: false,
-  cappedAt: null,
-  countryAllowlist: null,
+  ...ACME_ORGANIZATION,
   createdAt: '2026-09-02T08:00:00.000Z',
   currentPeriodEndsAt: '2026-10-02T08:00:00.000Z',
-  enterpriseMonthlyActiveDeviceCountLimit: null,
   id: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
-  ipAllowlist: null,
-  isTwoFactorRequired: false,
   name: 'Globex',
-  pastDueAt: null,
   plan: 'pay_as_you_go',
-  region: 'eu',
-  role: 'admin',
   spendingCapCents: 5000,
-  storageBytes: 0,
   subscriptionProvider: 'polar',
   subscriptionStatus: 'active',
   updatedAt: '2026-09-02T08:00:00.000Z',
@@ -102,6 +105,7 @@ export const DEMO_APP: App = {
   channelLinkTemplate: null,
   createdAt: '2026-09-03T08:00:00.000Z',
   defaultChannelId: PRODUCTION_CHANNEL.id,
+  deletedAt: null,
   framework: 'capacitor',
   id: PRODUCTION_CHANNEL.appId,
   name: 'Demo',
@@ -119,13 +123,6 @@ export const STAGING_CHANNEL: Channel = {
   isProtected: false,
   name: 'staging',
   updatedAt: '2026-09-04T08:00:00.000Z',
-};
-
-export const STAGING_CHANNEL_WITH_DEVICE_COUNTS: ChannelWithDeviceCounts = {
-  ...STAGING_CHANNEL,
-  activeDeviceCount: 120,
-  currentDeviceCount: 100,
-  embeddedDeviceCount: 20,
 };
 
 export const READY_BUNDLE: Bundle = {
@@ -168,10 +165,8 @@ export const BINARY: Binary = {
   build: '1',
   bundleId: '4d3c2b1a-0f9e-4d8c-b7a6-59483726150e',
   createdAt: '2026-09-06T08:00:00.000Z',
-  deviceCount: 12,
   fingerprint: null,
   id: '8e7d6c5b-4a39-4281-9f0e-1d2c3b4a5968',
-  lastSeenAt: '2026-09-08T08:00:00.000Z',
   platform: 'ios',
   updatedAt: '2026-09-06T08:00:00.000Z',
   version: '1.0',
@@ -215,9 +210,9 @@ export const LIVE_RELEASE: Release = {
   conditions: [],
   createdAt: '2026-09-07T08:00:00.000Z',
   createdFromReleaseId: null,
-  deviceCount: 80,
   failureAction: null,
   failureMinimumUpdateCount: null,
+  failureNotifiedAt: null,
   failureThresholdPercent: null,
   id: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
   isMandatory: false,
@@ -226,19 +221,21 @@ export const LIVE_RELEASE: Release = {
   number: 43,
   pausedAt: null,
   progression: null,
-  progressionStep: null,
+  progressionStepStartedAt: null,
   purgedAt: '2026-09-07T08:00:06.000Z',
   rolledBackFromReleaseId: null,
   rolloutPercentage: 100,
   status: 'active',
+  stepStartAttemptedUpdateCount: 0,
   updatedAt: '2026-09-07T08:00:06.000Z',
+  windowStartAttemptedUpdateCount: 0,
+  windowStartFailureCount: 0,
 };
 
 export const PREVIOUS_RELEASE: Release = {
   ...LIVE_RELEASE,
   bundleId: PREVIOUS_BUNDLE.id,
   createdAt: '2026-09-06T08:00:00.000Z',
-  deviceCount: 20,
   id: 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e',
   liveAt: '2026-09-06T08:00:05.000Z',
   notes: null,
@@ -248,7 +245,52 @@ export const PREVIOUS_RELEASE: Release = {
 };
 
 /**
- * Release #43 at the first step of the default schedule, its widening waiting on the step's sample.
+ * The registry's snapshot of the demo app's 120 devices: 80 on release #43, 20 on #42 and 20 on the embedded bundle,
+ * 12 of them on the binary; served for the app and for the staging channel alike.
+ */
+export const FLEET: FleetStatistics = {
+  binary: [
+    {
+      deviceCount: 108,
+      lastSeenAt: '2026-09-08T09:00:00.000Z',
+      platform: null,
+      value: null,
+      version: null,
+    },
+    {
+      deviceCount: 12,
+      lastSeenAt: '2026-09-08T08:00:00.000Z',
+      platform: BINARY.platform,
+      value: BINARY.id,
+      version: BINARY.version,
+    },
+  ],
+  binaryVersion: [{ deviceCount: 120, value: '2.4.1' }],
+  country: [{ deviceCount: 120, value: 'DE' }],
+  currentDeviceCount: 100,
+  deviceCount: 120,
+  osVersion: [{ deviceCount: 120, platform: 'ios', value: '17.4' }],
+  platform: [{ deviceCount: 120, value: 'ios' }],
+  release: [
+    {
+      channelId: STAGING_CHANNEL.id,
+      deviceCount: 80,
+      number: LIVE_RELEASE.number,
+      value: LIVE_RELEASE.id,
+    },
+    {
+      channelId: STAGING_CHANNEL.id,
+      deviceCount: 20,
+      number: PREVIOUS_RELEASE.number,
+      value: PREVIOUS_RELEASE.id,
+    },
+    { channelId: null, deviceCount: 20, number: null, value: null },
+  ],
+  sdkVersion: [{ deviceCount: 120, value: '0.1.0' }],
+};
+
+/**
+ * Release #43 at the first step of the default schedule, which started at 88 attempted updates on its counters.
  */
 export const PROGRESSING_RELEASE: Release = {
   ...LIVE_RELEASE,
@@ -257,29 +299,56 @@ export const PROGRESSING_RELEASE: Release = {
     stepMinimumSeconds: 3600,
     stepMinimumUpdateCount: 50,
   },
-  progressionStep: {
-    gate: { attemptedUpdateCount: 12, requiredUpdateCount: 50, type: 'sample' },
-    number: 1,
-  },
+  progressionStepStartedAt: LIVE_RELEASE.liveAt,
   rolloutPercentage: 10,
+  stepStartAttemptedUpdateCount: 88,
 };
 
 export const RUNNER_USER: User = {
+  bannedAt: null,
   createdAt: '2026-09-01T08:00:00.000Z',
+  deletedAt: null,
   discoverySource: null,
   email: 'anna@example.com',
+  emailVerified: true,
   id: 'user-1',
   image: null,
   intendedFramework: null,
-  isEmailVerified: true,
-  isTwoFactorEnabled: false,
   jobRole: null,
   lastSeenAt: '2026-09-08T08:00:00.000Z',
   locale: null,
   name: 'Anna Example',
   timeFormat: null,
   timeZone: null,
+  twoFactorEnabled: false,
   updatedAt: '2026-09-01T08:00:00.000Z',
+};
+
+/**
+ * The runner as `users.get` answers them with their member rows: the owner of Acme and an admin of Globex.
+ */
+export const RUNNER_USER_WITH_MEMBERS: User = {
+  ...RUNNER_USER,
+  members: [
+    {
+      createdAt: '2026-09-02T08:00:00.000Z',
+      id: '6f1c3a8e-9b2d-4e57-a0c4-1d8b5e3f7a92',
+      lastSeenAt: '2026-09-08T08:00:00.000Z',
+      organizationId: GLOBEX_ORGANIZATION.id,
+      role: 'admin',
+      updatedAt: '2026-09-02T08:00:00.000Z',
+      userId: RUNNER_USER.id,
+    },
+    {
+      createdAt: '2026-09-01T08:00:00.000Z',
+      id: '0b7e4d2a-6c9f-4a13-8e5b-2f4a9c1d7e36',
+      lastSeenAt: '2026-09-08T08:00:00.000Z',
+      organizationId: ACME_ORGANIZATION.id,
+      role: 'owner',
+      updatedAt: '2026-09-01T08:00:00.000Z',
+      userId: RUNNER_USER.id,
+    },
+  ],
 };
 
 interface ProtocolSigningKey {
@@ -350,12 +419,14 @@ export const AUDIT_LOG: AuditLog = {
   appId: DEMO_APP.id,
   country: 'DE',
   createdAt: '2026-09-10T08:00:00.000Z',
+  dispatchedAt: null,
   id: '1e4d7a2b-9c3f-4b8e-a6d5-0f2c7b9e4a13',
   objectId: STAGING_CHANNEL.id,
   organizationId: ACME_ORGANIZATION.id,
   sessionId: 'a8c3e5f1-2b7d-4e9a-8c6f-3d1b5e7a9c24',
   snapshot: { name: STAGING_CHANNEL.name },
   type: 'channel.created',
+  updatedAt: '2026-09-10T08:00:00.000Z',
   userAgent: 'hotcodepush/0.0.0',
   userId: RUNNER_USER.id,
 };
@@ -366,24 +437,15 @@ export const AUDIT_LOG: AuditLog = {
 export const SSO_PROVIDER: SsoProvider = {
   createdAt: '2026-09-11T08:00:00.000Z',
   domain: 'example.com',
+  domainVerificationToken: 'b7Kq2vX9mN4pR8sT1wY6zA3c',
+  domainVerified: false,
   id: '5d9e2c7a-4b1f-4e8d-9a3c-6f0b2e8d4a71',
-  isDomainVerified: false,
-  oidc: {
-    clientId: 'hotcodepush',
-    discoveryEndpoint:
-      'https://login.example.com/.well-known/openid-configuration',
-    issuer: 'https://login.example.com',
-    redirectUri: `https://api.example.com/v1/auth/sso/callback/${ACME_ORGANIZATION.id}`,
-    scopes: null,
-  },
+  issuer: 'https://login.example.com',
   organizationId: ACME_ORGANIZATION.id,
-  saml: null,
-  signInUrl: `https://console.example.com/login?sso=${ACME_ORGANIZATION.id}`,
+  providerId: ACME_ORGANIZATION.id,
+  type: 'oidc',
   updatedAt: '2026-09-11T08:00:00.000Z',
-  verification: {
-    name: `_hotcodepush-sso-${ACME_ORGANIZATION.id}.example.com`,
-    value: 'b7Kq2vX9mN4pR8sT1wY6zA3c',
-  },
+  userId: RUNNER_USER.id,
 };
 
 /**
@@ -391,16 +453,9 @@ export const SSO_PROVIDER: SsoProvider = {
  */
 export const VERIFIED_SAML_SSO_PROVIDER: SsoProvider = {
   ...SSO_PROVIDER,
-  isDomainVerified: true,
-  oidc: null,
-  saml: {
-    acsUrl: `https://api.example.com/v1/auth/sso/saml2/sp/acs/${ACME_ORGANIZATION.id}`,
-    entityId: null,
-    entryPoint: 'https://idp.example.com/sso',
-    issuer: 'https://idp.example.com',
-    spMetadataUrl: `https://api.example.com/v1/auth/sso/saml2/sp/metadata?providerId=${ACME_ORGANIZATION.id}`,
-  },
-  verification: null,
+  domainVerified: true,
+  issuer: 'https://idp.example.com',
+  type: 'saml',
 };
 
 export const OWNER_MEMBER: Member = {
@@ -411,11 +466,22 @@ export const OWNER_MEMBER: Member = {
   role: 'owner',
   updatedAt: '2026-09-01T08:00:00.000Z',
   user: {
+    accounts: [
+      {
+        createdAt: '2026-09-01T08:00:00.000Z',
+        id: '3e9b7c1d-5a2f-4d86-9b0e-6c4a8f2d1e57',
+        providerId: 'credential',
+        userId: '9c4e1b7a-3f2d-4a65-b8e0-7d1a5c3e9f04',
+      },
+    ],
+    createdAt: '2026-09-01T08:00:00.000Z',
     email: 'anna@example.com',
-    hasPassword: true,
+    emailVerified: true,
     id: '9c4e1b7a-3f2d-4a65-b8e0-7d1a5c3e9f04',
-    isTwoFactorEnabled: true,
+    image: null,
     name: 'Anna Example',
+    twoFactorEnabled: true,
+    updatedAt: '2026-09-01T08:00:00.000Z',
   },
   userId: '9c4e1b7a-3f2d-4a65-b8e0-7d1a5c3e9f04',
 };
@@ -428,11 +494,22 @@ export const ADMIN_MEMBER: Member = {
   role: 'admin',
   updatedAt: '2026-09-03T08:00:00.000Z',
   user: {
+    accounts: [
+      {
+        createdAt: '2026-09-03T08:00:00.000Z',
+        id: '8d2a6f4c-1e7b-4c93-a5d0-2b9e7f3c6a18',
+        providerId: 'github',
+        userId: '7f3c9a1e-2d5b-4e80-b6a4-0c9e1d3f5a27',
+      },
+    ],
+    createdAt: '2026-09-03T08:00:00.000Z',
     email: 'bob@example.com',
-    hasPassword: false,
+    emailVerified: true,
     id: '7f3c9a1e-2d5b-4e80-b6a4-0c9e1d3f5a27',
-    isTwoFactorEnabled: false,
+    image: null,
     name: 'Bob Example',
+    twoFactorEnabled: false,
+    updatedAt: '2026-09-03T08:00:00.000Z',
   },
   userId: '7f3c9a1e-2d5b-4e80-b6a4-0c9e1d3f5a27',
 };

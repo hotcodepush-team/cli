@@ -30,7 +30,7 @@ export function printJson(data: unknown): void {
 }
 
 /**
- * What the API answered beside a row it created or a preview it computed, likely not what was meant: one line each on stderr,
+ * What the API answered beside the counts of a preview it computed, likely not what was meant: one line each on stderr,
  * its message as received.
  */
 export function printWarnings(warnings: Warning[]): void {

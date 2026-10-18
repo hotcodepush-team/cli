@@ -1,6 +1,7 @@
 import type { Release } from '@hotcodepush/node';
 import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
+import { resolveReleaseDeviceCount } from '../../utils/fleet.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson, printTable, resolveDate } from '../../utils/output.js';
 import { paginationShape, resolveNextOffset } from '../../utils/pagination.js';
@@ -27,13 +28,17 @@ export default defineCommand({
       channelId: fetchedChannel.id,
       limit: options.limit,
       offset: options.offset,
-      relations: ['bundle'],
+      relations: ['bundle', 'releaseCounters'],
     });
     const nextOffset = resolveNextOffset(listedReleases.length, options);
     if (options.json) {
       printJson({ nextOffset, releases: listedReleases });
       return;
     }
+    const fleet = await hotCodePush.apps.statistics.fleet.get({
+      appId: fetchedChannel.appId,
+      channelId: fetchedChannel.id,
+    });
     printTable({
       emptyText: `No releases in channel ${fetchedChannel.name}.`,
       headers: [
@@ -55,7 +60,7 @@ export default defineCommand({
         `${release.rolloutPercentage}%`,
         resolveProgressionCell(release),
         release.isMandatory ? 'yes' : 'no',
-        String(release.deviceCount),
+        String(resolveReleaseDeviceCount(fleet, release.id)),
         release.liveAt === null ? 'pending' : resolveDate(release.liveAt),
         resolveDate(release.createdAt),
       ]),

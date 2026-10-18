@@ -45,7 +45,11 @@ vi.mock('../../utils/package-manager.js', async importOriginal => ({
   runCommandLineVisibly: vi.fn(),
 }));
 
+const BINARY_COUNT_PATH = `/v1/apps/${DEMO_APP.id}/binaries/count`;
+
 const BUNDLES_PATH = `/v1/apps/${DEMO_APP.id}/bundles`;
+
+const BUNDLE_FILES_PATH = `${BUNDLES_PATH}/${READY_BUNDLE.id}/files`;
 
 const INDEX_HTML = '<h1>v1</h1>';
 const APP_JS = 'console.log(1)';
@@ -119,29 +123,43 @@ describe('bundle upload', () => {
     return configPath;
   }
 
-  function respondWithUploadRoutes(
-    warnings = [] as { code: string; details: unknown; message: string }[],
-  ): void {
-    harness.routes[`POST ${BUNDLES_PATH}`] = () =>
+  /**
+   * The bundle's file the app's store lacks, `assets/app.js`, as the files list answers it under every path given.
+   */
+  function respondWithMissingFiles(paths = ['assets/app.js']): void {
+    harness.routes[`GET ${BUNDLE_FILES_PATH}`] = () =>
       Response.json(
-        {
-          ...READY_BUNDLE,
-          status: 'uploading',
-          uploads: {
-            files: [
-              {
-                sha256: APP_JS_SHA256,
-                sizeBytes: 14,
-                url: `${API_URL}/v1/apps/${DEMO_APP.id}/files/${APP_JS_SHA256}`,
-              },
-            ],
-            pack: `${API_URL}${BUNDLES_PATH}/${READY_BUNDLE.id}/pack`,
-            patches: [],
-          },
-          warnings,
-        },
-        { status: 201 },
+        paths.map(path => ({
+          bundleId: READY_BUNDLE.id,
+          createdAt: READY_BUNDLE.createdAt,
+          path,
+          sha256: APP_JS_SHA256,
+          sizeBytes: 14,
+          storedAt: null,
+          updatedAt: READY_BUNDLE.createdAt,
+        })),
       );
+  }
+
+  /**
+   * The app's binaries counted, all of them and those carrying the project's fingerprint.
+   */
+  function respondWithBinaryCounts(
+    binaryCount: number,
+    fingerprintBinaryCount: number,
+  ): void {
+    harness.routes[`GET ${BINARY_COUNT_PATH}`] = () =>
+      Response.json({ count: binaryCount });
+    harness.routes[
+      `GET ${BINARY_COUNT_PATH}?${new URLSearchParams({ fingerprint: CAPACITOR_FINGERPRINT })}`
+    ] = () => Response.json({ count: fingerprintBinaryCount });
+  }
+
+  function respondWithUploadRoutes(): void {
+    harness.routes[`POST ${BUNDLES_PATH}`] = () =>
+      Response.json({ ...READY_BUNDLE, status: 'uploading' }, { status: 201 });
+    respondWithMissingFiles();
+    respondWithBinaryCounts(1, 1);
     harness.routes[`PUT /v1/apps/${DEMO_APP.id}/files/${APP_JS_SHA256}`] =
       request => {
         // The gzip bytes come from a temporary file the upload removes when it ends, so they are read as the request arrives
@@ -189,6 +207,13 @@ describe('bundle upload', () => {
     );
 
     const createRequest = readRequest('POST', '/bundles');
+    const filesRequest = readRequest(
+      'GET',
+      `/bundles/${READY_BUNDLE.id}/files`,
+    );
+    expect(
+      Object.fromEntries(new URL(filesRequest?.url ?? API_URL).searchParams),
+    ).toEqual({ isStored: 'false', limit: '1000', offset: '0' });
     expect(await createRequest?.json()).toEqual({
       version: '1.4.2',
       files: [
@@ -247,18 +272,9 @@ describe('bundle upload', () => {
     });
   });
 
-  it('should print the warnings the API answers beside the created bundle on stderr', async () => {
-    const message = 'No binary of the app carries this fingerprint.';
-    respondWithUploadRoutes([
-      {
-        code: 'FINGERPRINT_UNKNOWN',
-        details: { fingerprint: CAPACITOR_FINGERPRINT },
-        message,
-      },
-    ]);
-    const stderrWrite = vi
-      .spyOn(process.stderr, 'write')
-      .mockImplementation(() => true);
+  it("should upload a hash once when several of the bundle's paths carry it", async () => {
+    respondWithUploadRoutes();
+    respondWithMissingFiles(['assets/app.js', 'assets/copy.js']);
 
     await bundleUploadCommand.action(
       {
@@ -269,7 +285,62 @@ describe('bundle upload', () => {
       undefined,
     );
 
-    expect(stderrWrite).toHaveBeenCalledWith(`Warning: ${message}\n`);
+    expect(
+      harness.requests.filter(
+        ({ method, url }) => method === 'PUT' && url.includes('/files/'),
+      ),
+    ).toHaveLength(1);
+  });
+
+  describe('when the fingerprint check runs', () => {
+    const FINGERPRINT_WARNING =
+      'Warning: No binary of the app carries this fingerprint.\n';
+    let stderrWrite: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      respondWithUploadRoutes();
+      stderrWrite = vi
+        .spyOn(process.stderr, 'write')
+        .mockImplementation(() => true);
+    });
+
+    async function runBundleUpload(): Promise<void> {
+      await bundleUploadCommand.action(
+        {
+          config: join(projectDirectoryPath, 'hotcodepush.json'),
+          json: true,
+          noGit: true,
+        },
+        undefined,
+      );
+    }
+
+    it("should warn on stderr when the app has binaries and none carries the bundle's fingerprint", async () => {
+      respondWithBinaryCounts(2, 0);
+
+      await runBundleUpload();
+
+      expect(stderrWrite).toHaveBeenCalledWith(FINGERPRINT_WARNING);
+    });
+
+    it('should stay silent when the app has no binary yet', async () => {
+      respondWithBinaryCounts(0, 0);
+
+      await runBundleUpload();
+
+      expect(stderrWrite).not.toHaveBeenCalledWith(FINGERPRINT_WARNING);
+    });
+
+    it("should stay silent and count no other binary when a binary carries the bundle's fingerprint", async () => {
+      respondWithBinaryCounts(2, 1);
+
+      await runBundleUpload();
+
+      expect(stderrWrite).not.toHaveBeenCalledWith(FINGERPRINT_WARNING);
+      expect(
+        harness.requests.filter(({ url }) => url.includes('/binaries/count')),
+      ).toHaveLength(1);
+    });
   });
 
   it('should read no base and upload no delta pack, printing only the files moved and their bytes under --json', async () => {
@@ -290,9 +361,11 @@ describe('bundle upload', () => {
       ),
     ).toEqual([
       `POST ${BUNDLES_PATH}`,
+      `GET ${BUNDLE_FILES_PATH}`,
       `PUT /v1/apps/${DEMO_APP.id}/files/${APP_JS_SHA256}`,
       `PUT ${BUNDLES_PATH}/${READY_BUNDLE.id}/pack`,
       `POST ${BUNDLES_PATH}/${READY_BUNDLE.id}/complete`,
+      `GET ${BINARY_COUNT_PATH}`,
     ]);
     expect(harness.readJson()).toEqual([
       {
@@ -512,18 +585,11 @@ describe('bundle upload', () => {
       });
       harness.routes[`POST ${BUNDLES_PATH}`] = () =>
         Response.json(
-          {
-            ...READY_BUNDLE,
-            status: 'uploading',
-            uploads: {
-              files: [],
-              pack: `${API_URL}${BUNDLES_PATH}/${READY_BUNDLE.id}/pack`,
-              patches: [],
-            },
-            warnings: [],
-          },
+          { ...READY_BUNDLE, status: 'uploading' },
           { status: 201 },
         );
+      respondWithMissingFiles([]);
+      respondWithBinaryCounts(1, 1);
       harness.routes[`PUT ${BUNDLES_PATH}/${READY_BUNDLE.id}/pack`] = () =>
         Response.json({ sizeBytes: 1536 });
       harness.routes[`POST ${BUNDLES_PATH}/${READY_BUNDLE.id}/complete`] = () =>

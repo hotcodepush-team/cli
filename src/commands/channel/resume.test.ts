@@ -4,11 +4,7 @@ import {
   stubInteractiveTerminal,
   useCommandHarness,
 } from '../../../test/command-harness.js';
-import {
-  DEMO_APP,
-  STAGING_CHANNEL,
-  STAGING_CHANNEL_WITH_DEVICE_COUNTS,
-} from '../../../test/fixtures.js';
+import { DEMO_APP, STAGING_CHANNEL } from '../../../test/fixtures.js';
 import { ConfirmationRequiredError } from '../../utils/errors.js';
 import channelResumeCommand from './resume.js';
 
@@ -26,7 +22,7 @@ describe('channel resume', () => {
   function respondWithChannel(): void {
     harness.routes[`GET ${CHANNEL_PATH}`] = () =>
       Response.json({
-        ...STAGING_CHANNEL_WITH_DEVICE_COUNTS,
+        ...STAGING_CHANNEL,
         pausedAt: '2026-09-29T12:00:00.000Z',
       });
     harness.routes[`POST ${CHANNEL_PATH}/resume`] = () =>

@@ -20,7 +20,7 @@ export default defineCommand({
       limit: options.limit,
       offset: options.offset,
       organizationId: await fetchOrganizationId(hotCodePush, options),
-      relations: ['user'],
+      relations: ['user', 'user.accounts'],
     });
     const nextOffset = resolveNextOffset(listedMembers.length, options);
     if (options.json) {

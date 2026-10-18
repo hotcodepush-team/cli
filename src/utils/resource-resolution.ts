@@ -1,7 +1,6 @@
 import type {
   App,
   Channel,
-  ChannelWithDeviceCounts,
   HotCodePush,
   Organization,
   SigningKey,
@@ -92,12 +91,12 @@ export function fetchApps(
 }
 
 /**
- * The channel a command acts on, with its app and the header numbers, from `--app`, `--channel` and `hotcodepush.json`.
+ * The channel a command acts on, from `--app`, `--channel` and `hotcodepush.json`.
  */
 export async function fetchChannel(
   hotCodePush: HotCodePush,
   options: ChannelOptions,
-): Promise<ChannelWithDeviceCounts> {
+): Promise<Channel> {
   const projectConfig = readProjectConfig(options.config);
   const appId = await fetchAppId(hotCodePush, options, projectConfig);
   const channelId = await fetchChannelId(

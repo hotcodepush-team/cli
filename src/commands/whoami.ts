@@ -1,11 +1,9 @@
 import { defineCommand } from 'zodline';
 import { DEFAULT_API_URL } from '../config/consts.js';
 import { createApiClient } from '../utils/api-client.js';
-import {
-  fetchCurrentUser,
-  resolveCredentialText,
-} from '../utils/credential.js';
+import { resolveCredentialText } from '../utils/credential.js';
 import { defineCommandOptions } from '../utils/global-options.js';
+import { resolveMemberRole } from '../utils/member-resolution.js';
 import { printJson } from '../utils/output.js';
 import { fetchOrganizations } from '../utils/resource-resolution.js';
 import { isEnvironmentToken } from '../utils/token-store.js';
@@ -17,9 +15,13 @@ export default defineCommand({
   examples: ['hotcodepush whoami', 'hotcodepush whoami --json'],
   options: defineCommandOptions({}),
   action: async options => {
-    const user = await fetchCurrentUser();
-    const organizations = (await fetchOrganizations(createApiClient())).map(
-      ({ id, name, role }) => ({ id, name, role }),
+    const hotCodePush = createApiClient();
+    const { members = [], ...user } = await hotCodePush.users.get({
+      relations: ['members'],
+      userId: 'me',
+    });
+    const organizations = (await fetchOrganizations(hotCodePush)).map(
+      ({ id, name }) => ({ id, name, role: resolveMemberRole(members, id) }),
     );
     const apiUrl = readApiUrl();
     if (options.json) {
@@ -36,7 +38,7 @@ export default defineCommand({
         : 'Organizations:',
     );
     for (const { name, role } of organizations) {
-      console.log(`  ${name} (${role})`);
+      console.log(role === null ? `  ${name}` : `  ${name} (${role})`);
     }
   },
 });

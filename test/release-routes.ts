@@ -2,13 +2,13 @@ import type { Audience, Release } from '@hotcodepush/node';
 import type { CommandHarness } from './command-harness.js';
 import {
   DEMO_APP,
+  FLEET,
   LIVE_RELEASE,
   PREVIOUS_BUNDLE,
   PREVIOUS_RELEASE,
   PRODUCTION_CHANNEL,
   READY_BUNDLE,
   STAGING_CHANNEL,
-  STAGING_CHANNEL_WITH_DEVICE_COUNTS,
 } from './fixtures.js';
 
 /**
@@ -33,15 +33,20 @@ export const CHANNEL_PATH = `/v1/apps/${DEMO_APP.id}/channels/${STAGING_CHANNEL.
 
 export const CHANNELS_PATH = `/v1/apps/${DEMO_APP.id}/channels`;
 
+export const FLEET_PATH = `/v1/apps/${DEMO_APP.id}/statistics/fleet`;
+
 export const RELEASES_PATH = `/v1/apps/${DEMO_APP.id}/releases`;
 
-export const RELEASE_COUNTERS = {
+export const RELEASE_COUNTERS: NonNullable<Release['releaseCounters']> = {
   appliedUpdateCount: 90,
   attemptedUpdateCount: 100,
   crashFailureCount: 2,
+  createdAt: LIVE_RELEASE.createdAt,
   downloadFailureCount: 3,
   readinessTimeoutFailureCount: 1,
+  releaseId: LIVE_RELEASE.id,
   reportedFailureCount: 3,
+  updatedAt: LIVE_RELEASE.updatedAt,
   verificationFailureCount: 1,
 };
 
@@ -58,6 +63,13 @@ export const RELEASE_LOG: Release[] = [
 ];
 
 /**
+ * The demo app's fleet, for the app and for any channel.
+ */
+export function respondWithFleet(harness: CommandHarness): void {
+  harness.routes[`GET ${FLEET_PATH}`] = () => Response.json(FLEET);
+}
+
+/**
  * The demo app's channels, where a channel named in a flag or in hotcodepush.json is looked up.
  */
 export function respondWithChannels(harness: CommandHarness): void {
@@ -66,13 +78,13 @@ export function respondWithChannels(harness: CommandHarness): void {
 }
 
 /**
- * The staging channel of the demo app among its channels, its release log and release #43 with its relations,
+ * The staging channel of the demo app among its channels, its release log, release #43 with its relations and the fleet,
  * the routes every release command starts from.
  */
 export function respondWithStagingReleases(harness: CommandHarness): void {
   respondWithChannels(harness);
-  harness.routes[`GET ${CHANNEL_PATH}`] = () =>
-    Response.json(STAGING_CHANNEL_WITH_DEVICE_COUNTS);
+  respondWithFleet(harness);
+  harness.routes[`GET ${CHANNEL_PATH}`] = () => Response.json(STAGING_CHANNEL);
   harness.routes[`GET ${CHANNEL_PATH}/releases`] = () =>
     Response.json(RELEASE_LOG);
   harness.routes[`GET ${RELEASES_PATH}/${LIVE_RELEASE.id}`] = () =>

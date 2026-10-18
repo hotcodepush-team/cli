@@ -16,7 +16,7 @@ export const memberOptionShape = {
 
 /**
  * The member `--member` names, otherwise the one picked from the organization's members when interactive,
- * with their user embedded.
+ * with their user and the user's sign-in identities embedded.
  */
 export async function fetchMember(
   hotCodePush: HotCodePush,
@@ -26,7 +26,7 @@ export async function fetchMember(
   return hotCodePush.organizations.members.get({
     memberId: await fetchMemberId(hotCodePush, organizationId, options),
     organizationId,
-    relations: ['user'],
+    relations: ['user', 'user.accounts'],
   });
 }
 
@@ -35,6 +35,19 @@ export async function fetchMember(
  */
 export function resolveMemberEmail({ user }: Member): string {
   return user?.email ?? '';
+}
+
+/**
+ * The caller's role in an organization, read from the member rows `users.get` embeds for them; null without a row.
+ */
+export function resolveMemberRole(
+  members: Pick<Member, 'organizationId' | 'role'>[],
+  organizationId: string,
+): Member['role'] | null {
+  return (
+    members.find(member => member.organizationId === organizationId)?.role ??
+    null
+  );
 }
 
 /**

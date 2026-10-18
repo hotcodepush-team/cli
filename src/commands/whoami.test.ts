@@ -10,6 +10,7 @@ import {
   ACME_ORGANIZATION,
   GLOBEX_ORGANIZATION,
   RUNNER_USER,
+  RUNNER_USER_WITH_MEMBERS,
 } from '../../test/fixtures.js';
 import { PACKAGE_JSON } from '../config/consts.js';
 import { runCli } from '../utils/cli.js';
@@ -28,12 +29,13 @@ describe('whoami', () => {
 
   function respondWithSessionAndOrganizations(organizations: object[]): void {
     useStoredSession();
-    harness.routes['GET /v1/users/me'] = () => Response.json(RUNNER_USER);
+    harness.routes['GET /v1/users/me?relations=members'] = () =>
+      Response.json(RUNNER_USER_WITH_MEMBERS);
     harness.routes['GET /v1/organizations?limit=100&offset=0'] = () =>
       Response.json(organizations);
   }
 
-  it('should print the user, the API and their organizations with their roles', async () => {
+  it('should print the user, the API and their organizations with the roles of their member rows', async () => {
     respondWithSessionAndOrganizations([
       ACME_ORGANIZATION,
       GLOBEX_ORGANIZATION,
@@ -96,6 +98,16 @@ describe('whoami', () => {
     );
   });
 
+  it('should print an organization without a role when the user has no member row in it', async () => {
+    respondWithSessionAndOrganizations([ACME_ORGANIZATION]);
+    harness.routes['GET /v1/users/me?relations=members'] = () =>
+      Response.json({ ...RUNNER_USER, members: [] });
+
+    await whoamiCommand.action({}, undefined);
+
+    expect(harness.readLines().at(-1)).toBe('  Acme');
+  });
+
   it('should say so when the user belongs to no organization', async () => {
     respondWithSessionAndOrganizations([]);
 
@@ -118,7 +130,7 @@ describe('whoami', () => {
       .spyOn(process.stderr, 'write')
       .mockImplementation(() => true);
     respondWithSessionAndOrganizations([]);
-    harness.routes['GET /v1/users/me'] = () =>
+    harness.routes['GET /v1/users/me?relations=members'] = () =>
       respondWithApiError(
         401,
         'E_UNAUTHENTICATED',

@@ -4,11 +4,7 @@ import {
   stubInteractiveTerminal,
   useCommandHarness,
 } from '../../../test/command-harness.js';
-import {
-  DEMO_APP,
-  STAGING_CHANNEL,
-  STAGING_CHANNEL_WITH_DEVICE_COUNTS,
-} from '../../../test/fixtures.js';
+import { DEMO_APP, STAGING_CHANNEL } from '../../../test/fixtures.js';
 import { respondWithChannels } from '../../../test/release-routes.js';
 import { ConfirmationRequiredError } from '../../utils/errors.js';
 import channelPauseCommand from './pause.js';
@@ -32,7 +28,7 @@ describe('channel pause', () => {
   function respondWithChannel(): void {
     respondWithChannels(harness);
     harness.routes[`GET ${CHANNEL_PATH}`] = () =>
-      Response.json(STAGING_CHANNEL_WITH_DEVICE_COUNTS);
+      Response.json(STAGING_CHANNEL);
     harness.routes[`POST ${CHANNEL_PATH}/pause`] = () =>
       Response.json(PAUSED_CHANNEL);
   }

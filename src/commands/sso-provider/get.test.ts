@@ -26,7 +26,7 @@ describe('sso-provider get', () => {
       'Type          oidc',
       'Domain        example.com',
       'Verified      no',
-      `Sign-in URL   https://console.example.com/login?sso=${ACME_ORGANIZATION.id}`,
+      `Sign-in URL   http://localhost:4300/login?sso=${ACME_ORGANIZATION.id}`,
       `Redirect URI  https://api.example.com/v1/auth/sso/callback/${ACME_ORGANIZATION.id}`,
       `TXT name      _hotcodepush-sso-${ACME_ORGANIZATION.id}.example.com`,
       'TXT value     b7Kq2vX9mN4pR8sT1wY6zA3c',
@@ -47,7 +47,7 @@ describe('sso-provider get', () => {
       'Type             saml',
       'Domain           example.com',
       'Verified         yes',
-      `Sign-in URL      https://console.example.com/login?sso=${ACME_ORGANIZATION.id}`,
+      `Sign-in URL      http://localhost:4300/login?sso=${ACME_ORGANIZATION.id}`,
       `ACS URL          https://api.example.com/v1/auth/sso/saml2/sp/acs/${ACME_ORGANIZATION.id}`,
       `SP metadata URL  https://api.example.com/v1/auth/sso/saml2/sp/metadata?providerId=${ACME_ORGANIZATION.id}`,
     ]);

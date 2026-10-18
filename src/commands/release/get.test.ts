@@ -2,15 +2,16 @@ import { describe, expect, it } from 'vitest';
 import { useCommandHarness } from '../../../test/command-harness.js';
 import {
   DEMO_APP,
+  FLEET,
   LIVE_RELEASE,
   PRODUCTION_CHANNEL,
   PROGRESSING_RELEASE,
   READY_BUNDLE,
   STAGING_CHANNEL,
-  STAGING_CHANNEL_WITH_DEVICE_COUNTS,
 } from '../../../test/fixtures.js';
 import {
   CHANNEL_PATH,
+  FLEET_PATH,
   LIVE_RELEASE_WITH_RELATIONS,
   RELEASES_PATH,
   respondWithStagingReleases,
@@ -75,6 +76,27 @@ describe('release get', () => {
       'Reported failures             3',
       `Created                       ${LIVE_RELEASE.createdAt}`,
     ]);
+    const fleetUrl = harness.requests
+      .map(({ url }) => new URL(url))
+      .find(({ pathname }) => pathname === FLEET_PATH);
+    expect(fleetUrl?.searchParams.get('channelId')).toBe(STAGING_CHANNEL.id);
+  });
+
+  it('should print no devices when the fleet counts none on the release', async () => {
+    respondWithStagingReleases(harness);
+    harness.routes[`GET ${FLEET_PATH}`] = () =>
+      Response.json({ ...FLEET, release: [] });
+
+    await releaseGetCommand.action(
+      {
+        app: DEMO_APP.id,
+        channel: STAGING_CHANNEL.id,
+        release: LIVE_RELEASE.id,
+      },
+      undefined,
+    );
+
+    expect(harness.readLines()).toContain('Devices                       0');
   });
 
   it('should print the release named by its id as JSON without reading the log', async () => {
@@ -148,7 +170,7 @@ describe('release get', () => {
     respondWithStagingReleases(harness);
     harness.routes[`GET ${CHANNEL_PATH}`] = () =>
       Response.json({
-        ...STAGING_CHANNEL_WITH_DEVICE_COUNTS,
+        ...STAGING_CHANNEL,
         failureAction: null,
         failureMinimumUpdateCount: null,
         failureThresholdPercent: null,
@@ -183,11 +205,8 @@ describe('release get', () => {
     expect(
       await readProgressionLines({
         ...PROGRESSING_RELEASE,
-        progressionStep: {
-          gate: { readyAt: '2026-09-07T09:00:05.000Z', type: 'time' },
-          number: 2,
-        },
         rolloutPercentage: 50,
+        stepStartAttemptedUpdateCount: 50,
       }),
     ).toEqual([
       'Progression                   10, 50, 100 percent, each step at least 3600 seconds and 50 attempts',
@@ -199,7 +218,6 @@ describe('release get', () => {
     expect(
       await readProgressionLines({
         ...PROGRESSING_RELEASE,
-        progressionStep: null,
         rolloutPercentage: 100,
       }),
     ).toContain('Progression step              complete');
@@ -210,7 +228,6 @@ describe('release get', () => {
       await readProgressionLines({
         ...PROGRESSING_RELEASE,
         pausedAt: '2026-09-07T08:30:00.000Z',
-        progressionStep: null,
         status: 'paused',
       }),
     ).toContain('Progression step              held while paused');

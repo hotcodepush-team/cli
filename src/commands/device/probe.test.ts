@@ -7,7 +7,6 @@ import {
   DEMO_APP,
   DEVICE,
   STAGING_CHANNEL,
-  STAGING_CHANNEL_WITH_DEVICE_COUNTS,
 } from '../../../test/fixtures.js';
 import type { EvaluationFixture } from '../../../test/protocol-fixtures.js';
 import { readEvaluationFixtures } from '../../../test/protocol-fixtures.js';
@@ -98,7 +97,7 @@ describe('device probe', () => {
   beforeEach(() => {
     respondWithChannels(harness);
     harness.routes[`GET ${CHANNEL_PATH}`] = () =>
-      Response.json(STAGING_CHANNEL_WITH_DEVICE_COUNTS);
+      Response.json(STAGING_CHANNEL);
     harness.routes[`GET ${BINARIES_PATH}`] = () =>
       Response.json([PROBED_BINARY]);
     respondWithIndex(INDEX);

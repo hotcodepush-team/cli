@@ -7,13 +7,30 @@ import { InvalidParameterError } from './errors.js';
  */
 export type Progression = NonNullable<Release['progression']>;
 
-type ProgressionGate = NonNullable<Release['progressionStep']>['gate'];
+/**
+ * What the next widening waits on: the step's attempted updates against the sample, then the moment its minimum time is up.
+ */
+type ProgressionGate =
+  | {
+      attemptedUpdateCount: number;
+      requiredUpdateCount: number;
+      type: 'sample';
+    }
+  | { readyAt: string; type: 'time' };
 
 export interface ProgressionOptions {
   progress?: boolean;
   progressMinimumSeconds?: number;
   progressMinimumUpdateCount?: number;
   progressPercentages?: number[];
+}
+
+/**
+ * Where a release stands in its schedule: the steps its rollout reached and the gate before the next.
+ */
+interface ProgressionStep {
+  gate: ProgressionGate;
+  number: number;
 }
 
 const DEFAULT_PROGRESSION: Progression = {
@@ -81,17 +98,68 @@ export function resolveProgression(
 }
 
 /**
+ * Where the release stands in its schedule, as the API's progression job reads it: the steps its rollout reached among the
+ * percentages, and the gate before the next — the step's attempted updates since its start, counted from the release's
+ * counters, until they reach the sample, then the moment its minimum time is up. Null without a schedule, once it is
+ * complete, and while the release is paused or revoked, since nothing widens it then; a step not yet started, the
+ * release not live, has no attempted updates, nor has a release read without its counters.
+ */
+export function resolveProgressionStep(
+  release: Release,
+): ProgressionStep | null {
+  const { progression, progressionStepStartedAt, releaseCounters } = release;
+  if (progression === null || release.status !== 'active') {
+    return null;
+  }
+  const number = progression.percentages.filter(
+    percentage => percentage <= release.rolloutPercentage,
+  ).length;
+  if (number === progression.percentages.length) {
+    return null;
+  }
+  const attemptedUpdateCount =
+    progressionStepStartedAt === null || releaseCounters === undefined
+      ? 0
+      : releaseCounters.attemptedUpdateCount -
+        release.stepStartAttemptedUpdateCount;
+  if (
+    progressionStepStartedAt === null ||
+    attemptedUpdateCount < progression.stepMinimumUpdateCount
+  ) {
+    return {
+      gate: {
+        attemptedUpdateCount,
+        requiredUpdateCount: progression.stepMinimumUpdateCount,
+        type: 'sample',
+      },
+      number,
+    };
+  }
+  return {
+    gate: {
+      readyAt: new Date(
+        Date.parse(progressionStepStartedAt) +
+          progression.stepMinimumSeconds * 1000,
+      ).toISOString(),
+      type: 'time',
+    },
+    number,
+  };
+}
+
+/**
  * Where a release stands in its schedule: the step reached of all of them and the gate the next widening waits on,
  * `1 of 3, waiting on sample: 12 of 50 attempts`; nothing widens a complete, paused or revoked one, so it has no step.
  */
 export function resolveProgressionStepText(
-  { progressionStep, status }: Release,
+  release: Release,
   progression: Progression,
 ): string {
+  const progressionStep = resolveProgressionStep(release);
   if (progressionStep !== null) {
     return `${progressionStep.number} of ${progression.percentages.length}, ${resolveGateText(progressionStep.gate)}`;
   }
-  switch (status) {
+  switch (release.status) {
     case 'active':
       return 'complete';
     case 'paused':

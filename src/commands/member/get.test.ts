@@ -22,8 +22,9 @@ describe('member get', () => {
 
   function respondWithMembers(members: object[]): void {
     harness.routes[`GET ${MEMBERS_PATH}`] = () => Response.json(members);
-    harness.routes[`GET ${MEMBERS_PATH}/${ADMIN_MEMBER.id}?relations=user`] =
-      () => Response.json(ADMIN_MEMBER);
+    harness.routes[
+      `GET ${MEMBERS_PATH}/${ADMIN_MEMBER.id}?relations=user%2Cuser.accounts`
+    ] = () => Response.json(ADMIN_MEMBER);
   }
 
   it('should print the member --member names, looked up by email case-insensitively', async () => {
@@ -49,6 +50,22 @@ describe('member get', () => {
     ]);
   });
 
+  it("should print a password sign-in when the user has an account of the provider credential, and two-factor from the user's twoFactorEnabled", async () => {
+    harness.routes[
+      `GET ${MEMBERS_PATH}/${OWNER_MEMBER.id}?relations=user%2Cuser.accounts`
+    ] = () => Response.json(OWNER_MEMBER);
+
+    await memberGetCommand.action(
+      { member: OWNER_MEMBER.id, organization: ACME_ORGANIZATION.id },
+      undefined,
+    );
+
+    expect(harness.readLines().slice(4, 6)).toEqual([
+      'Password    yes',
+      'Two-factor  yes',
+    ]);
+  });
+
   it('should fetch the member --member names by id without listing', async () => {
     respondWithMembers([]);
 
@@ -62,7 +79,7 @@ describe('member get', () => {
     );
 
     expect(harness.requests.map(({ url }) => url)).toEqual([
-      `${API_URL}${MEMBERS_PATH}/${ADMIN_MEMBER.id}?relations=user`,
+      `${API_URL}${MEMBERS_PATH}/${ADMIN_MEMBER.id}?relations=user%2Cuser.accounts`,
     ]);
     expect(harness.readJson()).toEqual(ADMIN_MEMBER);
   });

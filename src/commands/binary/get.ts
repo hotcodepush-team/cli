@@ -5,6 +5,7 @@ import { createApiClient } from '../../utils/api-client.js';
 import type { InteractivityOptions } from '../../utils/environment.js';
 import { isInteractive } from '../../utils/environment.js';
 import { MissingParameterError } from '../../utils/errors.js';
+import { resolveBinaryBucket } from '../../utils/fleet.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printDetails, printJson } from '../../utils/output.js';
 import { fetchAllPages } from '../../utils/pagination.js';
@@ -38,6 +39,10 @@ export default defineCommand({
       printJson(fetchedBinary);
       return;
     }
+    const binaryBucket = resolveBinaryBucket(
+      await hotCodePush.apps.statistics.fleet.get({ appId }),
+      fetchedBinary.id,
+    );
     printDetails([
       ['ID', fetchedBinary.id],
       ['Platform', fetchedBinary.platform],
@@ -45,8 +50,8 @@ export default defineCommand({
       ['Build', fetchedBinary.build],
       ['Fingerprint', fetchedBinary.fingerprint ?? 'none'],
       ['Bundle', fetchedBinary.bundleId],
-      ['Devices', String(fetchedBinary.deviceCount)],
-      ['Last seen', fetchedBinary.lastSeenAt ?? 'never'],
+      ['Devices', String(binaryBucket?.deviceCount ?? 0)],
+      ['Last seen', binaryBucket?.lastSeenAt ?? 'never'],
       ['Created', fetchedBinary.createdAt],
     ]);
   },

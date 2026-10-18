@@ -16,7 +16,6 @@ import {
   PROGRESSING_RELEASE,
   READY_BUNDLE,
   STAGING_CHANNEL,
-  STAGING_CHANNEL_WITH_DEVICE_COUNTS,
 } from '../../../test/fixtures.js';
 import {
   CHANNEL_PATH,
@@ -116,26 +115,23 @@ describe('release create', () => {
   function respondWithStagingChannel(audience = STAGING_AUDIENCE): void {
     respondWithChannels(harness);
     harness.routes[`GET ${CHANNEL_PATH}`] = () =>
-      Response.json(STAGING_CHANNEL_WITH_DEVICE_COUNTS);
+      Response.json(STAGING_CHANNEL);
     harness.routes[`GET ${CHANNEL_PATH}/audience`] = () =>
       Response.json(audience);
   }
 
-  function respondWithCreatedRelease(
-    warnings: Audience['warnings'] = [],
-  ): void {
+  function respondWithCreatedRelease(): void {
     harness.routes[`POST ${CHANNEL_PATH}/releases`] = () =>
-      Response.json({ ...LIVE_RELEASE, warnings }, { status: 201 });
+      Response.json(LIVE_RELEASE, { status: 201 });
   }
 
-  function stubWebBuildUpload(warnings: Audience['warnings'] = []): void {
+  function stubWebBuildUpload(): void {
     vi.mocked(resolveUploadBundleOptions).mockResolvedValue([
       UPLOAD_BUNDLE_OPTIONS,
     ]);
     vi.mocked(uploadBundle).mockResolvedValue({
       bundle: { ...READY_BUNDLE, fingerprint: CAPACITOR_FINGERPRINT },
       upload: { fileCount: 0, sizeBytes: 0 },
-      warnings,
     });
   }
 
@@ -145,10 +141,7 @@ describe('release create', () => {
     respondWithStagingChannel();
     respondWithBundleNamedByNumber();
     harness.routes[`POST ${CHANNEL_PATH}/releases`] = () =>
-      Response.json(
-        { ...LIVE_RELEASE, liveAt: null, warnings: [] },
-        { status: 201 },
-      );
+      Response.json({ ...LIVE_RELEASE, liveAt: null }, { status: 201 });
     harness.routes[`GET ${RELEASES_PATH}/${LIVE_RELEASE.id}`] = () =>
       Response.json(LIVE_RELEASE);
 
@@ -224,7 +217,7 @@ describe('release create', () => {
       notes: 'cart fix',
       rolloutPercentage: 10,
     });
-    expect(harness.readJson()).toEqual([{ ...LIVE_RELEASE, warnings: [] }]);
+    expect(harness.readJson()).toEqual([LIVE_RELEASE]);
   });
 
   it('should send a new Idempotency-Key on every run, so a second run creates a second release', async () => {
@@ -258,9 +251,7 @@ describe('release create', () => {
       .mockReturnValueOnce(
         new Response(null, { headers: { 'Retry-After': '0' }, status: 503 }),
       )
-      .mockReturnValueOnce(
-        Response.json({ ...LIVE_RELEASE, warnings: [] }, { status: 201 }),
-      );
+      .mockReturnValueOnce(Response.json(LIVE_RELEASE, { status: 201 }));
 
     await releaseCreateCommand.action(
       {
@@ -378,10 +369,7 @@ describe('release create', () => {
       harness.routes[`GET ${BUNDLES_PATH}/${READY_BUNDLE.id}`] = () =>
         Response.json(READY_BUNDLE);
       harness.routes[`POST ${CHANNEL_PATH}/releases`] = () =>
-        Response.json(
-          { ...PROGRESSING_RELEASE, warnings: [] },
-          { status: 201 },
-        );
+        Response.json(PROGRESSING_RELEASE, { status: 201 });
     });
 
     it("should start at the default schedule's first percentage once confirmed, stating the schedule", async () => {
@@ -446,9 +434,7 @@ describe('release create', () => {
         },
         rolloutPercentage: 5,
       });
-      expect(harness.readJson()).toEqual([
-        { ...PROGRESSING_RELEASE, warnings: [] },
-      ]);
+      expect(harness.readJson()).toEqual([PROGRESSING_RELEASE]);
     });
 
     it("should refuse a schedule's flag without --progress before any request", async () => {
@@ -482,12 +468,7 @@ describe('release create', () => {
       respondWithStagingChannel();
       respondWithCreatedRelease();
       harness.routes[`GET ${PRODUCTION_CHANNEL_PATH}`] = () =>
-        Response.json({
-          ...PRODUCTION_CHANNEL,
-          activeDeviceCount: 1000,
-          currentDeviceCount: 900,
-          embeddedDeviceCount: 100,
-        });
+        Response.json(PRODUCTION_CHANNEL);
     });
 
     it("should release what that channel's newest active release serves, naming it in the confirmation", async () => {
@@ -599,15 +580,21 @@ describe('release create', () => {
     });
   });
 
-  it('should print the warnings the upload and the created release answer', async () => {
+  it("should print the audience preview's warnings once the release is created", async () => {
     const fingerprintUnknownWarning: Audience['warnings'][number] = {
       code: 'FINGERPRINT_UNKNOWN',
       details: { fingerprint: CAPACITOR_FINGERPRINT },
       message: 'No binary of the app carries this fingerprint.',
     };
-    stubWebBuildUpload([fingerprintUnknownWarning]);
-    respondWithStagingChannel();
-    respondWithCreatedRelease([UNSUPPORTED_CONDITION_SHARE_WARNING]);
+    stubWebBuildUpload();
+    respondWithStagingChannel({
+      ...STAGING_AUDIENCE,
+      warnings: [
+        fingerprintUnknownWarning,
+        UNSUPPORTED_CONDITION_SHARE_WARNING,
+      ],
+    });
+    respondWithCreatedRelease();
 
     await releaseCreateCommand.action(
       {
@@ -639,12 +626,7 @@ describe('release create', () => {
     beforeEach(() => {
       respondWithStagingChannel();
       harness.routes[`GET ${PRODUCTION_CHANNEL_PATH}`] = () =>
-        Response.json({
-          ...PRODUCTION_CHANNEL,
-          activeDeviceCount: 1000,
-          currentDeviceCount: 900,
-          embeddedDeviceCount: 100,
-        });
+        Response.json(PRODUCTION_CHANNEL);
       harness.routes[`GET ${PRODUCTION_CHANNEL_PATH}/audience`] = () =>
         Response.json({
           ...STAGING_AUDIENCE,
@@ -655,7 +637,7 @@ describe('release create', () => {
         Response.json(READY_BUNDLE);
       respondWithCreatedRelease();
       harness.routes[`POST ${PRODUCTION_CHANNEL_PATH}/releases`] = () =>
-        Response.json({ ...PRODUCTION_RELEASE, warnings: [] }, { status: 201 });
+        Response.json(PRODUCTION_RELEASE, { status: 201 });
     });
 
     it('should release to every channel named, one release each', async () => {
@@ -671,10 +653,7 @@ describe('release create', () => {
     it('should print the releases as a JSON array in the order of the channels', async () => {
       await releaseCreateCommand.action({ ...OPTIONS, json: true }, undefined);
 
-      expect(harness.readJson()).toEqual([
-        { ...LIVE_RELEASE, warnings: [] },
-        { ...PRODUCTION_RELEASE, warnings: [] },
-      ]);
+      expect(harness.readJson()).toEqual([LIVE_RELEASE, PRODUCTION_RELEASE]);
     });
   });
 
@@ -750,7 +729,6 @@ describe('release create', () => {
         vi.mocked(uploadBundle).mockResolvedValueOnce({
           bundle: { ...bundle, fingerprint: CAPACITOR_FINGERPRINT },
           upload: { fileCount: 0, sizeBytes: 0 },
-          warnings: [],
         });
       }
     }
@@ -829,7 +807,7 @@ describe('release create', () => {
         [
           {
             audience: { ...STAGING_AUDIENCE, estimatedDeviceCount: 6 },
-            channel: STAGING_CHANNEL_WITH_DEVICE_COUNTS,
+            channel: STAGING_CHANNEL,
           },
           {
             audience: {
@@ -838,12 +816,7 @@ describe('release create', () => {
               estimatedDeviceCount: 500,
               reachedDeviceCount: 9995,
             },
-            channel: {
-              ...PRODUCTION_CHANNEL,
-              activeDeviceCount: 10_000,
-              currentDeviceCount: 9000,
-              embeddedDeviceCount: 1000,
-            },
+            channel: PRODUCTION_CHANNEL,
           },
         ],
         { isMandatory: true, progression: null, rolloutPercentage: 5 },

@@ -1,6 +1,6 @@
 import { openAsBlob } from 'node:fs';
 import { join } from 'node:path';
-import type { Bundle, BundleWithUploads, HotCodePush } from '@hotcodepush/node';
+import type { Bundle, HotCodePush } from '@hotcodepush/node';
 import { HotCodePushError } from '@hotcodepush/node';
 import { BUNDLE_BYTES_LIMIT, signManifest } from '@hotcodepush/protocol';
 import type { ManifestToSign } from '@hotcodepush/protocol';
@@ -13,6 +13,7 @@ import { omitNativeGlue } from './frameworks/native-glue.js';
 import type { GitProvenance } from './git-provenance.js';
 import { resolveQuantityText } from './output.js';
 import { writePack } from './pack.js';
+import { fetchAllPages } from './pagination.js';
 import type { Reporter } from './progress.js';
 import { resolveByteText } from './progress.js';
 
@@ -35,8 +36,6 @@ export interface UploadBundleOptions {
 export interface UploadedBundle {
   bundle: Bundle;
   upload: UploadedFiles;
-  /** What the API answered beside the created bundle, the fingerprint no binary was created with among them. */
-  warnings: BundleWithUploads['warnings'];
 }
 
 /**
@@ -46,6 +45,11 @@ export interface UploadedFiles {
   fileCount: number;
   sizeBytes: number;
 }
+
+/**
+ * The page a bundle's files are read in, the most that list takes, beyond every other list's.
+ */
+const BUNDLE_FILE_PAGE_LIMIT = 1000;
 
 /**
  * A file or the whole build above the limit is refused before a byte is sent.
@@ -88,8 +92,8 @@ export async function collectUploadFiles({
 }
 
 /**
- * The whole upload of a web build: hash every file, sign the manifest where a key is configured, post it, upload only
- * the hashes the app lacks and the full pack, then complete.
+ * The whole upload of a web build: hash every file, sign the manifest where a key is configured, post it, read the
+ * bundle's files the app's store lacks, upload those and the full pack, then complete.
  */
 export async function uploadBundle(
   hotCodePush: HotCodePush,
@@ -137,9 +141,10 @@ export async function uploadBundle(
       version: bundleVersion,
       ...gitProvenance,
     });
-    const missingSha256s = createdBundle.uploads.files.map(
-      ({ sha256 }) => sha256,
-    );
+    const missingSha256s = await fetchMissingSha256s(hotCodePush, {
+      appId,
+      bundleId: createdBundle.id,
+    });
     reporter.report(
       `Uploading ${missingSha256s.length} of ${files.length} files the app lacks…`,
     );
@@ -165,11 +170,7 @@ export async function uploadBundle(
       appId,
       bundleId: createdBundle.id,
     });
-    return {
-      bundle: completedBundle,
-      upload: uploadedFiles,
-      warnings: createdBundle.warnings,
-    };
+    return { bundle: completedBundle, upload: uploadedFiles };
   });
 }
 
@@ -263,6 +264,25 @@ function compareCodeUnits(left: string, right: string): number {
     return 0;
   }
   return left < right ? -1 : 1;
+}
+
+/**
+ * The hashes of the bundle's files not yet stored, each once, though several paths may carry one.
+ */
+async function fetchMissingSha256s(
+  hotCodePush: HotCodePush,
+  pathParameters: { appId: string; bundleId: string },
+): Promise<string[]> {
+  const missingFiles = await fetchAllPages(
+    page =>
+      hotCodePush.apps.bundles.files.list({
+        ...pathParameters,
+        isStored: 'false',
+        ...page,
+      }),
+    BUNDLE_FILE_PAGE_LIMIT,
+  );
+  return [...new Set(missingFiles.map(({ sha256 }) => sha256))];
 }
 
 function resolveCompressedFiles(

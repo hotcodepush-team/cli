@@ -6,6 +6,7 @@ import {
 } from '../../../test/command-harness.js';
 import {
   DEMO_APP,
+  FLEET,
   LIVE_RELEASE,
   PREVIOUS_BUNDLE,
   PREVIOUS_RELEASE,
@@ -15,6 +16,7 @@ import {
 } from '../../../test/fixtures.js';
 import {
   CHANNEL_PATH,
+  FLEET_PATH,
   RELEASES_PATH,
   respondWithStagingReleases,
 } from '../../../test/release-routes.js';
@@ -26,7 +28,6 @@ vi.mock('@clack/prompts');
 const OLDEST_RELEASE = {
   ...PREVIOUS_RELEASE,
   bundle: PREVIOUS_BUNDLE,
-  deviceCount: 5,
   id: 'e5f6a7b8-c9d0-4e1f-8a2b-3c4d5e6f7a8b',
   number: 41,
 };
@@ -38,7 +39,6 @@ const PRODUCTION_RELEASE = {
   bundle: READY_BUNDLE,
   channel: PRODUCTION_CHANNEL,
   channelId: PRODUCTION_CHANNEL.id,
-  deviceCount: 900,
   id: 'c3d4e5f6-a7b8-4c9d-8e1f-2a3b4c5d6e7f',
   number: 7,
 };
@@ -90,6 +90,10 @@ describe('release revoke', () => {
       message:
         'This revokes release #43 of staging for good: 80 devices move to release #42. Revoked is final, and "release create --bundle 17" releases its bundle again. Continue?',
     });
+    const fleetUrl = harness.requests
+      .map(({ url }) => new URL(url))
+      .find(({ pathname }) => pathname === FLEET_PATH);
+    expect(fleetUrl?.searchParams.has('channelId')).toBe(false);
     expect(
       readRevokeRequests().map(({ url }) => new URL(url).pathname),
     ).toEqual([`${RELEASES_PATH}/${LIVE_RELEASE.id}/revoke`]);
@@ -140,6 +144,22 @@ describe('release revoke', () => {
     ).rejects.toThrow(
       new ConfirmationRequiredError(
         'revokes release #43 of staging for good: 80 devices return to the embedded bundle. Revoked is final, and "release create --bundle 17" releases its bundle again',
+      ),
+    );
+  });
+
+  it('should say no device runs the release when the fleet has no bucket for it', async () => {
+    harness.routes[`GET ${FLEET_PATH}`] = () =>
+      Response.json({ ...FLEET, release: [] });
+
+    await expect(
+      releaseRevokeCommand.action(
+        { app: DEMO_APP.id, channel: STAGING_CHANNEL.id, release: '43' },
+        undefined,
+      ),
+    ).rejects.toThrow(
+      new ConfirmationRequiredError(
+        'revokes release #43 of staging for good: no device runs them. Revoked is final, and "release create --bundle 17" releases its bundle again',
       ),
     );
   });
@@ -301,12 +321,30 @@ describe('release revoke', () => {
       Response.json([{ ...PRODUCTION_RELEASE, status: 'revoked' }]);
     harness.routes[`POST ${CHANNEL_PATH}/releases/revoke`] = () =>
       Response.json([REVOKED_RELEASE]);
+    harness.routes[`GET ${FLEET_PATH}`] = () =>
+      Response.json({
+        ...FLEET,
+        release: [
+          {
+            channelId: PRODUCTION_CHANNEL.id,
+            deviceCount: 900,
+            number: PRODUCTION_RELEASE.number,
+            value: PRODUCTION_RELEASE.id,
+          },
+          ...FLEET.release,
+        ],
+      });
 
     await releaseRevokeCommand.action(
       { app: DEMO_APP.id, bundle: '17' },
       undefined,
     );
 
+    expect(
+      harness.requests.filter(
+        ({ url }) => new URL(url).pathname === FLEET_PATH,
+      ),
+    ).toHaveLength(1);
     expect(confirm).toHaveBeenCalledWith({
       initialValue: false,
       message:

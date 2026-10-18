@@ -1,4 +1,4 @@
-import type { SsoProviderVerification } from '@hotcodepush/node';
+import type { SsoProvider } from '@hotcodepush/node';
 import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
@@ -16,29 +16,27 @@ export default defineCommand({
   options: defineCommandOptions({}),
   action: async options => {
     const hotCodePush = createApiClient();
-    const createdVerification =
+    const checkedProvider =
       await hotCodePush.organizations.ssoProvider.verifications.create({
         organizationId: await fetchOrganizationId(hotCodePush, options),
       });
     if (options.json) {
-      printJson(createdVerification);
+      printJson(checkedProvider);
       return;
     }
-    console.log(resolveVerificationText(createdVerification));
-    printProviderDetails(createdVerification);
+    console.log(resolveVerificationText(checkedProvider));
+    printProviderDetails(checkedProvider);
   },
 });
 
+/**
+ * The lookup's outcome; one that could not run is the API's `E_DNS_LOOKUP_FAILED`, passed through as every API error is.
+ */
 function resolveVerificationText({
-  details,
   domain,
-  isDomainVerified,
-}: SsoProviderVerification): string {
-  if (isDomainVerified) {
-    return `Verified ${domain}.`;
-  }
-  if (details?.reason === 'lookup_failed') {
-    return `The DNS lookup for ${domain} could not be made; run the command again in a moment.`;
-  }
-  return `No TXT record verifies ${domain} yet; a new record can take a while to appear.`;
+  domainVerified,
+}: SsoProvider): string {
+  return domainVerified
+    ? `Verified ${domain}.`
+    : `No TXT record verifies ${domain} yet; a new record can take a while to appear.`;
 }

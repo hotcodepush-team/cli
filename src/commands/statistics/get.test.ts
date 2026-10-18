@@ -16,8 +16,19 @@ import statisticsGetCommand from './get.js';
 const STATISTICS_PATH = `/v1/apps/${DEMO_APP.id}/statistics`;
 
 const FLEET_STATISTICS: FleetStatistics = {
+  binary: [
+    {
+      deviceCount: 70,
+      lastSeenAt: '2026-09-08T08:00:00.000Z',
+      platform: null,
+      value: null,
+      version: null,
+    },
+  ],
   binaryVersion: [{ deviceCount: 70, value: '2.4.1' }],
   country: [{ deviceCount: 70, value: 'DE' }],
+  currentDeviceCount: 50,
+  deviceCount: 70,
   osVersion: [{ deviceCount: 70, platform: 'ios', value: '17.4' }],
   platform: [{ deviceCount: 70, value: 'ios' }],
   release: [

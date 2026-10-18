@@ -8,7 +8,6 @@ import {
   DEMO_APP,
   PRODUCTION_CHANNEL,
   STAGING_CHANNEL,
-  STAGING_CHANNEL_WITH_DEVICE_COUNTS,
 } from '../../../test/fixtures.js';
 import {
   ConfirmationRequiredError,
@@ -31,7 +30,7 @@ describe('channel delete', () => {
     harness.routes[`GET /v1/apps/${DEMO_APP.id}/channels`] = () =>
       Response.json(channels);
     harness.routes[`GET ${CHANNEL_PATH}`] = () =>
-      Response.json(STAGING_CHANNEL_WITH_DEVICE_COUNTS);
+      Response.json(STAGING_CHANNEL);
     harness.routes[`DELETE ${CHANNEL_PATH}`] = () =>
       new Response(null, { status: 204 });
   }

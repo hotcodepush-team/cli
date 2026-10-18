@@ -1,5 +1,6 @@
 import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
+import { resolveBinaryBucket } from '../../utils/fleet.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson, printTable, resolveDate } from '../../utils/output.js';
 import { paginationShape, resolveNextOffset } from '../../utils/pagination.js';
@@ -16,12 +17,13 @@ export default defineCommand({
   options: defineCommandOptions(paginationShape),
   action: async options => {
     const hotCodePush = createApiClient();
+    const appId = await fetchAppId(
+      hotCodePush,
+      options,
+      readProjectConfig(options.config),
+    );
     const listedBinaries = await hotCodePush.apps.binaries.list({
-      appId: await fetchAppId(
-        hotCodePush,
-        options,
-        readProjectConfig(options.config),
-      ),
+      appId,
       limit: options.limit,
       offset: options.offset,
     });
@@ -30,6 +32,7 @@ export default defineCommand({
       printJson({ binaries: listedBinaries, nextOffset });
       return;
     }
+    const fleet = await hotCodePush.apps.statistics.fleet.get({ appId });
     printTable({
       emptyText: 'No binaries; a store build creates one.',
       headers: [
@@ -42,25 +45,20 @@ export default defineCommand({
         'LAST SEEN',
       ],
       nextOffset,
-      rows: listedBinaries.map(
-        ({
-          build,
-          bundleId,
-          deviceCount,
-          id,
-          lastSeenAt,
-          platform,
-          version,
-        }) => [
+      rows: listedBinaries.map(({ build, bundleId, id, platform, version }) => {
+        const binaryBucket = resolveBinaryBucket(fleet, id);
+        return [
           id,
           version,
           build,
           platform,
           bundleId,
-          String(deviceCount),
-          lastSeenAt === null ? 'never' : resolveDate(lastSeenAt),
-        ],
-      ),
+          String(binaryBucket?.deviceCount ?? 0),
+          binaryBucket === undefined
+            ? 'never'
+            : resolveDate(binaryBucket.lastSeenAt),
+        ];
+      }),
     });
   },
 });

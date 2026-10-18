@@ -2,10 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { useCommandHarness } from '../../../test/command-harness.js';
 import {
   DEMO_APP,
+  FLEET,
   PRODUCTION_CHANNEL,
   STAGING_CHANNEL,
-  STAGING_CHANNEL_WITH_DEVICE_COUNTS,
 } from '../../../test/fixtures.js';
+import { FLEET_PATH, respondWithFleet } from '../../../test/release-routes.js';
 import { MissingParameterError } from '../../utils/errors.js';
 import channelGetCommand from './get.js';
 
@@ -19,10 +20,11 @@ describe('channel get', () => {
       Response.json([STAGING_CHANNEL, PRODUCTION_CHANNEL]);
     harness.routes[
       `GET /v1/apps/${DEMO_APP.id}/channels/${STAGING_CHANNEL.id}`
-    ] = () => Response.json(STAGING_CHANNEL_WITH_DEVICE_COUNTS);
+    ] = () => Response.json(STAGING_CHANNEL);
+    respondWithFleet(harness);
   }
 
-  it('should print the channel hotcodepush.json names with its device counts', async () => {
+  it("should print the channel hotcodepush.json names with the device counts of the channel's fleet", async () => {
     respondWithChannel();
 
     await channelGetCommand.action(
@@ -50,6 +52,26 @@ describe('channel get', () => {
       'Embedded devices              20',
       'Created                       2026-09-04T08:00:00.000Z',
     ]);
+    const fleetUrl = harness.requests
+      .map(({ url }) => new URL(url))
+      .find(({ pathname }) => pathname === FLEET_PATH);
+    expect(fleetUrl?.searchParams.get('channelId')).toBe(STAGING_CHANNEL.id);
+  });
+
+  it('should print no embedded devices when the fleet has no bucket for the embedded bundles', async () => {
+    respondWithChannel();
+    harness.routes[`GET ${FLEET_PATH}`] = () =>
+      Response.json({
+        ...FLEET,
+        release: FLEET.release.filter(({ value }) => value !== null),
+      });
+
+    await channelGetCommand.action(
+      { app: DEMO_APP.id, channel: STAGING_CHANNEL.id },
+      undefined,
+    );
+
+    expect(harness.readLines()).toContain('Embedded devices              0');
   });
 
   it('should print the default with its level for every auto-pause field the channel leaves unset', async () => {
@@ -57,11 +79,12 @@ describe('channel get', () => {
       `GET /v1/apps/${DEMO_APP.id}/channels/${STAGING_CHANNEL.id}`
     ] = () =>
       Response.json({
-        ...STAGING_CHANNEL_WITH_DEVICE_COUNTS,
+        ...STAGING_CHANNEL,
         failureAction: null,
         failureMinimumUpdateCount: null,
         failureThresholdPercent: null,
       });
+    respondWithFleet(harness);
 
     await channelGetCommand.action(
       { app: DEMO_APP.id, channel: STAGING_CHANNEL.id },
@@ -85,7 +108,7 @@ describe('channel get', () => {
       undefined,
     );
 
-    expect(harness.readJson()).toEqual(STAGING_CHANNEL_WITH_DEVICE_COUNTS);
+    expect(harness.readJson()).toEqual(STAGING_CHANNEL);
   });
 
   it('should read the channel by id without listing the channels when hotcodepush.json names it by id', async () => {
@@ -102,7 +125,7 @@ describe('channel get', () => {
       undefined,
     );
 
-    expect(harness.readJson()).toEqual(STAGING_CHANNEL_WITH_DEVICE_COUNTS);
+    expect(harness.readJson()).toEqual(STAGING_CHANNEL);
     expect(harness.requests.map(({ url }) => url)).toEqual([
       `https://api.example.com/v1/apps/${DEMO_APP.id}/channels/${STAGING_CHANNEL.id}`,
     ]);

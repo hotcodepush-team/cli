@@ -4,6 +4,7 @@ import {
   resolveEffectiveFailurePolicy,
   resolveFailurePolicyDetails,
 } from '../../utils/channel-fields.js';
+import { resolveReleaseDeviceCount } from '../../utils/fleet.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printDetails, printJson } from '../../utils/output.js';
 import {
@@ -20,11 +21,16 @@ export default defineCommand({
   ],
   options: defineCommandOptions(channelOptionShape),
   action: async options => {
-    const fetchedChannel = await fetchChannel(createApiClient(), options);
+    const hotCodePush = createApiClient();
+    const fetchedChannel = await fetchChannel(hotCodePush, options);
     if (options.json) {
       printJson(fetchedChannel);
       return;
     }
+    const fleet = await hotCodePush.apps.statistics.fleet.get({
+      appId: fetchedChannel.appId,
+      channelId: fetchedChannel.id,
+    });
     printDetails([
       ['ID', fetchedChannel.id],
       ['Name', fetchedChannel.name],
@@ -40,9 +46,9 @@ export default defineCommand({
       ...resolveFailurePolicyDetails(
         resolveEffectiveFailurePolicy(fetchedChannel),
       ),
-      ['Active devices', String(fetchedChannel.activeDeviceCount)],
-      ['Current devices', String(fetchedChannel.currentDeviceCount)],
-      ['Embedded devices', String(fetchedChannel.embeddedDeviceCount)],
+      ['Active devices', String(fleet.deviceCount)],
+      ['Current devices', String(fleet.currentDeviceCount)],
+      ['Embedded devices', String(resolveReleaseDeviceCount(fleet, null))],
       ['Created', fetchedChannel.createdAt],
     ]);
   },

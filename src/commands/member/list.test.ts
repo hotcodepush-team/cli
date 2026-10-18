@@ -13,7 +13,7 @@ describe('member list', () => {
   const harness = useCommandHarness();
 
   it('should print the members as a table with their names, emails and roles', async () => {
-    harness.routes[`GET ${MEMBERS_PATH}?relations=user`] = () =>
+    harness.routes[`GET ${MEMBERS_PATH}?relations=user%2Cuser.accounts`] = () =>
       Response.json([ADMIN_MEMBER, OWNER_MEMBER]);
 
     await memberListCommand.action(
@@ -29,8 +29,9 @@ describe('member list', () => {
   });
 
   it('should end the table with the offset of the next page when the page is full', async () => {
-    harness.routes[`GET ${MEMBERS_PATH}?limit=1&offset=1&relations=user`] =
-      () => Response.json([OWNER_MEMBER]);
+    harness.routes[
+      `GET ${MEMBERS_PATH}?limit=1&offset=1&relations=user%2Cuser.accounts`
+    ] = () => Response.json([OWNER_MEMBER]);
 
     await memberListCommand.action(
       { limit: 1, offset: 1, organization: ACME_ORGANIZATION.id },
