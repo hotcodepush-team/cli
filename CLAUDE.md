@@ -120,7 +120,7 @@ A project with an app config that is code, or with a JSON one that does not pars
 - **The token** is `readToken()`: `HOTCODEPUSH_TOKEN` when set, then the keyring, then the `config.json` fallback that any keyring failure latches for the rest of the process.
 - **An upload never holds a file in memory**: every file is hashed and gzip-compressed through streams into a temporary directory,
   put as a `Blob` opened from disk so the client can retry it, and the Node client splits it into parts above its `SINGLE_UPLOAD_LIMIT_BYTES`; the packs go the same way.
-  Only the hashes the API answers as missing move, then the full pack; the platform derives the delta packs and the patches by its own triggers, so the CLI reads no base, fetches no base file and computes no patch (cli#82, 2026-10-10).
+  Only the hashes of the bundle's files the files list answers with `isStored=false` move, each once, then the full pack; the platform derives the delta packs and the patches by its own triggers, so the CLI reads no base, fetches no base file and computes no patch (cli#82, 2026-10-10).
 - **An upload is signed when `hotcodepush.json` lists a public key**, with the private key it is given:
   the file `--private-key-path` names, otherwise the key's text in `HOTCODEPUSH_SIGNING_KEY`, which a CI sets from a secret; an empty variable is unset.
   The CLI stores no private key and looks for none; `bundle upload` and `release create`, where it uploads, take both, and the key must belong to one of the listed public keys.
@@ -165,3 +165,4 @@ A project with an app config that is code, or with a JSON one that does not pars
 - `.claude/skills/` holds the developer skills copied from `hotcodepush-team/.github` with the skills CLI and pinned in `skills-lock.json`; update them with `npx skills update`.
 - `.github/copilot-instructions.md` holds the review criteria, the only Copilot-specific file.
 - Commits are conventional commits; `main` is trunk, CI is the gate, and a commit that lands an issue says `Closes #<n>`.
+- `--json` prints the rows as the API serves them; what the CLI joins or computes for a reader, the fleet's counts per release, channel and binary, the progression step and gate, the caller's roles, the SSO URLs and TXT record name, is human output only.
