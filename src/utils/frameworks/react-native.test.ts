@@ -6,10 +6,12 @@ import {
   APP_GRADLE_FILE_PATH,
   MAIN_APPLICATION_FILE_PATH,
   PODFILE_PATH,
+  SCENE_DELEGATE_FILE_PATH,
   XCODE_PROJECT_FILE_PATH,
   readProjectFile,
   writeInstalledSdk,
   writeReactNativeProject,
+  writeSceneDelegateLayout,
 } from '../../../test/react-native-project.js';
 import {
   ConfirmationRequiredError,
@@ -163,6 +165,27 @@ describe('reactNativeFramework', () => {
         ).toEqual([]);
       });
 
+      it("should name SceneDelegate.swift and wire HotCodePush.bundleURL() there when the project has React Native 0.88's layout", async () => {
+        const directoryPath = writeProject({ isPackageInstalled: true });
+        writeInstalledSdk(directoryPath);
+        writeSceneDelegateLayout(directoryPath);
+        const wiring = await reactNativeFramework.resolveWiring(
+          readProject(directoryPath),
+          { yes: true },
+        );
+        expect(wiring.nativeFilePaths).toContain(SCENE_DELEGATE_FILE_PATH);
+        expect(wiring.nativeFilePaths).not.toContain(APP_DELEGATE_FILE_PATH);
+
+        const outcome = await wiring.wireBinaryCreateStep(undefined);
+
+        expect(outcome.message).toContain(
+          'HotCodePush.bundleURL() in SceneDelegate.swift',
+        );
+        expect(
+          readProjectFile(directoryPath, SCENE_DELEGATE_FILE_PATH),
+        ).toContain('HotCodePush.bundleURL()');
+      });
+
       it("should add the phase after React Native's bundling, running the SDK package script through with-environment.sh", async () => {
         const directoryPath = writeProject({ isPackageInstalled: true });
         writeInstalledSdk(directoryPath);
@@ -296,6 +319,22 @@ describe('reactNativeFramework', () => {
           status: 'failed',
         },
       ]);
+    });
+
+    it("should fail the host naming SceneDelegate.swift when the project has React Native 0.88's layout", () => {
+      const directoryPath = writeProject({ isPackageInstalled: true });
+      writeSceneDelegateLayout(directoryPath);
+
+      expect(
+        reactNativeFramework
+          .checkWiring(readProject(directoryPath))
+          .find(({ check }) => check === 'host'),
+      ).toEqual({
+        check: 'host',
+        manualStep: 'Run "hotcodepush init".',
+        message: `The wiring is missing from ${SCENE_DELEGATE_FILE_PATH} and ${MAIN_APPLICATION_FILE_PATH}.`,
+        status: 'failed',
+      });
     });
 
     it('should report the hook and the host of a wired project', async () => {

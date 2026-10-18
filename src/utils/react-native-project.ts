@@ -1,10 +1,12 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { REACT_NATIVE_PACKAGE_NAME } from '../config/consts.js';
 import { NativeProjectError } from './errors.js';
 import type { NativeProjectEdit } from './native-project-edit.js';
 
 const BUNDLE_URL_CALL = 'HotCodePush.bundleURL()';
+
+const BUNDLE_URL_OVERRIDE = 'func bundleURL()';
 
 const CORE_POD_NAME = 'HotCodePushCore';
 
@@ -25,21 +27,36 @@ const REACT_NATIVE_REACT_HOST_IMPORT =
 const SWIFT_MODULE_IMPORT = 'import HotcodepushReactNativeCodePush';
 
 /**
- * `AppDelegate.swift` hands React Native the bundle the SDK serves: the template's `Bundle.main.url(…)` line becomes
+ * The file that overrides `bundleURL()` hands React Native the bundle the SDK serves: `SceneDelegate.swift` from React
+ * Native 0.88's template on, `AppDelegate.swift` before it. The template's `Bundle.main.url(…)` line becomes
  * `HotCodePush.bundleURL()`, the debug build's Metro line beside it staying as it is.
  */
 export function resolveBundleUrlEdit(
   iosProjectPath: string,
 ): NativeProjectEdit | undefined {
-  const filePath = findAppDelegateFilePath(iosProjectPath);
-  if (filePath === undefined) {
+  const appDelegateFilePath = findAppDelegateFilePath(iosProjectPath);
+  if (appDelegateFilePath === undefined) {
     return undefined;
   }
+  const sceneDelegateFilePath = join(
+    dirname(appDelegateFilePath),
+    'SceneDelegate.swift',
+  );
+  const bundleUrlFilePath = [sceneDelegateFilePath, appDelegateFilePath].find(
+    hasBundleUrlOverride,
+  );
+  const filePath = bundleUrlFilePath ?? appDelegateFilePath;
   return {
-    description: `${BUNDLE_URL_CALL} in AppDelegate.swift`,
+    description: `${BUNDLE_URL_CALL} in ${basename(filePath)}`,
     filePath,
     isApplied: () => readFileSync(filePath, 'utf8').includes(BUNDLE_URL_CALL),
     apply: () => {
+      if (bundleUrlFilePath === undefined) {
+        throw new NativeProjectError(
+          `Neither ${sceneDelegateFilePath} nor ${appDelegateFilePath} returns the template's main.jsbundle from bundleURL().`,
+          `Import HotcodepushReactNativeCodePush in the file that overrides bundleURL() and return ${BUNDLE_URL_CALL} from it where it returns the embedded bundle.`,
+        );
+      }
       const source = readFileSync(filePath, 'utf8');
       const lastImportLine = source
         .split('\n')
@@ -173,6 +190,13 @@ function findFilePath(
     }
   }
   return undefined;
+}
+
+function hasBundleUrlOverride(filePath: string): boolean {
+  return (
+    existsSync(filePath) &&
+    readFileSync(filePath, 'utf8').includes(BUNDLE_URL_OVERRIDE)
+  );
 }
 
 function readCorePodCommit(projectDirectoryPath: string): string | undefined {

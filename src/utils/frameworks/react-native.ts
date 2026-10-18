@@ -72,7 +72,8 @@ const POD_NAME = 'HotcodepushReactNativeCodePush';
 /**
  * React Native: no build output in the project, since each platform's JavaScript is bundled when it is needed — by the
  * native build, whose Xcode phase and Gradle task run the build step on what it bundled, and by the upload, one bundle
- * per platform. The app hands React Native the bundle the SDK serves, one line in `AppDelegate.swift` and one in `MainApplication.kt`.
+ * per platform. The app hands React Native the bundle the SDK serves, one line in the Swift file that overrides `bundleURL()`
+ * and one in `MainApplication.kt`.
  */
 export const reactNativeFramework: FrameworkModule = {
   packageName: REACT_NATIVE_PACKAGE_NAME,

@@ -30,6 +30,12 @@ export const MAIN_APPLICATION_FILE_PATH = join(
 
 export const PODFILE_PATH = join('ios', 'Podfile');
 
+export const SCENE_DELEGATE_FILE_PATH = join(
+  'ios',
+  'Demo',
+  'SceneDelegate.swift',
+);
+
 export const XCODE_PROJECT_FILE_PATH = join(
   'ios',
   'Demo.xcodeproj',
@@ -52,6 +58,19 @@ class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {
 #else
     Bundle.main.url(forResource: "main", withExtension: "jsbundle")
 #endif
+  }
+}
+`;
+
+const APP_DELEGATE_STUB = `import UIKit
+
+@main
+class AppDelegate: UIResponder, UIApplicationDelegate {
+  func application(
+    _ application: UIApplication,
+    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+  ) -> Bool {
+    true
   }
 }
 `;
@@ -101,6 +120,44 @@ target 'Demo' do
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
 end
+`;
+
+const SCENE_DELEGATE = `import React
+import React_RCTAppDelegate
+import ReactAppDependencyProvider
+import UIKit
+
+class SceneDelegate: RCTDefaultReactNativeFactoryDelegate, UIWindowSceneDelegate {
+  var window: UIWindow?
+  var reactNativeFactory: RCTReactNativeFactory?
+
+  func scene(
+    _ scene: UIScene,
+    willConnectTo session: UISceneSession,
+    options connectionOptions: UIScene.ConnectionOptions
+  ) {
+    guard let windowScene = scene as? UIWindowScene else {
+      return
+    }
+
+    dependencyProvider = RCTAppDependencyProvider()
+    reactNativeFactory = RCTReactNativeFactory(delegate: self)
+    window = UIWindow(windowScene: windowScene)
+    reactNativeFactory?.startReactNative(
+      withModuleName: "Demo",
+      in: window,
+      connectionOptions: connectionOptions
+    )
+  }
+
+  override func bundleURL() -> URL? {
+    #if DEBUG
+    RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: "index")
+    #else
+    Bundle.main.url(forResource: "main", withExtension: "jsbundle")
+    #endif
+  }
+}
 `;
 
 /**
@@ -157,6 +214,14 @@ export function writeInstalledSdk(directoryPath: string): void {
       version: '0.1.0',
     },
   );
+}
+
+/**
+ * The iOS app as React Native 0.88's template lays it out: `bundleURL()` in `SceneDelegate.swift`, `AppDelegate.swift` a stub.
+ */
+export function writeSceneDelegateLayout(directoryPath: string): void {
+  writeFile(join(directoryPath, APP_DELEGATE_FILE_PATH), APP_DELEGATE_STUB);
+  writeFile(join(directoryPath, SCENE_DELEGATE_FILE_PATH), SCENE_DELEGATE);
 }
 
 export function readProjectFile(

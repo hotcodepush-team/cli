@@ -6,9 +6,11 @@ import {
   CORE_POD_COMMIT,
   MAIN_APPLICATION_FILE_PATH,
   PODFILE_PATH,
+  SCENE_DELEGATE_FILE_PATH,
   readProjectFile,
   writeInstalledSdk,
   writeReactNativeProject,
+  writeSceneDelegateLayout,
 } from '../../test/react-native-project.js';
 import { NativeProjectError } from './errors.js';
 import {
@@ -52,6 +54,39 @@ describe('react-native-project', () => {
       expect(appDelegate).not.toContain('Bundle.main.url');
     });
 
+    it("should return HotCodePush.bundleURL() from SceneDelegate.swift and leave AppDelegate.swift alone when the project has React Native 0.88's layout", () => {
+      writeSceneDelegateLayout(directoryPath);
+      const appDelegate = readProjectFile(
+        directoryPath,
+        APP_DELEGATE_FILE_PATH,
+      );
+      const edit = resolveBundleUrlEdit(join(directoryPath, 'ios'));
+      expect(edit?.description).toBe(
+        'HotCodePush.bundleURL() in SceneDelegate.swift',
+      );
+      expect(edit?.filePath).toBe(
+        join(directoryPath, SCENE_DELEGATE_FILE_PATH),
+      );
+
+      edit?.apply();
+
+      const sceneDelegate = readProjectFile(
+        directoryPath,
+        SCENE_DELEGATE_FILE_PATH,
+      );
+      expect(edit?.isApplied()).toBe(true);
+      expect(sceneDelegate).toContain(
+        'import UIKit\nimport HotcodepushReactNativeCodePush\n',
+      );
+      expect(sceneDelegate).toContain(
+        '#else\n    HotCodePush.bundleURL()\n    #endif',
+      );
+      expect(sceneDelegate).not.toContain('Bundle.main.url');
+      expect(readProjectFile(directoryPath, APP_DELEGATE_FILE_PATH)).toBe(
+        appDelegate,
+      );
+    });
+
     it('should stop with the manual step when bundleURL() does not return the template line', () => {
       const filePath = join(directoryPath, APP_DELEGATE_FILE_PATH);
       writeFileSync(
@@ -62,6 +97,23 @@ describe('react-native-project', () => {
       expect(() =>
         resolveBundleUrlEdit(join(directoryPath, 'ios'))?.apply(),
       ).toThrow(NativeProjectError);
+    });
+
+    it('should stop with the manual step naming both files when neither SceneDelegate.swift nor AppDelegate.swift overrides bundleURL()', () => {
+      writeSceneDelegateLayout(directoryPath);
+      writeFileSync(
+        join(directoryPath, SCENE_DELEGATE_FILE_PATH),
+        'import UIKit\n\nclass SceneDelegate: UIResponder, UIWindowSceneDelegate {}\n',
+      );
+
+      expect(() =>
+        resolveBundleUrlEdit(join(directoryPath, 'ios'))?.apply(),
+      ).toThrow(
+        new NativeProjectError(
+          `Neither ${join(directoryPath, SCENE_DELEGATE_FILE_PATH)} nor ${join(directoryPath, APP_DELEGATE_FILE_PATH)} returns the template's main.jsbundle from bundleURL().`,
+          'Import HotcodepushReactNativeCodePush in the file that overrides bundleURL() and return HotCodePush.bundleURL() from it where it returns the embedded bundle.',
+        ),
+      );
     });
 
     it('should answer no edit when the iOS project has no AppDelegate.swift', () => {
