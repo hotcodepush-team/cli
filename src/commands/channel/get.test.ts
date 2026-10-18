@@ -38,7 +38,7 @@ describe('channel get', () => {
     expect(harness.readLines()).toEqual([
       `ID                            ${STAGING_CHANNEL.id}`,
       'Name                          staging',
-      'State                         running',
+      'Status                        running',
       'Protected                     no',
       'Discoverable                  no',
       'Expires                       never',

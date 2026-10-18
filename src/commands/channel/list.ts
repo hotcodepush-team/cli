@@ -31,7 +31,7 @@ export default defineCommand({
     }
     printTable({
       emptyText: 'No channels.',
-      headers: ['ID', 'NAME', 'STATE', 'CREATED'],
+      headers: ['ID', 'NAME', 'STATUS', 'CREATED'],
       nextOffset,
       rows: listedChannels.map(({ createdAt, id, name, pausedAt }) => [
         id,

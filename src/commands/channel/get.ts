@@ -27,7 +27,7 @@ export default defineCommand({
       ['ID', fetchedChannel.id],
       ['Name', fetchedChannel.name],
       [
-        'State',
+        'Status',
         fetchedChannel.pausedAt === null
           ? 'running'
           : `paused since ${fetchedChannel.pausedAt}`,

@@ -10,7 +10,7 @@ import channelListCommand from './list.js';
 describe('channel list', () => {
   const harness = useCommandHarness();
 
-  it("should print the app's channels as a table with their state", async () => {
+  it("should print the app's channels as a table with their status", async () => {
     harness.routes[`GET /v1/apps/${DEMO_APP.id}/channels`] = () =>
       Response.json([
         { ...STAGING_CHANNEL, pausedAt: '2026-09-05T08:00:00.000Z' },
@@ -20,7 +20,7 @@ describe('channel list', () => {
     await channelListCommand.action({ app: DEMO_APP.id }, undefined);
 
     expect(harness.readLines()).toEqual([
-      'ID                                    NAME        STATE    CREATED',
+      'ID                                    NAME        STATUS   CREATED',
       `${STAGING_CHANNEL.id}  staging     paused   2026-09-04`,
       `${PRODUCTION_CHANNEL.id}  production  running  2026-09-03`,
     ]);

@@ -27,7 +27,7 @@ export default defineCommand({
     actorType: z
       .enum(ACTOR_TYPES)
       .optional()
-      .describe('user, the rows a user wrote, or system, the ones none did.'),
+      .describe('system for the rows no user wrote, user for the rest.'),
     createdSince: z
       .string()
       .optional()

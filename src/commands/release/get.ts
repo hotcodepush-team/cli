@@ -16,7 +16,7 @@ import { channelOptionShape } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
   description:
-    'Print a release with its rollout, its progression, its state and its counters: attempted, applied and failed by reason.',
+    'Print a release with its rollout, its progression, its status and its counters: attempted, applied and failed by reason.',
   examples: [
     'hotcodepush release get --release 43',
     'hotcodepush release get --channel staging --release 43 --json',
