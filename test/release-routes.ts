@@ -49,7 +49,7 @@ export const LIVE_RELEASE_WITH_RELATIONS: Release = {
   ...LIVE_RELEASE,
   bundle: READY_BUNDLE,
   channel: STAGING_CHANNEL,
-  counters: RELEASE_COUNTERS,
+  releaseCounters: RELEASE_COUNTERS,
 };
 
 export const RELEASE_LOG: Release[] = [

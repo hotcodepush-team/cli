@@ -48,7 +48,7 @@ export async function fetchReleaseInChannel(
   const releaseId = await resolveReleaseId(hotCodePush, channel, options);
   const release = await hotCodePush.apps.releases.get({
     appId: channel.appId,
-    relations: ['bundle', 'channel', 'counters'],
+    relations: ['bundle', 'channel', 'releaseCounters'],
     releaseId,
   });
   if (release.channelId !== channel.id) {

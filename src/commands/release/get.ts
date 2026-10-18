@@ -61,22 +61,22 @@ export default defineCommand({
 });
 
 function resolveCounterDetails({
-  counters,
+  releaseCounters,
 }: Release): [label: string, value: string][] {
-  if (counters === undefined) {
+  if (releaseCounters === undefined) {
     return [];
   }
   return [
-    ['Attempted', String(counters.attemptedUpdateCount)],
-    ['Applied', String(counters.appliedUpdateCount)],
-    ['Download failures', String(counters.downloadFailureCount)],
-    ['Verification failures', String(counters.verificationFailureCount)],
-    ['Crash failures', String(counters.crashFailureCount)],
+    ['Attempted', String(releaseCounters.attemptedUpdateCount)],
+    ['Applied', String(releaseCounters.appliedUpdateCount)],
+    ['Download failures', String(releaseCounters.downloadFailureCount)],
+    ['Verification failures', String(releaseCounters.verificationFailureCount)],
+    ['Crash failures', String(releaseCounters.crashFailureCount)],
     [
       'Readiness timeout failures',
-      String(counters.readinessTimeoutFailureCount),
+      String(releaseCounters.readinessTimeoutFailureCount),
     ],
-    ['Reported failures', String(counters.reportedFailureCount)],
+    ['Reported failures', String(releaseCounters.reportedFailureCount)],
   ];
 }
 
