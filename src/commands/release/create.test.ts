@@ -493,7 +493,7 @@ describe('release create', () => {
     it("should release what that channel's newest active release serves, naming it in the confirmation", async () => {
       harness.routes[`GET ${PRODUCTION_CHANNEL_PATH}/releases`] = () =>
         Response.json([
-          { ...LIVE_RELEASE, number: 9, state: 'revoked' },
+          { ...LIVE_RELEASE, number: 9, status: 'revoked' },
           { ...PREVIOUS_RELEASE, bundle: PREVIOUS_BUNDLE, number: 8 },
         ]);
       stubInteractiveTerminal();

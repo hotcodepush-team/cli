@@ -67,11 +67,10 @@ export const GLOBEX_ORGANIZATION: Organization = {
 };
 
 /**
- * Globex's billing this month: the devices counted so far, no suggestion on a paying plan.
+ * Globex's billing this month: the devices counted so far.
  */
 export const GLOBEX_BILLING: Billing = {
   monthlyActiveDeviceCount: 1234,
-  suggestedSpendingCapCents: null,
 };
 
 /**
@@ -149,8 +148,8 @@ export const READY_BUNDLE: Bundle = {
   signature: null,
   signatureKeyId: null,
   sizeBytes: 812331,
-  state: 'ready',
-  type: 'uploaded',
+  source: 'upload',
+  status: 'ready',
   unusedSince: '2026-09-05T08:05:00.000Z',
   updatedAt: '2026-09-05T08:05:00.000Z',
 };
@@ -188,7 +187,7 @@ export const READY_BUNDLE_DELTA_PACKS: BundleDelta[] = [
     patchCount: 2,
     requestedAt: '2026-09-07T08:00:01.000Z',
     sizeBytes: 48213,
-    state: 'built',
+    status: 'built',
     updatedAt: '2026-09-07T08:00:04.000Z',
   },
   {
@@ -197,7 +196,7 @@ export const READY_BUNDLE_DELTA_PACKS: BundleDelta[] = [
       fingerprint: null,
       id: BINARY.bundleId,
       number: null,
-      type: 'embedded',
+      source: 'binary',
     },
     baseBundleId: BINARY.bundleId,
     bundleId: READY_BUNDLE.id,
@@ -205,7 +204,7 @@ export const READY_BUNDLE_DELTA_PACKS: BundleDelta[] = [
     patchCount: null,
     requestedAt: '2026-09-07T08:00:01.000Z',
     sizeBytes: null,
-    state: 'requested',
+    status: 'requested',
     updatedAt: '2026-09-07T08:00:01.000Z',
   },
 ];
@@ -231,7 +230,7 @@ export const LIVE_RELEASE: Release = {
   purgedAt: '2026-09-07T08:00:06.000Z',
   rolledBackFromReleaseId: null,
   rolloutPercentage: 100,
-  state: 'active',
+  status: 'active',
   updatedAt: '2026-09-07T08:00:06.000Z',
 };
 
@@ -345,6 +344,7 @@ export const DEVICE: Device = {
 };
 
 export const AUDIT_LOG: AuditLog = {
+  actorType: 'user',
   address: '203.0.113.7',
   apiKeyId: null,
   appId: DEMO_APP.id,

@@ -28,7 +28,7 @@ npx hotcodepush sso-provider set --domain example.com --oidc-issuer https://logi
 npx hotcodepush sso-provider verify
 npx hotcodepush billing get
 npx hotcodepush billing update --spending-cap 100
-npx hotcodepush checkout create --spending-cap 50
+npx hotcodepush checkout create
 npx hotcodepush customer-portal-session create
 npx hotcodepush limit list
 npx hotcodepush usage get --month 2026-09
@@ -38,7 +38,7 @@ npx hotcodepush channel pause --app "My App" --channel staging
 npx hotcodepush channel list --app "My App" --json
 npx hotcodepush bundle upload --path dist --bundle-version 1.4.2
 npx hotcodepush bundle list --json
-npx hotcodepush bundle list --type embedded
+npx hotcodepush bundle list --source binary
 npx hotcodepush binary list
 npx hotcodepush signing-key create
 npx hotcodepush signing-key add --private-key-path my-app-private-key.pem
@@ -77,7 +77,7 @@ It signs with the private key file `--private-key-path` names, otherwise with th
 The bases are the bundles a device may run before it asks for the new one: the three newest earlier bundles with the same fingerprint and a platform in common, and the bundles the three newest binaries with that fingerprint ship on each of its platforms.
 On React Native and Expo the delta packs against the newest earlier bundle and the binaries carry the main JavaScript bundle as a patch in place of the whole file, where the patch is smaller.
 The bundles are compiled with React Native's default release flags, so they match what a store build embeds; a project that changes `hermesFlags` in its Gradle file or sets `SOURCEMAP_FILE` for its Xcode build still gets working updates, only with a larger download for the main bundle.
-`bundle list` shows the bundles you uploaded; `--type embedded` shows the ones your binaries ship, which carry no number, and `--type all` both.
+`bundle list` shows the bundles you uploaded; `--source binary` shows the ones your binaries ship, which carry no number, and `--source all` both.
 `signing-key create` turns code signing on: it generates an RSA key pair of 4096 bits on this machine, registers the public key with the app, adds it to `publicKeys` in `hotcodepush.json` and writes the private key, which it never prints, to a new file — `hotcodepush-private-key.pem` in the working directory unless `--private-key-path` names another — after which the app releases only signed bundles.
 Keep the file out of version control: whoever holds it can sign the app's bundles.
 The CLI keeps no copy and HotCodePush receives only the public key, so a lost private key means a new key and a new store build that trusts it.

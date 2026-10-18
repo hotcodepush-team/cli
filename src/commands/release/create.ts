@@ -326,7 +326,7 @@ async function fetchSourceRelease(
   });
   const sourceRelease = (
     await fetchReleaseLog(hotCodePush, sourceChannel)
-  ).find(({ state }) => state === 'active');
+  ).find(({ status }) => status === 'active');
   if (sourceRelease === undefined) {
     throw new InvalidParameterError(
       `The channel ${sourceChannel.name} from --from-channel serves no active release.`,

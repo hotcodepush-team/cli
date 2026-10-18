@@ -39,7 +39,7 @@ export default defineCommand({
       ['Number', `#${release.number}`],
       ['Channel', channel.name],
       ['Bundle', `${resolveReleaseBundleLabel(release)} (${release.bundleId})`],
-      ['State', resolveStateText(release)],
+      ['Status', resolveStatusText(release)],
       ['Rollout', `${release.rolloutPercentage}%`],
       ...resolveProgressionDetails(release),
       ['Mandatory', release.isMandatory ? 'yes' : 'no'],
@@ -89,8 +89,8 @@ function resolveProgressionDetails(
   ];
 }
 
-function resolveStateText(release: Release): string {
-  return release.state === 'paused' && release.pausedAt !== null
+function resolveStatusText(release: Release): string {
+  return release.status === 'paused' && release.pausedAt !== null
     ? `paused since ${release.pausedAt}`
-    : release.state;
+    : release.status;
 }

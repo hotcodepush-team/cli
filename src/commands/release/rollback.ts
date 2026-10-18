@@ -81,7 +81,7 @@ export default defineCommand({
  */
 function resolvePreviousRelease(releases: Release[]): Release {
   const activeReleases = releases
-    .filter(({ state }) => state === 'active')
+    .filter(({ status }) => status === 'active')
     .sort((left, right) => right.number - left.number);
   const currentRelease = activeReleases[0];
   const previousRelease = activeReleases.find(

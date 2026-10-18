@@ -37,7 +37,7 @@ export function fetchUploadedBundles(
   appId: string,
 ): Promise<Bundle[]> {
   return fetchAllPages(page =>
-    hotCodePush.apps.bundles.list({ appId, ...page, type: 'uploaded' }),
+    hotCodePush.apps.bundles.list({ appId, ...page, source: 'upload' }),
   );
 }
 
@@ -63,7 +63,7 @@ async function fetchBundleId(
       '--bundle',
       'Which bundle?',
       bundles.map(bundle => ({
-        label: `${resolveBundleLabel(bundle)} (${bundle.state})`,
+        label: `${resolveBundleLabel(bundle)} (${bundle.status})`,
         value: bundle.id,
       })),
       options,

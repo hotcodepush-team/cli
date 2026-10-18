@@ -110,7 +110,7 @@ describe('release rollback', () => {
     harness.routes[`GET ${CHANNEL_PATH}/releases`] = () =>
       Response.json([
         { ...LIVE_RELEASE, bundle: READY_BUNDLE },
-        { ...PREVIOUS_RELEASE, bundle: PREVIOUS_BUNDLE, state: 'revoked' },
+        { ...PREVIOUS_RELEASE, bundle: PREVIOUS_BUNDLE, status: 'revoked' },
         {
           ...LIVE_RELEASE,
           bundle: READY_BUNDLE,

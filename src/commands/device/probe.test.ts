@@ -131,7 +131,7 @@ describe('device probe', () => {
         `GET /v1/apps/${DEMO_APP.id}/devices/${registryDevice.deviceId}`
       ] = () => Response.json(registryDevice);
       harness.routes[
-        `GET /v1/apps/${DEMO_APP.id}/devices/${registryDevice.deviceId}/marks`
+        `GET /v1/apps/${DEMO_APP.id}/devices/${registryDevice.deviceId}/events`
       ] = () => Response.json([]);
       harness.routes[`GET ${BINARIES_PATH}`] = () =>
         Response.json([
@@ -291,7 +291,7 @@ describe('device probe', () => {
     harness.routes[`GET /v1/apps/${DEMO_APP.id}/devices/${DEVICE.deviceId}`] =
       () => Response.json({ ...DEVICE, fingerprint: FINGERPRINT });
     harness.routes[
-      `GET /v1/apps/${DEMO_APP.id}/devices/${DEVICE.deviceId}/marks`
+      `GET /v1/apps/${DEMO_APP.id}/devices/${DEVICE.deviceId}/events`
     ] = () => Response.json([]);
     respondWithIndex({
       ...INDEX,

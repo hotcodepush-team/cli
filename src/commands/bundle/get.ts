@@ -49,9 +49,9 @@ export default defineCommand({
         'Number',
         fetchedBundle.number === null ? 'none' : `#${fetchedBundle.number}`,
       ],
-      ['Type', fetchedBundle.type],
+      ['Source', fetchedBundle.source],
       ['Version', fetchedBundle.version],
-      ['State', fetchedBundle.state],
+      ['Status', fetchedBundle.status],
       ['Platforms', fetchedBundle.platforms.join(', ')],
       ['Size', resolveByteText(fetchedBundle.sizeBytes)],
       ['Delta packs', resolveDeltaPacksText(fetchedDeltaPacks)],
@@ -65,7 +65,7 @@ export default defineCommand({
 
 /**
  * The delta packs on one line, each by its base's number, `embedded` for a binary's bundle: `#16: 48.2 kB, 2 patches, built`,
- * a pack without a build, requested or failed, by its state alone.
+ * a pack without a build, requested or failed, by its status alone.
  */
 function resolveDeltaPacksText(deltaPacks: BundleDelta[]): string {
   if (deltaPacks.length === 0) {
@@ -78,13 +78,13 @@ function resolveDeltaPackText({
   baseBundle,
   patchCount,
   sizeBytes,
-  state,
+  status,
 }: BundleDelta): string {
   const baseBundleNumber = baseBundle?.number ?? null;
   const baseText =
     baseBundleNumber === null ? 'embedded' : `#${baseBundleNumber}`;
   if (patchCount === null || sizeBytes === null) {
-    return `${baseText}: ${state}`;
+    return `${baseText}: ${status}`;
   }
-  return `${baseText}: ${resolveByteText(sizeBytes)}, ${resolveQuantityText(patchCount, 'patch', 'patches')}, ${state}`;
+  return `${baseText}: ${resolveByteText(sizeBytes)}, ${resolveQuantityText(patchCount, 'patch', 'patches')}, ${status}`;
 }

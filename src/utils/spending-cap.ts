@@ -18,7 +18,7 @@ const UNPAID_SUBSCRIPTION_STATUSES: readonly string[] = ['canceled', 'unpaid'];
 const spendingCapSchema = z.coerce.number().int();
 
 /**
- * The flag `billing update` and `checkout create` take, in whole dollars where the API counts cents.
+ * The flag `billing update` takes, in whole dollars where the API counts cents.
  */
 export const spendingCapShape = {
   spendingCap: spendingCapSchema

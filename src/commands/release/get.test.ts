@@ -53,7 +53,7 @@ describe('release get', () => {
       'Number                      #43',
       'Channel                     staging',
       `Bundle                      #17 · 1.4.2 (${READY_BUNDLE.id})`,
-      'State                       active',
+      'Status                      active',
       'Rollout                     100%',
       'Progression                 none',
       'Mandatory                   no',
@@ -123,7 +123,7 @@ describe('release get', () => {
       await readProgressionLines({
         ...PROGRESSING_RELEASE,
         progressionStep: {
-          gate: { kind: 'time', readyAt: '2026-09-07T09:00:05.000Z' },
+          gate: { readyAt: '2026-09-07T09:00:05.000Z', type: 'time' },
           number: 2,
         },
         rolloutPercentage: 50,
@@ -150,7 +150,7 @@ describe('release get', () => {
         ...PROGRESSING_RELEASE,
         pausedAt: '2026-09-07T08:30:00.000Z',
         progressionStep: null,
-        state: 'paused',
+        status: 'paused',
       }),
     ).toContain('Progression step            held while paused');
   });

@@ -16,13 +16,13 @@ const DEVICE_WITH_CHANNEL = {
   currentReleaseId: LIVE_RELEASE.id,
 };
 
-const MARKS = [
+const EVENTS = [
   {
     createdAt: '2026-09-08T07:00:00.000Z',
     deviceId: DEVICE.deviceId,
-    kind: 'failed' as const,
     reason: 'READINESS_TIMED_OUT',
     releaseId: LIVE_RELEASE.id,
+    type: 'failed' as const,
     updatedAt: '2026-09-08T07:00:00.000Z',
   },
 ];
@@ -30,14 +30,14 @@ const MARKS = [
 describe('device get', () => {
   const harness = useCommandHarness();
 
-  function respondWithDeviceAndMarks(): void {
+  function respondWithDeviceAndEvents(): void {
     harness.routes[`GET ${DEVICE_PATH}`] = () =>
       Response.json(DEVICE_WITH_CHANNEL);
-    harness.routes[`GET ${DEVICE_PATH}/marks`] = () => Response.json(MARKS);
+    harness.routes[`GET ${DEVICE_PATH}/events`] = () => Response.json(EVENTS);
   }
 
   it('should print what the device runs and its last outcomes', async () => {
-    respondWithDeviceAndMarks();
+    respondWithDeviceAndEvents();
 
     await deviceGetCommand.action(
       { app: DEMO_APP.id, device: DEVICE.deviceId },
@@ -61,8 +61,8 @@ describe('device get', () => {
     ]);
   });
 
-  it('should print the device with its marks as JSON', async () => {
-    respondWithDeviceAndMarks();
+  it('should print the device with its events as JSON', async () => {
+    respondWithDeviceAndEvents();
 
     await deviceGetCommand.action(
       { app: DEMO_APP.id, device: DEVICE.deviceId, json: true },
@@ -71,7 +71,7 @@ describe('device get', () => {
 
     expect(harness.readJson()).toEqual({
       ...DEVICE_WITH_CHANNEL,
-      marks: MARKS,
+      events: EVENTS,
     });
   });
 

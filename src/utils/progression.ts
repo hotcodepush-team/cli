@@ -85,13 +85,13 @@ export function resolveProgression(
  * `1 of 3, waiting on sample: 12 of 50 attempts`; nothing widens a complete, paused or revoked one, so it has no step.
  */
 export function resolveProgressionStepText(
-  { progressionStep, state }: Release,
+  { progressionStep, status }: Release,
   progression: Progression,
 ): string {
   if (progressionStep !== null) {
     return `${progressionStep.number} of ${progression.percentages.length}, ${resolveGateText(progressionStep.gate)}`;
   }
-  switch (state) {
+  switch (status) {
     case 'active':
       return 'complete';
     case 'paused':

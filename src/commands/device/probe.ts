@@ -1,8 +1,8 @@
 import type {
   Binary,
   Device,
-  DeviceMark,
   HotCodePush,
+  ReleaseDeviceEvent,
 } from '@hotcodepush/node';
 import type {
   ChannelIndex,
@@ -171,7 +171,7 @@ export default defineCommand({
           ? []
           : resolveFailedBundleIds(
               await fetchAllPages(page =>
-                hotCodePush.apps.devices.marks.list({
+                hotCodePush.apps.devices.events.list({
                   appId,
                   deviceId: registryDevice.deviceId,
                   ...page,
@@ -350,15 +350,15 @@ function resolveConditionsText(
 }
 
 /**
- * The bundles the device failed before, from its failed marks of the releases the index carries.
+ * The bundles the device failed before, from its failed events of the releases the index carries.
  */
 function resolveFailedBundleIds(
-  marks: readonly DeviceMark[],
+  events: readonly ReleaseDeviceEvent[],
   index: ChannelIndex | null,
 ): string[] {
   const failedReleaseIds = new Set(
-    marks
-      .filter(({ kind }) => kind === 'failed')
+    events
+      .filter(({ type }) => type === 'failed')
       .map(({ releaseId }) => releaseId),
   );
   return (index?.releases ?? [])

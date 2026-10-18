@@ -126,7 +126,7 @@ describe('bundle upload', () => {
       Response.json(
         {
           ...READY_BUNDLE,
-          state: 'uploading',
+          status: 'uploading',
           uploads: {
             files: [
               {
@@ -514,7 +514,7 @@ describe('bundle upload', () => {
         Response.json(
           {
             ...READY_BUNDLE,
-            state: 'uploading',
+            status: 'uploading',
             uploads: {
               files: [],
               pack: `${API_URL}${BUNDLES_PATH}/${READY_BUNDLE.id}/pack`,

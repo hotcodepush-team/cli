@@ -198,7 +198,7 @@ async function fetchRevocations(
     const channel = await fetchChannel(hotCodePush, options);
     const releaseLog = await fetchReleaseLog(hotCodePush, channel);
     const revokedReleases = releaseLog.filter(
-      ({ number, state }) => number >= fromNumber && state !== 'revoked',
+      ({ number, status }) => number >= fromNumber && status !== 'revoked',
     );
     return [
       {
@@ -245,7 +245,7 @@ async function fetchBundleRevocations(
         ...page,
       }),
     )
-  ).filter(({ state }) => state !== 'revoked');
+  ).filter(({ status }) => status !== 'revoked');
   const channels = new Map<string, Channel>();
   for (const { channel } of pendingReleases) {
     if (channel !== undefined) {
@@ -286,7 +286,7 @@ function resolveDeviceMoves(revocation: ChannelRevocation): DeviceMove[] {
       continue;
     }
     const targetRelease = resolveOlderReleases(revocation, revokedRelease).find(
-      ({ state }) => state === 'active',
+      ({ status }) => status === 'active',
     );
     const key = targetRelease?.id ?? 'embedded';
     const move = moves.get(key) ?? { deviceCount: 0, targetRelease };
@@ -327,9 +327,9 @@ function resolveOlderReleases(
   );
   return revocation.releaseLog
     .filter(
-      ({ id, number, state }) =>
+      ({ id, number, status }) =>
         number < revokedRelease.number &&
-        state !== 'revoked' &&
+        status !== 'revoked' &&
         !revokedReleaseIds.has(id),
     )
     .sort((left, right) => right.number - left.number);
@@ -346,7 +346,7 @@ function resolvePausedLandingTexts(revocations: ChannelRevocation[]): string[] {
       const [landingRelease] = resolveOlderReleases(revocation, revokedRelease);
       if (
         revokedRelease.deviceCount > 0 &&
-        landingRelease?.state === 'paused'
+        landingRelease?.status === 'paused'
       ) {
         texts.add(
           `release #${landingRelease.number} of ${revocation.channel.name} is paused, so the devices that would land on it land one further back`,

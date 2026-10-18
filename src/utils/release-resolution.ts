@@ -152,7 +152,7 @@ async function resolveReleaseId(
     '--release',
     'Which release?',
     releases.map(release => ({
-      label: `#${release.number} · ${resolveReleaseBundleLabel(release)} (${release.state})`,
+      label: `#${release.number} · ${resolveReleaseBundleLabel(release)} (${release.status})`,
       value: release.id,
     })),
     options,

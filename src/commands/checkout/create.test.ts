@@ -1,13 +1,7 @@
-import { text } from '@clack/prompts';
-import { describe, expect, it, vi } from 'vitest';
-import {
-  stubInteractiveTerminal,
-  useCommandHarness,
-} from '../../../test/command-harness.js';
+import { describe, expect, it } from 'vitest';
+import { useCommandHarness } from '../../../test/command-harness.js';
 import { ACME_ORGANIZATION } from '../../../test/fixtures.js';
 import checkoutCreateCommand from './create.js';
-
-vi.mock('@clack/prompts');
 
 const CHECKOUT = { url: 'https://checkout.example.com/c/acme-1' };
 
@@ -28,34 +22,7 @@ describe('checkout create', () => {
       Response.json(CHECKOUT, { status: 201 });
   }
 
-  it('should create the checkout with the cap in cents and print its URL to open', async () => {
-    respondWithCheckout();
-
-    await checkoutCreateCommand.action(
-      { organization: ACME_ORGANIZATION.id, spendingCap: 50 },
-      undefined,
-    );
-
-    expect(await readCreateBody()).toEqual({ spendingCapCents: 5000 });
-    expect(harness.readLines()).toEqual([
-      `Open the checkout to enable billing: ${CHECKOUT.url}`,
-    ]);
-  });
-
-  it("should print the API's checkout as JSON when --json is passed", async () => {
-    respondWithCheckout();
-
-    await checkoutCreateCommand.action(
-      { json: true, organization: ACME_ORGANIZATION.id, spendingCap: 50 },
-      undefined,
-    );
-
-    expect(harness.readJson()).toEqual(CHECKOUT);
-  });
-
-  it('should ask for the cap in whole dollars when --spending-cap is missing and someone can answer', async () => {
-    stubInteractiveTerminal();
-    vi.mocked(text).mockResolvedValue('25');
+  it("should create the checkout under the caller's email and print its URL to open when --billing-email is missing", async () => {
     respondWithCheckout();
 
     await checkoutCreateCommand.action(
@@ -63,21 +30,36 @@ describe('checkout create', () => {
       undefined,
     );
 
-    expect(await readCreateBody()).toEqual({ spendingCapCents: 2500 });
+    expect(await readCreateBody()).toEqual({});
+    expect(harness.readLines()).toEqual([
+      `Open the checkout to enable billing: ${CHECKOUT.url}`,
+    ]);
   });
 
-  it('should name the flag with E_MISSING_PARAMETER and create nothing when it is missing and nobody can answer', async () => {
+  it('should send the billing email when --billing-email is given', async () => {
     respondWithCheckout();
 
-    await expect(
-      checkoutCreateCommand.action(
-        { json: true, organization: ACME_ORGANIZATION.id },
-        undefined,
-      ),
-    ).rejects.toMatchObject({
-      code: 'E_MISSING_PARAMETER',
-      message: 'No value was given for --spending-cap.',
+    await checkoutCreateCommand.action(
+      {
+        billingEmail: 'billing@example.com',
+        organization: ACME_ORGANIZATION.id,
+      },
+      undefined,
+    );
+
+    expect(await readCreateBody()).toEqual({
+      billingEmail: 'billing@example.com',
     });
-    expect(harness.requests).toEqual([]);
+  });
+
+  it("should print the API's checkout as JSON when --json is passed", async () => {
+    respondWithCheckout();
+
+    await checkoutCreateCommand.action(
+      { json: true, organization: ACME_ORGANIZATION.id },
+      undefined,
+    );
+
+    expect(harness.readJson()).toEqual(CHECKOUT);
   });
 });

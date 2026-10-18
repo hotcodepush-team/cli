@@ -39,7 +39,7 @@ export default defineCommand({
       headers: [
         'NUMBER',
         'BUNDLE',
-        'STATE',
+        'STATUS',
         'ROLLOUT',
         'PROGRESSION',
         'MANDATORY',
@@ -51,7 +51,7 @@ export default defineCommand({
       rows: listedReleases.map(release => [
         `#${release.number}`,
         resolveReleaseBundleLabel(release),
-        release.state,
+        release.status,
         `${release.rolloutPercentage}%`,
         resolveProgressionCell(release),
         release.isMandatory ? 'yes' : 'no',

@@ -43,7 +43,7 @@ const PRODUCTION_RELEASE = {
   number: 7,
 };
 
-const REVOKED_RELEASE = { ...LIVE_RELEASE, state: 'revoked' as const };
+const REVOKED_RELEASE = { ...LIVE_RELEASE, status: 'revoked' as const };
 
 describe('release revoke', () => {
   const harness = useCommandHarness();
@@ -66,7 +66,7 @@ describe('release revoke', () => {
     harness.routes[`POST ${channelPath}/releases/revoke`] = () =>
       Response.json([
         REVOKED_RELEASE,
-        { ...PREVIOUS_RELEASE, state: 'revoked' },
+        { ...PREVIOUS_RELEASE, status: 'revoked' },
       ]);
   }
 
@@ -129,7 +129,7 @@ describe('release revoke', () => {
     harness.routes[`GET ${CHANNEL_PATH}/releases`] = () =>
       Response.json([
         { ...LIVE_RELEASE, bundle: READY_BUNDLE },
-        { ...PREVIOUS_RELEASE, bundle: PREVIOUS_BUNDLE, state: 'revoked' },
+        { ...PREVIOUS_RELEASE, bundle: PREVIOUS_BUNDLE, status: 'revoked' },
       ]);
 
     await expect(
@@ -148,7 +148,7 @@ describe('release revoke', () => {
     harness.routes[`GET ${CHANNEL_PATH}/releases`] = () =>
       Response.json([
         { ...LIVE_RELEASE, bundle: READY_BUNDLE },
-        { ...PREVIOUS_RELEASE, bundle: PREVIOUS_BUNDLE, state: 'paused' },
+        { ...PREVIOUS_RELEASE, bundle: PREVIOUS_BUNDLE, status: 'paused' },
         OLDEST_RELEASE,
       ]);
 
@@ -197,7 +197,7 @@ describe('release revoke', () => {
     expect(confirm).not.toHaveBeenCalled();
     expect(harness.readJson()).toEqual([
       REVOKED_RELEASE,
-      { ...PREVIOUS_RELEASE, state: 'revoked' },
+      { ...PREVIOUS_RELEASE, status: 'revoked' },
     ]);
   });
 
@@ -244,7 +244,7 @@ describe('release revoke', () => {
       return Response.json(
         releaseLog
           .filter(({ id }) => releaseIds.includes(id))
-          .map(release => ({ ...release, state: 'revoked' })),
+          .map(release => ({ ...release, status: 'revoked' })),
       );
     };
 
@@ -271,7 +271,7 @@ describe('release revoke', () => {
       { releaseIds: [releaseLog[0]?.id] },
     ]);
     expect(harness.readJson()).toEqual(
-      releaseLog.map(release => ({ ...release, state: 'revoked' })),
+      releaseLog.map(release => ({ ...release, status: 'revoked' })),
     );
   });
 
@@ -292,13 +292,13 @@ describe('release revoke', () => {
           channel: STAGING_CHANNEL,
           id: 'f6a7b8c9-d0e1-4f2a-9b3c-4d5e6f7a8b9c',
           number: 40,
-          state: 'revoked',
+          status: 'revoked',
         },
       ]);
     harness.routes[`GET ${PRODUCTION_CHANNEL_PATH}/releases`] = () =>
       Response.json([PRODUCTION_RELEASE]);
     harness.routes[`POST ${PRODUCTION_CHANNEL_PATH}/releases/revoke`] = () =>
-      Response.json([{ ...PRODUCTION_RELEASE, state: 'revoked' }]);
+      Response.json([{ ...PRODUCTION_RELEASE, status: 'revoked' }]);
     harness.routes[`POST ${CHANNEL_PATH}/releases/revoke`] = () =>
       Response.json([REVOKED_RELEASE]);
 

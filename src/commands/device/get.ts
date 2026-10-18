@@ -29,11 +29,11 @@ export default defineCommand({
       ...deviceReference,
       relations: ['channel'],
     });
-    const fetchedMarks = await fetchAllPages(page =>
-      hotCodePush.apps.devices.marks.list({ ...deviceReference, ...page }),
+    const fetchedEvents = await fetchAllPages(page =>
+      hotCodePush.apps.devices.events.list({ ...deviceReference, ...page }),
     );
     if (options.json) {
-      printJson({ ...fetchedDevice, marks: fetchedMarks });
+      printJson({ ...fetchedDevice, events: fetchedEvents });
       return;
     }
     printDetails([
@@ -61,9 +61,9 @@ export default defineCommand({
       emptyText: 'No outcomes yet: the device has not checked a release.',
       headers: ['RELEASE', 'OUTCOME', 'REASON', 'DATE'],
       nextOffset: null,
-      rows: fetchedMarks.map(({ createdAt, kind, reason, releaseId }) => [
+      rows: fetchedEvents.map(({ createdAt, reason, releaseId, type }) => [
         releaseId,
-        kind,
+        type,
         reason ?? '',
         resolveDate(createdAt),
       ]),

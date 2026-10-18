@@ -14,7 +14,7 @@ const EMBEDDED_BUNDLE: Bundle = {
   ...PREVIOUS_BUNDLE,
   id: '4d3c2b1a-0f9e-4d8c-b7a6-59483726150e',
   number: null,
-  type: 'embedded',
+  source: 'binary',
   version: '1.0',
 };
 
@@ -34,36 +34,36 @@ describe('bundle list', () => {
 
     await bundleListCommand.action({ app: DEMO_APP.id }, undefined);
 
-    expect(readListQuery()).toEqual({ type: 'uploaded' });
+    expect(readListQuery()).toEqual({ source: 'upload' });
     expect(harness.readLines()).toEqual([
-      'NUMBER  VERSION  STATE  PLATFORMS    SIZE      CREATED',
-      '#17     1.4.2    ready  android,ios  812.3 kB  2026-09-05',
-      '#16     1.4.1    ready  android,ios  812.3 kB  2026-09-04',
+      'NUMBER  VERSION  SOURCE  STATUS  PLATFORMS    SIZE      CREATED',
+      '#17     1.4.2    upload  ready   android,ios  812.3 kB  2026-09-05',
+      '#16     1.4.1    upload  ready   android,ios  812.3 kB  2026-09-04',
     ]);
   });
 
-  it('should list the bundles binaries ship with --type embedded, each without a number', async () => {
+  it('should list the bundles binaries ship with --source binary, each without a number', async () => {
     harness.routes[`GET ${BUNDLES_PATH}`] = () =>
       Response.json([EMBEDDED_BUNDLE]);
 
     await bundleListCommand.action(
-      { app: DEMO_APP.id, type: 'embedded' },
+      { app: DEMO_APP.id, source: 'binary' },
       undefined,
     );
 
-    expect(readListQuery()).toEqual({ type: 'embedded' });
+    expect(readListQuery()).toEqual({ source: 'binary' });
     expect(harness.readLines()).toEqual([
-      'NUMBER  VERSION  STATE  PLATFORMS    SIZE      CREATED',
-      '        1.0      ready  android,ios  812.3 kB  2026-09-04',
+      'NUMBER  VERSION  SOURCE  STATUS  PLATFORMS    SIZE      CREATED',
+      '        1.0      binary  ready   android,ios  812.3 kB  2026-09-04',
     ]);
   });
 
-  it('should list every bundle with --type all, sending no type, and print the embedded one as the API answers it under --json', async () => {
+  it('should list every bundle with --source all, sending no source, and print the embedded one as the API answers it under --json', async () => {
     harness.routes[`GET ${BUNDLES_PATH}`] = () =>
       Response.json([READY_BUNDLE, EMBEDDED_BUNDLE]);
 
     await bundleListCommand.action(
-      { app: DEMO_APP.id, json: true, type: 'all' },
+      { app: DEMO_APP.id, json: true, source: 'all' },
       undefined,
     );
 
@@ -85,7 +85,7 @@ describe('bundle list', () => {
 
     expect(readListQuery()).toEqual({
       limit: '1',
-      type: 'uploaded',
+      source: 'upload',
       version: '1.4.1',
     });
     expect(harness.readJson()).toEqual({

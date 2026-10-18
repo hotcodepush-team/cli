@@ -30,7 +30,7 @@ describe('release list', () => {
     );
 
     expect(harness.readLines()).toEqual([
-      'NUMBER  BUNDLE       STATE   ROLLOUT  PROGRESSION  MANDATORY  DEVICES  LIVE        CREATED',
+      'NUMBER  BUNDLE       STATUS  ROLLOUT  PROGRESSION  MANDATORY  DEVICES  LIVE        CREATED',
       '#43     #17 · 1.4.2  active  100%     none         no         80       2026-09-07  2026-09-07',
       '#42     #16 · 1.4.1  active  100%     none         no         20       2026-09-06  2026-09-06',
     ]);

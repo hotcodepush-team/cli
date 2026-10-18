@@ -21,7 +21,7 @@ vi.mock('@clack/prompts');
 const PAUSED_RELEASE = {
   ...LIVE_RELEASE,
   pausedAt: '2026-09-29T12:00:00.000Z',
-  state: 'paused' as const,
+  status: 'paused' as const,
 };
 
 describe('release pause', () => {

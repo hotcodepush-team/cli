@@ -36,9 +36,9 @@ describe('bundle get', () => {
     expect(harness.readLines()).toEqual([
       `ID           ${READY_BUNDLE.id}`,
       'Number       #17',
-      'Type         uploaded',
+      'Source       upload',
       'Version      1.4.2',
-      'State        ready',
+      'Status       ready',
       'Platforms    android, ios',
       'Size         812.3 kB',
       'Delta packs  #16: 48.2 kB, 2 patches, built; embedded: requested',
