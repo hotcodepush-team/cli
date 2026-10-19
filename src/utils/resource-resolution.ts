@@ -18,6 +18,7 @@ import { fetchAllPages } from './pagination.js';
 import type { ProjectConfig } from './project-config.js';
 import {
   assertProjectConfigAppId,
+  ID_SCHEMA,
   readProjectConfig,
   resolveProjectChannel,
 } from './project-config.js';
@@ -40,8 +41,6 @@ interface NamedResource {
 interface OrganizationOptions extends InteractivityOptions {
   organization?: string;
 }
-
-const ID_SCHEMA = z.guid();
 
 export const channelOptionShape = {
   channel: z

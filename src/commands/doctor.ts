@@ -3,7 +3,6 @@ import {
   ProjectConfigurationSchema,
   resolveSigningKeyFingerprint,
 } from '@hotcodepush/protocol';
-import { z } from 'zod';
 import { defineCommand } from 'zodline';
 import {
   INIT_MANUAL_STEP,
@@ -43,6 +42,7 @@ import type { PackageJson } from '../utils/package-json.js';
 import { readPackageJson } from '../utils/package-json.js';
 import type { ProjectConfig } from '../utils/project-config.js';
 import {
+  ID_SCHEMA,
   locateProjectConfigFile,
   readProjectConfigFile,
   resolveProjectChannel,
@@ -86,8 +86,6 @@ interface SessionAndAppChecks {
 }
 
 const CHANNEL_NAME_SCHEMA = ProjectConfigurationSchema.shape.channel;
-
-const ID_SCHEMA = z.guid();
 
 const PROBE_TIMEOUT_MS = 5000;
 

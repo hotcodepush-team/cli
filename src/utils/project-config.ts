@@ -27,7 +27,7 @@ export interface ProjectConfigLocation extends ProjectConfigFileLocation {
   projectConfig: ProjectConfig | undefined;
 }
 
-const ID_SCHEMA = z.guid();
+export const ID_SCHEMA = z.guid();
 
 /**
  * The app id of the file, checked before a command uses it without asking the API:

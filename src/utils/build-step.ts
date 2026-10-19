@@ -20,6 +20,7 @@ import { resolveDeviceHosts } from './hosts.js';
 import type { ProjectConfig } from './project-config.js';
 import {
   assertProjectConfigAppId,
+  ID_SCHEMA,
   locateProjectConfig,
   resolveProjectChannel,
 } from './project-config.js';
@@ -66,8 +67,6 @@ export interface ChannelReference {
  * Why a build does not ask the API: the offline switch, or no token to ask with.
  */
 export type OfflineCause = 'no-token' | 'offline-switch';
-
-const ID_SCHEMA = z.guid();
 
 const PLATFORMS = ['android', 'ios'] as const;
 

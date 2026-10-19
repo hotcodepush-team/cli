@@ -6,14 +6,13 @@ import { createApiClient } from '../../utils/api-client.js';
 import { UnknownNameError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
+import { ID_SCHEMA } from '../../utils/project-config.js';
 import { confirmConsequence } from '../../utils/prompts.js';
 import type { ChannelOptions } from '../../utils/resource-resolution.js';
 import {
   channelOptionShape,
   fetchChannel,
 } from '../../utils/resource-resolution.js';
-
-const ID_SCHEMA = z.guid();
 
 export default defineCommand({
   description:

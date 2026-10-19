@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { resolveBundleLabel } from './bundle-resolution.js';
 import { InvalidParameterError } from './errors.js';
 import { fetchAllPages } from './pagination.js';
+import { ID_SCHEMA } from './project-config.js';
 import { promptSelect } from './prompts.js';
 import type { ChannelOptions } from './resource-resolution.js';
 import { fetchChannel } from './resource-resolution.js';
@@ -15,8 +16,6 @@ export interface ReleaseInChannel {
 export interface ReleaseOptions extends ChannelOptions {
   release?: string;
 }
-
-const ID_SCHEMA = z.guid();
 
 const LIVE_POLL_INTERVAL_MS = 1000;
 

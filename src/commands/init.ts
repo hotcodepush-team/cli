@@ -45,6 +45,7 @@ import {
 } from '../utils/package-manager.js';
 import type { ProjectConfig } from '../utils/project-config.js';
 import {
+  ID_SCHEMA,
   locateProjectConfig,
   resolveProjectChannel,
 } from '../utils/project-config.js';
@@ -95,8 +96,6 @@ interface Scope {
 }
 
 const CREATE_CHOICE = 'create';
-
-const ID_SCHEMA = z.guid();
 
 export default defineCommand({
   description:

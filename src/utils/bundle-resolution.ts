@@ -3,13 +3,13 @@ import { z } from 'zod';
 import type { InteractivityOptions } from './environment.js';
 import { InvalidParameterError } from './errors.js';
 import { fetchAllPages } from './pagination.js';
+import { ID_SCHEMA } from './project-config.js';
 import { promptSelect } from './prompts.js';
 
 export interface BundleOptions extends InteractivityOptions {
   bundle?: string;
 }
 
-const ID_SCHEMA = z.guid();
 const NUMBER_PATTERN = /^\d+$/;
 
 export const bundleOptionShape = {
