@@ -108,6 +108,6 @@ function resolveRolloutConsequence(
     return `progresses ${releaseText} from ${rolloutPercentage} percent through ${resolveProgressionText(progression)}: devices already on it keep it`;
   }
   const progressionEndText =
-    release.progression === null ? '' : '. Its progression ends';
+    release.progression === null ? '' : '; its progression ends';
   return `sets ${releaseText} to ${rolloutPercentage} percent: devices already on it keep it, and no new device above ${rolloutPercentage} percent gets it${progressionEndText}`;
 }

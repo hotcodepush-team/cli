@@ -215,7 +215,7 @@ describe('release rollout', () => {
     ).rejects.toMatchObject({
       code: 'E_CONFIRMATION_REQUIRED',
       message:
-        'A confirmation is required. This sets release #43 of staging to 50 percent: devices already on it keep it, and no new device above 50 percent gets it. Its progression ends.',
+        'A confirmation is required. This sets release #43 of staging to 50 percent: devices already on it keep it, and no new device above 50 percent gets it; its progression ends.',
     });
   });
 

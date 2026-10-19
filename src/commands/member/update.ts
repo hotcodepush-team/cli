@@ -54,7 +54,7 @@ export default defineCommand({
     const email = resolveMemberEmail(fetchedMember);
     if (role === 'owner') {
       const isConfirmed = await confirmConsequence(
-        `transfers the ownership of the organization to ${email} and makes you an admin. Only the new owner can transfer it back`,
+        `transfers the ownership of the organization to ${email} and makes you an admin; only the new owner can transfer it back`,
         options,
       );
       if (!isConfirmed) {
