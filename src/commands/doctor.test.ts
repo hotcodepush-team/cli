@@ -157,6 +157,29 @@ describe('doctor', () => {
     );
   });
 
+  it('should skip the hook when the project has neither an iOS nor an Android project', async () => {
+    const directoryPath = await writeSetUpProject();
+    for (const nativeProjectName of ['android', 'ios']) {
+      rmSync(join(directoryPath, nativeProjectName), {
+        force: true,
+        recursive: true,
+      });
+    }
+    respondWithSessionAndApp();
+
+    await doctorCommand.action(
+      { config: join(directoryPath, 'hotcodepush.json'), json: true },
+      undefined,
+    );
+
+    const result = harness.readJson() as DoctorResult;
+    expect(result.checks.find(({ check }) => check === 'hook')).toEqual({
+      check: 'hook',
+      message: 'There is no native project to check.',
+      status: 'skipped',
+    });
+  });
+
   it('should name the missing steps and the hosts it cannot reach, and exit with a failure', async () => {
     const directoryPath = await writeSetUpProject();
     writeFileSync(

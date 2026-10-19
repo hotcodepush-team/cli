@@ -37,13 +37,6 @@ export function checkBinaryCreateStep(
     nativeProjectPaths.ios,
   );
   const gradleEdit = resolveGradleEdit(nativeProjectPaths.android, packageName);
-  if (xcodeProjectFilePath === undefined && gradleEdit === undefined) {
-    return {
-      check: 'hook',
-      message: 'There is no native project to check.',
-      status: 'skipped',
-    };
-  }
   return checkEdits(
     'hook',
     'The Xcode phase and the Gradle task run the build step.',
