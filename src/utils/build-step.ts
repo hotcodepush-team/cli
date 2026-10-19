@@ -81,7 +81,10 @@ export const buildStepShape = {
     .describe(
       "The directory of the embedded bundle, the files the build puts into the app; the framework's build output by default.",
     ),
-  platform: z.enum(PLATFORMS).optional().describe('The platform being built.'),
+  platform: z
+    .enum(PLATFORMS)
+    .optional()
+    .describe('The platform being built, ios or android.'),
   resourceFilePath: z
     .string()
     .optional()

@@ -112,7 +112,9 @@ export default defineCommand({
     framework: z
       .enum(['capacitor', 'cordova', 'expo', 'react-native'])
       .optional()
-      .describe('The framework, over the one detected from package.json.'),
+      .describe(
+        'The framework, capacitor, cordova, expo or react-native, over the one detected from package.json.',
+      ),
     iosPath: z
       .string()
       .optional()
