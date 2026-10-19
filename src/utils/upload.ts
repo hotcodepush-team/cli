@@ -156,10 +156,7 @@ export async function uploadBundle(
       reporter,
     );
     const packFilePath = join(temporaryDirectoryPath, 'pack');
-    await writePack(
-      resolveCompressedFiles(files, compressedFiles),
-      packFilePath,
-    );
+    await writePack([...compressedFiles.values()], packFilePath);
     reporter.report('Uploading the full pack…');
     await uploadPack(
       hotCodePush,
@@ -283,22 +280,6 @@ async function fetchMissingSha256s(
     BUNDLE_FILE_PAGE_LIMIT,
   );
   return [...new Set(missingFiles.map(({ sha256 }) => sha256))];
-}
-
-function resolveCompressedFiles(
-  files: BundleFile[],
-  compressedFiles: Map<string, CompressedFile>,
-): CompressedFile[] {
-  const seen = new Set<string>();
-  const resolved: CompressedFile[] = [];
-  for (const { sha256 } of files) {
-    const compressedFile = compressedFiles.get(sha256);
-    if (compressedFile !== undefined && !seen.has(sha256)) {
-      seen.add(sha256);
-      resolved.push(compressedFile);
-    }
-  }
-  return resolved;
 }
 
 async function uploadFile(
