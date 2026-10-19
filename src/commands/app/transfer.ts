@@ -1,4 +1,5 @@
 import type { App, Organization } from '@hotcodepush/node';
+import { z } from 'zod';
 import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
 import type { InteractivityOptions } from '../../utils/environment.js';
@@ -24,7 +25,12 @@ export default defineCommand({
     'hotcodepush app transfer --organization Globex',
     'hotcodepush app transfer --app "My App" --organization Globex --yes --json',
   ],
-  options: defineCommandOptions({}),
+  options: defineCommandOptions({
+    organization: z
+      .string()
+      .optional()
+      .describe('The organization the app moves to, by id or name.'),
+  }),
   action: async options => {
     const hotCodePush = createApiClient();
     // --organization names the target here, so an app's name is looked up in every organization of the user's

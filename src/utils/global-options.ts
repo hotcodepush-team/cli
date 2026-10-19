@@ -31,11 +31,14 @@ const globalOptionsShape = {
 
 /**
  * The options of a command: its own, then the global ones every command accepts.
+ * A command that gives a global option its own meaning names it in its shape, and its description replaces the global one.
  */
 export function defineCommandOptions<TShape extends z.ZodRawShape>(
   shape: TShape,
 ) {
-  return defineOptions(z.object({ ...shape, ...globalOptionsShape }), {
-    y: 'yes',
-  });
+  // the shape spread twice: its options lead the help, and the last spread wins over a global option of the same name
+  return defineOptions(
+    z.object({ ...shape, ...globalOptionsShape, ...shape }),
+    { y: 'yes' },
+  );
 }

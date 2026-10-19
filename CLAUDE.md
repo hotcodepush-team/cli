@@ -67,7 +67,7 @@ No releases yet: the version stays `0.0.0`, and release-please and npm provenanc
 ## Adding a command
 
 1. `src/commands/<noun>/<verb>.ts`, or `src/commands/<name>.ts` for a standalone one, default-exports zodline's `defineCommand`.
-2. Its options are `defineCommandOptions({ … })`, so the global options come with every command.
+2. Its options are `defineCommandOptions({ … })`, so the global options come with every command; a global option the command gives its own meaning, `app transfer`'s `--organization`, joins its shape with its own description.
 3. It has a `description` and exactly two `examples`, which end its `--help`.
 4. One line joins the registry in `src/index.ts`: `'channel create': () => import('./commands/channel/create.js')`.
 

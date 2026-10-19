@@ -28,6 +28,12 @@ export default defineCommand({
       .enum(ACTOR_TYPES)
       .optional()
       .describe('system for the rows no user wrote, user for the rest.'),
+    app: z
+      .string()
+      .optional()
+      .describe(
+        "The app, by id or name, to narrow the log to; the whole organization by default, never hotcodepush.json's app.",
+      ),
     createdSince: z
       .string()
       .optional()
