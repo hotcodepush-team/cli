@@ -109,18 +109,22 @@ export default defineCommand({
     const hotCodePush = createApiClient();
     const uploadedBundles = await withTemporaryDirectory(
       async packagingDirectoryPath => {
-        const bundles: UploadedBundle[] = [];
-        for (const uploadBundleOptions of await resolveUploadBundleOptions(
+        const uploadBundleOptionsList = await resolveUploadBundleOptions(
           hotCodePush,
           options,
           packagingDirectoryPath,
-        )) {
+        );
+        const bundles: UploadedBundle[] = [];
+        for (const uploadBundleOptions of uploadBundleOptionsList) {
           bundles.push(await uploadBundle(hotCodePush, uploadBundleOptions));
-          if (
-            await fetchIsFingerprintUnknown(hotCodePush, uploadBundleOptions)
-          ) {
-            process.stderr.write(`Warning: ${FINGERPRINT_UNKNOWN_TEXT}\n`);
-          }
+        }
+        // every platform's bundle carries the project's one fingerprint, so one check answers for all of them
+        const [sharedOptions] = uploadBundleOptionsList;
+        if (
+          sharedOptions !== undefined &&
+          (await fetchIsFingerprintUnknown(hotCodePush, sharedOptions))
+        ) {
+          process.stderr.write(`Warning: ${FINGERPRINT_UNKNOWN_TEXT}\n`);
         }
         return bundles;
       },

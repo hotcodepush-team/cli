@@ -222,13 +222,12 @@ async function createReleases(
       progression: progression ?? undefined,
       rolloutPercentage,
     };
-    for (const { audience, channel } of channelAudiences) {
+    for (const { channel } of channelAudiences) {
       const createdRelease = await hotCodePush.apps.channels.releases.create({
         ...releaseBody,
         appId: bundle.appId,
         channelId: channel.id,
       });
-      printWarnings(audience.warnings);
       const liveRelease = await waitUntilLive(
         hotCodePush,
         bundle.appId,
@@ -244,6 +243,7 @@ async function createReleases(
       }
     }
   }
+  printAudienceWarnings(channelAudiences);
   if (options.json) {
     printJson(releases);
   }
@@ -355,9 +355,7 @@ async function printDryRun(
       assertWithinBundleBytesLimit(await collectUploadFiles(bundleUpload));
     }
   }
-  for (const { audience } of channelAudiences) {
-    printWarnings(audience.warnings);
-  }
+  printAudienceWarnings(channelAudiences);
   if (options.json) {
     printJson(
       channelAudiences.map(({ audience, channel }) => ({
@@ -368,6 +366,15 @@ async function printDryRun(
     return;
   }
   console.log(`Dry run, nothing published: this ${consequence}.`);
+}
+
+/**
+ * The audience preview's warnings, each channel's once, however many platform bundles the release carries.
+ */
+function printAudienceWarnings(channelAudiences: ChannelAudience[]): void {
+  for (const { audience } of channelAudiences) {
+    printWarnings(audience.warnings);
+  }
 }
 
 /**

@@ -771,6 +771,24 @@ describe('release create', () => {
       ).toEqual([READY_BUNDLE.id, PREVIOUS_BUNDLE.id]);
       expect(harness.readJson()).toHaveLength(2);
     });
+
+    it("should print the channel's audience warnings once for both bundles", async () => {
+      stubPlatformBundleUploads();
+      respondWithStagingChannel({
+        ...STAGING_AUDIENCE,
+        warnings: [UNSUPPORTED_CONDITION_SHARE_WARNING],
+      });
+      respondWithCreatedRelease();
+
+      await releaseCreateCommand.action(
+        { ...OPTIONS, json: true, yes: true },
+        undefined,
+      );
+
+      expect(stderrWrite.mock.calls).toEqual([
+        [`Warning: ${UNSUPPORTED_CONDITION_SHARE_WARNING.message}\n`],
+      ]);
+    });
   });
 
   it('should refuse --bundle together with --path', async () => {

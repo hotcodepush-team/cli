@@ -638,6 +638,33 @@ describe('bundle upload', () => {
       ]);
     });
 
+    it('should check the fingerprint once for both platforms, warning once', async () => {
+      // two binaries, none of them carrying the project's fingerprint
+      harness.routes[`GET ${BINARY_COUNT_PATH}`] = request =>
+        Response.json({
+          count: new URL(request.url).searchParams.has('fingerprint') ? 0 : 2,
+        });
+      const stderrWrite = vi
+        .spyOn(process.stderr, 'write')
+        .mockImplementation(() => true);
+
+      await bundleUploadCommand.action(
+        {
+          config: join(projectDirectoryPath, 'hotcodepush.json'),
+          json: true,
+          noGit: true,
+        },
+        undefined,
+      );
+
+      expect(stderrWrite.mock.calls).toEqual([
+        ['Warning: No binary of the app carries this fingerprint.\n'],
+      ]);
+      expect(
+        harness.requests.filter(({ url }) => url.includes('/binaries/count')),
+      ).toHaveLength(2);
+    });
+
     it('should upload --path as the prepared bundle of the one platform named, bundling nothing', async () => {
       const exportDirectoryPath = join(projectDirectoryPath, 'export');
       mkdirSync(exportDirectoryPath);
