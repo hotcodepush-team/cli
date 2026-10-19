@@ -71,7 +71,7 @@ describe('bundle delete', () => {
     ).rejects.toMatchObject({ code: 'E_BUNDLE_IN_USE' });
   });
 
-  it('should print the id and label of the deleted bundle when --yes and --json are passed', async () => {
+  it('should print the id and version label of the deleted bundle as its name when --yes and --json are passed', async () => {
     harness.routes[`GET ${BUNDLES_PATH}/${READY_BUNDLE.id}`] = () =>
       Response.json(READY_BUNDLE);
     harness.routes[`DELETE ${BUNDLES_PATH}/${READY_BUNDLE.id}`] = () =>
@@ -84,7 +84,7 @@ describe('bundle delete', () => {
 
     expect(harness.readJson()).toEqual({
       id: READY_BUNDLE.id,
-      name: '#17 · 1.4.2',
+      name: '1.4.2',
     });
   });
 });

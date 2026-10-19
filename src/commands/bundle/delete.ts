@@ -39,10 +39,7 @@ export default defineCommand({
       bundleId: fetchedBundle.id,
     });
     if (options.json) {
-      printJson({
-        id: fetchedBundle.id,
-        name: resolveBundleLabel(fetchedBundle),
-      });
+      printJson({ id: fetchedBundle.id, name: fetchedBundle.version });
     } else {
       console.log(
         `Deleted bundle ${resolveBundleLabel(fetchedBundle)} (${fetchedBundle.id}).`,
