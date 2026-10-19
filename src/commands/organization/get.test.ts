@@ -29,11 +29,12 @@ describe('organization get', () => {
     await organizationGetCommand.action({ organization: 'acme' }, undefined);
 
     expect(harness.readLines()).toEqual([
-      `ID       ${ACME_ORGANIZATION.id}`,
-      'Name     Acme',
-      'Plan     free',
-      'Region   eu',
-      'Created  2026-09-01T08:00:00.000Z',
+      `ID            ${ACME_ORGANIZATION.id}`,
+      'Name          Acme',
+      'Plan          free',
+      'Spending cap  $0 a month',
+      'Region        eu',
+      'Created       2026-09-01T08:00:00.000Z',
     ]);
   });
 
@@ -73,7 +74,7 @@ describe('organization get', () => {
         { label: 'Acme', value: ACME_ORGANIZATION.id },
       ],
     });
-    expect(harness.readLines()[1]).toBe('Name     Acme');
+    expect(harness.readLines()[1]).toBe('Name          Acme');
   });
 
   it('should throw E_MISSING_PARAMETER when the user belongs to several and nobody can be asked', async () => {

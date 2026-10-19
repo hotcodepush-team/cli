@@ -2,7 +2,6 @@ import { readFileSync } from 'node:fs';
 import type {
   App,
   AuditLog,
-  Billing,
   Binary,
   Bundle,
   BundleDelta,
@@ -21,7 +20,6 @@ import type {
 
 export const ACME_ORGANIZATION: Organization = {
   appCountLimit: null,
-  cancelAtPeriodEnd: false,
   cappedAt: null,
   channelCountPerAppLimit: null,
   countryAllowlist: null,
@@ -31,6 +29,7 @@ export const ACME_ORGANIZATION: Organization = {
   deletedAt: null,
   enterpriseMonthlyActiveDeviceCountLimit: null,
   fileCountPerBundleLimit: null,
+  finalPeriodEndsAt: null,
   id: '0f8fad5b-d9cb-469f-a165-70867728950e',
   ipAllowlist: null,
   isTwoFactorRequired: false,
@@ -44,12 +43,16 @@ export const ACME_ORGANIZATION: Organization = {
   plan: 'free',
   region: 'eu',
   releaseCountPerAppPerDayLimit: null,
+  reportedBillableDeviceCount: 0,
+  reportedBillableDeviceCountHour: null,
+  reportedBillableDeviceCountMonth: null,
   retentionDays: null,
   spendingCapCents: 0,
   storageBytes: 0,
   storageBytesLimit: null,
   subscriptionProvider: null,
   subscriptionStatus: null,
+  unsentBillableDeviceCount: 0,
   updatedAt: '2026-09-01T08:00:00.000Z',
 };
 
@@ -70,13 +73,6 @@ export const GLOBEX_ORGANIZATION: Organization = {
 };
 
 /**
- * Globex's billing this month: the devices counted so far.
- */
-export const GLOBEX_BILLING: Billing = {
-  monthlyActiveDeviceCount: 1234,
-};
-
-/**
  * Two of Globex's limits, one raised for it.
  */
 export const GLOBEX_LIMITS: Limits = {
@@ -92,9 +88,11 @@ export const PRODUCTION_CHANNEL: Channel = {
   failureMinimumUpdateCount: null,
   failureThresholdPercent: null,
   id: '6ba7b810-9dad-41d1-80b4-00c04fd430c8',
+  indexSequence: 1788422400000,
   isDiscoverable: false,
   isProtected: true,
   name: 'production',
+  nextReleaseNumber: 1,
   pausedAt: null,
   updatedAt: '2026-09-03T08:00:00.000Z',
   verificationResult: null,
@@ -109,6 +107,7 @@ export const DEMO_APP: App = {
   framework: 'capacitor',
   id: PRODUCTION_CHANNEL.appId,
   name: 'Demo',
+  nextBundleNumber: 18,
   organizationId: ACME_ORGANIZATION.id,
   updatedAt: '2026-09-03T08:00:00.000Z',
 };
@@ -120,8 +119,10 @@ export const STAGING_CHANNEL: Channel = {
   failureMinimumUpdateCount: 20,
   failureThresholdPercent: 10,
   id: '9b2f4d1e-3c5a-4e6f-8a7b-1c2d3e4f5a6b',
+  indexSequence: 1788768006000,
   isProtected: false,
   name: 'staging',
+  nextReleaseNumber: 44,
   updatedAt: '2026-09-04T08:00:00.000Z',
 };
 
@@ -205,6 +206,7 @@ export const READY_BUNDLE_DELTA_PACKS: BundleDelta[] = [
 ];
 
 export const LIVE_RELEASE: Release = {
+  autoPausedAt: null,
   bundleId: READY_BUNDLE.id,
   channelId: STAGING_CHANNEL.id,
   conditions: [],
