@@ -8,6 +8,7 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { NativeProjectError } from './errors.js';
 import { resolveGradleEdit } from './native-project-edit.js';
 
 const PACKAGE_NAME = '@hotcodepush/capacitor-live-updates';
@@ -60,7 +61,24 @@ describe('native-project-edit', () => {
       );
     });
 
-    it('should answer no edit when the Android project has no app Gradle file', () => {
+    it('should stop with the manual step when the Android project has no app Gradle file', () => {
+      const edit = resolveGradleEdit(androidProjectPath, PACKAGE_NAME);
+      expect(edit?.filePath).toBe(
+        join(androidProjectPath, 'app', 'build.gradle'),
+      );
+      expect(edit?.isApplied()).toBe(false);
+
+      expect(() => edit?.apply()).toThrow(
+        new NativeProjectError(
+          `The Android project ${androidProjectPath} has no build.gradle or build.gradle.kts in its app folder.`,
+          `Apply node_modules/${PACKAGE_NAME}/android/hotcodepush.gradle from the app module's Gradle file.`,
+        ),
+      );
+    });
+
+    it('should answer no edit without an Android project', () => {
+      rmSync(androidProjectPath, { recursive: true });
+
       expect(
         resolveGradleEdit(androidProjectPath, PACKAGE_NAME),
       ).toBeUndefined();

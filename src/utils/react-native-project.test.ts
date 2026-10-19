@@ -4,11 +4,15 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   APP_DELEGATE_FILE_PATH,
   CORE_POD_COMMIT,
+  JAVA_MAIN_APPLICATION_FILE_PATH,
   MAIN_APPLICATION_FILE_PATH,
+  OBJECTIVE_C_APP_DELEGATE_FILE_PATH,
   PODFILE_PATH,
   SCENE_DELEGATE_FILE_PATH,
   readProjectFile,
   writeInstalledSdk,
+  wireObjectiveCAndJavaByHand,
+  writeObjectiveCAndJavaLayout,
   writeReactNativeProject,
   writeSceneDelegateLayout,
 } from '../../test/react-native-project.js';
@@ -116,8 +120,53 @@ describe('react-native-project', () => {
       );
     });
 
-    it('should answer no edit when the iOS project has no AppDelegate.swift', () => {
+    it('should stop with the manual step naming AppDelegate.mm when the app delegate is Objective-C', () => {
+      writeObjectiveCAndJavaLayout(directoryPath);
+      const filePath = join(directoryPath, OBJECTIVE_C_APP_DELEGATE_FILE_PATH);
+      const appDelegate = readProjectFile(
+        directoryPath,
+        OBJECTIVE_C_APP_DELEGATE_FILE_PATH,
+      );
+      const edit = resolveBundleUrlEdit(join(directoryPath, 'ios'));
+      expect(edit?.filePath).toBe(filePath);
+      expect(edit?.isApplied()).toBe(false);
+
+      expect(() => edit?.apply()).toThrow(
+        new NativeProjectError(
+          `The app delegate ${filePath} is Objective-C, and init edits only the Swift file that overrides bundleURL().`,
+          `Import <HotcodepushReactNativeCodePush/HotcodepushReactNativeCodePush-Swift.h> in ${filePath} and return [HotCodePush bundleURL] from bundleURL where it returns the embedded bundle.`,
+        ),
+      );
+      expect(
+        readProjectFile(directoryPath, OBJECTIVE_C_APP_DELEGATE_FILE_PATH),
+      ).toBe(appDelegate);
+    });
+
+    it('should count AppDelegate.mm as wired once it returns [HotCodePush bundleURL] by hand', () => {
+      writeObjectiveCAndJavaLayout(directoryPath);
+      wireObjectiveCAndJavaByHand(directoryPath);
+
+      expect(
+        resolveBundleUrlEdit(join(directoryPath, 'ios'))?.isApplied(),
+      ).toBe(true);
+    });
+
+    it('should stop with the manual step when the iOS project has no app delegate', () => {
       rmSync(join(directoryPath, APP_DELEGATE_FILE_PATH));
+      const iosProjectPath = join(directoryPath, 'ios');
+      const edit = resolveBundleUrlEdit(iosProjectPath);
+      expect(edit?.isApplied()).toBe(false);
+
+      expect(() => edit?.apply()).toThrow(
+        new NativeProjectError(
+          `The iOS project ${iosProjectPath} has no AppDelegate.swift in an app folder.`,
+          'Import HotcodepushReactNativeCodePush in the file that overrides bundleURL() and return HotCodePush.bundleURL() from it where it returns the embedded bundle.',
+        ),
+      );
+    });
+
+    it('should answer no edit without an iOS project', () => {
+      rmSync(join(directoryPath, 'ios'), { recursive: true });
 
       expect(resolveBundleUrlEdit(join(directoryPath, 'ios'))).toBeUndefined();
     });
@@ -199,6 +248,59 @@ describe('react-native-project', () => {
       expect(() =>
         resolveReactHostEdit(join(directoryPath, 'android'))?.apply(),
       ).toThrow(NativeProjectError);
+    });
+
+    it('should stop with the manual step naming MainApplication.java when the application is Java', () => {
+      writeObjectiveCAndJavaLayout(directoryPath);
+      const filePath = join(directoryPath, JAVA_MAIN_APPLICATION_FILE_PATH);
+      const mainApplication = readProjectFile(
+        directoryPath,
+        JAVA_MAIN_APPLICATION_FILE_PATH,
+      );
+      const edit = resolveReactHostEdit(join(directoryPath, 'android'));
+      expect(edit?.filePath).toBe(filePath);
+      expect(edit?.isApplied()).toBe(false);
+
+      expect(() => edit?.apply()).toThrow(
+        new NativeProjectError(
+          `The file ${filePath} is Java, and init edits only the MainApplication.kt of React Native's template.`,
+          `Build the React host in ${filePath} with com.hotcodepush.reactnative.HotCodePushReactHost.getDefaultReactHost, which takes DefaultReactHost.getDefaultReactHost's parameters.`,
+        ),
+      );
+      expect(
+        readProjectFile(directoryPath, JAVA_MAIN_APPLICATION_FILE_PATH),
+      ).toBe(mainApplication);
+    });
+
+    it('should count MainApplication.java as wired once it builds the host with HotCodePushReactHost by hand', () => {
+      writeObjectiveCAndJavaLayout(directoryPath);
+      wireObjectiveCAndJavaByHand(directoryPath);
+
+      expect(
+        resolveReactHostEdit(join(directoryPath, 'android'))?.isApplied(),
+      ).toBe(true);
+    });
+
+    it('should stop with the manual step when the Android project has no MainApplication.kt', () => {
+      rmSync(join(directoryPath, MAIN_APPLICATION_FILE_PATH));
+      const androidProjectPath = join(directoryPath, 'android');
+      const edit = resolveReactHostEdit(androidProjectPath);
+      expect(edit?.isApplied()).toBe(false);
+
+      expect(() => edit?.apply()).toThrow(
+        new NativeProjectError(
+          `The Android project ${androidProjectPath} has no MainApplication.kt in its app's sources.`,
+          "Build the React host in the app's Application class with com.hotcodepush.reactnative.HotCodePushReactHost.getDefaultReactHost, which takes DefaultReactHost.getDefaultReactHost's parameters.",
+        ),
+      );
+    });
+
+    it('should answer no edit without an Android project', () => {
+      rmSync(join(directoryPath, 'android'), { recursive: true });
+
+      expect(
+        resolveReactHostEdit(join(directoryPath, 'android')),
+      ).toBeUndefined();
     });
   });
 });

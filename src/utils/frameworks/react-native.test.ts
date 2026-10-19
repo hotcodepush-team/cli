@@ -4,12 +4,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   APP_DELEGATE_FILE_PATH,
   APP_GRADLE_FILE_PATH,
+  JAVA_MAIN_APPLICATION_FILE_PATH,
   MAIN_APPLICATION_FILE_PATH,
+  OBJECTIVE_C_APP_DELEGATE_FILE_PATH,
   PODFILE_PATH,
   SCENE_DELEGATE_FILE_PATH,
   XCODE_PROJECT_FILE_PATH,
   readProjectFile,
   writeInstalledSdk,
+  wireObjectiveCAndJavaByHand,
+  writeObjectiveCAndJavaLayout,
   writeReactNativeProject,
   writeSceneDelegateLayout,
 } from '../../../test/react-native-project.js';
@@ -280,6 +284,65 @@ describe('reactNativeFramework', () => {
         expect(runCommandLineVisibly).not.toHaveBeenCalled();
       });
 
+      it('should make the edits it can and stop with the manual step naming AppDelegate.mm when the apps are Objective-C and Java', async () => {
+        const directoryPath = writeProject({ isPackageInstalled: true });
+        writeInstalledSdk(directoryPath);
+        writeObjectiveCAndJavaLayout(directoryPath);
+        const wiring = await reactNativeFramework.resolveWiring(
+          readProject(directoryPath),
+          { yes: true },
+        );
+        expect(wiring.nativeFilePaths).toEqual([
+          XCODE_PROJECT_FILE_PATH,
+          APP_GRADLE_FILE_PATH,
+          OBJECTIVE_C_APP_DELEGATE_FILE_PATH,
+          JAVA_MAIN_APPLICATION_FILE_PATH,
+          PODFILE_PATH,
+        ]);
+
+        await expect(wiring.wireBinaryCreateStep(undefined)).rejects.toThrow(
+          new NativeProjectError(
+            `The app delegate ${join(directoryPath, OBJECTIVE_C_APP_DELEGATE_FILE_PATH)} is Objective-C, and init edits only the Swift file that overrides bundleURL().`,
+            `Import <HotcodepushReactNativeCodePush/HotcodepushReactNativeCodePush-Swift.h> in ${join(directoryPath, OBJECTIVE_C_APP_DELEGATE_FILE_PATH)} and return [HotCodePush bundleURL] from bundleURL where it returns the embedded bundle.`,
+          ),
+        );
+
+        expect(readProjectFile(directoryPath, APP_GRADLE_FILE_PATH)).toContain(
+          'hotcodepush.gradle',
+        );
+        expect(readProjectFile(directoryPath, PODFILE_PATH)).toContain(
+          "pod 'HotCodePushCore'",
+        );
+        expect(runCommandLineVisibly).not.toHaveBeenCalled();
+      });
+
+      it('should stop no more once the Objective-C and Java apps are wired by hand', async () => {
+        const directoryPath = writeProject({ isPackageInstalled: true });
+        writeInstalledSdk(directoryPath);
+        writeObjectiveCAndJavaLayout(directoryPath);
+        await expect(
+          (
+            await reactNativeFramework.resolveWiring(
+              readProject(directoryPath),
+              { yes: true },
+            )
+          ).wireBinaryCreateStep(undefined),
+        ).rejects.toThrow(NativeProjectError);
+        wireObjectiveCAndJavaByHand(directoryPath);
+
+        const wiring = await reactNativeFramework.resolveWiring(
+          readProject(directoryPath),
+          { yes: true },
+        );
+        expect(wiring.nativeFilePaths).toEqual([]);
+
+        expect(await wiring.wireBinaryCreateStep(undefined)).toEqual({
+          message: 'Wired the pods through "pod install".',
+          status: 'done',
+          value: undefined,
+        });
+      });
+
       it('should stop with the missing native projects when neither exists', async () => {
         const directoryPath = writeProject({ isPackageInstalled: true });
         rmSync(join(directoryPath, 'ios'), { recursive: true });
@@ -333,6 +396,59 @@ describe('reactNativeFramework', () => {
         check: 'host',
         manualStep: 'Run "hotcodepush init".',
         message: `The wiring is missing from ${SCENE_DELEGATE_FILE_PATH} and ${MAIN_APPLICATION_FILE_PATH}.`,
+        status: 'failed',
+      });
+    });
+
+    it('should fail the host naming AppDelegate.mm and MainApplication.java when the apps are Objective-C and Java', () => {
+      const directoryPath = writeProject({ isPackageInstalled: true });
+      writeObjectiveCAndJavaLayout(directoryPath);
+
+      expect(
+        reactNativeFramework
+          .checkWiring(readProject(directoryPath))
+          .find(({ check }) => check === 'host'),
+      ).toEqual({
+        check: 'host',
+        manualStep: 'Run "hotcodepush init".',
+        message: `The wiring is missing from ${OBJECTIVE_C_APP_DELEGATE_FILE_PATH} and ${JAVA_MAIN_APPLICATION_FILE_PATH}.`,
+        status: 'failed',
+      });
+    });
+
+    it('should report the hook and the host of Objective-C and Java apps wired by hand', async () => {
+      const directoryPath = writeProject({ isPackageInstalled: true });
+      writeInstalledSdk(directoryPath);
+      writeObjectiveCAndJavaLayout(directoryPath);
+      await expect(
+        (
+          await reactNativeFramework.resolveWiring(readProject(directoryPath), {
+            yes: true,
+          })
+        ).wireBinaryCreateStep(undefined),
+      ).rejects.toThrow(NativeProjectError);
+      wireObjectiveCAndJavaByHand(directoryPath);
+
+      expect(
+        reactNativeFramework
+          .checkWiring(readProject(directoryPath))
+          .slice(1)
+          .map(({ check, status }) => `${check}:${status}`),
+      ).toEqual(['hook:ok', 'host:ok']);
+    });
+
+    it('should fail the hook naming the Gradle file when the Android project has none', () => {
+      const directoryPath = writeProject({ isPackageInstalled: true });
+      rmSync(join(directoryPath, APP_GRADLE_FILE_PATH));
+
+      expect(
+        reactNativeFramework
+          .checkWiring(readProject(directoryPath))
+          .find(({ check }) => check === 'hook'),
+      ).toEqual({
+        check: 'hook',
+        manualStep: 'Run "hotcodepush init".',
+        message: `The wiring is missing from the Xcode project and ${APP_GRADLE_FILE_PATH}.`,
         status: 'failed',
       });
     });

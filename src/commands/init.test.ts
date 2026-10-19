@@ -35,10 +35,12 @@ import {
   APP_DELEGATE_FILE_PATH,
   APP_GRADLE_FILE_PATH,
   MAIN_APPLICATION_FILE_PATH,
+  OBJECTIVE_C_APP_DELEGATE_FILE_PATH,
   PODFILE_PATH,
   XCODE_PROJECT_FILE_PATH,
   readProjectFile,
   writeInstalledSdk,
+  writeObjectiveCAndJavaLayout,
   writeReactNativeProject,
 } from '../../test/react-native-project.js';
 import { CAPACITOR_PACKAGE_SPEC } from '../config/consts.js';
@@ -893,6 +895,41 @@ describe('init', () => {
         'Run "hotcodepush release create" to publish the first release.',
       ]);
     }, 15_000);
+
+    it('should stop the hook with E_NATIVE_PROJECT and the manual step when the app delegate is Objective-C', async () => {
+      const directoryPath = writeReactNative({
+        isPackageInstalled: true,
+        projectConfig: {
+          appId: DEMO_APP.id,
+          channel: PRODUCTION_CHANNEL.name,
+        },
+      });
+      writeInstalledSdk(directoryPath);
+      writeObjectiveCAndJavaLayout(directoryPath);
+      respondWithSession([ACME_ORGANIZATION]);
+      respondWithConfiguredApp();
+
+      await expect(
+        initCommand.action(
+          { json: true, yes: true, ...withCwd(directoryPath) },
+          undefined,
+        ),
+      ).rejects.toBeInstanceOf(ReportedFailureError);
+
+      const result = harness.readJson() as InitResult;
+      const appDelegatePath = join(
+        directoryPath,
+        OBJECTIVE_C_APP_DELEGATE_FILE_PATH,
+      );
+      expect(result.status).toBe('incomplete');
+      expect(result.steps.find(({ step }) => step === 'hook')).toEqual({
+        code: 'E_NATIVE_PROJECT',
+        manualStep: `Import <HotcodepushReactNativeCodePush/HotcodepushReactNativeCodePush-Swift.h> in ${appDelegatePath} and return [HotCodePush bundleURL] from bundleURL where it returns the embedded bundle.`,
+        message: `The app delegate ${appDelegatePath} is Objective-C, and init edits only the Swift file that overrides bundleURL().`,
+        status: 'stopped',
+        step: 'hook',
+      });
+    });
 
     it('should name the native files it would change and change none when nobody can confirm', async () => {
       const directoryPath = writeReactNative();

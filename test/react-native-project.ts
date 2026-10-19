@@ -1,4 +1,10 @@
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
@@ -16,6 +22,18 @@ export const APP_GRADLE_FILE_PATH = join('android', 'app', 'build.gradle');
 
 export const CORE_POD_COMMIT = '0123456789abcdef0123456789abcdef01234567';
 
+export const JAVA_MAIN_APPLICATION_FILE_PATH = join(
+  'android',
+  'app',
+  'src',
+  'main',
+  'java',
+  'com',
+  'example',
+  'demo',
+  'MainApplication.java',
+);
+
 export const MAIN_APPLICATION_FILE_PATH = join(
   'android',
   'app',
@@ -26,6 +44,12 @@ export const MAIN_APPLICATION_FILE_PATH = join(
   'example',
   'demo',
   'MainApplication.kt',
+);
+
+export const OBJECTIVE_C_APP_DELEGATE_FILE_PATH = join(
+  'ios',
+  'Demo',
+  'AppDelegate.mm',
 );
 
 export const PODFILE_PATH = join('ios', 'Podfile');
@@ -89,6 +113,22 @@ android {
 }
 `;
 
+const JAVA_MAIN_APPLICATION = `package com.example.demo;
+
+import android.app.Application;
+import com.facebook.react.PackageList;
+import com.facebook.react.ReactApplication;
+import com.facebook.react.ReactHost;
+import com.facebook.react.defaults.DefaultReactHost;
+
+public class MainApplication extends Application implements ReactApplication {
+  @Override
+  public ReactHost getReactHost() {
+    return DefaultReactHost.getDefaultReactHost(getApplicationContext(), new PackageList(this).getPackages());
+  }
+}
+`;
+
 const MAIN_APPLICATION = `package com.example.demo
 
 import android.app.Application
@@ -102,6 +142,24 @@ class MainApplication : Application(), ReactApplication {
     getDefaultReactHost(context = applicationContext, packageList = PackageList(this).packages)
   }
 }
+`;
+
+const OBJECTIVE_C_APP_DELEGATE = `#import "AppDelegate.h"
+
+#import <React/RCTBundleURLProvider.h>
+
+@implementation AppDelegate
+
+- (NSURL *)bundleURL
+{
+#if DEBUG
+  return [[RCTBundleURLProvider sharedSettings] jsBundleURLForBundleRoot:@"index"];
+#else
+  return [[NSBundle mainBundle] URLForResource:@"main" withExtension:@"jsbundle"];
+#endif
+}
+
+@end
 `;
 
 const PBXPROJ_FIXTURE_PATH = join(
@@ -222,6 +280,62 @@ export function writeInstalledSdk(directoryPath: string): void {
 export function writeSceneDelegateLayout(directoryPath: string): void {
   writeFile(join(directoryPath, APP_DELEGATE_FILE_PATH), APP_DELEGATE_STUB);
   writeFile(join(directoryPath, SCENE_DELEGATE_FILE_PATH), SCENE_DELEGATE);
+}
+
+/**
+ * The apps as React Native's templates before 0.77 and 0.73 laid them out: `AppDelegate.mm` in place of
+ * `AppDelegate.swift`, `MainApplication.java` in place of `MainApplication.kt`.
+ */
+export function writeObjectiveCAndJavaLayout(directoryPath: string): void {
+  rmSync(join(directoryPath, APP_DELEGATE_FILE_PATH));
+  rmSync(join(directoryPath, MAIN_APPLICATION_FILE_PATH));
+  writeFile(
+    join(directoryPath, OBJECTIVE_C_APP_DELEGATE_FILE_PATH),
+    OBJECTIVE_C_APP_DELEGATE,
+  );
+  writeFile(
+    join(directoryPath, JAVA_MAIN_APPLICATION_FILE_PATH),
+    JAVA_MAIN_APPLICATION,
+  );
+}
+
+/**
+ * The Objective-C and Java apps wired by hand, as the manual steps of `init`'s refusal say: the app delegate returns
+ * `[HotCodePush bundleURL]`, the application builds its host with `HotCodePushReactHost`.
+ */
+export function wireObjectiveCAndJavaByHand(directoryPath: string): void {
+  const appDelegatePath = join(
+    directoryPath,
+    OBJECTIVE_C_APP_DELEGATE_FILE_PATH,
+  );
+  writeFile(
+    appDelegatePath,
+    readFileSync(appDelegatePath, 'utf8')
+      .replace(
+        '#import <React/RCTBundleURLProvider.h>',
+        '#import <React/RCTBundleURLProvider.h>\n#import <HotcodepushReactNativeCodePush/HotcodepushReactNativeCodePush-Swift.h>',
+      )
+      .replace(
+        '[[NSBundle mainBundle] URLForResource:@"main" withExtension:@"jsbundle"]',
+        '[HotCodePush bundleURL]',
+      ),
+  );
+  const mainApplicationPath = join(
+    directoryPath,
+    JAVA_MAIN_APPLICATION_FILE_PATH,
+  );
+  writeFile(
+    mainApplicationPath,
+    readFileSync(mainApplicationPath, 'utf8')
+      .replace(
+        'import com.facebook.react.defaults.DefaultReactHost;',
+        'import com.hotcodepush.reactnative.HotCodePushReactHost;',
+      )
+      .replace(
+        'DefaultReactHost.getDefaultReactHost(',
+        'HotCodePushReactHost.getDefaultReactHost(',
+      ),
+  );
 }
 
 export function readProjectFile(
