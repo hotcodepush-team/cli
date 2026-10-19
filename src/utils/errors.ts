@@ -301,15 +301,15 @@ export class UnexpectedResponseError extends CliError {
 }
 
 /**
- * An Xcode project the CLI cannot edit: unparseable, or without the group or the phase its edit attaches to.
- * The fix is the edit by hand, the resource reference a Capacitor project takes unless another is named.
+ * An Xcode project the CLI cannot edit: unparseable, or without the phase its edit attaches to.
+ * The fix is the edit by hand, the build phase unless the edit names its own.
  */
 export class XcodeProjectError extends CliError {
   constructor(
     message: string,
     cause: unknown,
     projectFilePath: string,
-    fix = `Add hotcodepush.json to the app target's Copy Bundle Resources in ${projectFilePath}.`,
+    fix = `Add the build phase to the app target in ${projectFilePath} by hand.`,
   ) {
     super({
       cause,

@@ -15,6 +15,7 @@ import {
   UnexpectedError,
   UnknownCommandError,
   UnknownNameError,
+  XcodeProjectError,
 } from './errors.js';
 
 describe('errors', () => {
@@ -138,5 +139,17 @@ describe('errors', () => {
 
   it('should take the text of a thrown value that is not an error', () => {
     expect(new UnexpectedError('boom').message).toBe('boom');
+  });
+
+  it('should ask for the build phase by hand when an Xcode edit names no fix of its own', () => {
+    const error = new XcodeProjectError(
+      'The Xcode project ios/App.xcodeproj/project.pbxproj could not be parsed.',
+      undefined,
+      'ios/App.xcodeproj/project.pbxproj',
+    );
+
+    expect(error.fix).toBe(
+      'Add the build phase to the app target in ios/App.xcodeproj/project.pbxproj by hand.',
+    );
   });
 });
