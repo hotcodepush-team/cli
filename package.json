@@ -32,6 +32,10 @@
   "files": [
     "dist"
   ],
+  "telemetry": {
+    "posthogProjectKey": "",
+    "sentryDsn": ""
+  },
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
     "fmt": "prettier --write .",

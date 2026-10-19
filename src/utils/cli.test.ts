@@ -5,6 +5,12 @@ import { runCli } from './cli.js';
 import type { CommandRegistry } from './command-registry.js';
 import { MissingParameterError } from './errors.js';
 import { defineCommandOptions } from './global-options.js';
+import { printTelemetryNotice, reportFinishedCommand } from './telemetry.js';
+
+vi.mock('./telemetry.js', () => ({
+  printTelemetryNotice: vi.fn(),
+  reportFinishedCommand: vi.fn(),
+}));
 
 const META = {
   description: 'The HotCodePush CLI',
@@ -301,6 +307,42 @@ describe('runCli', () => {
         message: 'Unknown option: --colour.',
       },
     });
+  });
+
+  it('should print the telemetry notice and report the finished command with its name, its error and its duration', async () => {
+    const { commandRegistry } = createCommandTree();
+    captureOutput();
+
+    await runCli(commandRegistry, ['login'], META);
+
+    expect(printTelemetryNotice).toHaveBeenCalled();
+    expect(reportFinishedCommand).toHaveBeenCalledWith({
+      cliError: new MissingParameterError('--token'),
+      commandName: 'login',
+      durationMs: expect.any(Number),
+    });
+  });
+
+  it('should report a command that succeeded without an error', async () => {
+    const { commandRegistry } = createCommandTree();
+
+    await runCli(commandRegistry, ['channel', 'create'], META);
+
+    expect(reportFinishedCommand).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cliError: undefined,
+        commandName: 'channel create',
+      }),
+    );
+  });
+
+  it('should report nothing when the command line names no command', async () => {
+    const { commandRegistry } = createCommandTree();
+    captureOutput();
+
+    await runCli(commandRegistry, ['chanel', 'create'], META);
+
+    expect(reportFinishedCommand).not.toHaveBeenCalled();
   });
 
   it('should print the version when -v is passed', async () => {

@@ -200,7 +200,7 @@ export default defineCommand({
       }
     }
     if (run.stoppedCode !== undefined) {
-      throw new ReportedFailureError(run.stoppedCode);
+      throw new ReportedFailureError(run.stoppedCode, run.stoppedStep);
     }
   },
 });

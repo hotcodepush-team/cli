@@ -92,6 +92,15 @@ The build step runs inside every native build, from the Xcode phase and the Grad
 A React Native or Expo build that bundled nothing, a debug build Metro serves, gets the file without an embedded bundle and with the channel only where `hotcodepush.json` names it by id, no binary, no request and no login, so every check in that build answers `SKIPPED` with `BUILD_DEBUG`.
 `resource-file write` never fails for want of a token or an API: without a token, or with `HOTCODEPUSH_OFFLINE=1`, it writes the file without a channel, so the build takes no updates, and says so. `binary create` behaves the same on a laptop, warning and creating no binary, and fails the build in CI, where a missing token, an unreachable API or a conflicting binary is a pipeline mistake someone must see.
 
+## Telemetry
+
+The CLI collects anonymous usage and error data to improve it.
+After every command it sends one event, `cli.command_finished`, to PostHog: the command's name, its outcome, `succeeded` or `failed`, the step `init` stopped at, the duration in milliseconds, the CLI's version, whether it ran in CI and the project's framework.
+The event carries a hash of the machine's host name as its id, and never an argument, a path or a name from your project.
+An error the CLI did not expect goes to Sentry with its code, the command's name and the stack, without the error's message, and each file in the stack cut to its part below `node_modules`.
+The errors with an `E_` code of their own, your input or the API's answer, are never sent.
+Set `HOTCODEPUSH_TELEMETRY_DISABLED=1` or `DO_NOT_TRACK=1` to turn both off; the first run on a machine prints one line that says so.
+
 ## Documentation
 
 See [hotcodepush.com/docs/cli](https://hotcodepush.com/docs/cli).

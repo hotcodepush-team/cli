@@ -131,7 +131,7 @@ export function resolveCliError(error: unknown): CliError {
   }
   if (error instanceof HotCodePushError) {
     return error.code === UNEXPECTED_RESPONSE_CODE
-      ? new UnexpectedResponseError(error.status)
+      ? new UnexpectedResponseError(error.status, error)
       : new ApiError(error.code, error.message, error.status);
   }
   if (error instanceof ZodError) {

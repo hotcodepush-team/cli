@@ -40,6 +40,10 @@ export class InitRun {
     return this.steps.find(({ status }) => status === 'stopped')?.code;
   }
 
+  get stoppedStep(): string | undefined {
+    return this.steps.find(({ status }) => status === 'stopped')?.step;
+  }
+
   async run<TValue>(
     step: string,
     perform: () => Promise<StepOutcome<TValue>>,

@@ -246,15 +246,19 @@ export class PipelineNotLoggedInError extends CliError {
 /**
  * The outcome a command printed itself — `init`'s steps, `doctor`'s checks — ended in a failure:
  * only the exit code is left to set, and the entry point prints nothing more for it.
+ * `init` names the step it stopped at, which its telemetry event carries.
  */
 export class ReportedFailureError extends CliError {
-  constructor(code: string) {
+  readonly stoppedStep: string | undefined;
+
+  constructor(code: string, stoppedStep?: string) {
     super({
       code,
       exitCode: ExitCode.Error,
       fix: null,
       message: 'Reported above.',
     });
+    this.stoppedStep = stoppedStep;
   }
 }
 
@@ -287,11 +291,13 @@ export class UnexpectedError extends CliError {
 
 /**
  * An answer outside the API's shape, a proxy's error page or a body without the catalog's code, from either client:
- * the typed client reports it as `E_UNEXPECTED_RESPONSE`, Better Auth's client as an error without a code.
+ * the typed client reports it as `E_UNEXPECTED_RESPONSE`, its error kept as the cause, Better Auth's client as an error
+ * without a code.
  */
 export class UnexpectedResponseError extends CliError {
-  constructor(status: number) {
+  constructor(status: number, cause?: unknown) {
     super({
+      cause,
       code: 'E_UNEXPECTED_RESPONSE',
       exitCode: ExitCode.Error,
       fix: `Check the API URL in config.json and the network, and report it at ${ISSUES_URL} if it persists.`,

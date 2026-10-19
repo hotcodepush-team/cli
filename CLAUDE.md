@@ -30,7 +30,7 @@ src/
                the progression schedule from its flags, the spending cap in whole dollars, a member or an invitation by id or email,
                the native glue the Capacitor and Cordova modules name, one constant in `frameworks/native-glue.ts`,
                the build step both commands share, the resource file,
-               the progress lines, the browser opener, the JSON, tables and details output,
+               the progress lines, the browser opener, the JSON, tables and details output, the telemetry,
                init's step runner, the outcome rows init and doctor print, the package manager and its visible runs,
                the native-project edits: the binary create phase in the Xcode project and the removal of the resource reference an earlier init added, package.json reading,
                the lines a React Native project is wired with
@@ -143,6 +143,9 @@ A project with an app config that is code, or with a JSON one that does not pars
   A build that bundled nothing — a React Native or Expo debug build, Metro serving its JavaScript — is neither: before any token is read, the file is written with `embeddedBundle: null` and the channel id only where the project named the channel by id, no binary is created, one line on stderr says so and the exit is 0; every check in that build answers `SKIPPED` with `BUILD_DEBUG`.
   The fingerprint is the strict half too: a project the recipe cannot read is `E_FINGERPRINT_UNAVAILABLE` on `binary create` and upload alike, never `null`, since a release targets it.
   The device hosts it writes derive from the API URL: none for production, the staging hosts for staging, `<apiUrl>/files` and `/updates` for any other, `HOTCODEPUSH_FILES_BASE_URL` and `HOTCODEPUSH_UPDATES_BASE_URL` overriding.
+- **Telemetry is one switch**: `HOTCODEPUSH_TELEMETRY_DISABLED=1` or `DO_NOT_TRACK=1` turns off both `cli.command_finished` to PostHog and the unexpected errors to Sentry, and the first run on a machine prints the notice on stderr, remembered as `telemetryNoticeShownAt`.
+  `runCli` reports the finished command through two `fetch` calls of ours, no SDK, waited for at most 1.5 seconds and silent when they fail: PostHog's capture endpoint gets `command`, `outcome`, `stopped_step` for `init`, `duration_ms`, `cli_version`, `is_ci`, `framework` and `source` under the hashed host name, and Sentry's envelope endpoint gets `E_UNEXPECTED` and `E_UNEXPECTED_RESPONSE`, the error's type and its stack as the value, without its message or a path above `node_modules`, with the code and the command as tags.
+  The keys are `telemetry.posthogProjectKey` and `telemetry.sentryDsn` in `package.json`, empty in the repository, so every build but the release sends nothing; the release build sets them from the repository variables `POSTHOG_PROJECT_KEY` and `SENTRY_DSN` with `npm pkg set` before it publishes.
 - **Every login** keeps its device code, expiry, user code and verification URL in `config.json` until approved; the next `login` redeems the code first and, while it is pending, shows the same code again, so an agent sees one output until the person approves.
 
 ## Naming
