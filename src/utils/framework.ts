@@ -5,18 +5,13 @@ import { isInteractive } from './environment.js';
 import { MissingParameterError, UnknownFrameworkError } from './errors.js';
 import { CAPACITOR_CONFIG_FILE_NAMES } from './frameworks/capacitor.js';
 import type { FrameworkModule } from './frameworks/index.js';
-import { readJsonFile } from './json-file.js';
+import { readPackageJson } from './package-json.js';
 import { promptText } from './prompts.js';
 
 export type Framework = 'capacitor' | 'cordova' | 'expo' | 'react-native';
 
 interface InputDirectoryOptions extends InteractivityOptions {
   path?: string;
-}
-
-interface PackageJson {
-  dependencies?: Record<string, string>;
-  devDependencies?: Record<string, string>;
 }
 
 const FRAMEWORK_PACKAGES: [packageName: string, framework: Framework][] = [
@@ -31,11 +26,10 @@ const FRAMEWORK_PACKAGES: [packageName: string, framework: Framework][] = [
  * when several are named, an Expo app's `react-native` among them.
  */
 export function detectFramework(projectDirectoryPath: string): Framework {
-  const packageJsonPath = join(projectDirectoryPath, 'package.json');
-  if (!existsSync(packageJsonPath)) {
+  if (!existsSync(join(projectDirectoryPath, 'package.json'))) {
     throw new UnknownFrameworkError();
   }
-  const packageJson = readJsonFile(packageJsonPath) as PackageJson;
+  const packageJson = readPackageJson(projectDirectoryPath);
   const dependencyNames = new Set([
     ...Object.keys(packageJson.dependencies ?? {}),
     ...Object.keys(packageJson.devDependencies ?? {}),
