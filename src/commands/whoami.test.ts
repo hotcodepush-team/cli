@@ -24,22 +24,32 @@ vi.mock('@napi-rs/keyring', () => ({
   }),
 }));
 
+const USER_PATH = '/v1/users/me?relations=members%2Cmembers.organization';
+
+/**
+ * The runner as `users.get` answers them with their member rows and each row's organization: an admin of Globex, the owner of Acme.
+ */
+const RUNNER_USER_WITH_ORGANIZATIONS = {
+  ...RUNNER_USER_WITH_MEMBERS,
+  members: (RUNNER_USER_WITH_MEMBERS.members ?? []).map(member => ({
+    ...member,
+    organization:
+      member.organizationId === ACME_ORGANIZATION.id
+        ? ACME_ORGANIZATION
+        : GLOBEX_ORGANIZATION,
+  })),
+};
+
 describe('whoami', () => {
   const harness = useCommandHarness();
 
-  function respondWithSessionAndOrganizations(organizations: object[]): void {
+  function respondWithSessionAndUser(user: object): void {
     useStoredSession();
-    harness.routes['GET /v1/users/me?relations=members'] = () =>
-      Response.json(RUNNER_USER_WITH_MEMBERS);
-    harness.routes['GET /v1/organizations?limit=100&offset=0'] = () =>
-      Response.json(organizations);
+    harness.routes[`GET ${USER_PATH}`] = () => Response.json(user);
   }
 
-  it('should print the user, the API and their organizations with the roles of their member rows', async () => {
-    respondWithSessionAndOrganizations([
-      ACME_ORGANIZATION,
-      GLOBEX_ORGANIZATION,
-    ]);
+  it('should print the user, the API and their organizations with the roles of their member rows, in one request', async () => {
+    respondWithSessionAndUser(RUNNER_USER_WITH_ORGANIZATIONS);
 
     await whoamiCommand.action({}, undefined);
 
@@ -47,36 +57,33 @@ describe('whoami', () => {
       'Logged in as Anna Example (anna@example.com).',
       `API: ${API_URL}`,
       'Organizations:',
-      '  Acme (owner)',
       '  Globex (admin)',
+      '  Acme (owner)',
     ]);
     expect(
       harness.requests.map(request => request.headers.get('Authorization')),
-    ).toEqual(['Bearer session-token-1', 'Bearer session-token-1']);
+    ).toEqual(['Bearer session-token-1']);
   });
 
-  it('should print the user and their organizations as JSON when --json is passed', async () => {
-    respondWithSessionAndOrganizations([
-      ACME_ORGANIZATION,
-      GLOBEX_ORGANIZATION,
-    ]);
+  it('should print the user with its member rows and the organization rows as served when --json is passed', async () => {
+    respondWithSessionAndUser(RUNNER_USER_WITH_ORGANIZATIONS);
 
     await whoamiCommand.action({ json: true }, undefined);
 
     expect(harness.readJson()).toEqual({
       apiUrl: API_URL,
-      organizations: [
-        { id: ACME_ORGANIZATION.id, name: 'Acme', role: 'owner' },
-        { id: GLOBEX_ORGANIZATION.id, name: 'Globex', role: 'admin' },
-      ],
-      user: RUNNER_USER,
+      organizations: [GLOBEX_ORGANIZATION, ACME_ORGANIZATION],
+      user: RUNNER_USER_WITH_ORGANIZATIONS,
     });
     expect(harness.readLines()).toEqual([]);
   });
 
   it('should leave the API out when it is the default one', async () => {
     writeUserConfig({});
-    respondWithSessionAndOrganizations([ACME_ORGANIZATION]);
+    respondWithSessionAndUser({
+      ...RUNNER_USER_WITH_ORGANIZATIONS,
+      members: RUNNER_USER_WITH_ORGANIZATIONS.members.slice(1),
+    });
 
     await whoamiCommand.action({}, undefined);
 
@@ -88,7 +95,7 @@ describe('whoami', () => {
   });
 
   it('should print the user HOTCODEPUSH_TOKEN stands for when the variable authenticates', async () => {
-    respondWithSessionAndOrganizations([ACME_ORGANIZATION]);
+    respondWithSessionAndUser(RUNNER_USER_WITH_ORGANIZATIONS);
     vi.stubEnv('HOTCODEPUSH_TOKEN', TOKEN);
 
     await whoamiCommand.action({}, undefined);
@@ -98,18 +105,8 @@ describe('whoami', () => {
     );
   });
 
-  it('should print an organization without a role when the user has no member row in it', async () => {
-    respondWithSessionAndOrganizations([ACME_ORGANIZATION]);
-    harness.routes['GET /v1/users/me?relations=members'] = () =>
-      Response.json({ ...RUNNER_USER, members: [] });
-
-    await whoamiCommand.action({}, undefined);
-
-    expect(harness.readLines().at(-1)).toBe('  Acme');
-  });
-
   it('should say so when the user belongs to no organization', async () => {
-    respondWithSessionAndOrganizations([]);
+    respondWithSessionAndUser({ ...RUNNER_USER, members: [] });
 
     await whoamiCommand.action({}, undefined);
 
@@ -129,8 +126,8 @@ describe('whoami', () => {
     const stderrWrite = vi
       .spyOn(process.stderr, 'write')
       .mockImplementation(() => true);
-    respondWithSessionAndOrganizations([]);
-    harness.routes['GET /v1/users/me?relations=members'] = () =>
+    useStoredSession();
+    harness.routes[`GET ${USER_PATH}`] = () =>
       respondWithApiError(
         401,
         'E_UNAUTHENTICATED',

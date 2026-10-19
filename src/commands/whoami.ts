@@ -3,9 +3,7 @@ import { DEFAULT_API_URL } from '../config/consts.js';
 import { createApiClient } from '../utils/api-client.js';
 import { resolveCredentialText } from '../utils/credential.js';
 import { defineCommandOptions } from '../utils/global-options.js';
-import { resolveMemberRole } from '../utils/member-resolution.js';
 import { printJson } from '../utils/output.js';
-import { fetchOrganizations } from '../utils/resource-resolution.js';
 import { isEnvironmentToken } from '../utils/token-store.js';
 import { readApiUrl } from '../utils/user-config.js';
 
@@ -15,17 +13,21 @@ export default defineCommand({
   examples: ['hotcodepush whoami', 'hotcodepush whoami --json'],
   options: defineCommandOptions({}),
   action: async options => {
-    const hotCodePush = createApiClient();
-    const { members = [], ...user } = await hotCodePush.users.get({
-      relations: ['members'],
+    const user = await createApiClient().users.get({
+      relations: ['members', 'members.organization'],
       userId: 'me',
     });
-    const organizations = (await fetchOrganizations(hotCodePush)).map(
-      ({ id, name }) => ({ id, name, role: resolveMemberRole(members, id) }),
+    const memberships = (user.members ?? []).flatMap(
+      ({ organization, role }) =>
+        organization === undefined ? [] : [{ organization, role }],
     );
     const apiUrl = readApiUrl();
     if (options.json) {
-      printJson({ apiUrl, organizations, user });
+      printJson({
+        apiUrl,
+        organizations: memberships.map(({ organization }) => organization),
+        user,
+      });
       return;
     }
     console.log(resolveCredentialText(user, isEnvironmentToken()));
@@ -33,12 +35,10 @@ export default defineCommand({
       console.log(`API: ${apiUrl}`);
     }
     console.log(
-      organizations.length === 0
-        ? 'Organizations: none yet.'
-        : 'Organizations:',
+      memberships.length === 0 ? 'Organizations: none yet.' : 'Organizations:',
     );
-    for (const { name, role } of organizations) {
-      console.log(role === null ? `  ${name}` : `  ${name} (${role})`);
+    for (const { organization, role } of memberships) {
+      console.log(`  ${organization.name} (${role})`);
     }
   },
 });
