@@ -26,8 +26,7 @@ npx hotcodepush invitation accept
 npx hotcodepush audit-log list --type "channel.*" --created-since 7d
 npx hotcodepush sso-provider set --domain example.com --oidc-issuer https://login.example.com --oidc-client-id <id> --oidc-client-secret "$OIDC_CLIENT_SECRET"
 npx hotcodepush sso-provider verify
-npx hotcodepush billing get
-npx hotcodepush billing update --spending-cap 100
+npx hotcodepush organization update --spending-cap 100
 npx hotcodepush checkout create
 npx hotcodepush customer-portal-session create
 npx hotcodepush limit list
