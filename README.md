@@ -95,11 +95,10 @@ A React Native or Expo build that bundled nothing, a debug build Metro serves, g
 ## Telemetry
 
 The CLI collects anonymous usage and error data to improve it.
-After every command it sends one event, `cli.command_finished`, to PostHog: the command's name, its outcome, `succeeded` or `failed`, the step `init` stopped at, the duration in milliseconds, the CLI's version, whether it ran in CI and the project's framework.
-The event carries a hash of the machine's host name as its id, and never an argument, a path or a name from your project.
-An error the CLI did not expect goes to Sentry with its code, the command's name and the stack, without the error's message, and each file in the stack cut to its part below `node_modules`.
-The errors with an `E_` code of their own, your input or the API's answer, are never sent.
-Set `HOTCODEPUSH_TELEMETRY_DISABLED=1` or `DO_NOT_TRACK=1` to turn both off; the first run on a machine prints one line that says so.
+After each command it sends one event, `cli.command_finished`, to PostHog: the command's name, its outcome, the step `init` stopped at, the duration, the CLI's version, whether it ran in CI, and the project's framework.
+The event's id is a hash of the machine's host name. No argument, path or name from your project is ever sent.
+An error the CLI did not expect goes to Sentry with its code, the command's name and a stack whose file names are cut below `node_modules`. The error's message is not sent, and errors with an `E_` code of their own, your input or the API's answer, are never sent.
+Set `HOTCODEPUSH_TELEMETRY_DISABLED=1` or `DO_NOT_TRACK=1` to turn both off. The first run on a machine prints one line that says so.
 
 ## Documentation
 
