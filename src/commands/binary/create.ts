@@ -41,11 +41,12 @@ interface BinaryIdentity {
 
 /**
  * What the API answered for the build: the channel's id, null when the build names none, and the binary created,
- * or the one warning that says what was skipped and why.
+ * or why none was: the one warning of a local build, or the error a pipeline fails with once the resource file is written.
  */
 interface BinaryCreation {
   binary: Binary | null;
   channelId: string | null;
+  pipelineFailure?: unknown;
   skippedReason: string | null;
   upload: UploadedFiles;
 }
@@ -123,6 +124,9 @@ export default defineCommand({
       files: embeddedFiles,
       id: binaryCreation.binary?.bundleId ?? null,
     });
+    if (binaryCreation.pipelineFailure !== undefined) {
+      throw binaryCreation.pipelineFailure;
+    }
     if (binaryCreation.skippedReason !== null) {
       process.stderr.write(`Warning: ${binaryCreation.skippedReason}\n`);
     }
@@ -147,7 +151,8 @@ export default defineCommand({
  * Creates the binary with the API: the channel's name resolved to its id, then the binary created on its identity,
  * the files the API names as missing uploaded first. A local build never breaks: offline, without a token, or with an API
  * that cannot be reached or refuses, it goes on with one warning, without a binary and with the channel only when given by id.
- * A pipeline fails instead, since what it ships must name its channel; a channel name the app lacks fails everywhere.
+ * A pipeline fails instead, the resource file written first, since what it ships must name its channel; a channel name the
+ * app lacks fails everywhere, before anything is written.
  */
 async function createBuildBinary(
   request: BinaryCreationRequest,
@@ -158,7 +163,10 @@ async function createBuildBinary(
   const channelIdByShape = resolveChannelIdByShape(buildStep.channelReference);
   const offlineCause = resolveOfflineCause();
   if (offlineCause === 'no-token' && isCi()) {
-    throw new PipelineNotLoggedInError();
+    return resolveFailedCreation(
+      channelIdByShape,
+      new PipelineNotLoggedInError(),
+    );
   }
   if (offlineCause !== undefined) {
     return {
@@ -174,8 +182,11 @@ async function createBuildBinary(
     channelId =
       channelIdByShape ?? (await fetchChannelId(hotCodePush, buildStep));
   } catch (error) {
-    if (error instanceof CliError || isCi()) {
+    if (error instanceof CliError) {
       throw error;
+    }
+    if (isCi()) {
+      return resolveFailedCreation(null, error);
     }
     return {
       binary: null,
@@ -193,7 +204,7 @@ async function createBuildBinary(
   } catch (error) {
     // a build never breaks locally: a refused, conflicting or unreachable creation is one warning; CI fails with it
     if (isCi()) {
-      throw error;
+      return resolveFailedCreation(channelId, error);
     }
     return {
       binary: null,
@@ -262,6 +273,19 @@ function resolveBinaryIdentity(options: {
   return {
     binaryBuild: assertMissingParameter(options.binaryBuild, '--binary-build'),
     binaryVersion,
+  };
+}
+
+function resolveFailedCreation(
+  channelId: string | null,
+  pipelineFailure: unknown,
+): BinaryCreation {
+  return {
+    binary: null,
+    channelId,
+    pipelineFailure,
+    skippedReason: null,
+    upload: NO_UPLOAD,
   };
 }
 

@@ -461,7 +461,7 @@ describe('binary create', () => {
       ]);
     });
 
-    it('should fail with E_NOT_LOGGED_IN in CI without a token, naming HOTCODEPUSH_TOKEN and HOTCODEPUSH_OFFLINE, before writing anything', async () => {
+    it('should fail with E_NOT_LOGGED_IN in CI without a token, naming HOTCODEPUSH_TOKEN and HOTCODEPUSH_OFFLINE, after writing the resource file', async () => {
       stubNoToken();
       vi.stubEnv('CI', 'true');
 
@@ -470,11 +470,11 @@ describe('binary create', () => {
         exitCode: 3,
         fix: 'Set HOTCODEPUSH_TOKEN in the pipeline, or HOTCODEPUSH_OFFLINE=1 for a build that is never shipped.',
       });
-      expect(
-        existsSync(
-          join(projectDirectoryPath, 'build', 'ios', 'hotcodepush.json'),
-        ),
-      ).toBe(false);
+      expect(harness.requests).toEqual([]);
+      expect(readResourceFile('build/ios/hotcodepush.json')).toMatchObject({
+        channelId: PRODUCTION_CHANNEL.id,
+        embeddedBundleId: null,
+      });
     });
 
     it('should write the resource file without a channel and create no binary when the API refuses to resolve the name, and fail only in CI', async () => {
@@ -496,9 +496,14 @@ describe('binary create', () => {
         harness.requests.filter(({ method }) => method === 'POST'),
       ).toEqual([]);
 
+      rmSync(join(projectDirectoryPath, 'build'), { recursive: true });
       vi.stubEnv('CI', 'true');
       await expect(createIosBinary()).rejects.toMatchObject({
         code: 'E_FORBIDDEN',
+      });
+      expect(readResourceFile('build/ios/hotcodepush.json')).toMatchObject({
+        channelId: null,
+        embeddedBundleId: null,
       });
     });
 
@@ -520,7 +525,7 @@ describe('binary create', () => {
     });
   });
 
-  it('should still write the resource file and warn when creating the binary fails, and fail only in CI', async () => {
+  it('should still write the resource file and warn when creating the binary fails, and fail only in CI, the file written there too', async () => {
     harness.routes[`POST ${BINARIES_PATH}`] = () => {
       throw new TypeError('fetch failed');
     };
@@ -541,6 +546,7 @@ describe('binary create', () => {
       'Warning: the binary was not created: fetch failed\n',
     );
 
+    rmSync(join(projectDirectoryPath, 'build'), { recursive: true });
     vi.stubEnv('CI', 'true');
     await expect(
       binaryCreateCommand.action(
@@ -551,6 +557,10 @@ describe('binary create', () => {
         undefined,
       ),
     ).rejects.toThrow('fetch failed');
+    expect(readResourceFile('build/ios/hotcodepush.json')).toMatchObject({
+      channelId: PRODUCTION_CHANNEL.id,
+      embeddedBundleId: null,
+    });
   });
 
   it('should warn and create no binary when it conflicts locally, and fail with the conflict in CI', async () => {
