@@ -1,8 +1,5 @@
 import { createAuthClient } from 'better-auth/client';
-import {
-  deviceAuthorizationClient,
-  organizationClient,
-} from 'better-auth/client/plugins';
+import { deviceAuthorizationClient } from 'better-auth/client/plugins';
 import {
   CLIENT_HEADER_NAME,
   PACKAGE_JSON,
@@ -42,7 +39,7 @@ export function createApiAuthClient(token?: string) {
         [CLIENT_HEADER_NAME]: `cli/${PACKAGE_JSON.version}`,
       },
     },
-    plugins: [deviceAuthorizationClient(), organizationClient()],
+    plugins: [deviceAuthorizationClient()],
   });
 }
 
