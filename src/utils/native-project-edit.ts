@@ -11,6 +11,8 @@ export interface NativeProjectEdit {
   description: string;
   filePath: string;
   isApplied: () => boolean;
+  /** A file `init` cannot edit, so its confirmation never names it: applying the edit stops with the manual step. */
+  isRefused?: boolean;
   apply: () => void;
 }
 
@@ -80,6 +82,7 @@ export function resolveRefusedEdit(
     filePath,
     isApplied: () =>
       marker !== undefined && readFileSync(filePath, 'utf8').includes(marker),
+    isRefused: true,
     apply: () => {
       throw error;
     },

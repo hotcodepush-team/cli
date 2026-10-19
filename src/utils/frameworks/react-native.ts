@@ -191,7 +191,7 @@ async function resolveWiring(
         ? []
         : [xcodeProjectFilePath]),
       ...resolveEdits(directoryPath, nativeProjects)
-        .filter(edit => !edit.isApplied())
+        .filter(edit => !edit.isRefused && !edit.isApplied())
         .map(({ filePath }) => filePath),
     ].map(filePath => relative(directoryPath, filePath)),
     packageFilePaths: isPackageInstalled ? [] : ['package.json'],

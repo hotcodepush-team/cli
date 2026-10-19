@@ -61,12 +61,13 @@ describe('native-project-edit', () => {
       );
     });
 
-    it('should stop with the manual step when the Android project has no app Gradle file', () => {
+    it('should stop with the manual step, refused, when the Android project has no app Gradle file', () => {
       const edit = resolveGradleEdit(androidProjectPath, PACKAGE_NAME);
       expect(edit?.filePath).toBe(
         join(androidProjectPath, 'app', 'build.gradle'),
       );
       expect(edit?.isApplied()).toBe(false);
+      expect(edit?.isRefused).toBe(true);
 
       expect(() => edit?.apply()).toThrow(
         new NativeProjectError(

@@ -193,9 +193,9 @@ async function resolveWiring(
         hasBinaryCreatePhase(xcodeProjectFilePath)
           ? []
           : [xcodeProjectFilePath]),
-        ...resolvePendingEdits(nativeProjects, xcodeProjectFilePath).map(
-          ({ filePath }) => filePath,
-        ),
+        ...resolvePendingEdits(nativeProjects, xcodeProjectFilePath)
+          .filter(edit => !edit.isRefused)
+          .map(({ filePath }) => filePath),
       ]),
     ].map(filePath => relative(directoryPath, filePath)),
     packageFilePaths: isPackageInstalled ? [] : ['package.json'],

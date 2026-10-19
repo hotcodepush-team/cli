@@ -284,7 +284,7 @@ describe('reactNativeFramework', () => {
         expect(runCommandLineVisibly).not.toHaveBeenCalled();
       });
 
-      it('should make the edits it can and stop with the manual step naming AppDelegate.mm when the apps are Objective-C and Java', async () => {
+      it('should name only the files it edits, make those edits and stop with the manual step naming AppDelegate.mm when the apps are Objective-C and Java', async () => {
         const directoryPath = writeProject({ isPackageInstalled: true });
         writeInstalledSdk(directoryPath);
         writeObjectiveCAndJavaLayout(directoryPath);
@@ -295,8 +295,6 @@ describe('reactNativeFramework', () => {
         expect(wiring.nativeFilePaths).toEqual([
           XCODE_PROJECT_FILE_PATH,
           APP_GRADLE_FILE_PATH,
-          OBJECTIVE_C_APP_DELEGATE_FILE_PATH,
-          JAVA_MAIN_APPLICATION_FILE_PATH,
           PODFILE_PATH,
         ]);
 
@@ -314,6 +312,30 @@ describe('reactNativeFramework', () => {
           "pod 'HotCodePushCore'",
         );
         expect(runCommandLineVisibly).not.toHaveBeenCalled();
+      });
+
+      it('should name no file to change on a rerun where only the Objective-C and Java files are left, so the manual step is what stops it', async () => {
+        const directoryPath = writeProject({ isPackageInstalled: true });
+        writeInstalledSdk(directoryPath);
+        writeObjectiveCAndJavaLayout(directoryPath);
+        await expect(
+          (
+            await reactNativeFramework.resolveWiring(
+              readProject(directoryPath),
+              { yes: true },
+            )
+          ).wireBinaryCreateStep(undefined),
+        ).rejects.toThrow(NativeProjectError);
+
+        const wiring = await reactNativeFramework.resolveWiring(
+          readProject(directoryPath),
+          {},
+        );
+        expect(wiring.nativeFilePaths).toEqual([]);
+
+        await expect(wiring.wireBinaryCreateStep(undefined)).rejects.toThrow(
+          NativeProjectError,
+        );
       });
 
       it('should stop no more once the Objective-C and Java apps are wired by hand', async () => {
