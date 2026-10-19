@@ -337,14 +337,17 @@ describe('init', () => {
     });
   });
 
-  it('should stop the editing steps with E_CONFIRMATION_REQUIRED when nobody can confirm the files to change', async () => {
+  it('should stop the editing steps with E_CONFIRMATION_REQUIRED when nobody can confirm the files to change, naming the first step it stopped at', async () => {
     const directoryPath = writeProject({ isPackageInstalled: true });
     respondWithSession([ACME_ORGANIZATION]);
     harness.routes[`GET ${APPS_PATH}`] = () => Response.json([DEMO_APP]);
 
     await expect(
       initCommand.action({ json: true, ...withCwd(directoryPath) }, undefined),
-    ).rejects.toBeInstanceOf(ReportedFailureError);
+    ).rejects.toMatchObject({
+      code: 'E_CONFIRMATION_REQUIRED',
+      stoppedStep: 'configuration',
+    });
 
     const result = harness.readJson() as InitResult;
     expect(result.status).toBe('incomplete');
