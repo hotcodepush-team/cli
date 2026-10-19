@@ -5,7 +5,10 @@ import { createApiClient } from '../../utils/api-client.js';
 import type { InteractivityOptions } from '../../utils/environment.js';
 import { isInteractive } from '../../utils/environment.js';
 import { MissingParameterError } from '../../utils/errors.js';
-import { resolveBinaryBucket } from '../../utils/fleet.js';
+import {
+  resolveBinaryBucket,
+  UNSEEN_IN_FLEET_WINDOW_TEXT,
+} from '../../utils/fleet.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printDetails, printJson } from '../../utils/output.js';
 import { fetchAllPages } from '../../utils/pagination.js';
@@ -51,7 +54,7 @@ export default defineCommand({
       ['Fingerprint', fetchedBinary.fingerprint ?? 'none'],
       ['Bundle', fetchedBinary.bundleId],
       ['Devices', String(binaryBucket?.deviceCount ?? 0)],
-      ['Last seen', binaryBucket?.lastSeenAt ?? 'never'],
+      ['Last seen', binaryBucket?.lastSeenAt ?? UNSEEN_IN_FLEET_WINDOW_TEXT],
       ['Created', fetchedBinary.createdAt],
     ]);
   },

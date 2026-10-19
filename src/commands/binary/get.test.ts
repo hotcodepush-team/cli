@@ -37,7 +37,7 @@ describe('binary get', () => {
     ]);
   });
 
-  it('should print no devices and never seen when the fleet has no bucket for the binary', async () => {
+  it('should print no devices, none seen in 30 days, when the fleet has no bucket for the binary', async () => {
     harness.routes[`GET /v1/apps/${DEMO_APP.id}/binaries/${BINARY.id}`] = () =>
       Response.json(BINARY);
     harness.routes[`GET ${FLEET_PATH}`] = () =>
@@ -50,7 +50,7 @@ describe('binary get', () => {
 
     expect(harness.readLines().slice(6, 8)).toEqual([
       'Devices      0',
-      'Last seen    never',
+      'Last seen    not in 30 days',
     ]);
   });
 

@@ -7,7 +7,7 @@ import binaryListCommand from './list.js';
 describe('binary list', () => {
   const harness = useCommandHarness();
 
-  it("should list the binaries with their bundle and the devices of the app's fleet, none and never seen without a bucket", async () => {
+  it("should list the binaries with their bundle and the devices of the app's fleet, none seen in 30 days without a bucket", async () => {
     const unseenBinaryId = '1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d';
     harness.routes[`GET /v1/apps/${DEMO_APP.id}/binaries`] = () =>
       Response.json([BINARY, { ...BINARY, id: unseenBinaryId }]);
@@ -18,7 +18,7 @@ describe('binary list', () => {
     expect(harness.readLines()).toEqual([
       'ID                                    VERSION  BUILD  PLATFORM  BUNDLE                                DEVICES  LAST SEEN',
       `${BINARY.id}  1.0      1      ios       ${BINARY.bundleId}  12       2026-09-08`,
-      `${unseenBinaryId}  1.0      1      ios       ${BINARY.bundleId}  0        never`,
+      `${unseenBinaryId}  1.0      1      ios       ${BINARY.bundleId}  0        not in 30 days`,
     ]);
     const fleetUrl = harness.requests
       .map(({ url }) => new URL(url))

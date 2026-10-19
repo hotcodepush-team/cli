@@ -1,6 +1,9 @@
 import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
-import { resolveBinaryBucket } from '../../utils/fleet.js';
+import {
+  resolveBinaryBucket,
+  UNSEEN_IN_FLEET_WINDOW_TEXT,
+} from '../../utils/fleet.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson, printTable, resolveDate } from '../../utils/output.js';
 import { paginationShape, resolveNextOffset } from '../../utils/pagination.js';
@@ -55,7 +58,7 @@ export default defineCommand({
           bundleId,
           String(binaryBucket?.deviceCount ?? 0),
           binaryBucket === undefined
-            ? 'never'
+            ? UNSEEN_IN_FLEET_WINDOW_TEXT
             : resolveDate(binaryBucket.lastSeenAt),
         ];
       }),
