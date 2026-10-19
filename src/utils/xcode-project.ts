@@ -197,7 +197,6 @@ async function resolveAppTarget(
     if (namedTarget === undefined) {
       throw new InvalidParameterError(
         `No app target is named ${options.xcodeTarget}. The targets are ${appTargets.map(({ name }) => name).join(', ')}.`,
-        undefined,
         'Pass one of them with --xcode-target.',
       );
     }

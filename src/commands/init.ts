@@ -628,7 +628,6 @@ function assertName(flag: string, reference: string): void {
   if (ID_SCHEMA.safeParse(reference).success) {
     throw new InvalidParameterError(
       `Nothing has the id ${reference} from ${flag}.`,
-      undefined,
     );
   }
 }
@@ -691,7 +690,7 @@ function requireById<TResource extends { id: string }>(
 ): TResource {
   const resource = resources.find(candidate => candidate.id === id);
   if (resource === undefined) {
-    throw new InvalidParameterError(`Nothing has the id ${id}.`, undefined);
+    throw new InvalidParameterError(`Nothing has the id ${id}.`);
   }
   return resource;
 }

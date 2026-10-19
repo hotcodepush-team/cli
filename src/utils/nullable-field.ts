@@ -16,7 +16,6 @@ export function resolveNullableField<TValue>(
   if (value !== undefined) {
     throw new InvalidParameterError(
       `The flags --${flagName} and --${clearFlagName} were passed together.`,
-      undefined,
       'Pass only one of them.',
     );
   }

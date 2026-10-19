@@ -183,7 +183,6 @@ async function fetchRevocations(
   if (formFlags.length > 1) {
     throw new InvalidParameterError(
       `The flags ${formFlags.join(' and ')} were passed together.`,
-      undefined,
       'Pass one of them.',
     );
   }
@@ -191,7 +190,6 @@ async function fetchRevocations(
     if (options.channel !== undefined) {
       throw new InvalidParameterError(
         "With --bundle, the bundle's releases are revoked in every channel, so --channel does not apply.",
-        undefined,
         'Pass --bundle alone.',
       );
     }

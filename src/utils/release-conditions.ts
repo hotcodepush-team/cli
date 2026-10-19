@@ -127,7 +127,6 @@ export function resolveAttributePairs(
     ) {
       throw new InvalidParameterError(
         `The value "${pair}" of --attribute is not a key=value pair.`,
-        undefined,
         'Pass key=value. The key takes letters, digits, _, - and . up to 64 characters, the value printable characters up to 256.',
       );
     }

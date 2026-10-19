@@ -195,7 +195,6 @@ function assertNoProgressionFlags(options: ProgressionOptions): void {
   if (progressionFlags.length > 0) {
     throw new InvalidParameterError(
       `The schedule's flags ${progressionFlags.join(' and ')} apply only with --progress.`,
-      undefined,
       'Pass --progress to give the release a schedule.',
     );
   }

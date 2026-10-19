@@ -138,13 +138,11 @@ function assertFlagsOfType(
   ) {
     throw new InvalidParameterError(
       'The fleet is a snapshot of the last thirty days without a period, so --period-since and --period-until do not apply.',
-      undefined,
     );
   }
   if (type === 'usage' && options.channel !== undefined) {
     throw new InvalidParameterError(
       'The usage counts the whole app, never one channel, so --channel does not apply.',
-      undefined,
     );
   }
 }

@@ -83,7 +83,6 @@ function resolveInvitation(
   if (invitation === undefined) {
     throw new InvalidParameterError(
       `The organization has no pending invitation ${reference} from --invitation.`,
-      undefined,
       'Run "hotcodepush invitation list" for the ids and emails.',
     );
   }

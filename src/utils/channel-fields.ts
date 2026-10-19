@@ -270,7 +270,6 @@ function resolveExpiresAt({
   if (expiresAt !== undefined) {
     throw new InvalidParameterError(
       'The flags --expires-in and --expires-at were passed together.',
-      undefined,
       'Pass only one of them.',
     );
   }

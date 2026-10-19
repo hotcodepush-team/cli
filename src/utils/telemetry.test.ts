@@ -220,7 +220,7 @@ describe('telemetry', () => {
 
     it('should never post an error of the catalog to Sentry', async () => {
       await reportFinishedCommand({
-        cliError: new InvalidParameterError('The value is invalid.', undefined),
+        cliError: new InvalidParameterError('The value is invalid.'),
         commandName: 'channel create',
         durationMs: 10,
       });

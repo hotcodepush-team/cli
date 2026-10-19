@@ -97,7 +97,6 @@ function resolvePreviousRelease(releases: Release[]): Release {
   if (previousRelease === undefined) {
     throw new InvalidParameterError(
       'The channel has no earlier release to roll back to.',
-      undefined,
       'Name one with --to-release.',
     );
   }

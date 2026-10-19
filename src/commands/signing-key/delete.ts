@@ -111,7 +111,6 @@ function resolveSigningKey(
   if (signingKey === undefined) {
     throw new InvalidParameterError(
       `The app has no signing key ${reference} from --signing-key.`,
-      undefined,
       'Run "hotcodepush signing-key list" for the ids and fingerprints.',
     );
   }

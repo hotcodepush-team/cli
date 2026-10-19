@@ -148,8 +148,8 @@ export class InvalidJsonError extends CliError {
 export class InvalidParameterError extends CliError {
   constructor(
     message: string,
-    cause: unknown,
     fix = 'Run the command with --help to see its options.',
+    cause?: unknown,
   ) {
     super({
       cause,

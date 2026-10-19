@@ -328,7 +328,6 @@ async function fetchSourceRelease(
   if (sourceRelease === undefined) {
     throw new InvalidParameterError(
       `The channel ${sourceChannel.name} from --from-channel serves no active release.`,
-      undefined,
     );
   }
   const bundle =
@@ -394,7 +393,6 @@ async function resolveBundleSource(
   if (sourceFlags.length > 1) {
     throw new InvalidParameterError(
       `The flags ${sourceFlags.join(' and ')} were passed together.`,
-      undefined,
       'Pass one of them: the bundle to release, the channel to release from or the build to upload.',
     );
   }

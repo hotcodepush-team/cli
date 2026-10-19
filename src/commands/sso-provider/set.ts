@@ -216,8 +216,8 @@ function readDocumentFile(flag: string, filePath: string): string {
   } catch (error) {
     throw new InvalidParameterError(
       `The file ${filePath} from ${flag} cannot be read.`,
-      error,
       'Pass the path of a file you can read.',
+      error,
     );
   }
 }
@@ -246,7 +246,6 @@ function resolveFlaggedProviderType(
   if (hasOidcFlag && hasSamlFlag) {
     throw new InvalidParameterError(
       'The --oidc- and --saml- flags were passed together.',
-      undefined,
       'Pass the --oidc- flags for an OIDC provider or the --saml- flags for a SAML one, since a provider speaks one protocol.',
     );
   }

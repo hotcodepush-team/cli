@@ -69,7 +69,6 @@ async function assertDirectory(directoryPath: string): Promise<void> {
   if (!isDirectory) {
     throw new InvalidParameterError(
       `The directory ${directoryPath} from --path does not exist.`,
-      undefined,
     );
   }
 }

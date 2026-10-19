@@ -77,7 +77,6 @@ export default defineCommand({
     if (args.length > 2) {
       throw new InvalidParameterError(
         `The fingerprint diff command compares two files, <file-a> and <file-b>. It does not take ${args.slice(2).join(' ')}.`,
-        undefined,
       );
     }
     const beforeFile = await readFingerprintFile(
@@ -139,16 +138,16 @@ async function readFingerprintFile(
   const text = await readFile(filePath, 'utf8').catch((error: unknown) => {
     throw new InvalidParameterError(
       `The file ${filePath} from ${argumentName} cannot be read.`,
-      error,
       FINGERPRINT_FILE_FIX,
+      error,
     );
   });
   const parsedFile = FingerprintFileSchema.safeParse(parseJson(text));
   if (!parsedFile.success) {
     throw new InvalidParameterError(
       `The file ${filePath} from ${argumentName} is not a fingerprint written by fingerprint --json.`,
-      parsedFile.error,
       FINGERPRINT_FILE_FIX,
+      parsedFile.error,
     );
   }
   return parsedFile.data;

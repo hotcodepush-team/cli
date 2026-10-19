@@ -75,7 +75,6 @@ async function fetchBundleId(
   if (!NUMBER_PATTERN.test(options.bundle)) {
     throw new InvalidParameterError(
       `The value "${options.bundle}" of --bundle is neither a number nor an id.`,
-      undefined,
     );
   }
   return fetchBundleIdByNumber(hotCodePush, appId, Number(options.bundle));
@@ -98,7 +97,6 @@ async function fetchBundleIdByNumber(
   if (numberedBundle === undefined) {
     throw new InvalidParameterError(
       `The app has no bundle #${number} from --bundle.`,
-      undefined,
     );
   }
   return numberedBundle.id;

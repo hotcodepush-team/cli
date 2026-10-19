@@ -49,7 +49,6 @@ export async function fetchReleaseInChannel(
   if (release.channelId !== channel.id) {
     throw new InvalidParameterError(
       `The release ${releaseId} from --release is not in channel ${channel.name}.`,
-      undefined,
     );
   }
   return { channel, release };
@@ -97,7 +96,6 @@ export function resolveReleaseInLog(
   if (release === undefined) {
     throw new InvalidParameterError(
       `The channel has no release "${reference}" from ${flag}.`,
-      undefined,
       `Name a release of the channel by number or id with ${flag}.`,
     );
   }

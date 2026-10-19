@@ -114,7 +114,6 @@ function assertNewFilePath(filePath: string): void {
   if (existsSync(filePath)) {
     throw new InvalidParameterError(
       `The file ${filePath} from --private-key-path already exists.`,
-      undefined,
       'Pass a path where no file is, since signing-key create never overwrites a private key.',
     );
   }
@@ -122,7 +121,6 @@ function assertNewFilePath(filePath: string): void {
   if (!statSync(directoryPath, { throwIfNoEntry: false })?.isDirectory()) {
     throw new InvalidParameterError(
       `The folder ${directoryPath} from --private-key-path does not exist.`,
-      undefined,
       'Create the folder first, or pass a path in an existing one.',
     );
   }

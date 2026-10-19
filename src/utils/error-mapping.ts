@@ -135,11 +135,16 @@ export function resolveCliError(error: unknown): CliError {
       : new ApiError(error.code, error.message, error.status);
   }
   if (error instanceof ZodError) {
-    return new InvalidParameterError(resolveZodErrorMessage(error), error);
+    return new InvalidParameterError(
+      resolveZodErrorMessage(error),
+      undefined,
+      error,
+    );
   }
   if (error instanceof ZodlineError) {
     return new InvalidParameterError(
       resolveSentence(stripVTControlCharacters(error.message)),
+      undefined,
       error,
     );
   }

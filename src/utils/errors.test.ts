@@ -44,7 +44,11 @@ describe('errors', () => {
       1,
     ],
     [
-      new InvalidParameterError('--limit: Too big', new Error('Too big')),
+      new InvalidParameterError(
+        '--limit: Too big',
+        undefined,
+        new Error('Too big'),
+      ),
       'E_INVALID_PARAMETER',
       2,
     ],
