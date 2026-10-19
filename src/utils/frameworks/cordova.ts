@@ -17,7 +17,6 @@ import type {
   FrameworkModule,
   FrameworkProject,
   FrameworkWiring,
-  NativeProjectPaths,
 } from './index.js';
 
 /**
@@ -74,7 +73,6 @@ export const cordovaFramework: FrameworkModule = {
   ],
   // the start page `config.xml` names is a page inside `www`, which the app serves as its root
   readBuildDirectory: () => ({ path: WEB_DIRECTORY }),
-  resolveNativeProjectPaths,
   resolveWiring: project => Promise.resolve(resolveWiring(project)),
 };
 
@@ -152,15 +150,6 @@ function readWidget(projectDirectoryPath: string): Widget | undefined {
     parseAttributeValue: false,
   }).parse(readFileSync(configFilePath, 'utf8')) as { widget?: Widget };
   return document.widget;
-}
-
-function resolveNativeProjectPaths(
-  projectDirectoryPath: string,
-): NativeProjectPaths {
-  return {
-    android: join(projectDirectoryPath, 'platforms', 'android'),
-    ios: join(projectDirectoryPath, 'platforms', 'ios'),
-  };
 }
 
 function resolveWiring({

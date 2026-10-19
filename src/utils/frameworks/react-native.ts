@@ -91,7 +91,6 @@ export const reactNativeFramework: FrameworkModule = {
   packageBundles: request =>
     packageReactNativeBundles(request, resolveBundlerArgs),
   readBuildDirectory,
-  resolveNativeProjectPaths,
   resolveWiring,
 };
 

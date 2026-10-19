@@ -26,8 +26,8 @@ export interface FrameworkCheck {
 }
 
 /**
- * What the CLI needs to know about a framework: where its build output and native projects lie, and how its SDK package
- * and build step are wired and checked.
+ * What the CLI needs to know about a framework: where its build output lies, and how its SDK package and build step
+ * are wired and checked.
  */
 export interface FrameworkModule {
   /**
@@ -68,9 +68,6 @@ export interface FrameworkModule {
    * The framework's own build output, read when the upload runs, what `--path` overrides.
    */
   readBuildDirectory: (projectDirectoryPath: string) => BuildDirectory;
-  resolveNativeProjectPaths: (
-    projectDirectoryPath: string,
-  ) => NativeProjectPaths;
   /**
    * What `init` installs and wires in this project, resolved once before the editing steps, asking where it must.
    */

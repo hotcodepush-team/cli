@@ -68,7 +68,6 @@ export const capacitorFramework: FrameworkModule = {
     ),
   ],
   readBuildDirectory: readWebDir,
-  resolveNativeProjectPaths,
   resolveWiring,
 };
 
