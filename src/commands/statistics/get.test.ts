@@ -6,6 +6,7 @@ import type {
 import { describe, expect, it } from 'vitest';
 import { useCommandHarness } from '../../../test/command-harness.js';
 import {
+  BINARY,
   DEMO_APP,
   LIVE_RELEASE,
   STAGING_CHANNEL,
@@ -18,7 +19,14 @@ const STATISTICS_PATH = `/v1/apps/${DEMO_APP.id}/statistics`;
 const FLEET_STATISTICS: FleetStatistics = {
   binary: [
     {
-      deviceCount: 70,
+      deviceCount: 60,
+      lastSeenAt: '2026-09-08T08:00:00.000Z',
+      platform: BINARY.platform,
+      value: BINARY.id,
+      version: BINARY.version,
+    },
+    {
+      deviceCount: 10,
       lastSeenAt: '2026-09-08T08:00:00.000Z',
       platform: null,
       value: null,
@@ -97,7 +105,7 @@ describe('statistics get', () => {
       .find(({ pathname }) => pathname === path);
   }
 
-  it("should print the fleet of one channel per dimension, the embedded bundles' devices as embedded", async () => {
+  it("should print the fleet of one channel, its two totals and each dimension, releases by number and the embedded bundles' devices as embedded", async () => {
     respondWithChannels(harness);
     harness.routes[`GET ${STATISTICS_PATH}/fleet`] = () =>
       Response.json(FLEET_STATISTICS);
@@ -111,9 +119,14 @@ describe('statistics get', () => {
       readRequestUrl(`${STATISTICS_PATH}/fleet`)?.searchParams.get('channelId'),
     ).toBe(STAGING_CHANNEL.id);
     expect(harness.readLines()).toEqual([
-      'RELEASE                               DEVICES',
-      `${LIVE_RELEASE.id}  50`,
-      'embedded                              20',
+      'Active devices   70',
+      'Current devices  50',
+      'RELEASE   DEVICES',
+      '#43       50',
+      'embedded  20',
+      'BINARY                                VERSION  PLATFORM  DEVICES',
+      `${BINARY.id}  1.0      ios       60`,
+      'none                                  none     none      10',
       'BINARY VERSION  DEVICES',
       '2.4.1           70',
       'SDK VERSION  DEVICES',

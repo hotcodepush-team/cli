@@ -8,7 +8,7 @@ import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
 import { InvalidParameterError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson, printTable } from '../../utils/output.js';
+import { printDetails, printJson, printTable } from '../../utils/output.js';
 import { resolveByteText } from '../../utils/progress.js';
 import { readProjectConfig } from '../../utils/project-config.js';
 import { promptSelect } from '../../utils/prompts.js';
@@ -29,8 +29,8 @@ interface StatisticsQuery {
 
 const STATISTICS_TYPES: StatisticsType[] = ['fleet', 'updates', 'usage'];
 
+// the dimensions whose buckets are a value and its devices alone; the release and binary buckets carry more
 const FLEET_DIMENSIONS = [
-  ['RELEASE', 'release'],
   ['BINARY VERSION', 'binaryVersion'],
   ['SDK VERSION', 'sdkVersion'],
   ['PLATFORM', 'platform'],
@@ -157,17 +157,47 @@ function printFleetStatistics(
     printJson(statistics);
     return;
   }
+  printDetails([
+    ['Active devices', String(statistics.deviceCount)],
+    ['Current devices', String(statistics.currentDeviceCount)],
+  ]);
+  printFleetTable(
+    ['RELEASE', 'DEVICES'],
+    statistics.release.map(({ deviceCount, number }) => [
+      number === null ? 'embedded' : `#${number}`,
+      String(deviceCount),
+    ]),
+  );
+  printFleetTable(
+    ['BINARY', 'VERSION', 'PLATFORM', 'DEVICES'],
+    statistics.binary.map(({ deviceCount, platform, value, version }) => [
+      value ?? 'none',
+      version ?? 'none',
+      platform ?? 'none',
+      String(deviceCount),
+    ]),
+  );
   for (const [header, dimension] of FLEET_DIMENSIONS) {
-    printTable({
-      emptyText: `${header}: no device seen in the last thirty days.`,
-      headers: [header, 'DEVICES'],
-      nextOffset: null,
-      rows: statistics[dimension].map(({ deviceCount, value }) => [
-        value ?? (dimension === 'release' ? 'embedded' : 'none'),
+    printFleetTable(
+      [header, 'DEVICES'],
+      statistics[dimension].map(({ deviceCount, value }) => [
+        value ?? 'none',
         String(deviceCount),
       ]),
-    });
+    );
   }
+}
+
+function printFleetTable(
+  headers: [dimensionHeader: string, ...columnHeaders: string[]],
+  rows: string[][],
+): void {
+  printTable({
+    emptyText: `${headers[0]}: no device seen in the last thirty days.`,
+    headers,
+    nextOffset: null,
+    rows,
+  });
 }
 
 function printUpdateStatistics(
