@@ -12,9 +12,11 @@ describe('defineCommandOptions', () => {
       'name',
       'app',
       'config',
+      'help',
       'json',
       'organization',
       'verbose',
+      'version',
       'yes',
     ]);
   });
@@ -31,8 +33,10 @@ describe('defineCommandOptions', () => {
       'organization',
       'app',
       'config',
+      'help',
       'json',
       'verbose',
+      'version',
       'yes',
     ]);
     expect(schema.shape.organization.description).toBe(

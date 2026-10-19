@@ -139,7 +139,7 @@ export function resolveCliError(error: unknown): CliError {
   }
   if (error instanceof ZodlineError) {
     return new InvalidParameterError(
-      stripVTControlCharacters(error.message),
+      resolveSentence(stripVTControlCharacters(error.message)),
       error,
     );
   }

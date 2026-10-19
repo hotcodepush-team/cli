@@ -76,8 +76,13 @@ describe('command registry', () => {
       ).toEqual(['release', 'create', '--help']);
       expect(resolveInvocation(COMMAND_NAMES, ['-v']).argv).toEqual([
         '--version',
-        '--help',
       ]);
+    });
+
+    it('should resolve a command line with --version to the version alone, loading no command', () => {
+      expect(
+        resolveInvocation(COMMAND_NAMES, ['channel', 'create', '-v']),
+      ).toEqual({ argv: ['--version'], commandNames: [] });
     });
 
     it('should throw E_UNKNOWN_COMMAND with the closest command when the words name none', () => {

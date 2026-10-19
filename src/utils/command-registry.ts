@@ -84,13 +84,16 @@ export function resolveCommandName(
 
 /**
  * Decides which commands a command line needs: the one it names, a noun's verbs, or every command for the help.
- * A command line without a command, or with a noun alone, shows the help instead of failing.
+ * A command line without a command, or with a noun alone, shows the help instead of failing, and one with --version the version.
  */
 export function resolveInvocation(
   commandNames: string[],
   argv: string[],
 ): Invocation {
   const expandedArgv = argv.map(arg => SHORT_FLAG_EXPANSIONS[arg] ?? arg);
+  if (expandedArgv.includes('--version')) {
+    return { argv: ['--version'], commandNames: [] };
+  }
   const words = resolveCommandWords(expandedArgv);
   if (words.length === 0) {
     return { argv: withHelpFlag(expandedArgv), commandNames };

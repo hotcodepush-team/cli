@@ -257,6 +257,52 @@ describe('runCli', () => {
     expect(output.readConsoleLog()).not.toContain('\x1b[');
   });
 
+  it("should list --help, -h and --version, -v among a command's global options", async () => {
+    const { commandRegistry } = createCommandTree();
+    const output = captureOutput();
+    stubExit();
+    vi.stubEnv('NO_COLOR', '1');
+
+    await runCli(commandRegistry, ['channel', 'list', '--help'], META);
+
+    expect(output.readConsoleLog()).toMatch(/--help, -h\s+Print this help\./);
+    expect(output.readConsoleLog()).toMatch(
+      /--version, -v\s+Print the CLI's version\./,
+    );
+  });
+
+  it('should print the version and run nothing when a command is given with --version', async () => {
+    const { channelCreateAction, commandRegistry } = createCommandTree();
+    const output = captureOutput();
+    const exit = stubExit();
+
+    await runCli(commandRegistry, ['channel', 'create', '--version'], META);
+
+    expect(exit).toHaveBeenCalledWith(0);
+    expect(output.readConsoleLog()).toBe('1.2.3');
+    expect(channelCreateAction).not.toHaveBeenCalled();
+  });
+
+  it('should end the message of an unknown option with a full stop under --json', async () => {
+    const { commandRegistry } = createCommandTree();
+    const output = captureOutput();
+
+    const exitCode = await runCli(
+      commandRegistry,
+      ['channel', 'create', '--colour', '--json'],
+      META,
+    );
+
+    expect(exitCode).toBe(2);
+    expect(JSON.parse(output.readStdout())).toEqual({
+      error: {
+        code: 'E_INVALID_PARAMETER',
+        fix: 'Run the command with --help to see its options.',
+        message: 'Unknown option: --colour.',
+      },
+    });
+  });
+
   it('should print the version when -v is passed', async () => {
     const { commandRegistry } = createCommandTree();
     const output = captureOutput();

@@ -134,13 +134,13 @@ describe('error mapping', () => {
       );
     });
 
-    it('should map a zodline error to E_INVALID_PARAMETER without its colour codes', () => {
+    it('should map a zodline error to E_INVALID_PARAMETER as a sentence without its colour codes', () => {
       const cliError = resolveCliError(
         new ZodlineError('Unknown option: \x1b[36m--foo\x1b[0m'),
       );
 
       expect(cliError.code).toBe('E_INVALID_PARAMETER');
-      expect(cliError.message).toBe('Unknown option: --foo');
+      expect(cliError.message).toBe('Unknown option: --foo.');
     });
 
     it('should map any other error to E_UNEXPECTED with exit code 1', () => {
