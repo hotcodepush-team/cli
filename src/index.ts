@@ -2,6 +2,10 @@
 import { PACKAGE_JSON } from './config/consts.js';
 import { runCli } from './utils/cli.js';
 import type { CommandRegistry } from './utils/command-registry.js';
+import {
+  printUpdateNotice,
+  refreshLatestKnownVersion,
+} from './utils/update-notice.js';
 
 const commandRegistry: CommandRegistry = {
   'app create': () => import('./commands/app/create.js'),
@@ -79,8 +83,12 @@ const commandRegistry: CommandRegistry = {
   'whoami': () => import('./commands/whoami.js'),
 };
 
+// the daily check runs beside the command, so the notice after it never waits on the registry for long
+const latestKnownVersionRefresh = refreshLatestKnownVersion();
 process.exitCode = await runCli(
   commandRegistry,
   process.argv.slice(2),
   PACKAGE_JSON,
 );
+await latestKnownVersionRefresh;
+printUpdateNotice();

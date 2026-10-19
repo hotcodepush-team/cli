@@ -30,7 +30,7 @@ src/
                the progression schedule from its flags, the spending cap in whole dollars, a member or an invitation by id or email,
                the native glue the Capacitor and Cordova modules name, one constant in `frameworks/native-glue.ts`,
                the build step both commands share, the resource file,
-               the progress lines, the browser opener, the JSON, tables and details output, the telemetry,
+               the progress lines, the browser opener, the JSON, tables and details output, the telemetry, the update notice,
                init's step runner, the outcome rows init and doctor print, the package manager and its visible runs,
                the native-project edits: the binary create phase in the Xcode project and the removal of the resource reference an earlier init added, package.json reading,
                the lines a React Native project is wired with
@@ -146,6 +146,7 @@ A project with an app config that is code, or with a JSON one that does not pars
 - **Telemetry is one switch**: `HOTCODEPUSH_TELEMETRY_DISABLED=1` or `DO_NOT_TRACK=1` turns off both `cli.command_finished` to PostHog and the unexpected errors to Sentry, and the first run on a machine prints the notice on stderr, remembered as `telemetryNoticeShownAt`.
   `runCli` reports the finished command through two `fetch` calls of ours, no SDK, waited for at most 1.5 seconds and silent when they fail: PostHog's capture endpoint gets `command`, `outcome`, `stopped_step` for `init`, `duration_ms`, `cli_version`, `is_ci`, `framework` and `source` under the hashed host name, and Sentry's envelope endpoint gets `E_UNEXPECTED` and `E_UNEXPECTED_RESPONSE`, the error's type and its stack as the value, without its message or a path above `node_modules`, with the code and the command as tags.
   The keys are `telemetry.posthogProjectKey` and `telemetry.sentryDsn` in `package.json`, empty in the repository, so every build but the release sends nothing; the release build sets them from the repository variables `POSTHOG_PROJECT_KEY` and `SENTRY_DSN` with `npm pkg set` before it publishes.
+- **The update notice** is one line on stderr after a command, read from `latestKnownVersion`, once the registry knows a newer version; the entry point asks the registry beside the command, at most once a day by `lastUpdateCheckAt`, a failed check included, with a one-second timeout and silent failures, and never in CI or under `HOTCODEPUSH_NO_UPDATE_NOTIFIER=1`.
 - **Every login** keeps its device code, expiry, user code and verification URL in `config.json` until approved; the next `login` redeems the code first and, while it is pending, shows the same code again, so an agent sees one output until the person approves.
 
 ## Naming
