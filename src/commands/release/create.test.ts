@@ -1,4 +1,4 @@
-import { confirm } from '@clack/prompts';
+import { confirm, select } from '@clack/prompts';
 import type { Audience } from '@hotcodepush/node';
 import { hashAttribute, hashDeviceId } from '@hotcodepush/protocol';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -8,6 +8,7 @@ import {
   useCommandHarness,
 } from '../../../test/command-harness.js';
 import {
+  ACME_ORGANIZATION,
   DEMO_APP,
   LIVE_RELEASE,
   PREVIOUS_BUNDLE,
@@ -120,15 +121,23 @@ describe('release create', () => {
       Response.json(audience);
   }
 
+  function respondWithOrganizationApps(): void {
+    harness.routes['GET /v1/organizations'] = () =>
+      Response.json([ACME_ORGANIZATION]);
+    harness.routes[`GET /v1/organizations/${ACME_ORGANIZATION.id}/apps`] = () =>
+      Response.json([DEMO_APP]);
+  }
+
   function respondWithCreatedRelease(): void {
     harness.routes[`POST ${CHANNEL_PATH}/releases`] = () =>
       Response.json(LIVE_RELEASE, { status: 201 });
   }
 
   function stubWebBuildUpload(): void {
-    vi.mocked(resolveUploadBundleOptions).mockResolvedValue([
-      UPLOAD_BUNDLE_OPTIONS,
-    ]);
+    vi.mocked(resolveUploadBundleOptions).mockResolvedValue({
+      appId: DEMO_APP.id,
+      bundleUploads: [UPLOAD_BUNDLE_OPTIONS],
+    });
     vi.mocked(uploadBundle).mockResolvedValue({
       bundle: { ...READY_BUNDLE, fingerprint: CAPACITOR_FINGERPRINT },
       upload: { fileCount: 0, sizeBytes: 0 },
@@ -177,6 +186,48 @@ describe('release create', () => {
     expect(harness.readLines()).toEqual([
       `Released bundle #17 · 1.4.2 to staging as release #43 at 100 percent, live since ${LIVE_RELEASE.liveAt}.`,
     ]);
+  });
+
+  it('should ask for the app once for --bundle when no hotcodepush.json names it', async () => {
+    stubInteractiveTerminal();
+    vi.spyOn(process, 'cwd').mockReturnValue('/');
+    vi.mocked(select).mockResolvedValue(DEMO_APP.id);
+    vi.mocked(confirm).mockResolvedValue(true);
+    respondWithOrganizationApps();
+    respondWithStagingChannel();
+    respondWithBundleNamedByNumber();
+    respondWithCreatedRelease();
+
+    await releaseCreateCommand.action(
+      { bundle: '17', channel: [STAGING_CHANNEL.id] },
+      undefined,
+    );
+
+    expect(select).toHaveBeenCalledOnce();
+  });
+
+  it('should list the organizations once for --bundle when --app is a name', async () => {
+    respondWithOrganizationApps();
+    respondWithStagingChannel();
+    respondWithBundleNamedByNumber();
+    respondWithCreatedRelease();
+
+    await releaseCreateCommand.action(
+      {
+        app: DEMO_APP.name,
+        bundle: '17',
+        channel: [STAGING_CHANNEL.id],
+        json: true,
+        yes: true,
+      },
+      undefined,
+    );
+
+    expect(
+      harness.requests.filter(
+        ({ url }) => new URL(url).pathname === '/v1/organizations',
+      ),
+    ).toHaveLength(1);
   });
 
   it('should upload the web build first without --bundle, with its fingerprint as a condition, and print the one release as a JSON array when --yes and --json are passed', async () => {
@@ -721,10 +772,13 @@ describe('release create', () => {
     const OPTIONS = { app: DEMO_APP.id, channel: [STAGING_CHANNEL.id] };
 
     function stubPlatformBundleUploads(): void {
-      vi.mocked(resolveUploadBundleOptions).mockResolvedValue([
-        { ...UPLOAD_BUNDLE_OPTIONS, platforms: ['android'] },
-        { ...UPLOAD_BUNDLE_OPTIONS, platforms: ['ios'] },
-      ]);
+      vi.mocked(resolveUploadBundleOptions).mockResolvedValue({
+        appId: DEMO_APP.id,
+        bundleUploads: [
+          { ...UPLOAD_BUNDLE_OPTIONS, platforms: ['android'] },
+          { ...UPLOAD_BUNDLE_OPTIONS, platforms: ['ios'] },
+        ],
+      });
       for (const bundle of [READY_BUNDLE, PREVIOUS_BUNDLE]) {
         vi.mocked(uploadBundle).mockResolvedValueOnce({
           bundle: { ...bundle, fingerprint: CAPACITOR_FINGERPRINT },

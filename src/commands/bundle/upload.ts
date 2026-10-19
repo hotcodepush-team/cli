@@ -109,17 +109,17 @@ export default defineCommand({
     const hotCodePush = createApiClient();
     const uploadedBundles = await withTemporaryDirectory(
       async packagingDirectoryPath => {
-        const uploadBundleOptionsList = await resolveUploadBundleOptions(
+        const { bundleUploads } = await resolveUploadBundleOptions(
           hotCodePush,
           options,
           packagingDirectoryPath,
         );
         const bundles: UploadedBundle[] = [];
-        for (const uploadBundleOptions of uploadBundleOptionsList) {
+        for (const uploadBundleOptions of bundleUploads) {
           bundles.push(await uploadBundle(hotCodePush, uploadBundleOptions));
         }
         // every platform's bundle carries the project's one fingerprint, so one check answers for all of them
-        const [sharedOptions] = uploadBundleOptionsList;
+        const [sharedOptions] = bundleUploads;
         if (
           sharedOptions !== undefined &&
           (await fetchIsFingerprintUnknown(hotCodePush, sharedOptions))
@@ -179,15 +179,16 @@ function printUploadedBundle({ bundle, upload }: UploadedBundle): void {
 /**
  * What each upload of the command needs, from the project's configuration and the flags, asked for where missing: one
  * bundle for a build the project holds, one per platform where the framework packages inside the upload, which it does
- * here, into the packaging directory. Nothing moves yet, so `release create` resolves them before it confirms and
- * uploads only once confirmed, and its dry run, which uploads nothing, resolves them without the private key.
+ * here, into the packaging directory; with the app they go to, which `release create` resolves its channels in.
+ * Nothing moves yet, so `release create` resolves them before it confirms and uploads only once confirmed, and its dry
+ * run, which uploads nothing, resolves them without the private key.
  */
 export async function resolveUploadBundleOptions(
   hotCodePush: HotCodePush,
   options: BundleUploadOptions,
   packagingDirectoryPath: string,
   { isDryRun = false }: { isDryRun?: boolean } = {},
-): Promise<UploadBundleOptions[]> {
+): Promise<{ appId: string; bundleUploads: UploadBundleOptions[] }> {
   const { directoryPath, projectConfig } = locateProjectConfig(options.config);
   const framework = resolveFrameworkModule(detectFramework(directoryPath));
   const appId = await fetchAppId(hotCodePush, options, projectConfig);
@@ -227,10 +228,13 @@ export async function resolveUploadBundleOptions(
           platforms: options.platform,
           projectDirectoryPath: directoryPath,
         });
-  return packagedBundles.map(packagedBundle => ({
-    ...sharedOptions,
-    ...packagedBundle,
-  }));
+  return {
+    appId,
+    bundleUploads: packagedBundles.map(packagedBundle => ({
+      ...sharedOptions,
+      ...packagedBundle,
+    })),
+  };
 }
 
 /**

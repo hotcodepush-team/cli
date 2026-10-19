@@ -48,7 +48,7 @@ import {
 } from '../../utils/release-resolution.js';
 import {
   fetchAppId,
-  fetchChannel,
+  fetchChannelId,
   fetchChannels,
   fetchResourceId,
 } from '../../utils/resource-resolution.js';
@@ -72,7 +72,7 @@ import {
 export type BundleSource =
   | { bundle: Bundle }
   | { bundle: Bundle; sourceChannel: Channel; sourceRelease: Release }
-  | { bundleUploads: UploadBundleOptions[] };
+  | { appId: string; bundleUploads: UploadBundleOptions[] };
 
 /**
  * A channel the release goes to with the audience its conditions reach there.
@@ -188,8 +188,11 @@ async function createReleases(
   const isMandatory = options.mandatory ?? false;
   const rolloutPercentage =
     options.rolloutPercentage ?? progression?.percentages[0] ?? 100;
+  const appId =
+    'bundle' in bundleSource ? bundleSource.bundle.appId : bundleSource.appId;
   const channelAudiences = await fetchChannelAudiences(
     hotCodePush,
+    appId,
     options,
     fingerprint,
     rolloutPercentage,
@@ -276,6 +279,7 @@ export function resolveReleaseConsequence(
  */
 async function fetchChannelAudiences(
   hotCodePush: HotCodePush,
+  appId: string,
   options: ReleaseCreateOptions,
   fingerprint: string | null,
   rolloutPercentage: number,
@@ -289,11 +293,17 @@ async function fetchChannelAudiences(
     fingerprint,
     rolloutPercentage,
   );
+  const projectConfig = readProjectConfig(options.config);
   return Promise.all(
     channelReferences.map(async channelReference => {
-      const channel = await fetchChannel(hotCodePush, {
-        ...options,
-        channel: channelReference,
+      const channel = await hotCodePush.apps.channels.get({
+        appId,
+        channelId: await fetchChannelId(
+          hotCodePush,
+          appId,
+          { ...options, channel: channelReference },
+          projectConfig,
+        ),
       });
       const audience = await hotCodePush.apps.channels.audience.get({
         ...audienceQuery,
@@ -397,14 +407,12 @@ async function resolveBundleSource(
     );
   }
   if (options.bundle === undefined && options.fromChannel === undefined) {
-    return {
-      bundleUploads: await resolveUploadBundleOptions(
-        hotCodePush,
-        options,
-        packagingDirectoryPath,
-        { isDryRun: options.dryRun },
-      ),
-    };
+    return resolveUploadBundleOptions(
+      hotCodePush,
+      options,
+      packagingDirectoryPath,
+      { isDryRun: options.dryRun },
+    );
   }
   const appId = await fetchAppId(
     hotCodePush,

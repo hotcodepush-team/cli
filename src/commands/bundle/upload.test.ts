@@ -473,14 +473,14 @@ describe('bundle upload', () => {
   });
 
   it('should resolve a dry run without a private key when hotcodepush.json lists a public key', async () => {
-    const [uploadBundleOptions] = await resolveUploadBundleOptions(
+    const { bundleUploads } = await resolveUploadBundleOptions(
       createApiClient(),
       { config: listPublicKey(), noGit: true },
       projectDirectoryPath,
       { isDryRun: true },
     );
 
-    expect(uploadBundleOptions?.signingPrivateKey).toBeNull();
+    expect(bundleUploads[0]?.signingPrivateKey).toBeNull();
     expect(harness.requests).toHaveLength(0);
   });
 

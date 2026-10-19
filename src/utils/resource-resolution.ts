@@ -107,6 +107,38 @@ export async function fetchChannel(
   return hotCodePush.apps.channels.get({ appId, channelId });
 }
 
+/**
+ * The channel of `--channel`, otherwise `hotcodepush.json`'s when the app is the file's too, otherwise a picker when interactive.
+ */
+export async function fetchChannelId(
+  hotCodePush: HotCodePush,
+  appId: string,
+  options: ChannelOptions,
+  projectConfig: ProjectConfig | undefined,
+): Promise<string> {
+  if (options.channel !== undefined) {
+    return fetchResourceId('channel', options.channel, () =>
+      fetchChannels(hotCodePush, appId),
+    );
+  }
+  if (projectConfig !== undefined && projectConfig.appId === appId) {
+    return fetchResourceId(
+      'channel',
+      resolveProjectChannel(projectConfig),
+      () => fetchChannels(hotCodePush, appId),
+      PROJECT_CONFIG_FILE_NAME,
+    );
+  }
+  if (!isInteractive(options)) {
+    throw new MissingParameterError('--channel');
+  }
+  return promptResourceId(
+    'channel',
+    await fetchChannels(hotCodePush, appId),
+    options,
+  );
+}
+
 export function fetchChannels(
   hotCodePush: HotCodePush,
   appId: string,
@@ -232,36 +264,4 @@ async function fetchAppsInScope(
     ),
   );
   return fetchedApps.flat();
-}
-
-/**
- * The channel of `--channel`, otherwise `hotcodepush.json`'s when the app is the file's too, otherwise a picker when interactive.
- */
-async function fetchChannelId(
-  hotCodePush: HotCodePush,
-  appId: string,
-  options: ChannelOptions,
-  projectConfig: ProjectConfig | undefined,
-): Promise<string> {
-  if (options.channel !== undefined) {
-    return fetchResourceId('channel', options.channel, () =>
-      fetchChannels(hotCodePush, appId),
-    );
-  }
-  if (projectConfig !== undefined && projectConfig.appId === appId) {
-    return fetchResourceId(
-      'channel',
-      resolveProjectChannel(projectConfig),
-      () => fetchChannels(hotCodePush, appId),
-      PROJECT_CONFIG_FILE_NAME,
-    );
-  }
-  if (!isInteractive(options)) {
-    throw new MissingParameterError('--channel');
-  }
-  return promptResourceId(
-    'channel',
-    await fetchChannels(hotCodePush, appId),
-    options,
-  );
 }

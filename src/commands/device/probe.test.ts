@@ -1,8 +1,14 @@
+import { select } from '@clack/prompts';
 import type { Binary, Device } from '@hotcodepush/node';
 import type { ChannelIndex } from '@hotcodepush/protocol';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { API_URL, useCommandHarness } from '../../../test/command-harness.js';
 import {
+  API_URL,
+  stubInteractiveTerminal,
+  useCommandHarness,
+} from '../../../test/command-harness.js';
+import {
+  ACME_ORGANIZATION,
   BINARY,
   DEMO_APP,
   DEVICE,
@@ -17,6 +23,8 @@ import {
 import { PACKAGE_JSON } from '../../config/consts.js';
 import { runCli } from '../../utils/cli.js';
 import deviceProbeCommand from './probe.js';
+
+vi.mock('@clack/prompts');
 
 const BINARIES_PATH = `/v1/apps/${DEMO_APP.id}/binaries`;
 
@@ -102,6 +110,13 @@ describe('device probe', () => {
       Response.json([PROBED_BINARY]);
     respondWithIndex(INDEX);
   });
+
+  function respondWithOrganizationApps(): void {
+    harness.routes['GET /v1/organizations'] = () =>
+      Response.json([ACME_ORGANIZATION]);
+    harness.routes[`GET /v1/organizations/${ACME_ORGANIZATION.id}/apps`] = () =>
+      Response.json([DEMO_APP]);
+  }
 
   function respondWithIndex(
     servedIndex: ChannelIndex,
@@ -332,5 +347,46 @@ describe('device probe', () => {
       outcome: { condition: 'attribute', reason: 'DEVICE_NOT_TARGETED' },
       unknownFacts: [],
     });
+  });
+
+  it('should ask for the app once when no hotcodepush.json names it', async () => {
+    stubInteractiveTerminal();
+    vi.spyOn(process, 'cwd').mockReturnValue('/');
+    vi.mocked(select).mockResolvedValue(DEMO_APP.id);
+    respondWithOrganizationApps();
+
+    await deviceProbeCommand.action(
+      {
+        binaryBuild: '57',
+        binaryVersion: '2.4.1',
+        channel: STAGING_CHANNEL.id,
+        platform: 'ios',
+      },
+      undefined,
+    );
+
+    expect(select).toHaveBeenCalledOnce();
+  });
+
+  it('should list the organizations once when --app is a name', async () => {
+    respondWithOrganizationApps();
+
+    await deviceProbeCommand.action(
+      {
+        app: DEMO_APP.name,
+        binaryBuild: '57',
+        binaryVersion: '2.4.1',
+        channel: STAGING_CHANNEL.id,
+        json: true,
+        platform: 'ios',
+      },
+      undefined,
+    );
+
+    expect(
+      harness.requests.filter(
+        ({ url }) => new URL(url).pathname === '/v1/organizations',
+      ),
+    ).toHaveLength(1);
   });
 });

@@ -30,7 +30,7 @@ import { resolveAttributePairs } from '../../utils/release-conditions.js';
 import {
   channelOptionShape,
   fetchAppId,
-  fetchChannel,
+  fetchChannelId,
 } from '../../utils/resource-resolution.js';
 import type { Platform } from '../../utils/upload.js';
 import { readApiUrl } from '../../utils/user-config.js';
@@ -89,11 +89,8 @@ export default defineCommand({
   }),
   action: async options => {
     const hotCodePush = createApiClient();
-    const appId = await fetchAppId(
-      hotCodePush,
-      options,
-      readProjectConfig(options.config),
-    );
+    const projectConfig = readProjectConfig(options.config);
+    const appId = await fetchAppId(hotCodePush, options, projectConfig);
     const registryDevice =
       options.device === undefined
         ? undefined
@@ -101,9 +98,17 @@ export default defineCommand({
             appId,
             deviceId: options.device,
           });
-    const channel = await fetchChannel(hotCodePush, {
-      ...options,
-      channel: options.channel ?? registryDevice?.channelId ?? undefined,
+    const channel = await hotCodePush.apps.channels.get({
+      appId,
+      channelId: await fetchChannelId(
+        hotCodePush,
+        appId,
+        {
+          ...options,
+          channel: options.channel ?? registryDevice?.channelId ?? undefined,
+        },
+        projectConfig,
+      ),
     });
     const platform =
       options.platform ??
