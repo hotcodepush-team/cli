@@ -126,14 +126,7 @@ export default defineCommand({
       });
     }
     if (options.json) {
-      const isSingleRelease = revocations.some(
-        ({ request }) => 'releaseId' in request,
-      );
-      printJson(
-        isSingleRelease
-          ? answers[0]?.releases[0]
-          : answers.flatMap(({ releases }) => releases),
-      );
+      printJson(answers.flatMap(({ releases }) => releases));
       return;
     }
     for (const { channel, releases } of answers) {

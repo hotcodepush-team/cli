@@ -102,7 +102,7 @@ describe('release revoke', () => {
     ]);
   });
 
-  it('should revoke without asking and print the release as JSON when --yes and --json are passed', async () => {
+  it('should revoke without asking and print the release as a JSON array when --yes and --json are passed', async () => {
     await releaseRevokeCommand.action(
       {
         app: DEMO_APP.id,
@@ -115,7 +115,7 @@ describe('release revoke', () => {
     );
 
     expect(confirm).not.toHaveBeenCalled();
-    expect(harness.readJson()).toEqual(REVOKED_RELEASE);
+    expect(harness.readJson()).toEqual([REVOKED_RELEASE]);
   });
 
   it('should stop with E_CONFIRMATION_REQUIRED when nobody can confirm', async () => {
@@ -381,6 +381,22 @@ describe('release revoke', () => {
     expect(harness.readLines()).toEqual([
       'Nothing to revoke: no release named is active or paused.',
     ]);
+  });
+
+  it('should print an empty JSON array when nothing is left to revoke and --json is passed', async () => {
+    await releaseRevokeCommand.action(
+      {
+        app: DEMO_APP.id,
+        channel: STAGING_CHANNEL.id,
+        json: true,
+        releaseFrom: 50,
+        yes: true,
+      },
+      undefined,
+    );
+
+    expect(readRevokeRequests()).toEqual([]);
+    expect(harness.readJson()).toEqual([]);
   });
 
   it('should refuse two forms at once', async () => {
