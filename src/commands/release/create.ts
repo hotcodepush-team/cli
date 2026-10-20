@@ -111,6 +111,12 @@ export interface ReleaseRollout {
   rolloutPercentage: number;
 }
 
+/**
+ * A release as `--json` prints it: the row read with its bundle and its channel, and the audience preview the
+ * confirmation stated for that channel, so a pipeline reads what the person saw.
+ */
+type ReleaseWithAudience = Release & { audience: Audience };
+
 export default defineCommand({
   description:
     'Release a bundle to a channel, uploading the build first unless --bundle or --from-channel names one, and wait until it is live.',
@@ -209,7 +215,7 @@ async function createReleases(
   if (!(await confirmConsequence(consequence, options))) {
     return;
   }
-  const releases: Release[] = [];
+  const releases: ReleaseWithAudience[] = [];
   for (const bundle of await resolveReleasedBundles(
     hotCodePush,
     bundleSource,
@@ -225,7 +231,7 @@ async function createReleases(
       progression: progression ?? undefined,
       rolloutPercentage,
     };
-    for (const { channel } of channelAudiences) {
+    for (const { audience, channel } of channelAudiences) {
       const createdRelease = await hotCodePush.apps.channels.releases.create({
         ...releaseBody,
         appId: bundle.appId,
@@ -234,9 +240,10 @@ async function createReleases(
       const liveRelease = await waitUntilLive(
         hotCodePush,
         bundle.appId,
-        createdRelease,
+        createdRelease.id,
+        ['bundle', 'channel'],
       );
-      releases.push(liveRelease);
+      releases.push({ ...liveRelease, audience });
       if (!options.json) {
         printReleasedLine(
           liveRelease,

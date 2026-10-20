@@ -70,7 +70,7 @@ export default defineCommand({
     const liveRelease = await waitUntilLive(
       hotCodePush,
       fetchedChannel.appId,
-      createdRelease,
+      createdRelease.id,
     );
     if (options.json) {
       printJson(liveRelease);

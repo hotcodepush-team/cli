@@ -1,4 +1,9 @@
-import type { Channel, HotCodePush, Release } from '@hotcodepush/node';
+import type {
+  Channel,
+  GetReleaseOptions,
+  HotCodePush,
+  Release,
+} from '@hotcodepush/node';
 import { z } from 'zod';
 import { resolveBundleLabel } from './bundle-resolution.js';
 import { InvalidParameterError } from './errors.js';
@@ -102,27 +107,27 @@ export function resolveReleaseInLog(
 }
 
 /**
- * Waits until the release is live — the materializer stamps `liveAt` once the index is written — for a bounded time;
- * the release as last seen either way, so the caller says when it is still pending.
+ * Reads the release with the relations asked for until it is live — the materializer stamps `liveAt` once the index
+ * is written — for a bounded time; the release as last read either way, so the caller says when it is still pending.
  */
 export async function waitUntilLive(
   hotCodePush: HotCodePush,
   appId: string,
-  release: Release,
+  releaseId: string,
+  relations?: GetReleaseOptions['relations'],
 ): Promise<Release> {
   const deadline = Date.now() + LIVE_WAIT_MS;
-  let latestRelease = release;
-  while (latestRelease.liveAt === null) {
-    latestRelease = await hotCodePush.apps.releases.get({
+  for (;;) {
+    const release = await hotCodePush.apps.releases.get({
       appId,
-      releaseId: release.id,
+      relations,
+      releaseId,
     });
-    if (latestRelease.liveAt !== null || Date.now() >= deadline) {
-      break;
+    if (release.liveAt !== null || Date.now() >= deadline) {
+      return release;
     }
     await new Promise(resolve => setTimeout(resolve, LIVE_POLL_INTERVAL_MS));
   }
-  return latestRelease;
 }
 
 async function resolveReleaseId(

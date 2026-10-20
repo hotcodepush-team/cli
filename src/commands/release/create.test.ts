@@ -1,5 +1,5 @@
 import { confirm, select } from '@clack/prompts';
-import type { Audience } from '@hotcodepush/node';
+import type { Audience, Channel, Release } from '@hotcodepush/node';
 import { hashAttribute, hashDeviceId } from '@hotcodepush/protocol';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CAPACITOR_FINGERPRINT } from '../../../test/capacitor-project.js';
@@ -85,6 +85,16 @@ const PRODUCTION_RELEASE = {
   number: 7,
 };
 
+/**
+ * The release as the wait until it is live reads it, with its bundle and its channel.
+ */
+function buildReleaseWithRelations(
+  release: Release,
+  channel: Channel,
+): Release {
+  return { ...release, bundle: READY_BUNDLE, channel };
+}
+
 describe('release create', () => {
   const harness = useCommandHarness();
   let stderrWrite: ReturnType<typeof vi.spyOn>;
@@ -128,9 +138,16 @@ describe('release create', () => {
       Response.json([DEMO_APP]);
   }
 
-  function respondWithCreatedRelease(): void {
-    harness.routes[`POST ${CHANNEL_PATH}/releases`] = () =>
-      Response.json(LIVE_RELEASE, { status: 201 });
+  function respondWithCreatedRelease(
+    release: Release = LIVE_RELEASE,
+    channel: Channel = STAGING_CHANNEL,
+  ): void {
+    harness.routes[
+      `POST /v1/apps/${DEMO_APP.id}/channels/${channel.id}/releases`
+    ] = () => Response.json(release, { status: 201 });
+    harness.routes[
+      `GET ${RELEASES_PATH}/${release.id}?relations=bundle%2Cchannel`
+    ] = () => Response.json(buildReleaseWithRelations(release, channel));
   }
 
   function stubWebBuildUpload(): void {
@@ -179,8 +196,9 @@ describe('release create', () => {
       rolloutPercentage: 100,
     });
     expect(
-      harness.requests.filter(({ url }) =>
-        url.endsWith(`${RELEASES_PATH}/${LIVE_RELEASE.id}`),
+      harness.requests.filter(
+        ({ url }) =>
+          new URL(url).pathname === `${RELEASES_PATH}/${LIVE_RELEASE.id}`,
       ),
     ).toHaveLength(1);
     expect(harness.readLines()).toEqual([
@@ -230,7 +248,7 @@ describe('release create', () => {
     ).toHaveLength(1);
   });
 
-  it('should upload the web build first without --bundle, with its fingerprint as a condition, and print the one release as a JSON array when --yes and --json are passed', async () => {
+  it('should upload the web build first without --bundle, with its fingerprint as a condition, and print the one release as a JSON array with its bundle, its channel and its audience when --yes and --json are passed', async () => {
     stubWebBuildUpload();
     respondWithStagingChannel();
     respondWithCreatedRelease();
@@ -268,7 +286,12 @@ describe('release create', () => {
       notes: 'cart fix',
       rolloutPercentage: 10,
     });
-    expect(harness.readJson()).toEqual([LIVE_RELEASE]);
+    expect(harness.readJson()).toEqual([
+      {
+        ...buildReleaseWithRelations(LIVE_RELEASE, STAGING_CHANNEL),
+        audience: STAGING_AUDIENCE,
+      },
+    ]);
   });
 
   it('should send a new Idempotency-Key on every run, so a second run creates a second release', async () => {
@@ -297,6 +320,7 @@ describe('release create', () => {
   it("should send the same Idempotency-Key on the client's retry when the API answers a server error", async () => {
     respondWithStagingChannel();
     respondWithBundleNamedByNumber();
+    respondWithCreatedRelease();
     harness.routes[`POST ${CHANNEL_PATH}/releases`] = vi
       .fn<() => Response>()
       .mockReturnValueOnce(
@@ -419,8 +443,7 @@ describe('release create', () => {
       respondWithStagingChannel();
       harness.routes[`GET ${BUNDLES_PATH}/${READY_BUNDLE.id}`] = () =>
         Response.json(READY_BUNDLE);
-      harness.routes[`POST ${CHANNEL_PATH}/releases`] = () =>
-        Response.json(PROGRESSING_RELEASE, { status: 201 });
+      respondWithCreatedRelease(PROGRESSING_RELEASE);
     });
 
     it("should start at the default schedule's first percentage once confirmed, stating the schedule", async () => {
@@ -485,7 +508,12 @@ describe('release create', () => {
         },
         rolloutPercentage: 5,
       });
-      expect(harness.readJson()).toEqual([PROGRESSING_RELEASE]);
+      expect(harness.readJson()).toEqual([
+        {
+          ...buildReleaseWithRelations(PROGRESSING_RELEASE, STAGING_CHANNEL),
+          audience: STAGING_AUDIENCE,
+        },
+      ]);
     });
 
     it("should refuse a schedule's flag without --progress before any request", async () => {
@@ -673,22 +701,22 @@ describe('release create', () => {
       channel: [STAGING_CHANNEL.id, PRODUCTION_CHANNEL.id],
       yes: true,
     };
+    const PRODUCTION_AUDIENCE: Audience = {
+      ...STAGING_AUDIENCE,
+      deviceCount: 1000,
+      reachedDeviceCount: 900,
+    };
 
     beforeEach(() => {
       respondWithStagingChannel();
       harness.routes[`GET ${PRODUCTION_CHANNEL_PATH}`] = () =>
         Response.json(PRODUCTION_CHANNEL);
       harness.routes[`GET ${PRODUCTION_CHANNEL_PATH}/audience`] = () =>
-        Response.json({
-          ...STAGING_AUDIENCE,
-          deviceCount: 1000,
-          reachedDeviceCount: 900,
-        });
+        Response.json(PRODUCTION_AUDIENCE);
       harness.routes[`GET ${BUNDLES_PATH}/${READY_BUNDLE.id}`] = () =>
         Response.json(READY_BUNDLE);
       respondWithCreatedRelease();
-      harness.routes[`POST ${PRODUCTION_CHANNEL_PATH}/releases`] = () =>
-        Response.json(PRODUCTION_RELEASE, { status: 201 });
+      respondWithCreatedRelease(PRODUCTION_RELEASE, PRODUCTION_CHANNEL);
     });
 
     it('should release to every channel named, one release each', async () => {
@@ -701,10 +729,19 @@ describe('release create', () => {
       ]);
     });
 
-    it('should print the releases as a JSON array in the order of the channels', async () => {
+    it("should print the releases as a JSON array in the order of the channels, each with its channel's audience", async () => {
       await releaseCreateCommand.action({ ...OPTIONS, json: true }, undefined);
 
-      expect(harness.readJson()).toEqual([LIVE_RELEASE, PRODUCTION_RELEASE]);
+      expect(harness.readJson()).toEqual([
+        {
+          ...buildReleaseWithRelations(LIVE_RELEASE, STAGING_CHANNEL),
+          audience: STAGING_AUDIENCE,
+        },
+        {
+          ...buildReleaseWithRelations(PRODUCTION_RELEASE, PRODUCTION_CHANNEL),
+          audience: PRODUCTION_AUDIENCE,
+        },
+      ]);
     });
   });
 
