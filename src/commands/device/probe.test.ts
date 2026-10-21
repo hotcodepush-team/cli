@@ -32,6 +32,8 @@ const FINGERPRINT = `fp1:${'a'.repeat(64)}`;
 
 const INDEX_PATH = `/files/apps/${DEMO_APP.id}/channels/${STAGING_CHANNEL.id}/ios/v1/index.json`;
 
+const INDEX_PUBLISHED_AT = '2026-09-07T08:00:00.123Z';
+
 const PROBED_BINARY: Binary = {
   ...BINARY,
   build: '57',
@@ -74,7 +76,7 @@ const INDEX: ChannelIndex = {
   ],
   revokedReleaseIds: [],
   schema: 1,
-  sequence: 12,
+  sequence: Date.parse(INDEX_PUBLISHED_AT),
 };
 
 /**
@@ -118,14 +120,8 @@ describe('device probe', () => {
       Response.json([DEMO_APP]);
   }
 
-  function respondWithIndex(
-    servedIndex: ChannelIndex,
-    databaseIndex = servedIndex,
-  ): void {
-    harness.routes[`GET ${INDEX_PATH}`] = () =>
-      Response.json(servedIndex, { headers: { ETag: '"index-etag"' } });
-    harness.routes[`GET ${CHANNEL_PATH}/indexes/ios`] = () =>
-      Response.json(databaseIndex);
+  function respondWithIndex(servedIndex: ChannelIndex): void {
+    harness.routes[`GET ${INDEX_PATH}`] = () => Response.json(servedIndex);
   }
 
   it.each(REGISTRY_FIXTURES.map(fixture => [fixture.name, fixture]))(
@@ -216,11 +212,10 @@ describe('device probe', () => {
 
     expect(exitCode).toBe(0);
     expect(harness.readLines()).toEqual([
-      'Channel   staging, ios',
-      'Index     sequence 12, ETag "index-etag"',
-      'Database  the files host serves the current index',
-      'Outcome   AVAILABLE, release #43',
-      'Unknown   os, rollout, treated as passing; pass --device for the facts of a real device',
+      'Channel  staging, ios',
+      `Index    published ${INDEX_PUBLISHED_AT}`,
+      'Outcome  AVAILABLE, release #43',
+      'Unknown  os, rollout, treated as passing; pass --device for the facts of a real device',
       'RELEASE  ROLLOUT  CONDITIONS                                 VERDICT',
       '#43      0%       binary pass, fingerprint pass, os unknown  eligible',
     ]);
@@ -242,10 +237,8 @@ describe('device probe', () => {
     );
 
     expect(harness.readJson()).toMatchObject({
-      etag: '"index-etag"',
-      isServedIndexCurrent: true,
       outcome: { release: { id: RELEASE.id }, status: 'AVAILABLE' },
-      sequence: 12,
+      sequence: Date.parse(INDEX_PUBLISHED_AT),
       status: 200,
       unknownFacts: ['fingerprint', 'os', 'rollout'],
       url: `${API_URL}${INDEX_PATH}`,
@@ -258,23 +251,23 @@ describe('device probe', () => {
     });
   });
 
-  it("should say when the files host serves another index than the database's", async () => {
-    respondWithIndex(INDEX, { ...INDEX, sequence: 13 });
-
+  it('should print builtAt null when no store build matches the identity, and still evaluate the release', async () => {
     await deviceProbeCommand.action(
       {
         app: DEMO_APP.id,
-        binaryBuild: '57',
+        binaryBuild: '58',
         binaryVersion: '2.4.1',
         channel: STAGING_CHANNEL.id,
+        json: true,
         platform: 'ios',
       },
       undefined,
     );
 
-    expect(harness.readLines()).toContain(
-      "Database  the files host does not serve the database's index, sequence 13; the daily verifier rewrites a drifted channel",
-    );
+    expect(harness.readJson()).toMatchObject({
+      device: { binaryBuild: '58', builtAt: null, fingerprint: null },
+      outcome: { release: { id: RELEASE.id }, status: 'AVAILABLE' },
+    });
   });
 
   it('should say when the files host serves no index, and evaluate nothing', async () => {
@@ -293,11 +286,10 @@ describe('device probe', () => {
     );
 
     expect(harness.readLines()).toEqual([
-      'Channel   staging, ios',
-      `Index     the files host answered 404 at ${API_URL}${INDEX_PATH}; a device gets no release`,
-      "Database  the files host does not serve the database's index, sequence 12; the daily verifier rewrites a drifted channel",
-      'Outcome   none',
-      'Unknown   os, rollout, treated as passing; pass --device for the facts of a real device',
+      'Channel  staging, ios',
+      `Index    none: HTTP 404 at ${API_URL}${INDEX_PATH}; a device gets no release`,
+      'Outcome  none',
+      'Unknown  os, rollout, treated as passing; pass --device for the facts of a real device',
     ]);
   });
 

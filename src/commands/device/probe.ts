@@ -14,7 +14,6 @@ import type {
 import {
   ChannelIndexSchema,
   evaluateChannelIndex,
-  stringifyCanonicalJson,
 } from '@hotcodepush/protocol';
 import { z } from 'zod';
 import { defineCommand } from 'zodline';
@@ -36,10 +35,9 @@ import type { Platform } from '../../utils/upload.js';
 import { readApiUrl } from '../../utils/user-config.js';
 
 /**
- * The index the files host serves, as a device fetches it: its status and ETag, and the index when it serves one.
+ * The index the files host serves, as a device fetches it: its status, and the index when it serves one.
  */
 interface ServedIndex {
-  etag: string | null;
   index: ChannelIndex | null;
   status: number;
   url: string;
@@ -53,7 +51,10 @@ type UnknownFact = 'fingerprint' | 'os' | 'rollout';
 
 const INDEX_FETCH_TIMEOUT_MS = 30_000;
 
-/** The floor a device without a created binary evaluates from: no release is older than its binary. */
+/**
+ * The floor a device without a created binary evaluates from: no release is older than its binary. The evaluator's
+ * input alone; the printed device carries `null`.
+ */
 const NO_FLOOR = new Date(0).toISOString();
 
 export default defineCommand({
@@ -140,18 +141,7 @@ export default defineCommand({
         candidate.version === binaryVersion &&
         candidate.build === binaryBuild,
     );
-    const [servedIndex, databaseIndex] = await Promise.all([
-      fetchServedIndex(appId, channel.id, platform),
-      hotCodePush.apps.channels.indexes.get({
-        appId,
-        channelId: channel.id,
-        platform,
-      }),
-    ]);
-    const isServedIndexCurrent =
-      servedIndex.index !== null &&
-      stringifyCanonicalJson(servedIndex.index) ===
-        stringifyCanonicalJson(databaseIndex);
+    const servedIndex = await fetchServedIndex(appId, channel.id, platform);
     const unknownFacts = resolveUnknownFacts(registryDevice, binary);
     const device: DeviceInfo = {
       attributes: {
@@ -195,9 +185,7 @@ export default defineCommand({
     if (options.json) {
       printJson({
         channelId: channel.id,
-        device,
-        etag: servedIndex.etag,
-        isServedIndexCurrent,
+        device: { ...device, builtAt: binary?.createdAt ?? null },
         outcome: evaluation?.outcome ?? null,
         platform,
         sequence: servedIndex.index?.sequence ?? null,
@@ -211,10 +199,6 @@ export default defineCommand({
     printDetails([
       ['Channel', `${channel.name}, ${platform}`],
       ['Index', resolveServedIndexText(servedIndex)],
-      [
-        'Database',
-        resolveDatabaseText(isServedIndexCurrent, databaseIndex.sequence),
-      ],
       [
         'Outcome',
         evaluation === null ? 'none' : resolveOutcomeText(evaluation),
@@ -272,8 +256,7 @@ async function fetchCurrentRelease(
 }
 
 /**
- * The channel's index from the files host, the request a device makes; a device holding no ETag sends no
- * `If-None-Match`, and the ETag answered is the one it would send next.
+ * The channel's index from the files host, the request a device makes.
  */
 async function fetchServedIndex(
   appId: string,
@@ -284,13 +267,11 @@ async function fetchServedIndex(
   const response = await fetch(url, {
     signal: AbortSignal.timeout(INDEX_FETCH_TIMEOUT_MS),
   });
-  const etag = response.headers.get('ETag');
   if (!response.ok) {
     await response.body?.cancel();
-    return { etag, index: null, status: response.status, url };
+    return { index: null, status: response.status, url };
   }
   return {
-    etag,
     index: ChannelIndexSchema.parse(await response.json()),
     status: response.status,
     url,
@@ -371,18 +352,6 @@ function resolveFailedBundleIds(
     .map(({ bundleId }) => bundleId);
 }
 
-/**
- * Whether the files host serves what the database yields: a drifted copy is rewritten by the daily verifier.
- */
-function resolveDatabaseText(
-  isServedIndexCurrent: boolean,
-  databaseSequence: number,
-): string {
-  return isServedIndexCurrent
-    ? 'the files host serves the current index'
-    : `the files host does not serve the database's index, sequence ${databaseSequence}; the daily verifier rewrites a drifted channel`;
-}
-
 function resolveOutcomeText({ outcome }: ChannelIndexEvaluation): string {
   const releaseText =
     outcome.release === null
@@ -398,15 +367,13 @@ function resolveOutcomeText({ outcome }: ChannelIndexEvaluation): string {
   }
 }
 
-function resolveServedIndexText({
-  etag,
-  index,
-  status,
-  url,
-}: ServedIndex): string {
+/**
+ * The index's sequence is the moment it was published, in milliseconds.
+ */
+function resolveServedIndexText({ index, status, url }: ServedIndex): string {
   return index === null
-    ? `the files host answered ${status} at ${url}; a device gets no release`
-    : `sequence ${index.sequence}, ETag ${etag ?? 'none'}`;
+    ? `none: HTTP ${status} at ${url}; a device gets no release`
+    : `published ${new Date(index.sequence).toISOString()}`;
 }
 
 function resolveUnknownFacts(
