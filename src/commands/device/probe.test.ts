@@ -236,7 +236,20 @@ describe('device probe', () => {
       undefined,
     );
 
-    expect(harness.readJson()).toMatchObject({
+    const json = harness.readJson() as Record<string, unknown>;
+    expect(Object.keys(json).sort()).toEqual([
+      'channelId',
+      'device',
+      'outcome',
+      'platform',
+      'sequence',
+      'status',
+      'unknownFacts',
+      'url',
+      'verdicts',
+    ]);
+    expect(json).toMatchObject({
+      device: { builtAt: null, fingerprint: null },
       outcome: { release: { id: RELEASE.id }, status: 'AVAILABLE' },
       sequence: Date.parse(INDEX_PUBLISHED_AT),
       status: 200,
@@ -251,26 +264,7 @@ describe('device probe', () => {
     });
   });
 
-  it('should print builtAt null when no store build matches the identity, and still evaluate the release', async () => {
-    await deviceProbeCommand.action(
-      {
-        app: DEMO_APP.id,
-        binaryBuild: '58',
-        binaryVersion: '2.4.1',
-        channel: STAGING_CHANNEL.id,
-        json: true,
-        platform: 'ios',
-      },
-      undefined,
-    );
-
-    expect(harness.readJson()).toMatchObject({
-      device: { binaryBuild: '58', builtAt: null, fingerprint: null },
-      outcome: { release: { id: RELEASE.id }, status: 'AVAILABLE' },
-    });
-  });
-
-  it('should say when the files host serves no index, and evaluate nothing', async () => {
+  it('should print none with the HTTP status when no index is served, and evaluate nothing', async () => {
     harness.routes[`GET ${INDEX_PATH}`] = () =>
       new Response('not found', { status: 404 });
 

@@ -35,7 +35,7 @@ import type { Platform } from '../../utils/upload.js';
 import { readApiUrl } from '../../utils/user-config.js';
 
 /**
- * The index the files host serves, as a device fetches it: its status, and the index when it serves one.
+ * The index as a device fetches it: its status, and the index when one is served.
  */
 interface ServedIndex {
   index: ChannelIndex | null;
@@ -51,10 +51,7 @@ type UnknownFact = 'fingerprint' | 'os' | 'rollout';
 
 const INDEX_FETCH_TIMEOUT_MS = 30_000;
 
-/**
- * The floor a device without a created binary evaluates from: no release is older than its binary. The evaluator's
- * input alone; the printed device carries `null`.
- */
+/** The floor a device without a created binary evaluates from: no release is older than its binary. */
 const NO_FLOOR = new Date(0).toISOString();
 
 export default defineCommand({
@@ -143,6 +140,7 @@ export default defineCommand({
     );
     const servedIndex = await fetchServedIndex(appId, channel.id, platform);
     const unknownFacts = resolveUnknownFacts(registryDevice, binary);
+    const builtAt = binary?.createdAt ?? null;
     const device: DeviceInfo = {
       attributes: {
         ...registryDevice?.attributes,
@@ -155,7 +153,7 @@ export default defineCommand({
       },
       binaryBuild,
       binaryVersion,
-      builtAt: binary?.createdAt ?? NO_FLOOR,
+      builtAt: builtAt ?? NO_FLOOR,
       currentRelease:
         registryDevice === undefined
           ? null
@@ -185,7 +183,7 @@ export default defineCommand({
     if (options.json) {
       printJson({
         channelId: channel.id,
-        device: { ...device, builtAt: binary?.createdAt ?? null },
+        device: { ...device, builtAt },
         outcome: evaluation?.outcome ?? null,
         platform,
         sequence: servedIndex.index?.sequence ?? null,
@@ -256,7 +254,7 @@ async function fetchCurrentRelease(
 }
 
 /**
- * The channel's index from the files host, the request a device makes.
+ * The channel's index, the request a device makes.
  */
 async function fetchServedIndex(
   appId: string,
