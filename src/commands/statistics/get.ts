@@ -40,7 +40,7 @@ const FLEET_DIMENSIONS = [
 
 export default defineCommand({
   description:
-    "Print one of the app's read models: the fleet the registry counts, the updates per day, or the usage the bill counts.",
+    "Print one of the app's statistics: the fleet, the devices seen in 30 days; the updates per day; or the usage the bill counts.",
   examples: [
     'hotcodepush statistics get --type fleet --channel production',
     'hotcodepush statistics get --type updates --period-since 2026-09-01 --period-until 2026-09-30 --json',
@@ -56,7 +56,7 @@ export default defineCommand({
       .string()
       .optional()
       .describe(
-        'The first UTC day of the updates or the usage, YYYY-MM-DD, inclusive; thirty days before --period-until by default.',
+        'The first UTC day of the updates or the usage, YYYY-MM-DD, inclusive; 30 days before --period-until by default.',
       ),
     periodUntil: z
       .string()
@@ -68,7 +68,7 @@ export default defineCommand({
       .enum(STATISTICS_TYPES)
       .optional()
       .describe(
-        'The read model: fleet, the devices seen in thirty days; updates, per day; usage, the monthly active devices and the traffic.',
+        'The statistics to print: fleet, the devices seen in 30 days; updates, per day; usage, the monthly active devices and the traffic.',
       ),
   }),
   action: async options => {
@@ -137,7 +137,7 @@ function assertFlagsOfType(
     (options.periodSince !== undefined || options.periodUntil !== undefined)
   ) {
     throw new InvalidParameterError(
-      'The fleet is a snapshot of the last thirty days without a period, so --period-since and --period-until do not apply.',
+      'The fleet is a snapshot of the last 30 days without a period, so --period-since and --period-until do not apply.',
     );
   }
   if (type === 'usage' && options.channel !== undefined) {
@@ -191,7 +191,7 @@ function printFleetTable(
   rows: string[][],
 ): void {
   printTable({
-    emptyText: `${headers[0]}: no device seen in the last thirty days.`,
+    emptyText: `${headers[0]}: no device seen in the last 30 days.`,
     headers,
     nextOffset: null,
     rows,
@@ -208,12 +208,12 @@ function printUpdateStatistics(
   }
   printTable({
     emptyText: 'No days in the period.',
-    headers: ['DAY', 'APPLIED', 'FAILED', 'ROLLED BACK'],
+    headers: ['DAY', 'CONFIRMED', 'FAILED', 'ROLLED BACK'],
     nextOffset: null,
     rows: statistics.days.map(
-      ({ appliedUpdateCount, day, failureCount, rolledBackUpdateCount }) => [
+      ({ confirmedUpdateCount, day, failureCount, rolledBackUpdateCount }) => [
         day,
-        String(appliedUpdateCount),
+        String(confirmedUpdateCount),
         String(failureCount),
         String(rolledBackUpdateCount),
       ],
@@ -221,13 +221,13 @@ function printUpdateStatistics(
   });
   printTable({
     emptyText: 'No release went live recently.',
-    headers: ['RELEASE', 'LIVE', 'APPLIED', '50% AT', '90% AT'],
+    headers: ['RELEASE', 'LIVE', 'CONFIRMED', '50% AT', '90% AT'],
     nextOffset: null,
     rows: statistics.releases.map(
       ({ adoption, liveAt, number, timeToAdoption }) => [
         `#${number}`,
         liveAt,
-        String(adoption.at(-1)?.appliedUpdateCount ?? 0),
+        String(adoption.at(-1)?.confirmedUpdateCount ?? 0),
         timeToAdoption.percent50At ?? 'not yet',
         timeToAdoption.percent90At ?? 'not yet',
       ],

@@ -79,7 +79,7 @@ export const failurePolicyShape = {
     .int()
     .optional()
     .describe(
-      'The update attempts a release needs before auto-pause judges it.',
+      'The applied updates a release needs before auto-pause judges it.',
     ),
   failureThreshold: z.coerce
     .number()

@@ -165,7 +165,7 @@ describe('resource-file write', () => {
     });
     expect(stderrWrite.mock.calls).toEqual([
       [
-        'Warning: HOTCODEPUSH_OFFLINE is set, so the channel name was not resolved: the build names no channel and takes no updates.\n',
+        'Warning: HOTCODEPUSH_OFFLINE is set, so the channel name was not resolved: the build names no channel and takes no OTA updates.\n',
       ],
     ]);
   });
@@ -180,7 +180,7 @@ describe('resource-file write', () => {
     expect(readResourceFile().channelId).toBeNull();
     expect(stderrWrite.mock.calls).toEqual([
       [
-        'Warning: not logged in, so the channel name was not resolved: the build names no channel and takes no updates; run "hotcodepush login" or set HOTCODEPUSH_TOKEN.\n',
+        'Warning: not logged in, so the channel name was not resolved: the build names no channel and takes no OTA updates; run "hotcodepush login" or set HOTCODEPUSH_TOKEN.\n',
       ],
     ]);
   });
@@ -195,7 +195,7 @@ describe('resource-file write', () => {
     expect(readResourceFile().channelId).toBeNull();
     expect(stderrWrite.mock.calls).toEqual([
       [
-        'Warning: the channel could not be resolved, so the build names none and takes no updates: E_FORBIDDEN You are not a member.\n',
+        'Warning: the channel could not be resolved, so the build names none and takes no OTA updates: E_FORBIDDEN You are not a member.\n',
       ],
     ]);
   });
@@ -241,7 +241,7 @@ describe('resource-file write', () => {
     });
     expect(stderrWrite.mock.calls).toEqual([
       [
-        `The ios build bundled no JavaScript, as a debug build served by the development server does. Wrote ${resourceFilePath} without an embedded bundle: live updates are off in this build.\n`,
+        `The ios build bundled no JavaScript, as a debug build served by the development server does. Wrote ${resourceFilePath} without an embedded bundle: over-the-air (OTA) updates are off in this build.\n`,
       ],
     ]);
   });

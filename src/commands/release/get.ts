@@ -21,7 +21,7 @@ import { channelOptionShape } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
   description:
-    'Print a release with its rollout, its progression, its effective auto-pause policy, its status and its counters: attempted, applied and failed by reason.',
+    'Print a release with its rollout, its progression, its effective auto-pause policy, its status and its counters: applied, confirmed and failed by reason.',
   examples: [
     'hotcodepush release get --release 43',
     'hotcodepush release get --channel staging --release 43 --json',
@@ -73,8 +73,8 @@ function resolveCounterDetails({
     return [];
   }
   return [
-    ['Attempted', String(releaseCounters.attemptedUpdateCount)],
     ['Applied', String(releaseCounters.appliedUpdateCount)],
+    ['Confirmed', String(releaseCounters.confirmedUpdateCount)],
     ['Download failures', String(releaseCounters.downloadFailureCount)],
     ['Verification failures', String(releaseCounters.verificationFailureCount)],
     ['Crash failures', String(releaseCounters.crashFailureCount)],

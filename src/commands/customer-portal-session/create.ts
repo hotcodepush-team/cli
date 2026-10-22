@@ -6,7 +6,7 @@ import { fetchOrganizationId } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
   description:
-    "Create a session of Polar's customer portal for an organization's invoices and payment method, and print its URL to open.",
+    "Create a session of the customer portal for an organization's invoices and payment method, and print its URL to open.",
   examples: [
     'hotcodepush customer-portal-session create',
     'hotcodepush customer-portal-session create --organization Acme --json',

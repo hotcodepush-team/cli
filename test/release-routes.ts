@@ -38,8 +38,8 @@ export const FLEET_PATH = `/v1/apps/${DEMO_APP.id}/statistics/fleet`;
 export const RELEASES_PATH = `/v1/apps/${DEMO_APP.id}/releases`;
 
 export const RELEASE_COUNTERS: NonNullable<Release['releaseCounters']> = {
-  appliedUpdateCount: 90,
-  attemptedUpdateCount: 100,
+  appliedUpdateCount: 100,
+  confirmedUpdateCount: 90,
   crashFailureCount: 2,
   createdAt: LIVE_RELEASE.createdAt,
   downloadFailureCount: 3,

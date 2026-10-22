@@ -67,8 +67,8 @@ describe('release get', () => {
       'Rolled back from              nothing',
       `Live                          ${LIVE_RELEASE.liveAt}`,
       'Devices                       80',
-      'Attempted                     100',
-      'Applied                       90',
+      'Applied                       100',
+      'Confirmed                     90',
       'Download failures             3',
       'Verification failures         1',
       'Crash failures                2',
@@ -196,8 +196,8 @@ describe('release get', () => {
 
   it('should print the schedule and the step reached with the sample its widening waits on', async () => {
     expect(await readProgressionLines(PROGRESSING_RELEASE)).toEqual([
-      'Progression                   10, 50, 100 percent, each step at least 3600 seconds and 50 attempts',
-      'Progression step              1 of 3, waiting on sample: 12 of 50 attempts',
+      'Progression                   10, 50, 100 percent, each step at least 3600 seconds and 50 applied updates',
+      'Progression step              1 of 3, waiting on sample: 12 of 50 applied',
     ]);
   });
 
@@ -206,10 +206,10 @@ describe('release get', () => {
       await readProgressionLines({
         ...PROGRESSING_RELEASE,
         rolloutPercentage: 50,
-        stepStartAttemptedUpdateCount: 50,
+        stepStartAppliedUpdateCount: 50,
       }),
     ).toEqual([
-      'Progression                   10, 50, 100 percent, each step at least 3600 seconds and 50 attempts',
+      'Progression                   10, 50, 100 percent, each step at least 3600 seconds and 50 applied updates',
       'Progression step              2 of 3, ready at 2026-09-07T09:00:05.000Z',
     ]);
   });

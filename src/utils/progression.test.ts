@@ -13,20 +13,20 @@ const SCHEDULE = {
 const STEP_STARTED_AT = '2026-10-10T14:00:00.000Z';
 
 /**
- * A release on the schedule at its first step, which started with 120 attempted updates on the counters, and the
- * counters at the given attempted updates.
+ * A release on the schedule at its first step, which started with 120 applied updates on the counters, and the
+ * counters at the given applied updates.
  */
 function buildProgressingRelease(
-  attemptedUpdateCount: number,
+  appliedUpdateCount: number,
   fields: Partial<Release> = {},
 ): Release {
   return {
     ...LIVE_RELEASE,
     progression: SCHEDULE,
     progressionStepStartedAt: STEP_STARTED_AT,
-    releaseCounters: { ...RELEASE_COUNTERS, attemptedUpdateCount },
+    releaseCounters: { ...RELEASE_COUNTERS, appliedUpdateCount },
     rolloutPercentage: 10,
-    stepStartAttemptedUpdateCount: 120,
+    stepStartAppliedUpdateCount: 120,
     ...fields,
   };
 }
@@ -62,17 +62,17 @@ describe('resolveProgressionStep', () => {
     ).toBeNull();
   });
 
-  it('should wait on the sample with no attempted updates when the step has not started', () => {
+  it('should wait on the sample with no applied updates when the step has not started', () => {
     expect(
       resolveProgressionStep(
         buildProgressingRelease(30, {
           progressionStepStartedAt: null,
-          stepStartAttemptedUpdateCount: 0,
+          stepStartAppliedUpdateCount: 0,
         }),
       ),
     ).toEqual({
       gate: {
-        attemptedUpdateCount: 0,
+        appliedUpdateCount: 0,
         requiredUpdateCount: 50,
         type: 'sample',
       },
@@ -80,10 +80,10 @@ describe('resolveProgressionStep', () => {
     });
   });
 
-  it("should wait on the sample while the step's attempted updates since its start are short of it", () => {
+  it("should wait on the sample while the step's applied updates since its start are short of it", () => {
     expect(resolveProgressionStep(buildProgressingRelease(169))).toEqual({
       gate: {
-        attemptedUpdateCount: 49,
+        appliedUpdateCount: 49,
         requiredUpdateCount: 50,
         type: 'sample',
       },
@@ -91,7 +91,7 @@ describe('resolveProgressionStep', () => {
     });
   });
 
-  it("should wait on the step's minimum time once its attempted updates reach the sample", () => {
+  it("should wait on the step's minimum time once its applied updates reach the sample", () => {
     expect(resolveProgressionStep(buildProgressingRelease(170))).toEqual({
       gate: { readyAt: '2026-10-10T15:00:00.000Z', type: 'time' },
       number: 1,
@@ -105,7 +105,7 @@ describe('resolveProgressionStep', () => {
       ),
     ).toEqual({
       gate: {
-        attemptedUpdateCount: 10,
+        appliedUpdateCount: 10,
         requiredUpdateCount: 50,
         type: 'sample',
       },
@@ -132,14 +132,14 @@ describe('resolveProgressionStep', () => {
     ).toBe(1);
   });
 
-  it('should count no attempted update when the release was read without its counters', () => {
+  it('should count no applied update when the release was read without its counters', () => {
     expect(
       resolveProgressionStep(
         buildProgressingRelease(170, { releaseCounters: undefined }),
       ),
     ).toEqual({
       gate: {
-        attemptedUpdateCount: 0,
+        appliedUpdateCount: 0,
         requiredUpdateCount: 50,
         type: 'sample',
       },

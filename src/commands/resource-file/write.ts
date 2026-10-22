@@ -37,14 +37,14 @@ export default defineCommand({
     const buildStep = await readBuildStep(options);
     const { embeddedFiles, platform, resourceFilePath } = buildStep;
     if (embeddedFiles === undefined) {
-      // a build that bundled nothing runs the development server's JavaScript: its resource file turns live updates off, and the API is asked nothing
+      // a build that bundled nothing runs the development server's JavaScript: its resource file turns OTA updates off, and the API is asked nothing
       writeBuildResourceFile(
         buildStep,
         resolveChannelIdByShape(buildStep.channelReference),
         null,
       );
       process.stderr.write(
-        `The ${platform} build bundled no JavaScript, as a debug build served by the development server does. Wrote ${resourceFilePath} without an embedded bundle: live updates are off in this build.\n`,
+        `The ${platform} build bundled no JavaScript, as a debug build served by the development server does. Wrote ${resourceFilePath} without an embedded bundle: over-the-air (OTA) updates are off in this build.\n`,
       );
       if (options.json) {
         printJson({ resourceFilePath });
@@ -97,7 +97,7 @@ async function resolveChannel(
     }
     return {
       channelId: null,
-      skippedReason: `the channel could not be resolved, so the build names none and takes no updates: ${resolveFailureText(error)}`,
+      skippedReason: `the channel could not be resolved, so the build names none and takes no OTA updates: ${resolveFailureText(error)}`,
     };
   }
 }
@@ -107,6 +107,6 @@ async function resolveChannel(
  */
 function resolveOfflineText(offlineCause: OfflineCause): string {
   return offlineCause === 'offline-switch'
-    ? 'HOTCODEPUSH_OFFLINE is set, so the channel name was not resolved: the build names no channel and takes no updates.'
-    : 'not logged in, so the channel name was not resolved: the build names no channel and takes no updates; run "hotcodepush login" or set HOTCODEPUSH_TOKEN.';
+    ? 'HOTCODEPUSH_OFFLINE is set, so the channel name was not resolved: the build names no channel and takes no OTA updates.'
+    : 'not logged in, so the channel name was not resolved: the build names no channel and takes no OTA updates; run "hotcodepush login" or set HOTCODEPUSH_TOKEN.';
 }

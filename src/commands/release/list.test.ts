@@ -102,7 +102,7 @@ describe('release list', () => {
         ?.searchParams.get('relations'),
     ).toBe('bundle,releaseCounters');
     expect(harness.readLines()[1]).toBe(
-      '#43     #17 · 1.4.2  active  10%      10,50,100% · 1 of 3, waiting on sample: 12 of 50 attempts  no         80       2026-09-07  2026-09-07',
+      '#43     #17 · 1.4.2  active  10%      10,50,100% · 1 of 3, waiting on sample: 12 of 50 applied  no         80       2026-09-07  2026-09-07',
     );
   });
 });

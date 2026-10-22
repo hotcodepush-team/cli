@@ -89,7 +89,7 @@ export default defineCommand({
     const hotCodePush = createApiClient();
     const projectConfig = readProjectConfig(options.config);
     const appId = await fetchAppId(hotCodePush, options, projectConfig);
-    const registryDevice =
+    const fetchedDevice =
       options.device === undefined
         ? undefined
         : await hotCodePush.apps.devices.get({
@@ -103,14 +103,14 @@ export default defineCommand({
         appId,
         {
           ...options,
-          channel: options.channel ?? registryDevice?.channelId ?? undefined,
+          channel: options.channel ?? fetchedDevice?.channelId ?? undefined,
         },
         projectConfig,
       ),
     });
     const platform =
       options.platform ??
-      registryDevice?.platform ??
+      fetchedDevice?.platform ??
       (await promptSelect<Platform>(
         '--platform',
         'Which platform?',
@@ -122,11 +122,11 @@ export default defineCommand({
       ));
     const binaryVersion =
       options.binaryVersion ??
-      registryDevice?.binaryVersion ??
+      fetchedDevice?.binaryVersion ??
       (await promptText('--binary-version', 'Which app version?', options));
     const binaryBuild =
       options.binaryBuild ??
-      registryDevice?.binaryBuild ??
+      fetchedDevice?.binaryBuild ??
       (await promptText('--binary-build', 'Which build number?', options));
     const binary = (
       await fetchAllPages(page =>
@@ -139,11 +139,11 @@ export default defineCommand({
         candidate.build === binaryBuild,
     );
     const servedIndex = await fetchServedIndex(appId, channel.id, platform);
-    const unknownFacts = resolveUnknownFacts(registryDevice, binary);
+    const unknownFacts = resolveUnknownFacts(fetchedDevice, binary);
     const builtAt = binary?.createdAt ?? null;
     const device: DeviceInfo = {
       attributes: {
-        ...registryDevice?.attributes,
+        ...fetchedDevice?.attributes,
         ...Object.fromEntries(
           resolveAttributePairs(options.attribute).map(({ key, value }) => [
             key,
@@ -155,26 +155,26 @@ export default defineCommand({
       binaryVersion,
       builtAt: builtAt ?? NO_FLOOR,
       currentRelease:
-        registryDevice === undefined
+        fetchedDevice === undefined
           ? null
-          : await fetchCurrentRelease(hotCodePush, registryDevice, servedIndex),
-      deviceId: registryDevice?.deviceId ?? '',
+          : await fetchCurrentRelease(hotCodePush, fetchedDevice, servedIndex),
+      deviceId: fetchedDevice?.deviceId ?? '',
       failedBundleIds:
-        registryDevice === undefined
+        fetchedDevice === undefined
           ? []
           : resolveFailedBundleIds(
               await fetchAllPages(page =>
                 hotCodePush.apps.devices.events.list({
                   appId,
-                  deviceId: registryDevice.deviceId,
+                  deviceId: fetchedDevice.deviceId,
                   ...page,
                 }),
               ),
               servedIndex.index,
             ),
-      fingerprint: registryDevice?.fingerprint ?? binary?.fingerprint ?? null,
-      osVersion: registryDevice?.osVersion ?? '',
-      reportedAt: registryDevice?.lastSeenAt ?? null,
+      fingerprint: fetchedDevice?.fingerprint ?? binary?.fingerprint ?? null,
+      osVersion: fetchedDevice?.osVersion ?? '',
+      reportedAt: fetchedDevice?.lastSeenAt ?? null,
     };
     const evaluation =
       servedIndex.index === null
@@ -227,15 +227,15 @@ export default defineCommand({
 });
 
 /**
- * The release the registry row says the device runs, with its number from the index or, when the index no longer
+ * The release the device's record says it runs, with its number from the index or, when the index no longer
  * carries it, from the API.
  */
 async function fetchCurrentRelease(
   hotCodePush: HotCodePush,
-  registryDevice: Device,
+  fetchedDevice: Device,
   servedIndex: ServedIndex,
 ): Promise<DeviceInfo['currentRelease']> {
-  const releaseId = registryDevice.currentReleaseId;
+  const releaseId = fetchedDevice.currentReleaseId;
   if (releaseId === null) {
     return null;
   }
@@ -246,7 +246,7 @@ async function fetchCurrentRelease(
     indexRelease?.number ??
     (
       await hotCodePush.apps.releases.get({
-        appId: registryDevice.appId,
+        appId: fetchedDevice.appId,
         releaseId,
       })
     ).number;
@@ -375,10 +375,10 @@ function resolveServedIndexText({ index, status, url }: ServedIndex): string {
 }
 
 function resolveUnknownFacts(
-  registryDevice: Device | undefined,
+  fetchedDevice: Device | undefined,
   binary: Binary | undefined,
 ): UnknownFact[] {
-  if (registryDevice !== undefined) {
+  if (fetchedDevice !== undefined) {
     return [];
   }
   return binary?.fingerprint === undefined || binary.fingerprint === null

@@ -80,10 +80,10 @@ const INDEX: ChannelIndex = {
 };
 
 /**
- * The evaluation cases a registry row and a store build's binary carry every fact of: a device on its embedded
+ * The evaluation cases a device's record and a store build's binary carry every fact of: a device on its embedded
  * bundle that never failed a bundle, under no spending cap.
  */
-const REGISTRY_FIXTURES = [
+const DEVICE_FIXTURES = [
   'conditions-attribute',
   'conditions-binary',
   'conditions-device',
@@ -124,10 +124,10 @@ describe('device probe', () => {
     harness.routes[`GET ${INDEX_PATH}`] = () => Response.json(servedIndex);
   }
 
-  it.each(REGISTRY_FIXTURES.map(fixture => [fixture.name, fixture]))(
-    "should yield the protocol's outcome for the facts of the device's registry row: %s",
+  it.each(DEVICE_FIXTURES.map(fixture => [fixture.name, fixture]))(
+    "should yield the protocol's outcome for the facts of the device's record: %s",
     async (_name, fixture: EvaluationFixture) => {
-      const registryDevice: Device = {
+      const fetchedDevice: Device = {
         ...DEVICE,
         attributes: fixture.device.attributes,
         binaryBuild: fixture.device.binaryBuild,
@@ -138,10 +138,10 @@ describe('device probe', () => {
         platform: 'ios',
       };
       harness.routes[
-        `GET /v1/apps/${DEMO_APP.id}/devices/${registryDevice.deviceId}`
-      ] = () => Response.json(registryDevice);
+        `GET /v1/apps/${DEMO_APP.id}/devices/${fetchedDevice.deviceId}`
+      ] = () => Response.json(fetchedDevice);
       harness.routes[
-        `GET /v1/apps/${DEMO_APP.id}/devices/${registryDevice.deviceId}/events`
+        `GET /v1/apps/${DEMO_APP.id}/devices/${fetchedDevice.deviceId}/events`
       ] = () => Response.json([]);
       harness.routes[`GET ${BINARIES_PATH}`] = () =>
         Response.json([
@@ -155,7 +155,7 @@ describe('device probe', () => {
       respondWithIndex({ ...fixture.index, platform: 'ios' });
 
       await deviceProbeCommand.action(
-        { app: DEMO_APP.id, device: registryDevice.deviceId, json: true },
+        { app: DEMO_APP.id, device: fetchedDevice.deviceId, json: true },
         undefined,
       );
 
@@ -287,7 +287,7 @@ describe('device probe', () => {
     ]);
   });
 
-  it("should take the channel and the facts from the device's registry row, its attributes beside --attribute", async () => {
+  it("should take the channel and the facts from the device's record, its attributes beside --attribute", async () => {
     harness.routes[`GET /v1/apps/${DEMO_APP.id}/devices/${DEVICE.deviceId}`] =
       () => Response.json({ ...DEVICE, fingerprint: FINGERPRINT });
     harness.routes[

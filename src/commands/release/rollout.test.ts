@@ -149,7 +149,7 @@ describe('release rollout', () => {
     expect(confirm).toHaveBeenCalledWith({
       initialValue: false,
       message:
-        'This progresses release #43 of staging from 10 percent through 10, 50, 100 percent, each step at least 3600 seconds and 50 attempts: devices already on it keep it. Continue?',
+        'This progresses release #43 of staging from 10 percent through 10, 50, 100 percent, each step at least 3600 seconds and 50 applied updates: devices already on it keep it. Continue?',
     });
     expect(await readUpdateBody()).toEqual({
       progression: {

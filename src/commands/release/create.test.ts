@@ -463,7 +463,7 @@ describe('release create', () => {
       expect(confirm).toHaveBeenCalledWith({
         initialValue: false,
         message:
-          'This releases bundle #17 · 1.4.2 at 10 percent, progressing through 10, 50, 100 percent, each step at least 3600 seconds and 50 attempts: reaches 100 of 120 active devices in staging; about 100 at a 10 percent rollout. Continue?',
+          'This releases bundle #17 · 1.4.2 at 10 percent, progressing through 10, 50, 100 percent, each step at least 3600 seconds and 50 applied updates: reaches 100 of 120 active devices in staging; about 100 at a 10 percent rollout. Continue?',
       });
       expect(readAudienceUrls()[0]?.searchParams.get('rolloutPercentage')).toBe(
         '10',

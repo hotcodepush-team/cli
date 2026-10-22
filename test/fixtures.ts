@@ -88,15 +88,12 @@ export const PRODUCTION_CHANNEL: Channel = {
   failureMinimumUpdateCount: null,
   failureThresholdPercent: null,
   id: '6ba7b810-9dad-41d1-80b4-00c04fd430c8',
-  indexSequence: 1788422400000,
   isDiscoverable: false,
   isProtected: true,
   name: 'production',
   nextReleaseNumber: 1,
   pausedAt: null,
   updatedAt: '2026-09-03T08:00:00.000Z',
-  verificationResult: null,
-  verifiedAt: null,
 };
 
 export const DEMO_APP: App = {
@@ -119,7 +116,6 @@ export const STAGING_CHANNEL: Channel = {
   failureMinimumUpdateCount: 20,
   failureThresholdPercent: 10,
   id: '9b2f4d1e-3c5a-4e6f-8a7b-1c2d3e4f5a6b',
-  indexSequence: 1788768006000,
   isProtected: false,
   name: 'staging',
   nextReleaseNumber: 44,
@@ -228,9 +224,9 @@ export const LIVE_RELEASE: Release = {
   rolledBackFromReleaseId: null,
   rolloutPercentage: 100,
   status: 'active',
-  stepStartAttemptedUpdateCount: 0,
+  stepStartAppliedUpdateCount: 0,
   updatedAt: '2026-09-07T08:00:06.000Z',
-  windowStartAttemptedUpdateCount: 0,
+  windowStartAppliedUpdateCount: 0,
   windowStartFailureCount: 0,
 };
 
@@ -268,6 +264,7 @@ export const FLEET: FleetStatistics = {
     },
   ],
   binaryVersion: [{ deviceCount: 120, value: '2.4.1' }],
+  channel: [{ deviceCount: 120, value: STAGING_CHANNEL.id }],
   country: [{ deviceCount: 120, value: 'DE' }],
   currentDeviceCount: 100,
   deviceCount: 120,
@@ -292,7 +289,7 @@ export const FLEET: FleetStatistics = {
 };
 
 /**
- * Release #43 at the first step of the default schedule, which started at 88 attempted updates on its counters.
+ * Release #43 at the first step of the default schedule, which started at 88 applied updates on its counters.
  */
 export const PROGRESSING_RELEASE: Release = {
   ...LIVE_RELEASE,
@@ -303,7 +300,7 @@ export const PROGRESSING_RELEASE: Release = {
   },
   progressionStepStartedAt: LIVE_RELEASE.liveAt,
   rolloutPercentage: 10,
-  stepStartAttemptedUpdateCount: 88,
+  stepStartAppliedUpdateCount: 88,
 };
 
 export const RUNNER_USER: User = {

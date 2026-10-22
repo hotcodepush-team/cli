@@ -19,7 +19,7 @@ describe('device delete', () => {
     return harness.requests.filter(({ method }) => method === 'DELETE');
   }
 
-  it('should delete the registry row once confirmed', async () => {
+  it('should delete the record once confirmed', async () => {
     stubInteractiveTerminal();
     vi.mocked(confirm).mockResolvedValue(true);
     harness.routes[`DELETE ${DEVICE_PATH}`] = () =>
@@ -32,7 +32,7 @@ describe('device delete', () => {
 
     expect(confirm).toHaveBeenCalledWith({
       initialValue: false,
-      message: `This deletes device ${DEVICE.deviceId}'s registry row for good, the erasure request. The device reports again with its next check. Continue?`,
+      message: `This deletes device ${DEVICE.deviceId}'s record for good, the erasure request. The device reports again with its next check. Continue?`,
     });
     expect(readDeleteRequests()).toHaveLength(1);
     expect(harness.readLines()).toEqual([`Deleted device ${DEVICE.deviceId}.`]);

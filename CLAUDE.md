@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-`hotcodepush`, the HotCodePush CLI: the npm package and the binary that set up, release and manage live updates from the terminal and CI.
+`hotcodepush`, the HotCodePush CLI: the npm package and the binary that set up, release and manage over-the-air (OTA) updates from the terminal and CI.
 The repo is public and MIT; the commands in `src/index.ts`'s registry are built, for Capacitor, Cordova, Expo and React Native projects, and the rest of the spec arrives issue by issue.
 Stack: TypeScript compiled by `tsc` into ESM in `dist/`, zodline and zod for the commands, `@hotcodepush/node` for the API, `@clack/prompts` for the prompts, `@napi-rs/keyring` for the token, ESLint, Prettier, Vitest, Node 22 as the floor, developed on 24.
 
@@ -161,6 +161,7 @@ A project with an app config that is code, or with a JSON one that does not pars
 - Never the non-null assertion; nullish coalescing or a real check.
 - Test titles read `should <verb> …`, lowercase, conditions starting with `when`.
 - Fixtures and examples carry invented data only.
+- HotCodePush ships over-the-air (OTA) updates: a surface, the root `--help`, a command's `--help`, a message or the README, writes "over-the-air (OTA) update" on its first mention and "OTA update" after it. "Live update" names the Capacitor offering alone, `capacitor-live-updates`, or sits in a list of alternative names for search, never as the product's own term.
 
 ## Agent workspace
 

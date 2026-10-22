@@ -6,7 +6,7 @@ import { fetchOrganizationId } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
   description:
-    'Enable billing on a free organization: create the Polar checkout for pay-as-you-go and print its URL to open.',
+    'Enable billing on a free organization: create the checkout for pay-as-you-go and print its URL to open.',
   examples: [
     'hotcodepush checkout create',
     'hotcodepush checkout create --organization Acme --json',

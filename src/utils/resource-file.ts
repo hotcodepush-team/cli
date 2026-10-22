@@ -28,7 +28,7 @@ interface ResourceFileInput {
   builtAt: string;
   /** Null for a build whose channel name was not resolved, made offline or bundling nothing. */
   channelId: string | null;
-  /** Null for a build that bundled no JavaScript, which takes no updates. */
+  /** Null for a build that bundled no JavaScript, which takes no OTA updates. */
   embeddedBundle: EmbeddedBundle | null;
   fingerprint: string;
   hosts: DeviceHosts;

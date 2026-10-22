@@ -34,6 +34,7 @@ const FLEET_STATISTICS: FleetStatistics = {
     },
   ],
   binaryVersion: [{ deviceCount: 70, value: '2.4.1' }],
+  channel: [{ deviceCount: 70, value: STAGING_CHANNEL.id }],
   country: [{ deviceCount: 70, value: 'DE' }],
   currentDeviceCount: 50,
   deviceCount: 70,
@@ -55,7 +56,7 @@ const UPDATE_STATISTICS: UpdateStatistics = {
   days: [
     {
       activeDeviceCount: 70,
-      appliedUpdateCount: 9,
+      confirmedUpdateCount: 9,
       day: '2026-09-01',
       failureCount: 1,
       rolledBackUpdateCount: 0,
@@ -64,7 +65,7 @@ const UPDATE_STATISTICS: UpdateStatistics = {
   failureReasons: [{ eventCount: 1, reason: 'READINESS_TIMED_OUT' }],
   releases: [
     {
-      adoption: [{ appliedUpdateCount: 9, at: '2026-09-01T08:00:00.000Z' }],
+      adoption: [{ at: '2026-09-01T08:00:00.000Z', confirmedUpdateCount: 9 }],
       channelId: STAGING_CHANNEL.id,
       liveAt: '2026-09-01T07:00:00.000Z',
       number: 43,
@@ -160,10 +161,10 @@ describe('statistics get', () => {
       ),
     ).toEqual({ periodSince: '2026-09-01', periodUntil: '2026-09-30' });
     expect(harness.readLines()).toEqual([
-      'DAY         APPLIED  FAILED  ROLLED BACK',
-      '2026-09-01  9        1       0',
-      'RELEASE  LIVE                      APPLIED  50% AT                    90% AT',
-      '#43      2026-09-01T07:00:00.000Z  9        2026-09-01T08:00:00.000Z  not yet',
+      'DAY         CONFIRMED  FAILED  ROLLED BACK',
+      '2026-09-01  9          1       0',
+      'RELEASE  LIVE                      CONFIRMED  50% AT                    90% AT',
+      '#43      2026-09-01T07:00:00.000Z  9          2026-09-01T08:00:00.000Z  not yet',
       'FAILURE REASON       EVENTS',
       'READINESS_TIMED_OUT  1',
       'SKIP REASON: none in the period.',

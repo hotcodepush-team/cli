@@ -8,11 +8,11 @@ import { InvalidParameterError } from './errors.js';
 export type Progression = NonNullable<Release['progression']>;
 
 /**
- * What the next widening waits on: the step's attempted updates against the sample, then the moment its minimum time is up.
+ * What the next widening waits on: the step's applied updates against the sample, then the moment its minimum time is up.
  */
 type ProgressionGate =
   | {
-      attemptedUpdateCount: number;
+      appliedUpdateCount: number;
       requiredUpdateCount: number;
       type: 'sample';
     }
@@ -53,7 +53,7 @@ export const progressionShape = {
     .boolean()
     .optional()
     .describe(
-      'Widen the rollout step by step while the release stays healthy: 10, 50 and 100 percent by default, each step after at least an hour and 50 update attempts.',
+      'Widen the rollout step by step while the release stays healthy: 10, 50 and 100 percent by default, each step after at least an hour and 50 applied updates.',
     ),
   progressMinimumSeconds: z.coerce
     .number()
@@ -67,7 +67,7 @@ export const progressionShape = {
     .int()
     .optional()
     .describe(
-      'The update attempts a step waits for before the next one, with --progress; 50 by default.',
+      'The applied updates each step needs before the next one, with --progress; 50 by default.',
     ),
   progressPercentages: percentageListSchema
     .optional()
@@ -99,10 +99,10 @@ export function resolveProgression(
 
 /**
  * Where the release stands in its schedule, as the API's progression job reads it: the steps its rollout reached among the
- * percentages, and the gate before the next — the step's attempted updates since its start, counted from the release's
+ * percentages, and the gate before the next — the step's applied updates since its start, counted from the release's
  * counters, until they reach the sample, then the moment its minimum time is up. Null without a schedule, once it is
  * complete, and while the release is paused or revoked, since nothing widens it then; a step not yet started, the
- * release not live, has no attempted updates, nor has a release read without its counters.
+ * release not live, has no applied updates, nor has a release read without its counters.
  */
 export function resolveProgressionStep(
   release: Release,
@@ -117,18 +117,18 @@ export function resolveProgressionStep(
   if (number === progression.percentages.length) {
     return null;
   }
-  const attemptedUpdateCount =
+  const appliedUpdateCount =
     progressionStepStartedAt === null || releaseCounters === undefined
       ? 0
-      : releaseCounters.attemptedUpdateCount -
-        release.stepStartAttemptedUpdateCount;
+      : releaseCounters.appliedUpdateCount -
+        release.stepStartAppliedUpdateCount;
   if (
     progressionStepStartedAt === null ||
-    attemptedUpdateCount < progression.stepMinimumUpdateCount
+    appliedUpdateCount < progression.stepMinimumUpdateCount
   ) {
     return {
       gate: {
-        attemptedUpdateCount,
+        appliedUpdateCount,
         requiredUpdateCount: progression.stepMinimumUpdateCount,
         type: 'sample',
       },
@@ -149,7 +149,7 @@ export function resolveProgressionStep(
 
 /**
  * Where a release stands in its schedule: the step reached of all of them and the gate the next widening waits on,
- * `1 of 3, waiting on sample: 12 of 50 attempts`; nothing widens a complete, paused or revoked one, so it has no step.
+ * `1 of 3, waiting on sample: 12 of 50 applied`; nothing widens a complete, paused or revoked one, so it has no step.
  */
 export function resolveProgressionStepText(
   release: Release,
@@ -170,14 +170,14 @@ export function resolveProgressionStepText(
 }
 
 /**
- * The schedule as a confirmation states it: `10, 50, 100 percent, each step at least 3600 seconds and 50 attempts`.
+ * The schedule as a confirmation states it: `10, 50, 100 percent, each step at least 3600 seconds and 50 applied updates`.
  */
 export function resolveProgressionText({
   percentages,
   stepMinimumSeconds,
   stepMinimumUpdateCount,
 }: Progression): string {
-  return `${percentages.join(', ')} percent, each step at least ${stepMinimumSeconds} seconds and ${stepMinimumUpdateCount} attempts`;
+  return `${percentages.join(', ')} percent, each step at least ${stepMinimumSeconds} seconds and ${stepMinimumUpdateCount} applied updates`;
 }
 
 function assertNoProgressionFlags(options: ProgressionOptions): void {
@@ -202,6 +202,6 @@ function assertNoProgressionFlags(options: ProgressionOptions): void {
 
 function resolveGateText(gate: ProgressionGate): string {
   return gate.type === 'sample'
-    ? `waiting on sample: ${gate.attemptedUpdateCount} of ${gate.requiredUpdateCount} attempts`
+    ? `waiting on sample: ${gate.appliedUpdateCount} of ${gate.requiredUpdateCount} applied`
     : `ready at ${gate.readyAt}`;
 }

@@ -91,14 +91,14 @@ export default defineCommand({
     const buildStep = await readBuildStep(options);
     const { embeddedFiles, platform, resourceFilePath } = buildStep;
     if (embeddedFiles === undefined) {
-      // a build that bundled nothing runs the development server's JavaScript: its resource file turns live updates off, and the API is asked nothing
+      // a build that bundled nothing runs the development server's JavaScript: its resource file turns OTA updates off, and the API is asked nothing
       writeBuildResourceFile(
         buildStep,
         resolveChannelIdByShape(buildStep.channelReference),
         null,
       );
       process.stderr.write(
-        `No binary created: the ${platform} build bundled no JavaScript, as a debug build served by the development server does. Wrote ${resourceFilePath} without an embedded bundle: live updates are off in this build.\n`,
+        `No binary created: the ${platform} build bundled no JavaScript, as a debug build served by the development server does. Wrote ${resourceFilePath} without an embedded bundle: over-the-air (OTA) updates are off in this build.\n`,
       );
       if (options.json) {
         printJson({ binary: null, resourceFilePath, upload: NO_UPLOAD });
@@ -191,7 +191,7 @@ async function createBuildBinary(
     return {
       binary: null,
       channelId: null,
-      skippedReason: `the channel could not be resolved, so the build names none and takes no updates, and no binary was created: ${resolveFailureText(error)}`,
+      skippedReason: `the channel could not be resolved, so the build names none and takes no OTA updates, and no binary was created: ${resolveFailureText(error)}`,
       upload: NO_UPLOAD,
     };
   }
@@ -302,7 +302,7 @@ function resolveOfflineText(
       : 'not logged in';
   const consequenceText =
     channelId === null
-      ? ': it names no channel and takes no updates until it is built with a token, and no binary was created'
+      ? ': it names no channel and takes no OTA updates until it is built with a token, and no binary was created'
       : ' and no binary was created';
   const fixText =
     offlineCause === 'offline-switch'

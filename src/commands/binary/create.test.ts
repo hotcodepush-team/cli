@@ -351,7 +351,7 @@ describe('binary create', () => {
 
   describe('when the build does not reach the API', () => {
     const NO_CHANNEL_TEXT =
-      'it names no channel and takes no updates until it is built with a token, and no binary was created';
+      'it names no channel and takes no OTA updates until it is built with a token, and no binary was created';
 
     function writeChannelById(): string {
       const configPath = join(projectDirectoryPath, 'hotcodepush.json');
@@ -489,7 +489,7 @@ describe('binary create', () => {
       });
       expect(stderrWrite.mock.calls).toEqual([
         [
-          'Warning: the channel could not be resolved, so the build names none and takes no updates, and no binary was created: E_FORBIDDEN You are not a member.\n',
+          'Warning: the channel could not be resolved, so the build names none and takes no OTA updates, and no binary was created: E_FORBIDDEN You are not a member.\n',
         ],
       ]);
       expect(
@@ -725,7 +725,7 @@ describe('binary create', () => {
         });
         expect(stderrWrite.mock.calls).toEqual([
           [
-            `No binary created: the ios build bundled no JavaScript, as a debug build served by the development server does. Wrote ${join(appDirectoryPath, 'hotcodepush.json')} without an embedded bundle: live updates are off in this build.\n`,
+            `No binary created: the ios build bundled no JavaScript, as a debug build served by the development server does. Wrote ${join(appDirectoryPath, 'hotcodepush.json')} without an embedded bundle: over-the-air (OTA) updates are off in this build.\n`,
           ],
         ]);
       });

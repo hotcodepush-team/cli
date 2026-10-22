@@ -4,6 +4,7 @@ import {
   DEMO_APP,
   DEVICE,
   LIVE_RELEASE,
+  PREVIOUS_RELEASE,
   STAGING_CHANNEL,
 } from '../../../test/fixtures.js';
 import deviceGetCommand from './get.js';
@@ -24,6 +25,22 @@ const EVENTS = [
     releaseId: LIVE_RELEASE.id,
     type: 'failed' as const,
     updatedAt: '2026-09-08T07:00:00.000Z',
+  },
+  {
+    createdAt: '2026-09-06T09:00:00.000Z',
+    deviceId: DEVICE.deviceId,
+    reason: null,
+    releaseId: PREVIOUS_RELEASE.id,
+    type: 'confirmed' as const,
+    updatedAt: '2026-09-06T09:00:00.000Z',
+  },
+  {
+    createdAt: '2026-09-06T08:30:00.000Z',
+    deviceId: DEVICE.deviceId,
+    reason: null,
+    releaseId: PREVIOUS_RELEASE.id,
+    type: 'applied' as const,
+    updatedAt: '2026-09-06T08:30:00.000Z',
   },
 ];
 
@@ -56,8 +73,10 @@ describe('device get', () => {
       'Country      DE',
       `Last seen    ${DEVICE.lastSeenAt}`,
       `First seen   ${DEVICE.createdAt}`,
-      'RELEASE                               OUTCOME  REASON               DATE',
-      `${LIVE_RELEASE.id}  failed   READINESS_TIMED_OUT  2026-09-08`,
+      'RELEASE                               OUTCOME    REASON               DATE',
+      `${LIVE_RELEASE.id}  failed     READINESS_TIMED_OUT  2026-09-08`,
+      `${PREVIOUS_RELEASE.id}  confirmed                       2026-09-06`,
+      `${PREVIOUS_RELEASE.id}  applied                         2026-09-06`,
     ]);
   });
 
