@@ -7,18 +7,20 @@ import { resolveFlagName } from '../flag-name.js';
  */
 export interface CompletionCommand {
   description: string;
+  hasArguments: boolean;
   name: string;
   options: CompletionOption[];
   verbs: CompletionCommand[];
 }
 
 /**
- * An option as the command line takes it: its kebab-case flag name, whether a value follows it, and an enum's choices.
+ * An option as the command line takes it: its kebab-case flag name, whether a value follows it, whether it may be given again, and an enum's choices.
  */
 export interface CompletionOption {
   choices: string[];
   description: string;
   hasValue: boolean;
+  isRepeatable: boolean;
   name: string;
 }
 
@@ -46,6 +48,7 @@ export function resolveCommandTree(
     return topLevelCommand === undefined
       ? {
           description: verbs.map(({ name }) => name).join(', '),
+          hasArguments: false,
           name: topLevelName,
           options: [],
           verbs,
@@ -65,6 +68,16 @@ function isBooleanFlag(schema: z.core.$ZodType): boolean {
     return schema.options.some(isBooleanFlag);
   }
   return schema instanceof z.ZodBoolean;
+}
+
+/**
+ * An array as the flag's own schema, which zodline fills from the flag given again; a comma list is text piped into an array, given once.
+ */
+function isRepeatableFlag(schema: z.core.$ZodType): boolean {
+  if (schema instanceof z.ZodOptional || schema instanceof z.ZodDefault) {
+    return isRepeatableFlag(schema.unwrap());
+  }
+  return schema instanceof z.ZodArray;
 }
 
 /**
@@ -90,6 +103,7 @@ function resolveCompletionCommand(
   const shape: Record<string, z.ZodType> = command.options?.schema.shape ?? {};
   return {
     description: command.description ?? '',
+    hasArguments: command.args !== undefined,
     name,
     options: Object.entries(shape).map(([key, schema]) =>
       resolveCompletionOption(key, schema),
@@ -107,6 +121,7 @@ function resolveCompletionOption(
     choices: hasValue ? resolveChoices(schema) : [],
     description: schema.description ?? '',
     hasValue,
+    isRepeatable: isRepeatableFlag(schema),
     name: resolveFlagName(key),
   };
 }

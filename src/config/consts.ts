@@ -1,4 +1,5 @@
 import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
 import type { CliMeta } from '../utils/cli.js';
 
 /**
@@ -21,6 +22,10 @@ export const CORDOVA_PACKAGE_NAME = '@hotcodepush/cordova-code-push';
 export const CORDOVA_PACKAGE_SPEC =
   'https://pkg.pr.new/hotcodepush-team/cordova-code-push/@hotcodepush/cordova-code-push@0250f50';
 export const CLIENT_HEADER_NAME = 'X-HotCodePush-Client';
+// dist/completion, beside this module's dist/config, where the build writes each shell's completion script
+export const COMPLETION_DIRECTORY_PATH = fileURLToPath(
+  new URL('../completion/', import.meta.url),
+);
 export const CONFIG_DIRECTORY_NAME = 'hotcodepush';
 export const CONFIG_FILE_NAME = 'config.json';
 export const DEFAULT_API_URL = 'https://api.hotcodepush.com';

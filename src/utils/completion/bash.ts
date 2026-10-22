@@ -1,4 +1,4 @@
-import type { CompletionCommand, CompletionOption } from './command-tree.js';
+import type { CompletionCommand } from './command-tree.js';
 import { quotePosixWord } from './posix-quote.js';
 
 /**
@@ -38,31 +38,30 @@ export function buildBashScript(commands: CompletionCommand[]): string {
 function buildCommandArms(commands: CompletionCommand[]): string[] {
   const verbArms = commands.flatMap(noun =>
     noun.verbs.map(verb =>
-      buildOptionsArm(
-        quotePosixWord(`${noun.name} ${verb.name}`),
-        verb.options,
-      ),
+      buildOptionsArm(quotePosixWord(`${noun.name} ${verb.name}`), verb),
     ),
   );
   const standaloneArms = commands
     .filter(({ options }) => options.length > 0)
-    .map(({ name, options }) =>
-      buildOptionsArm(`${quotePosixWord(`${name} `)}*`, options),
+    .map(command =>
+      buildOptionsArm(`${quotePosixWord(`${command.name} `)}*`, command),
     );
   return [...verbArms, ...standaloneArms].flat();
 }
 
 /**
- * The arm that completes a command's options: an enum's choices after its flag, nothing after a free value, otherwise the flags.
+ * The arm that completes a command's options: an enum's choices after its flag, nothing after a free value, otherwise the flags,
+ * which a command that takes arguments offers only for a word starting with `-`, leaving its arguments to the file names.
  */
 function buildOptionsArm(
   pattern: string,
-  options: CompletionOption[],
+  { hasArguments, options }: CompletionCommand,
 ): string[] {
   const enumOptions = options.filter(({ choices }) => choices.length > 0);
   const freeValueFlags = options
     .filter(({ choices, hasValue }) => hasValue && choices.length === 0)
     .map(({ name }) => quotePosixWord(`--${name}`));
+  const flagReply = buildReply(options.map(({ name }) => `--${name}`));
   return [
     `    ${pattern})`,
     '      case $prev in',
@@ -73,7 +72,7 @@ function buildOptionsArm(
     ...(freeValueFlags.length > 0
       ? [`        ${freeValueFlags.join('|')}) ;;`]
       : []),
-    `        *) ${buildReply(options.map(({ name }) => `--${name}`))} ;;`,
+    `        *) ${hasArguments ? `[[ $cur == -* ]] && ${flagReply}` : flagReply} ;;`,
     '      esac',
     '      ;;',
   ];

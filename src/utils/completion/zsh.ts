@@ -40,20 +40,30 @@ export function buildZshScript(commands: CompletionCommand[]): string {
     '}',
     '',
     'compdef _hotcodepush hotcodepush',
+    '',
+    '# under fpath this file is the body of _hotcodepush: its first run defines the function, then completes with it',
+    'if [ "$funcstack[1]" = "_hotcodepush" ]; then',
+    '  _hotcodepush "$@"',
+    'fi',
   ].join('\n');
 }
 
+/**
+ * The arm that hands a command's flags to `_arguments`, and the file names for its arguments where it takes any.
+ */
 function buildArgumentsArm(
   pattern: string,
   commandWordCount: number,
-  options: CompletionOption[],
+  { hasArguments, options }: CompletionCommand,
 ): string[] {
+  const specs = [
+    ...options.map(buildOptionSpec),
+    ...(hasArguments ? ['*:argument:_files'] : []),
+  ];
   return [
     `    ${pattern})`,
     `      _hotcodepush_arguments ${commandWordCount} \\`,
-    ...options.map(
-      option => `        ${quotePosixWord(buildOptionSpec(option))} \\`,
-    ),
+    ...specs.map(spec => `        ${quotePosixWord(spec)} \\`),
     '      ;;',
   ];
 }
@@ -64,17 +74,13 @@ function buildArgumentsArm(
 function buildCommandArms(commands: CompletionCommand[]): string[] {
   const verbArms = commands.flatMap(noun =>
     noun.verbs.map(verb =>
-      buildArgumentsArm(
-        quotePosixWord(`${noun.name} ${verb.name}`),
-        2,
-        verb.options,
-      ),
+      buildArgumentsArm(quotePosixWord(`${noun.name} ${verb.name}`), 2, verb),
     ),
   );
   const standaloneArms = commands
     .filter(({ options }) => options.length > 0)
-    .map(({ name, options }) =>
-      buildArgumentsArm(`${quotePosixWord(`${name} `)}*`, 1, options),
+    .map(command =>
+      buildArgumentsArm(`${quotePosixWord(`${command.name} `)}*`, 1, command),
     );
   return [...verbArms, ...standaloneArms].flat();
 }
@@ -100,15 +106,17 @@ function buildDescribeLines(
 }
 
 /**
- * An `_arguments` spec: the flag with its description in brackets, then for a value the flag's name as the message and an enum's choices or the file names.
+ * An `_arguments` spec: the flag with its description in brackets, starred when it may be given again,
+ * then for a value the flag's name as the message and an enum's choices or the file names.
  */
 function buildOptionSpec({
   choices,
   description,
   hasValue,
+  isRepeatable,
   name,
 }: CompletionOption): string {
-  const flag = `--${name}[${description.replace(/[[\]\\]/g, '\\$&')}]`;
+  const flag = `${isRepeatable ? '*' : ''}--${name}[${description.replace(/[[\]\\]/g, '\\$&')}]`;
   if (!hasValue) {
     return flag;
   }

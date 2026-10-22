@@ -1,32 +1,20 @@
 import { z } from 'zod';
 import { defineCommand } from 'zodline';
-import { commandRegistry } from '../registry.js';
-import { loadCommands } from '../utils/command-registry.js';
-import { buildBashScript } from '../utils/completion/bash.js';
-import type { CompletionCommand } from '../utils/completion/command-tree.js';
-import { resolveCommandTree } from '../utils/completion/command-tree.js';
-import { buildFishScript } from '../utils/completion/fish.js';
-import { buildZshScript } from '../utils/completion/zsh.js';
+import {
+  COMPLETION_SHELLS,
+  readCompletionScript,
+} from '../utils/completion/script-files.js';
 import { InvalidParameterError } from '../utils/errors.js';
 import { defineCommandOptions } from '../utils/global-options.js';
 import { printJson } from '../utils/output.js';
 import { promptSelect } from '../utils/prompts.js';
 
 // zodline turns an invalid argument into a plain error, which would read as E_UNEXPECTED, so the action checks the shell itself
-const ShellSchema = z.enum(['bash', 'fish', 'zsh']);
-
-const SCRIPT_BUILDERS: Record<
-  z.infer<typeof ShellSchema>,
-  (commands: CompletionCommand[]) => string
-> = {
-  bash: buildBashScript,
-  fish: buildFishScript,
-  zsh: buildZshScript,
-};
+const ShellSchema = z.enum(COMPLETION_SHELLS);
 
 export default defineCommand({
   description:
-    'Print the completion script for <shell>, bash, fish or zsh; load it with eval "$(hotcodepush completion <shell>)" in ~/.bashrc or ~/.zshrc.',
+    'Print the completion script for <shell>, bash, fish or zsh: eval "$(hotcodepush completion <shell>)" loads it from ~/.bashrc, or from ~/.zshrc after compinit, and fish loads it saved as ~/.config/fish/completions/hotcodepush.fish.',
   examples: [
     'eval "$(hotcodepush completion zsh)"',
     'hotcodepush completion fish > ~/.config/fish/completions/hotcodepush.fish',
@@ -54,13 +42,7 @@ export default defineCommand({
         'Pass bash, fish or zsh as <shell>.',
       );
     }
-    const loadedCommands = await loadCommands(
-      commandRegistry,
-      Object.keys(commandRegistry),
-    );
-    const script = SCRIPT_BUILDERS[parsedShell.data](
-      resolveCommandTree(loadedCommands),
-    );
+    const script = await readCompletionScript(parsedShell.data);
     if (options.json) {
       printJson({ script });
       return;

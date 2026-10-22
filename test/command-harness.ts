@@ -71,7 +71,7 @@ export function useCommandHarness(): CommandHarness {
     temporaryDirectoryPath = mkdtempSync(join(tmpdir(), 'hotcodepush-'));
     vi.stubEnv('APPDATA', temporaryDirectoryPath);
     vi.stubEnv('CI', undefined);
-    // the entry point's update check asks the npm registry, never the faked API a command test runs on
+    // runCli's update check asks the npm registry, never the faked API a command test runs on
     vi.stubEnv('HOTCODEPUSH_NO_UPDATE_NOTIFIER', '1');
     vi.stubEnv('HOTCODEPUSH_SIGNING_KEY', undefined);
     vi.stubEnv('HOTCODEPUSH_TOKEN', TOKEN);

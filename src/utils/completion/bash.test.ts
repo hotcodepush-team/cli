@@ -24,7 +24,7 @@ describe('buildBashScript', () => {
   });
 
   it('should complete nothing after a free value, so bash offers the file names', () => {
-    expect(script).toContain(`        '--name') ;;`);
+    expect(script).toContain(`        '--name'|'--label') ;;`);
     expect(script).toMatch(
       /\ncomplete -o default -F _hotcodepush hotcodepush$/,
     );
@@ -32,7 +32,17 @@ describe('buildBashScript', () => {
 
   it("should complete the command's flags otherwise, the boolean and the global ones included", () => {
     expect(script).toContain(
-      `        *) COMPREPLY=($(compgen -W '--name --failure-action --protected --json' -- "$cur")) ;;`,
+      `        *) COMPREPLY=($(compgen -W '--name --failure-action --protected --label --json' -- "$cur")) ;;`,
+    );
+  });
+
+  it('should complete the flags of a command that takes arguments only for a word starting with -, so bash offers the file names otherwise', () => {
+    expect(script).toContain(
+      [
+        "    'fingerprint diff')",
+        '      case $prev in',
+        `        *) [[ $cur == -* ]] && COMPREPLY=($(compgen -W '--json' -- "$cur")) ;;`,
+      ].join('\n'),
     );
   });
 

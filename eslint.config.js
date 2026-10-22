@@ -25,4 +25,11 @@ export default defineConfig(
       'import-x/resolver-next': [createTypeScriptImportResolver()],
     },
   },
+  {
+    // a build script imports dist/, which exists only once tsc has run; lint runs without it
+    files: ['scripts/**'],
+    rules: {
+      'import-x/no-unresolved': ['error', { ignore: ['^\\.\\./dist/'] }],
+    },
+  },
 );

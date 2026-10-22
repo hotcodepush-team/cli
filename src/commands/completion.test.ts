@@ -1,11 +1,17 @@
 import { spawnSync } from 'node:child_process';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { select } from '@clack/prompts';
-import { describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
   useCommandHarness,
 } from '../../test/command-harness.js';
+import type * as constsModule from '../config/consts.js';
+import { COMPLETION_DIRECTORY_PATH } from '../config/consts.js';
 import { commandRegistry } from '../registry.js';
+import { writeCompletionScripts } from '../utils/completion/script-files.js';
 import {
   InvalidParameterError,
   MissingParameterError,
@@ -14,8 +20,20 @@ import completionCommand from './completion.js';
 
 vi.mock('@clack/prompts');
 
+// the scripts the build writes into dist/completion go to a folder of the test's own, so it needs no build
+vi.mock('../config/consts.js', async importOriginal => ({
+  ...(await importOriginal<typeof constsModule>()),
+  COMPLETION_DIRECTORY_PATH: mkdtempSync(join(tmpdir(), 'hotcodepush-')),
+}));
+
 describe('completion', () => {
   const harness = useCommandHarness();
+
+  beforeAll(() => writeCompletionScripts(commandRegistry));
+
+  afterAll(() =>
+    rmSync(COMPLETION_DIRECTORY_PATH, { force: true, recursive: true }),
+  );
 
   async function printScript(shell: string): Promise<string> {
     await completionCommand.action({}, [shell]);

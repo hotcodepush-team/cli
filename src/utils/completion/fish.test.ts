@@ -26,6 +26,7 @@ describe('buildFishScript', () => {
       "complete -c hotcodepush -n '__hotcodepush_using channel create' -l name -r -d 'The channel\\'s name.'",
       "complete -c hotcodepush -n '__hotcodepush_using channel create' -l failure-action -x -a 'none pause' -d 'What auto-pause does.'",
       "complete -c hotcodepush -n '__hotcodepush_using channel create' -l protected -d 'Whether only [Owners] change it.'",
+      "complete -c hotcodepush -n '__hotcodepush_using channel create' -l label -r -d 'A label it carries, repeatable.'",
       "complete -c hotcodepush -n '__hotcodepush_using channel create' -l json -d 'Print machine output as JSON.'",
     ]);
   });

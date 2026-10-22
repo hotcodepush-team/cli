@@ -533,40 +533,53 @@ const JSON_COMPLETION_OPTION: CompletionOption = {
   choices: [],
   description: 'Print machine output as JSON.',
   hasValue: false,
+  isRepeatable: false,
   name: 'json',
 };
 
 /**
- * A tiny command tree with every kind of option: a free value, an enum, a boolean flag and the global --json on every command,
- * a noun that runs nothing and a standalone command that is a noun too.
+ * A tiny command tree with every kind of option: a free value, an enum, a boolean flag, a repeatable value and the global --json on every command,
+ * a noun that runs nothing, a standalone command that is a noun too and a verb that takes arguments.
  */
 export const COMPLETION_COMMANDS: CompletionCommand[] = [
   {
     description: 'create',
+    hasArguments: false,
     name: 'channel',
     options: [],
     verbs: [
       {
         description: "Create a channel: the app's [preview] one.",
+        hasArguments: false,
         name: 'create',
         options: [
           {
             choices: [],
             description: "The channel's name.",
             hasValue: true,
+            isRepeatable: false,
             name: 'name',
           },
           {
             choices: ['none', 'pause'],
             description: 'What auto-pause does.',
             hasValue: true,
+            isRepeatable: false,
             name: 'failure-action',
           },
           {
             choices: [],
             description: 'Whether only [Owners] change it.',
             hasValue: false,
+            isRepeatable: false,
             name: 'protected',
+          },
+          {
+            choices: [],
+            description: 'A label it carries, repeatable.',
+            hasValue: true,
+            isRepeatable: true,
+            name: 'label',
           },
           JSON_COMPLETION_OPTION,
         ],
@@ -576,11 +589,13 @@ export const COMPLETION_COMMANDS: CompletionCommand[] = [
   },
   {
     description: 'Print the fingerprint.',
+    hasArguments: false,
     name: 'fingerprint',
     options: [JSON_COMPLETION_OPTION],
     verbs: [
       {
         description: 'Print what moved.',
+        hasArguments: true,
         name: 'diff',
         options: [JSON_COMPLETION_OPTION],
         verbs: [],

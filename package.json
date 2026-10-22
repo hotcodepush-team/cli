@@ -37,7 +37,7 @@
     "sentryDsn": ""
   },
   "scripts": {
-    "build": "tsc --project tsconfig.build.json",
+    "build": "tsc --project tsconfig.build.json && node scripts/generate-completion.mjs",
     "fmt": "prettier --write .",
     "lint": "eslint .",
     "test": "vitest run",

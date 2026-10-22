@@ -29,7 +29,7 @@ describe('buildZshScript', () => {
     );
   });
 
-  it("should hand each command's flags to _arguments without its command words", () => {
+  it("should hand each command's flags to _arguments without its command words, a repeatable one starred", () => {
     expect(script).toContain(
       [
         "    'channel create')",
@@ -37,12 +37,25 @@ describe('buildZshScript', () => {
         `        '--name[The channel'\\''s name.]:name:_files' \\`,
         `        '--failure-action[What auto-pause does.]:failure-action:(none pause)' \\`,
         `        '--protected[Whether only \\[Owners\\] change it.]' \\`,
+        `        '*--label[A label it carries, repeatable.]:label:_files' \\`,
         `        '--json[Print machine output as JSON.]' \\`,
         '      ;;',
       ].join('\n'),
     );
     expect(script).toContain(
       ["    'fingerprint '*)", '      _hotcodepush_arguments 1 \\'].join('\n'),
+    );
+  });
+
+  it('should offer the file names for the arguments of a command that takes them', () => {
+    expect(script).toContain(
+      [
+        "    'fingerprint diff')",
+        '      _hotcodepush_arguments 2 \\',
+        `        '--json[Print machine output as JSON.]' \\`,
+        `        '*:argument:_files' \\`,
+        '      ;;',
+      ].join('\n'),
     );
   });
 
@@ -54,6 +67,14 @@ describe('buildZshScript', () => {
 
   it('should register the function for hotcodepush when it is loaded', () => {
     expect(script).toMatch(/^#compdef hotcodepush\n/);
-    expect(script).toMatch(/\ncompdef _hotcodepush hotcodepush$/);
+    expect(script).toContain('\ncompdef _hotcodepush hotcodepush\n');
+  });
+
+  it('should complete on its first run when it is installed under fpath as the body of _hotcodepush', () => {
+    expect(script.split('\n').slice(-3)).toEqual([
+      'if [ "$funcstack[1]" = "_hotcodepush" ]; then',
+      '  _hotcodepush "$@"',
+      'fi',
+    ]);
   });
 });

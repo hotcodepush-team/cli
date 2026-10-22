@@ -10,6 +10,10 @@ const STUB_COMMANDS: Record<string, Command> = {
   'channel create': defineCommand({
     description: 'Create a channel.',
     options: defineCommandOptions({
+      attribute: z
+        .array(z.string())
+        .optional()
+        .describe('An attribute, repeatable.'),
       failureAction: z
         .enum(['none', 'pause'])
         .optional()
@@ -42,6 +46,7 @@ const STUB_COMMANDS: Record<string, Command> = {
   }),
   'fingerprint diff': defineCommand({
     description: 'Print what moved.',
+    args: z.array(z.string()),
     options: defineCommandOptions({}),
     action: () => undefined,
   }),
@@ -81,8 +86,15 @@ describe('resolveCommandTree', () => {
   it('should describe a noun that runs nothing by its verbs', () => {
     expect(channel).toMatchObject({
       description: 'create, list',
+      hasArguments: false,
       options: [],
     });
+  });
+
+  it('should mark the commands that take arguments', () => {
+    expect(fingerprint?.verbs[0]?.hasArguments).toBe(true);
+    expect(fingerprint?.hasArguments).toBe(false);
+    expect(channelCreate?.hasArguments).toBe(false);
   });
 
   it('should keep the description and options of a standalone command that is a noun too', () => {
@@ -92,30 +104,41 @@ describe('resolveCommandTree', () => {
     );
   });
 
-  it('should take each option as its kebab-case flag with its description, the own ones first', () => {
-    expect(channelCreate?.options.slice(0, 4)).toEqual([
+  it('should take each option as its kebab-case flag with its description, the own ones first, an array alone repeatable', () => {
+    expect(channelCreate?.options.slice(0, 5)).toEqual([
+      {
+        choices: [],
+        description: 'An attribute, repeatable.',
+        hasValue: true,
+        isRepeatable: true,
+        name: 'attribute',
+      },
       {
         choices: ['none', 'pause'],
         description: 'What auto-pause does.',
         hasValue: true,
+        isRepeatable: false,
         name: 'failure-action',
       },
       {
         choices: [],
         description: 'The failure percentage.',
         hasValue: true,
+        isRepeatable: false,
         name: 'failure-threshold',
       },
       {
         choices: ['android', 'ios'],
         description: 'The platforms.',
         hasValue: true,
+        isRepeatable: false,
         name: 'platform',
       },
       {
         choices: [],
         description: 'Whether only Owners change it.',
         hasValue: false,
+        isRepeatable: false,
         name: 'protected',
       },
     ]);

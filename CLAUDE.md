@@ -32,16 +32,18 @@ src/
                the native glue the Capacitor and Cordova modules name, one constant in `frameworks/native-glue.ts`,
                the build step both commands share, the resource file,
                the progress lines, the browser opener, the JSON, tables and details output, the telemetry, the update notice,
+               the shell completion: the command tree, a script builder per shell and the script files the build writes and `completion` reads,
                init's step runner, the outcome rows init and doctor print, the package manager and its visible runs,
                the native-project edits: the binary create phase in the Xcode project and the removal of the resource reference an earlier init added, package.json reading,
                the lines a React Native project is wired with
-  config/      consts: the API URL, the client id and header, the config file, the docs and issues URLs,
+  config/      consts: the API URL, the client id and header, the config file, the completion scripts' folder, the docs and issues URLs,
                the keyring entry, package.json, the project file, the SDK packages' names and pinned specs,
                the manual step that runs `init`
 test/          the command tests' harness, the API faked behind fetch, their fixtures, the release routes
                and the Capacitor project a test writes, with the pbxproj of `cap add ios`, its Gradle file and the old resource reference, the fingerprint inputs,
                the Cordova project with its `config.xml` and the native glue a platform copy carries, the React Native project with its pbxproj,
                the protocol's fixtures read from the installed package; never built
+scripts/       the build's last step: the completion scripts written into dist/completion/
 dist/          the build output, never committed
 ```
 
@@ -143,10 +145,10 @@ A project with an app config that is code, or with a JSON one that does not pars
   A build that bundled nothing — a React Native or Expo debug build, Metro serving its JavaScript — is neither: before any token is read, the file is written with `embeddedBundle: null` and the channel id only where the project named the channel by id, no binary is created, one line on stderr says so and the exit is 0; every check in that build answers `SKIPPED` with `BUILD_DEBUG`.
   The fingerprint is the strict half too: a project the recipe cannot read is `E_FINGERPRINT_UNAVAILABLE` on `binary create` and upload alike, never `null`, since a release targets it.
   The device hosts it writes derive from the API URL: none for production, the staging hosts for staging, `<apiUrl>/files` and `/updates` for any other, `HOTCODEPUSH_FILES_BASE_URL` and `HOTCODEPUSH_UPDATES_BASE_URL` overriding.
-- **Telemetry is one switch**: `HOTCODEPUSH_TELEMETRY_DISABLED=1` or `DO_NOT_TRACK=1` turns off both the `cli.command_finished` event to PostHog and the unexpected errors to Sentry; the first run on a machine prints the notice on stderr, remembered as `telemetryNoticeShownAt`.
+- **Telemetry is one switch**: `HOTCODEPUSH_TELEMETRY_DISABLED=1` or `DO_NOT_TRACK=1` turns off both the `cli.command_finished` event to PostHog and the unexpected errors to Sentry; the first run on a machine prints the notice on stderr, remembered as `telemetryNoticeShownAt`; `completion`, which a shell runs as it starts, sends neither and prints no notice.
   `runCli` sends both through two `fetch` calls of ours, no SDK, waited for at most 1.5 seconds and silent when they fail: PostHog's capture endpoint takes `command`, `outcome`, `stopped_step` for `init`, `duration_ms`, `cli_version`, `is_ci`, `framework` and `source` under the hashed host name; Sentry's envelope endpoint takes `E_UNEXPECTED` and `E_UNEXPECTED_RESPONSE` with the code, the command and a stack cut below `node_modules`, never the message.
   The keys are `telemetry.posthogProjectKey` and `telemetry.sentryDsn` in `package.json`, empty in the repository so every build but the release sends nothing; the release build sets them from the repository variables `POSTHOG_PROJECT_KEY` and `SENTRY_DSN` with `npm pkg set` before publishing.
-- **The update notice** is one line on stderr after a command once the registry knows a newer version, read from `latestKnownVersion`; the entry point asks the registry beside the command at most once a day by `lastUpdateCheckAt`, a failed check included, with a one-second timeout and silent failures, never in CI or under `HOTCODEPUSH_NO_UPDATE_NOTIFIER=1`.
+- **The update notice** is one line on stderr after a command once the registry knows a newer version, read from `latestKnownVersion`; `runCli` asks the npm registry beside the command at most once a day by `lastUpdateCheckAt`, a failed check included, with a one-second timeout and silent failures, never in CI, under `HOTCODEPUSH_NO_UPDATE_NOTIFIER=1` or for `completion`, which prints no notice either.
 - **Every login** keeps its device code, expiry, user code and verification URL in `config.json` until approved; the next `login` redeems the code first and, while it is pending, shows the same code again, so an agent sees one output until the person approves.
 
 ## Naming
