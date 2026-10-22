@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 `hotcodepush`, the HotCodePush CLI: the npm package and the binary that set up, release and manage over-the-air (OTA) updates from the terminal and CI.
-The repo is public and MIT; the commands in `src/index.ts`'s registry are built, for React Native, Expo, Capacitor and Cordova projects, and the rest of the spec arrives issue by issue.
+The repo is public and MIT; the commands in `src/registry.ts`'s registry are built, for React Native, Expo, Capacitor and Cordova projects, and the rest of the spec arrives issue by issue.
 Stack: TypeScript compiled by `tsc` into ESM in `dist/`, zodline and zod for the commands, `@hotcodepush/node` for the API, `@clack/prompts` for the prompts, `@napi-rs/keyring` for the token, ESLint, Prettier, Vitest, Node 22 as the floor, developed on 24.
 
 The plan is the private `handbook` repo, checked out beside this one: `../handbook/docs/`.
@@ -12,8 +12,9 @@ When code and plan disagree, stop and surface it; never improvise.
 
 ```
 src/
-  index.ts     the registry: space-separated command names, each a lazy import
-  commands/    a folder per noun and a file per verb, channel/create.ts, resource-file/write.ts; the standalone commands flat, login.ts, init.ts, doctor.ts, open.ts
+  index.ts     the entry point: runs the command line through the registry
+  registry.ts  the registry: space-separated command names, each a lazy import
+  commands/    a folder per noun and a file per verb, channel/create.ts, resource-file/write.ts; the standalone commands flat, login.ts, init.ts, doctor.ts, open.ts, completion.ts
   utils/       the runner, command resolution and did-you-mean, the E_ catalog and its one mapping,
                the global options, environment detection, config.json, the token store,
                the auth client, the API client, hotcodepush.json and its directory, the JSON files a person edits read as `E_INVALID_JSON` when they do not parse, a resource by id or name,
@@ -69,7 +70,7 @@ No releases yet: the version stays `0.0.0`, and release-please and npm provenanc
 1. `src/commands/<noun>/<verb>.ts`, or `src/commands/<name>.ts` for a standalone one, default-exports zodline's `defineCommand`.
 2. Its options are `defineCommandOptions({ … })`, so the global options come with every command; a global option the command gives its own meaning, `app transfer`'s `--organization`, joins its shape with its own description.
 3. It has a `description` and exactly two `examples`, which end its `--help`.
-4. One line joins the registry in `src/index.ts`: `'channel create': () => import('./commands/channel/create.js')`.
+4. One line joins the registry in `src/registry.ts`: `'channel create': () => import('./commands/channel/create.js')`.
 
 ## Adding a framework
 

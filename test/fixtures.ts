@@ -17,6 +17,10 @@ import type {
   SsoProvider,
   User,
 } from '@hotcodepush/node';
+import type {
+  CompletionCommand,
+  CompletionOption,
+} from '../src/utils/completion/command-tree.js';
 
 export const ACME_ORGANIZATION: Organization = {
   appCountLimit: null,
@@ -524,3 +528,63 @@ export const PENDING_INVITATION: Invitation = {
   status: 'pending',
   updatedAt: '2026-09-10T08:00:00.000Z',
 };
+
+const JSON_COMPLETION_OPTION: CompletionOption = {
+  choices: [],
+  description: 'Print machine output as JSON.',
+  hasValue: false,
+  name: 'json',
+};
+
+/**
+ * A tiny command tree with every kind of option: a free value, an enum, a boolean flag and the global --json on every command,
+ * a noun that runs nothing and a standalone command that is a noun too.
+ */
+export const COMPLETION_COMMANDS: CompletionCommand[] = [
+  {
+    description: 'create',
+    name: 'channel',
+    options: [],
+    verbs: [
+      {
+        description: "Create a channel: the app's [preview] one.",
+        name: 'create',
+        options: [
+          {
+            choices: [],
+            description: "The channel's name.",
+            hasValue: true,
+            name: 'name',
+          },
+          {
+            choices: ['none', 'pause'],
+            description: 'What auto-pause does.',
+            hasValue: true,
+            name: 'failure-action',
+          },
+          {
+            choices: [],
+            description: 'Whether only [Owners] change it.',
+            hasValue: false,
+            name: 'protected',
+          },
+          JSON_COMPLETION_OPTION,
+        ],
+        verbs: [],
+      },
+    ],
+  },
+  {
+    description: 'Print the fingerprint.',
+    name: 'fingerprint',
+    options: [JSON_COMPLETION_OPTION],
+    verbs: [
+      {
+        description: 'Print what moved.',
+        name: 'diff',
+        options: [JSON_COMPLETION_OPTION],
+        verbs: [],
+      },
+    ],
+  },
+];

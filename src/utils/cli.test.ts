@@ -6,10 +6,18 @@ import type { CommandRegistry } from './command-registry.js';
 import { MissingParameterError } from './errors.js';
 import { defineCommandOptions } from './global-options.js';
 import { printTelemetryNotice, reportFinishedCommand } from './telemetry.js';
+import {
+  printUpdateNotice,
+  refreshLatestKnownVersion,
+} from './update-notice.js';
 
 vi.mock('./telemetry.js', () => ({
   printTelemetryNotice: vi.fn(),
   reportFinishedCommand: vi.fn(),
+}));
+vi.mock('./update-notice.js', () => ({
+  printUpdateNotice: vi.fn(),
+  refreshLatestKnownVersion: vi.fn(),
 }));
 
 const META = {
@@ -45,6 +53,18 @@ function createCommandTree() {
           'hotcodepush channel list',
           'hotcodepush channel list --json',
         ],
+        options: defineCommandOptions({}),
+        action: () => undefined,
+      }),
+    })),
+    'completion': vi.fn(async () => ({
+      default: defineCommand({
+        description: 'Print the completion script.',
+        examples: [
+          'eval "$(hotcodepush completion zsh)"',
+          'hotcodepush completion fish',
+        ],
+        args: z.array(z.string()),
         options: defineCommandOptions({}),
         action: () => undefined,
       }),
@@ -343,6 +363,43 @@ describe('runCli', () => {
     await runCli(commandRegistry, ['chanel', 'create'], META);
 
     expect(reportFinishedCommand).not.toHaveBeenCalled();
+  });
+
+  it('should check for a newer version beside the command and print its notice', async () => {
+    const { commandRegistry } = createCommandTree();
+
+    await runCli(commandRegistry, ['channel', 'create'], META);
+
+    expect(refreshLatestKnownVersion).toHaveBeenCalledOnce();
+    expect(printUpdateNotice).toHaveBeenCalledOnce();
+  });
+
+  it('should send no telemetry and check for no newer version when completion runs as a shell starts', async () => {
+    const { commandRegistry } = createCommandTree();
+
+    const exitCode = await runCli(commandRegistry, ['completion', 'zsh'], META);
+
+    expect(exitCode).toBe(0);
+    expect(printTelemetryNotice).not.toHaveBeenCalled();
+    expect(reportFinishedCommand).not.toHaveBeenCalled();
+    expect(refreshLatestKnownVersion).not.toHaveBeenCalled();
+    expect(printUpdateNotice).not.toHaveBeenCalled();
+  });
+
+  it('should still print the error of a completion command line', async () => {
+    const { commandRegistry } = createCommandTree();
+    const output = captureOutput();
+
+    const exitCode = await runCli(
+      commandRegistry,
+      ['completion', '--colour'],
+      META,
+    );
+
+    expect(exitCode).toBe(2);
+    expect(output.readStderr()).toBe(
+      'Unknown option: --colour. Run the command with --help to see its options.\nhttps://hotcodepush.com/docs/cli/errors#E_INVALID_PARAMETER\n',
+    );
   });
 
   it('should print the version when -v is passed', async () => {

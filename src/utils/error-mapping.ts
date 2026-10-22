@@ -11,6 +11,7 @@ import {
   UnexpectedError,
   UnexpectedResponseError,
 } from './errors.js';
+import { resolveFlagName } from './flag-name.js';
 import { printJson } from './output.js';
 
 /**
@@ -160,6 +161,5 @@ function resolveZodErrorMessage(error: ZodError): string {
   if (typeof key !== 'string') {
     return issue.message;
   }
-  const flag = `--${key.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)}`;
-  return `The value of ${flag} is invalid. ${issue.message}.`;
+  return `The value of --${resolveFlagName(key)} is invalid. ${issue.message}.`;
 }
