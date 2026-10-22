@@ -16,7 +16,7 @@ const ACTOR_TYPES = ['system', 'user'] as const;
 
 export default defineCommand({
   description:
-    "List the organization's audit log, newest first, filtered by type, actor, app and time; paying plans only.",
+    "List the organization's audit log, newest first, filtered by type, actor, app and time, on a plan that includes the audit log.",
   examples: [
     'hotcodepush audit-log list --type "channel.*" --created-since 7d',
     'hotcodepush audit-log list --app "My App" --actor 4f2c8a1e-6b3d-4e9f-a7c5-2d8b1e6f3a90 --json',
