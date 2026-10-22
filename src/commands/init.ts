@@ -99,7 +99,7 @@ const CREATE_CHOICE = 'create';
 
 export default defineCommand({
   description:
-    'Set a Capacitor, Cordova, Expo or React Native project up from sign-in to the first release, re-runnable at any step.',
+    'Set a React Native, Expo, Capacitor or Cordova project up from sign-in to the first release, re-runnable at any step.',
   examples: ['hotcodepush init', 'hotcodepush init --yes --json'],
   options: defineCommandOptions({
     androidPath: z
@@ -109,10 +109,10 @@ export default defineCommand({
         "The Android project, when it is not capacitor.config's android.path or android/.",
       ),
     framework: z
-      .enum(['capacitor', 'cordova', 'expo', 'react-native'])
+      .enum(['react-native', 'expo', 'capacitor', 'cordova'])
       .optional()
       .describe(
-        'The framework, capacitor, cordova, expo or react-native, over the one detected from package.json.',
+        'The framework, react-native, expo, capacitor or cordova, over the one detected from package.json.',
       ),
     iosPath: z
       .string()

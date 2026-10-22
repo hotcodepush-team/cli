@@ -1,6 +1,6 @@
 # hotcodepush
 
-The HotCodePush CLI: set up, release and manage over-the-air (OTA) updates for Capacitor, Cordova, React Native and Expo apps from the terminal and CI.
+The HotCodePush CLI: set up, release and manage over-the-air (OTA) updates for React Native, Expo, Capacitor and Cordova apps from the terminal and CI.
 
 ## Installation
 
@@ -59,11 +59,11 @@ npx hotcodepush fingerprint
 npx hotcodepush fingerprint diff store-build.json fingerprint.json
 ```
 
-`init` takes a Capacitor, Cordova, Expo or React Native project from sign-in to the first release — the organization, the app, the SDK package from its pkg.pr.new build until it is published, `hotcodepush.json` and the build step — re-runnable at any step, each step `done`, `skipped` or `stopped` with the manual step; `doctor` is the read-only check of the same, and `open` opens the app's console page.
-On Capacitor `init` adds the Xcode phase "Create HotCodePush binary" after the app target's last phase and one `apply from` line to `android/app/build.gradle`, which run the build step inside the native build, and removes the resource reference an earlier `init` added; on Cordova `init` runs `cordova plugin add`, and the plugin wires its own Xcode phase and Gradle task, so nothing is wired.
+`init` takes a React Native, Expo, Capacitor or Cordova project from sign-in to the first release — the organization, the app, the SDK package from its pkg.pr.new build until it is published, `hotcodepush.json` and the build step — re-runnable at any step, each step `done`, `skipped` or `stopped` with the manual step; `doctor` is the read-only check of the same, and `open` opens the app's console page.
 On React Native `init` adds the Xcode phase "Create HotCodePush binary" after "Bundle React Native code and images" and one `apply from` line to `android/app/build.gradle`, which run the build step inside the native build, makes `AppDelegate.swift` and `MainApplication.kt` ask the SDK for the bundle React Native runs, pins the `HotCodePushCore` pod in the Podfile until it is published, and runs `pod install`; an edit a file has no place for is that step's manual step.
 On Expo `init` installs the package and adds its config plugin to the app config, `app.config.json` where the project has one and `app.json` otherwise; the plugin wires the native projects at `npx expo prebuild` as `init` wires a React Native project, so `init` edits no native file and runs no prebuild.
 Beside an app config that is code, or with a JSON one the CLI cannot parse, `init` edits no app config and the entry to add is that step's manual step.
+On Capacitor `init` adds the Xcode phase "Create HotCodePush binary" after the app target's last phase and one `apply from` line to `android/app/build.gradle`, which run the build step inside the native build, and removes the resource reference an earlier `init` added; on Cordova `init` runs `cordova plugin add`, and the plugin wires its own Xcode phase and Gradle task, so nothing is wired.
 Every command prints its options and two examples with `--help`, and `--json` turns its output into JSON for scripts and agents.
 `login --api-url https://api.example.com` points the CLI at another API, and the choice persists in the CLI's `config.json` for every later command.
 An organization, app or channel is named by id or by name, `--app "My App"`, a member or an invitation by id or by email; `--app` defaults to the app id in the project's `hotcodepush.json` and `--channel` to the channel it names, `production` unless the file or `HOTCODEPUSH_CHANNEL` says otherwise.

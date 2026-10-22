@@ -332,7 +332,7 @@ export class UnknownFrameworkError extends CliError {
     super({
       code: 'E_UNKNOWN_FRAMEWORK',
       exitCode: ExitCode.Error,
-      fix: 'Run it in a project with @capacitor/core, react-native, expo or cordova among its dependencies.',
+      fix: 'Run it in a project with react-native, expo, @capacitor/core or cordova among its dependencies.',
       message: 'No supported framework was found in package.json.',
     });
   }

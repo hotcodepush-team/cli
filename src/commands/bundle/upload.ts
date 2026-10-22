@@ -84,7 +84,7 @@ export const bundleUploadOptionShape = {
     .string()
     .optional()
     .describe(
-      "The web build to upload, the framework's build output by default, Capacitor's webDir or Cordova's www; on React Native and Expo one platform's prepared bundle.",
+      "The build to upload, the framework's build output by default: on React Native and Expo one platform's prepared bundle, Capacitor's webDir or Cordova's www.",
     ),
   platform: platformListSchema
     .optional()

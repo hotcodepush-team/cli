@@ -8,10 +8,10 @@ import { promptSelect, promptText } from '../../utils/prompts.js';
 import { fetchOrganizationId } from '../../utils/resource-resolution.js';
 
 const FRAMEWORKS = [
+  'react-native',
+  'expo',
   'capacitor',
   'cordova',
-  'expo',
-  'react-native',
 ] as const satisfies App['framework'][];
 
 export default defineCommand({
@@ -24,7 +24,7 @@ export default defineCommand({
     framework: z
       .enum(FRAMEWORKS)
       .optional()
-      .describe('The framework: capacitor, cordova, expo or react-native.'),
+      .describe('The framework: react-native, expo, capacitor or cordova.'),
     name: z
       .string()
       .optional()

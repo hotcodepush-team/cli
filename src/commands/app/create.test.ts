@@ -74,10 +74,10 @@ describe('app create', () => {
     expect(select).toHaveBeenCalledWith({
       message: 'Which framework does the app use?',
       options: [
+        { label: 'react-native', value: 'react-native' },
+        { label: 'expo', value: 'expo' },
         { label: 'capacitor', value: 'capacitor' },
         { label: 'cordova', value: 'cordova' },
-        { label: 'expo', value: 'expo' },
-        { label: 'react-native', value: 'react-native' },
       ],
     });
     expect(await harness.requests[0]?.json()).toEqual({

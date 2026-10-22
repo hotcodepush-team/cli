@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 `hotcodepush`, the HotCodePush CLI: the npm package and the binary that set up, release and manage over-the-air (OTA) updates from the terminal and CI.
-The repo is public and MIT; the commands in `src/index.ts`'s registry are built, for Capacitor, Cordova, Expo and React Native projects, and the rest of the spec arrives issue by issue.
+The repo is public and MIT; the commands in `src/index.ts`'s registry are built, for React Native, Expo, Capacitor and Cordova projects, and the rest of the spec arrives issue by issue.
 Stack: TypeScript compiled by `tsc` into ESM in `dist/`, zodline and zod for the commands, `@hotcodepush/node` for the API, `@clack/prompts` for the prompts, `@napi-rs/keyring` for the token, ESLint, Prettier, Vitest, Node 22 as the floor, developed on 24.
 
 The plan is the private `handbook` repo, checked out beside this one: `../handbook/docs/`.
@@ -78,7 +78,7 @@ No releases yet: the version stays `0.0.0`, and release-please and npm provenanc
 2. One line joins the registry in `src/utils/frameworks/index.ts`.
 3. Nothing outside the module names the framework: a command asks the module, never a config file or a path of its own.
 
-Capacitor's module reads `capacitor.config` as text and no native file, `webDir` when the upload runs, and a config with no `webDir` readable as a quoted string makes `--path` required, `E_MISSING_PARAMETER` naming the reason; Cordova's reads `config.xml` through `fast-xml-parser` for the file-mode preference alone. The store build's identity comes from the build on every framework, never from a project file: the hook script passes the version and the build number it read from the processed `Info.plist` or the variant. Capacitor and React Native are wired the same way, `init` adding the phase and the Gradle line; Cordova's plugin and Expo's config plugin wire themselves.
+Capacitor's module reads `capacitor.config` as text and no native file, `webDir` when the upload runs, and a config with no `webDir` readable as a quoted string makes `--path` required, `E_MISSING_PARAMETER` naming the reason; Cordova's reads `config.xml` through `fast-xml-parser` for the file-mode preference alone. The store build's identity comes from the build on every framework, never from a project file: the hook script passes the version and the build number it read from the processed `Info.plist` or the variant. React Native and Capacitor are wired the same way, `init` adding the phase and the Gradle line; Expo's config plugin and Cordova's plugin wire themselves.
 React Native's and Expo's have no build output to read and share React Native's release build in `frameworks/react-native-build.ts`: `packageReactNativeBundles` runs the module's bundler and Hermes' compiler per platform into the command's packaging directory, one bundle each, `collectEmbeddedFiles` takes `main.jsbundle` and `assets/` out of the app the Xcode phase points at, the native build passes the identity and `--resource-file-path` in.
 The bundler is all the two differ in there: `react-native bundle` with the project's entry file for React Native, `expo export:embed`, which resolves the entry file itself, for Expo.
 `--path` is the prepared bundle directory of the one platform `--platform` names, refused without the JavaScript under the name that platform's app loads.
@@ -113,7 +113,7 @@ A project with an app config that is code, or with a JSON one that does not pars
 - **A command that reports several outcomes** — `init`'s steps, `doctor`'s checks — prints them itself and ends with `ReportedFailureError` when one failed,
   so the exit code is set without a second message; nothing else throws it.
 - **`init` edits only what it can recognise afterwards**: the Xcode project gains one run-script phase through the `xcode` package and loses the resource reference an earlier `init` added,
-  a Capacitor or React Native project's other files one line each,
+  a React Native or Capacitor project's other files one line each,
   an Expo project's JSON app config one plugin entry,
   and `init` names the files it will change and asks once before touching them.
 - **The token** is `readToken()`: `HOTCODEPUSH_TOKEN` when set, then the keyring, then the `config.json` fallback that any keyring failure latches for the rest of the process.
@@ -162,6 +162,7 @@ A project with an app config that is code, or with a JSON one that does not pars
 - Test titles read `should <verb> …`, lowercase, conditions starting with `when`.
 - Fixtures and examples carry invented data only.
 - HotCodePush ships over-the-air (OTA) updates: a surface, the root `--help`, a command's `--help`, a message or the README, writes "over-the-air (OTA) update" on its first mention and "OTA update" after it. "Live update" names the Capacitor offering alone, `capacitor-live-updates`, or sits in a list of alternative names for search, never as the product's own term.
+- The supported frameworks are listed as React Native, Expo, Capacitor and Cordova wherever a reader sees them listed, a description, a message, an enum's choices, a prompt or the README, the larger communities first and React Native beside Expo; identifiers and the detection order are logic, not lists.
 
 ## Agent workspace
 
