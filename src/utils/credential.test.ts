@@ -40,13 +40,13 @@ describe('credential', () => {
 
   it("should pass the API's refusal of the bearer through, and tell it apart from other failures", async () => {
     harness.routes['GET /v1/users/me'] = () =>
-      respondWithApiError(401, 'E_UNAUTHENTICATED', 'The bearer is invalid.');
+      respondWithApiError(401, 'unauthenticated', 'The bearer is invalid.');
 
     const error: unknown = await fetchCurrentUser().catch(
       (caught: unknown) => caught,
     );
 
-    expect(error).toMatchObject({ code: 'E_UNAUTHENTICATED', status: 401 });
+    expect(error).toMatchObject({ code: 'unauthenticated', status: 401 });
     expect(isUnauthenticatedError(error)).toBe(true);
     expect(isUnauthenticatedError(new Error('fetch failed'))).toBe(false);
   });

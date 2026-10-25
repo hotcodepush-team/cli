@@ -37,7 +37,7 @@ describe('app update', () => {
     expect(harness.readJson()).toEqual({ ...DEMO_APP, name: 'Demo 2' });
   });
 
-  it('should throw E_MISSING_PARAMETER when --name is missing and nobody can be asked', async () => {
+  it('should throw `missing_parameter` when --name is missing and nobody can be asked', async () => {
     await expect(
       appUpdateCommand.action({ app: DEMO_APP.id }, undefined),
     ).rejects.toThrow(new MissingParameterError('--name'));

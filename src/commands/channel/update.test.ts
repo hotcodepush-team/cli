@@ -120,7 +120,7 @@ describe('channel update', () => {
           undefined,
         ),
       ).rejects.toMatchObject({
-        code: 'E_INVALID_PARAMETER',
+        code: 'invalid_parameter',
         fix: 'Pass only one of them.',
         message: `The flags --${flagName} and --clear-${flagName} were passed together.`,
       });
@@ -140,7 +140,7 @@ describe('channel update', () => {
         undefined,
       ),
     ).rejects.toMatchObject({
-      code: 'E_INVALID_PARAMETER',
+      code: 'invalid_parameter',
       fix: 'Pass only one of them.',
       message:
         'The flags --expires-in and --clear-expires-at were passed together.',

@@ -72,7 +72,7 @@ describe('app get', () => {
     expect(harness.readJson()).toEqual(DEMO_APP);
   });
 
-  it('should throw E_INVALID_PARAMETER when apps of several organizations carry the name', async () => {
+  it('should throw `invalid_parameter` when apps of several organizations carry the name', async () => {
     respondWithOrganizationApps({
       [ACME_ORGANIZATION.id]: [DEMO_APP],
       [GLOBEX_ORGANIZATION.id]: [{ ...DEMO_APP, id: GLOBEX_ORGANIZATION.id }],
@@ -83,7 +83,7 @@ describe('app get', () => {
     ).rejects.toThrow(AmbiguousNameError);
   });
 
-  it('should throw E_INVALID_PARAMETER when no app carries the name', async () => {
+  it('should throw `invalid_parameter` when no app carries the name', async () => {
     respondWithOrganizationApps({
       [ACME_ORGANIZATION.id]: [DEMO_APP],
       [GLOBEX_ORGANIZATION.id]: [],
@@ -94,7 +94,7 @@ describe('app get', () => {
     ).rejects.toThrow(new UnknownNameError('app', 'Nope'));
   });
 
-  it('should throw E_MISSING_PARAMETER when there is neither --app nor hotcodepush.json and nobody can be asked', async () => {
+  it('should throw `missing_parameter` when there is neither --app nor hotcodepush.json and nobody can be asked', async () => {
     await expect(appGetCommand.action({}, undefined)).rejects.toThrow(
       new MissingParameterError('--app'),
     );

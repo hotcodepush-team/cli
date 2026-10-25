@@ -102,14 +102,14 @@ function checkInsecureFileMode({
 }: FrameworkProject): FrameworkCheck {
   return isInsecureFileModeEnabled(readWidget(directoryPath))
     ? {
-        check: 'android-file-mode',
+        check: 'android_file_mode',
         manualStep:
           'The plugin serves no update from file:// and stays off. Remove the preference.',
         message: `The file ${CONFIG_FILE_NAME} sets ${INSECURE_FILE_MODE_PREFERENCE_NAME}, which loads the Android app from file://.`,
         status: 'failed',
       }
     : {
-        check: 'android-file-mode',
+        check: 'android_file_mode',
         message: `The file ${CONFIG_FILE_NAME} leaves ${INSECURE_FILE_MODE_PREFERENCE_NAME} off.`,
         status: 'ok',
       };

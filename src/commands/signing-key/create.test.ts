@@ -167,7 +167,7 @@ describe('signing-key create', () => {
     await expect(
       signingKeyCreateCommand.action({ app: 'Demo' }, undefined),
     ).rejects.toMatchObject({
-      code: 'E_INVALID_PARAMETER',
+      code: 'invalid_parameter',
       message: `The file ${keyFilePath} from --private-key-path already exists.`,
     });
 
@@ -185,7 +185,7 @@ describe('signing-key create', () => {
         undefined,
       ),
     ).rejects.toMatchObject({
-      code: 'E_INVALID_PARAMETER',
+      code: 'invalid_parameter',
       message: `The folder ${folderPath} from --private-key-path does not exist.`,
     });
 
@@ -195,7 +195,7 @@ describe('signing-key create', () => {
 
   it('should remove the private key file and leave hotcodepush.json alone when the registration fails', async () => {
     harness.routes[`POST ${SIGNING_KEYS_PATH}`] = () =>
-      respondWithApiError(403, 'E_FORBIDDEN', 'Your role is too low.');
+      respondWithApiError(403, 'forbidden', 'Your role is too low.');
     const configPath = harness.writeProjectConfig({ appId: DEMO_APP.id });
 
     await expect(

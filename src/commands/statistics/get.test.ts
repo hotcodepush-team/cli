@@ -62,7 +62,7 @@ const UPDATE_STATISTICS: UpdateStatistics = {
       rolledBackUpdateCount: 0,
     },
   ],
-  failureReasons: [{ eventCount: 1, reason: 'READINESS_TIMED_OUT' }],
+  failureReasons: [{ eventCount: 1, reason: 'readiness_timed_out' }],
   releases: [
     {
       adoption: [{ at: '2026-09-01T08:00:00.000Z', confirmedUpdateCount: 9 }],
@@ -166,7 +166,7 @@ describe('statistics get', () => {
       'RELEASE  LIVE                      CONFIRMED  50% AT                    90% AT',
       '#43      2026-09-01T07:00:00.000Z  9          2026-09-01T08:00:00.000Z  not yet',
       'FAILURE REASON       EVENTS',
-      'READINESS_TIMED_OUT  1',
+      'readiness_timed_out  1',
       'SKIP REASON: none in the period.',
     ]);
   });
@@ -206,7 +206,7 @@ describe('statistics get', () => {
         { app: DEMO_APP.id, periodSince: '2026-09-01', type: 'fleet' },
         undefined,
       ),
-    ).rejects.toMatchObject({ code: 'E_INVALID_PARAMETER' });
+    ).rejects.toMatchObject({ code: 'invalid_parameter' });
     expect(harness.requests).toEqual([]);
   });
 
@@ -216,13 +216,13 @@ describe('statistics get', () => {
         { app: DEMO_APP.id, channel: STAGING_CHANNEL.name, type: 'usage' },
         undefined,
       ),
-    ).rejects.toMatchObject({ code: 'E_INVALID_PARAMETER' });
+    ).rejects.toMatchObject({ code: 'invalid_parameter' });
     expect(harness.requests).toEqual([]);
   });
 
-  it('should fail with E_MISSING_PARAMETER naming --type when nobody can pick one', async () => {
+  it('should fail with `missing_parameter` naming --type when nobody can pick one', async () => {
     await expect(
       statisticsGetCommand.action({ app: DEMO_APP.id }, undefined),
-    ).rejects.toMatchObject({ code: 'E_MISSING_PARAMETER' });
+    ).rejects.toMatchObject({ code: 'missing_parameter' });
   });
 });

@@ -45,14 +45,14 @@ describe('customer-portal-session create', () => {
     expect(harness.readJson()).toEqual(CUSTOMER_PORTAL_SESSION);
   });
 
-  it("should pass the API's E_VALIDATION through when the organization never subscribed", async () => {
+  it("should pass the API's `validation` error through when the organization never subscribed", async () => {
     const stderrWrite = vi
       .spyOn(process.stderr, 'write')
       .mockImplementation(() => true);
     harness.routes[`POST ${CUSTOMER_PORTAL_SESSIONS_PATH}`] = () =>
       respondWithApiError(
         400,
-        'E_VALIDATION',
+        'validation',
         'The organization has no subscription, so it has no customer portal.',
       );
 
@@ -71,7 +71,7 @@ describe('customer-portal-session create', () => {
 
     expect(exitCode).toBe(1);
     expect(stderrWrite).toHaveBeenCalledWith(
-      'The organization has no subscription, so it has no customer portal.\nhttps://hotcodepush.com/docs/cli/errors#E_VALIDATION\n',
+      'The organization has no subscription, so it has no customer portal.\nhttps://hotcodepush.com/docs/cli/errors#validation\n',
     );
   });
 });

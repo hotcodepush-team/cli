@@ -6,7 +6,7 @@ const UNAUTHENTICATED_STATUS = 401;
 
 /**
  * The user behind the credential as `GET /v1/users/me` answers it; a bearer the API refuses is its own
- * E_UNAUTHENTICATED, passed through as every API error is.
+ * `unauthenticated`, passed through as every API error is.
  */
 export async function fetchCurrentUser(): Promise<User> {
   return createApiClient().users.get({ userId: 'me' });

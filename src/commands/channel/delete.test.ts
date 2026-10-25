@@ -56,7 +56,7 @@ describe('channel delete', () => {
     ]);
   });
 
-  it('should throw E_CONFIRMATION_REQUIRED and delete nothing when nobody can be asked', async () => {
+  it('should throw `confirmation_required` and delete nothing when nobody can be asked', async () => {
     respondWithChannels([STAGING_CHANNEL]);
 
     await expect(
@@ -72,7 +72,7 @@ describe('channel delete', () => {
     expect(readDeleteRequests()).toEqual([]);
   });
 
-  it('should throw E_INVALID_PARAMETER when no channel carries the name', async () => {
+  it('should throw `invalid_parameter` when no channel carries the name', async () => {
     respondWithChannels([PRODUCTION_CHANNEL]);
 
     await expect(

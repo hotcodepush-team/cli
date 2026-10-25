@@ -445,7 +445,7 @@ describe('bundle upload', () => {
     expect(signature.keyId).toBe(SIGNING_KEY.fingerprint);
   });
 
-  it('should stop with E_SIGNING_KEY_UNAVAILABLE before any request when hotcodepush.json lists a public key and no private key is given', async () => {
+  it('should stop with `signing_key_unavailable` before any request when hotcodepush.json lists a public key and no private key is given', async () => {
     respondWithUploadRoutes();
 
     await expect(
@@ -458,7 +458,7 @@ describe('bundle upload', () => {
     expect(harness.requests).toHaveLength(0);
   });
 
-  it('should stop with E_INVALID_PARAMETER before any request when a private key is given and hotcodepush.json lists no public key', async () => {
+  it('should stop with `invalid_parameter` before any request when a private key is given and hotcodepush.json lists no public key', async () => {
     respondWithUploadRoutes();
     vi.stubEnv('HOTCODEPUSH_SIGNING_KEY', SIGNING_PRIVATE_KEY);
 
@@ -497,7 +497,7 @@ describe('bundle upload', () => {
         { isDryRun: true },
       ),
     ).rejects.toMatchObject({
-      code: 'E_INVALID_PARAMETER',
+      code: 'invalid_parameter',
       message: expect.stringMatching(
         / from --private-key-path cannot be read\.$/,
       ),

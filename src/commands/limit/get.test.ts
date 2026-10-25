@@ -71,7 +71,7 @@ describe('limit get', () => {
     expect(harness.readLines()[0]).toBe('Limit       memberCountLimit');
   });
 
-  it('should throw E_MISSING_PARAMETER when --limit is missing and nobody can answer', async () => {
+  it('should throw `missing_parameter` when --limit is missing and nobody can answer', async () => {
     respondWithLimits();
 
     await expect(
@@ -82,7 +82,7 @@ describe('limit get', () => {
     ).rejects.toThrow(MissingParameterError);
   });
 
-  it('should throw E_INVALID_PARAMETER when no limit carries the key', async () => {
+  it('should throw `invalid_parameter` when no limit carries the key', async () => {
     respondWithLimits();
 
     await expect(

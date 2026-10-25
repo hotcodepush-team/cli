@@ -45,14 +45,14 @@
   },
   "dependencies": {
     "@clack/prompts": "1.8.1",
-    "@hotcodepush/node": "https://pkg.pr.new/hotcodepush-team/hotcodepush-node/@hotcodepush/node@2d35eda",
-    "@hotcodepush/protocol": "https://pkg.pr.new/hotcodepush-team/protocol/@hotcodepush/protocol@20053f1",
+    "@hotcodepush/node": "https://pkg.pr.new/hotcodepush-team/hotcodepush-node/@hotcodepush/node@cebeadc",
+    "@hotcodepush/protocol": "https://pkg.pr.new/hotcodepush-team/protocol/@hotcodepush/protocol@313a015",
     "@napi-rs/keyring": "2.1.0",
     "better-auth": "1.7.6",
     "fast-xml-parser": "5.11.2",
     "open": "11.0.4",
     "xcode": "3.0.1",
-    "zod": "4.6.5",
+    "zod": "4.6.7",
     "zodline": "0.3.1"
   },
   "devDependencies": {

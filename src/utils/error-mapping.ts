@@ -51,7 +51,7 @@ interface PrintErrorOptions {
 const SENTENCE_END_PATTERN = /[.!?]$/;
 
 /** The typed client's code for an answer outside the API's shape, which the CLI's catalog renders. */
-const UNEXPECTED_RESPONSE_CODE = 'E_UNEXPECTED_RESPONSE';
+const UNEXPECTED_RESPONSE_CODE = 'unexpected_response';
 
 export function buildErrorJson({ code, fix, message }: CliError): ErrorJson {
   return { error: { code, message, fix } };
@@ -124,7 +124,7 @@ export function resolveApiError({
 /**
  * Maps anything a command line can throw to the CLI's catalog: its own errors as they are, the typed client's
  * as the API answered them unless the answer was outside the API's shape, zod and zodline's parameter errors to
- * `E_INVALID_PARAMETER`, everything else to `E_UNEXPECTED`.
+ * `invalid_parameter`, everything else to `unexpected`.
  */
 export function resolveCliError(error: unknown): CliError {
   if (error instanceof CliError) {

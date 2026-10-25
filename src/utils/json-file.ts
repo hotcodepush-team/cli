@@ -6,7 +6,7 @@ const QUOTED_TEXT_PATTERN = /^(Unexpected token '.+?'), .*$/s;
 
 /**
  * A JSON file a person edits — `hotcodepush.json`, `package.json`, `config.json` — parsed; one that does not parse is
- * `E_INVALID_JSON`, naming the file and where its parse stopped.
+ * `invalid_json`, naming the file and where its parse stopped.
  */
 export function readJsonFile(filePath: string): unknown {
   return parseJsonFileText(filePath, readFileSync(filePath, 'utf8'));

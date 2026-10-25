@@ -58,11 +58,11 @@ describe('sso-provider verify', () => {
     ]);
   });
 
-  it("should pass the API's E_DNS_LOOKUP_FAILED through when the lookup could not run", async () => {
+  it("should pass the API's `dns_lookup_failed` error through when the lookup could not run", async () => {
     harness.routes[`POST ${VERIFICATIONS_PATH}`] = () =>
       respondWithApiError(
         502,
-        'E_DNS_LOOKUP_FAILED',
+        'dns_lookup_failed',
         'The DNS lookup could not be made; try again in a moment.',
       );
 
@@ -71,7 +71,7 @@ describe('sso-provider verify', () => {
         { organization: ACME_ORGANIZATION.id },
         undefined,
       ),
-    ).rejects.toMatchObject({ code: 'E_DNS_LOOKUP_FAILED', status: 502 });
+    ).rejects.toMatchObject({ code: 'dns_lookup_failed', status: 502 });
     expect(harness.readLines()).toEqual([]);
   });
 

@@ -143,13 +143,13 @@ describe('channel get', () => {
         undefined,
       ),
     ).rejects.toMatchObject({
-      code: 'E_INVALID_PARAMETER',
+      code: 'invalid_parameter',
       message: 'The appId in hotcodepush.json is not an id.',
     });
     expect(harness.requests).toEqual([]);
   });
 
-  it('should throw E_INVALID_PARAMETER naming hotcodepush.json when the app has no channel of its name', async () => {
+  it('should throw `invalid_parameter` naming hotcodepush.json when the app has no channel of its name', async () => {
     respondWithChannel();
 
     await expect(
@@ -163,7 +163,7 @@ describe('channel get', () => {
         undefined,
       ),
     ).rejects.toMatchObject({
-      code: 'E_INVALID_PARAMETER',
+      code: 'invalid_parameter',
       message: 'The channel "beta" from hotcodepush.json does not exist.',
     });
   });
@@ -183,12 +183,12 @@ describe('channel get', () => {
     ).rejects.toThrow(new MissingParameterError('--channel'));
   });
 
-  it("should throw the API's E_NOT_FOUND when no channel has the id", async () => {
+  it("should throw the API's `not_found` error when no channel has the id", async () => {
     await expect(
       channelGetCommand.action(
         { app: DEMO_APP.id, channel: STAGING_CHANNEL.id },
         undefined,
       ),
-    ).rejects.toMatchObject({ code: 'E_NOT_FOUND', status: 404 });
+    ).rejects.toMatchObject({ code: 'not_found', status: 404 });
   });
 });

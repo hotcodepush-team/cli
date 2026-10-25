@@ -35,7 +35,7 @@ describe('user config', () => {
     expect(readUserConfig()).toEqual({});
   });
 
-  it('should throw E_INVALID_JSON naming config.json, never its token, when it does not parse', () => {
+  it('should throw `invalid_json` naming config.json, never its token, when it does not parse', () => {
     const configDirectoryPath = join(configHomePath, 'hotcodepush');
     mkdirSync(configDirectoryPath);
     writeFileSync(
@@ -45,7 +45,7 @@ describe('user config', () => {
 
     expect(() => readUserConfig()).toThrow(
       expect.objectContaining({
-        code: 'E_INVALID_JSON',
+        code: 'invalid_json',
         message: `The file ${join(configDirectoryPath, 'config.json')} is not valid JSON. Unexpected token 's'.`,
       }),
     );

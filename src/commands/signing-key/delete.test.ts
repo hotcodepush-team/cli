@@ -78,7 +78,7 @@ describe('signing-key delete', () => {
     });
   });
 
-  it('should throw E_CONFIRMATION_REQUIRED and delete nothing when nobody can be asked', async () => {
+  it('should throw `confirmation_required` and delete nothing when nobody can be asked', async () => {
     respondWithSigningKey();
 
     await expect(

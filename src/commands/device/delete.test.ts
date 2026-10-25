@@ -50,7 +50,7 @@ describe('device delete', () => {
     expect(harness.readJson()).toEqual({ id: DEVICE.deviceId, name: null });
   });
 
-  it('should stop with E_CONFIRMATION_REQUIRED when nobody can confirm', async () => {
+  it('should stop with `confirmation_required` when nobody can confirm', async () => {
     await expect(
       deviceDeleteCommand.action(
         { app: DEMO_APP.id, device: DEVICE.deviceId },

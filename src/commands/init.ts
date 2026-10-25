@@ -109,10 +109,10 @@ export default defineCommand({
         "The Android project, when it is not capacitor.config's android.path or android/.",
       ),
     framework: z
-      .enum(['react-native', 'expo', 'capacitor', 'cordova'])
+      .enum(['react_native', 'expo', 'capacitor', 'cordova'])
       .optional()
       .describe(
-        'The framework, react-native, expo, capacitor or cordova, over the one detected from package.json.',
+        'The framework, react_native, expo, capacitor or cordova, over the one detected from package.json.',
       ),
     iosPath: z
       .string()
@@ -134,12 +134,12 @@ export default defineCommand({
     const framework = options.framework ?? detectFramework(directoryPath);
     const frameworkModule = resolveFrameworkModule(framework);
     const run = new InitRun();
-    const hotCodePush = await run.run('sign-in', () => signIn(options));
+    const hotCodePush = await run.run('sign_in', () => signIn(options));
     const scope = await run.run(
       'organization',
       () =>
         resolveOrganization(requireValue(hotCodePush), projectConfig, options),
-      { dependsOn: ['sign-in'] },
+      { dependsOn: ['sign_in'] },
     );
     const app = await run.run(
       'app',
@@ -174,7 +174,7 @@ export default defineCommand({
     await run.run('hook', () =>
       projectFiles.wiring.wireBinaryCreateStep(editBlocker),
     );
-    await run.run('signing-key', () =>
+    await run.run('signing_key', () =>
       createSigningKey(app, projectFiles, options),
     );
     const isReleaseWanted =

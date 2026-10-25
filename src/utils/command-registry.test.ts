@@ -85,7 +85,7 @@ describe('command registry', () => {
       ).toEqual({ argv: ['--version'], commandNames: [] });
     });
 
-    it('should throw E_UNKNOWN_COMMAND with the closest command when the words name none', () => {
+    it('should throw `unknown_command` with the closest command when the words name none', () => {
       expect(() =>
         resolveInvocation(COMMAND_NAMES, ['channel', 'creat']),
       ).toThrow(new UnknownCommandError('channel creat', 'channel create'));

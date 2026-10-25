@@ -150,7 +150,7 @@ export function resolveChannelIdByShape(
 }
 
 /**
- * The channel name resolved to its id through the API; a name the app lacks is `E_INVALID_PARAMETER` naming where it came from.
+ * The channel name resolved to its id through the API; a name the app lacks is `invalid_parameter` naming where it came from.
  */
 export function fetchChannelId(
   hotCodePush: HotCodePush,

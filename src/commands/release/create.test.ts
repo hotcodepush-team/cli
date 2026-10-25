@@ -55,7 +55,7 @@ const DEVICE_ID = '6b1e9d37-2f5c-4a80-9c46-d8e3a1f7b259';
 const PRODUCTION_CHANNEL_PATH = `/v1/apps/${DEMO_APP.id}/channels/${PRODUCTION_CHANNEL.id}`;
 
 const UNSUPPORTED_CONDITION_SHARE_WARNING: Audience['warnings'][number] = {
-  code: 'UNSUPPORTED_CONDITION_SHARE',
+  code: 'unsupported_condition_share',
   details: null,
   message:
     "12 of the channel's 120 active devices run an SDK that does not know the condition type attribute and will not see this release until the app ships a newer SDK.",
@@ -395,13 +395,13 @@ describe('release create', () => {
       });
     });
 
-    it('should fail with E_INVALID_PARAMETER before anything is asked when an attribute is no key=value pair', async () => {
+    it('should fail with `invalid_parameter` before anything is asked when an attribute is no key=value pair', async () => {
       await expect(
         releaseCreateCommand.action(
           { ...OPTIONS, attribute: ['tier'] },
           undefined,
         ),
-      ).rejects.toMatchObject({ code: 'E_INVALID_PARAMETER' });
+      ).rejects.toMatchObject({ code: 'invalid_parameter' });
 
       expect(readAudienceUrls()).toEqual([]);
       expect(readCreateRequests()).toEqual([]);
@@ -522,7 +522,7 @@ describe('release create', () => {
           undefined,
         ),
       ).rejects.toMatchObject({
-        code: 'E_INVALID_PARAMETER',
+        code: 'invalid_parameter',
         message:
           "The schedule's flags --progress-minimum-seconds apply only with --progress.",
       });
@@ -570,14 +570,14 @@ describe('release create', () => {
       });
     });
 
-    it('should fail with E_INVALID_PARAMETER when that channel serves no active release', async () => {
+    it('should fail with `invalid_parameter` when that channel serves no active release', async () => {
       harness.routes[`GET ${PRODUCTION_CHANNEL_PATH}/releases`] = () =>
         Response.json([]);
 
       await expect(
         releaseCreateCommand.action({ ...OPTIONS, yes: true }, undefined),
       ).rejects.toMatchObject({
-        code: 'E_INVALID_PARAMETER',
+        code: 'invalid_parameter',
         message:
           'The channel production from --from-channel serves no active release.',
       });
@@ -655,7 +655,7 @@ describe('release create', () => {
 
   it("should print the audience preview's warnings once the release is created", async () => {
     const fingerprintUnknownWarning: Audience['warnings'][number] = {
-      code: 'FINGERPRINT_UNKNOWN',
+      code: 'fingerprint_unknown',
       details: { fingerprint: CAPACITOR_FINGERPRINT },
       message: 'No binary of the app carries this fingerprint.',
     };
@@ -732,7 +732,7 @@ describe('release create', () => {
     });
   });
 
-  it('should stop with E_CONFIRMATION_REQUIRED when nobody can confirm', async () => {
+  it('should stop with `confirmation_required` when nobody can confirm', async () => {
     respondWithStagingChannel();
     harness.routes[`GET ${BUNDLES_PATH}/${READY_BUNDLE.id}`] = () =>
       Response.json(READY_BUNDLE);
@@ -758,7 +758,7 @@ describe('release create', () => {
       path: 'dist',
     };
 
-    it('should stop with E_CONFIRMATION_REQUIRED before uploading anything when nobody can confirm', async () => {
+    it('should stop with `confirmation_required` before uploading anything when nobody can confirm', async () => {
       stubWebBuildUpload();
       respondWithStagingChannel();
 

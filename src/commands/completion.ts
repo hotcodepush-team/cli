@@ -9,7 +9,7 @@ import { defineCommandOptions } from '../utils/global-options.js';
 import { printJson } from '../utils/output.js';
 import { promptSelect } from '../utils/prompts.js';
 
-// zodline turns an invalid argument into a plain error, which would read as E_UNEXPECTED, so the action checks the shell itself
+// zodline turns an invalid argument into a plain error, which would read as `unexpected`, so the action checks the shell itself
 const ShellSchema = z.enum(COMPLETION_SHELLS);
 
 export default defineCommand({

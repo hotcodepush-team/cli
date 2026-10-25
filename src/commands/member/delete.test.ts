@@ -82,7 +82,7 @@ describe('member delete', () => {
     });
   });
 
-  it('should throw E_CONFIRMATION_REQUIRED with the consequence and remove nothing when nobody can be asked', async () => {
+  it('should throw `confirmation_required` with the consequence and remove nothing when nobody can be asked', async () => {
     respondWithMember();
 
     await expect(

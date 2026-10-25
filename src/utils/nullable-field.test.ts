@@ -19,7 +19,7 @@ describe('resolveNullableField', () => {
   it('should refuse the value together with the clear flag', () => {
     expect(() => resolveNullableField('cart fix', true, 'notes')).toThrow(
       expect.objectContaining({
-        code: 'E_INVALID_PARAMETER',
+        code: 'invalid_parameter',
         fix: 'Pass only one of them.',
         message: 'The flags --notes and --clear-notes were passed together.',
       }),

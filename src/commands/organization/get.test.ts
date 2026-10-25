@@ -77,7 +77,7 @@ describe('organization get', () => {
     expect(harness.readLines()[1]).toBe('Name          Acme');
   });
 
-  it('should throw E_MISSING_PARAMETER when the user belongs to several and nobody can be asked', async () => {
+  it('should throw `missing_parameter` when the user belongs to several and nobody can be asked', async () => {
     respondWithOrganizations([GLOBEX_ORGANIZATION, ACME_ORGANIZATION]);
 
     await expect(
@@ -85,7 +85,7 @@ describe('organization get', () => {
     ).rejects.toThrow(MissingParameterError);
   });
 
-  it('should throw E_INVALID_PARAMETER when no organization carries the name', async () => {
+  it('should throw `invalid_parameter` when no organization carries the name', async () => {
     respondWithOrganizations([ACME_ORGANIZATION]);
 
     await expect(

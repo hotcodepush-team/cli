@@ -78,7 +78,7 @@ describe('release resume', () => {
     expect(harness.readJson()).toEqual(RESUMED_RELEASE);
   });
 
-  it('should stop with E_CONFIRMATION_REQUIRED when nobody can confirm', async () => {
+  it('should stop with `confirmation_required` when nobody can confirm', async () => {
     respondWithResumedRelease();
 
     await expect(

@@ -76,7 +76,7 @@ describe('organization update', () => {
     });
   });
 
-  it('should throw E_MISSING_PARAMETER when --name and --spending-cap are missing and nobody can be asked', async () => {
+  it('should throw `missing_parameter` when --name and --spending-cap are missing and nobody can be asked', async () => {
     await expect(
       organizationUpdateCommand.action(
         { organization: ACME_ORGANIZATION.id },
@@ -119,7 +119,7 @@ describe('organization update', () => {
     expect(await updateRequest?.json()).toEqual({ spendingCapCents: 2000 });
   });
 
-  it('should throw E_CONFIRMATION_REQUIRED stating that a lower cap applies now and keeps the counted devices and change nothing when nobody can be asked', async () => {
+  it('should throw `confirmation_required` stating that a lower cap applies now and keeps the counted devices and change nothing when nobody can be asked', async () => {
     respondWithGlobex();
 
     await expect(
@@ -148,17 +148,17 @@ describe('organization update', () => {
     expect(readUpdateRequests()).toEqual([]);
   });
 
-  it("should pass the API's E_VALIDATION through without asking when the cap is the one in force", async () => {
+  it("should pass the API's `validation` error through without asking when the cap is the one in force", async () => {
     respondWithGlobex();
     harness.routes[`PATCH ${GLOBEX_PATH}`] = () =>
-      respondWithApiError(400, 'E_VALIDATION', 'The request changes nothing.');
+      respondWithApiError(400, 'validation', 'The request changes nothing.');
 
     await expect(
       organizationUpdateCommand.action(
         { organization: GLOBEX_ORGANIZATION.id, spendingCap: 50 },
         undefined,
       ),
-    ).rejects.toMatchObject({ code: 'E_VALIDATION' });
+    ).rejects.toMatchObject({ code: 'validation' });
     expect(confirm).not.toHaveBeenCalled();
   });
 

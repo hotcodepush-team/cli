@@ -24,12 +24,12 @@ describe('json file', () => {
     expect(readJsonFile(filePath)).toEqual({ channel: 'staging' });
   });
 
-  it('should throw E_INVALID_JSON naming the file and where the parse stopped when the file does not parse', () => {
+  it('should throw `invalid_json` naming the file and where the parse stopped when the file does not parse', () => {
     writeFileSync(filePath, '{ "channel": "staging", }');
 
     expect(() => readJsonFile(filePath)).toThrow(
       expect.objectContaining({
-        code: 'E_INVALID_JSON',
+        code: 'invalid_json',
         exitCode: ExitCode.Error,
         message: expect.stringContaining(
           `The file ${filePath} is not valid JSON. Expected double-quoted property name in JSON at position 24`,

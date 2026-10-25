@@ -79,7 +79,7 @@ describe('resource file', () => {
     expect(ConfigurationSchema.parse(resourceFile)).toEqual(resourceFile);
     expect(resourceFile).toEqual({
       appId: 'ec266350-15f9-44c6-9d85-82f1363ede75',
-      applyStrategy: 'next-start',
+      applyStrategy: 'next_start',
       builtAt: '2026-09-29T12:00:00.000Z',
       channelId: CHANNEL_ID,
       checkIntervalSeconds: 900,
@@ -119,14 +119,14 @@ describe('resource file', () => {
       platform: 'android',
       projectConfig: {
         appId: 'ec266350-15f9-44c6-9d85-82f1363ede75',
-        applyStrategy: 'next-resume',
+        applyStrategy: 'next_resume',
         channel: 'staging',
       },
     });
 
     expect(resourceFile.channelId).toBe(CHANNEL_ID);
     expect(resourceFile).not.toHaveProperty('channel');
-    expect(resourceFile.applyStrategy).toBe('next-resume');
+    expect(resourceFile.applyStrategy).toBe('next_resume');
     expect(resourceFile.embeddedBundleId).toBe(
       'c56a4180-65aa-42ec-a945-5fd21dec0538',
     );
@@ -197,7 +197,7 @@ describe('resource file', () => {
     ['that is no key', 'rsa-v1_5-sha256:AQID'],
     ['under 2048 bits', resolveProtocolSigningKey('rsa-1024').publicKey],
   ])(
-    'should stop with E_INVALID_PARAMETER naming publicKeys for a key %s',
+    'should stop with `invalid_parameter` naming publicKeys for a key %s',
     (_condition, publicKey) => {
       expect(() => buildResourceFileWithPublicKeys('ios', [publicKey])).toThrow(
         InvalidParameterError,

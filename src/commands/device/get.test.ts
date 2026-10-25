@@ -21,7 +21,7 @@ const EVENTS = [
   {
     createdAt: '2026-09-08T07:00:00.000Z',
     deviceId: DEVICE.deviceId,
-    reason: 'READINESS_TIMED_OUT',
+    reason: 'readiness_timed_out',
     releaseId: LIVE_RELEASE.id,
     type: 'failed' as const,
     updatedAt: '2026-09-08T07:00:00.000Z',
@@ -74,7 +74,7 @@ describe('device get', () => {
       `Last seen    ${DEVICE.lastSeenAt}`,
       `First seen   ${DEVICE.createdAt}`,
       'RELEASE                               OUTCOME    REASON               DATE',
-      `${LIVE_RELEASE.id}  failed     READINESS_TIMED_OUT  2026-09-08`,
+      `${LIVE_RELEASE.id}  failed     readiness_timed_out  2026-09-08`,
       `${PREVIOUS_RELEASE.id}  confirmed                       2026-09-06`,
       `${PREVIOUS_RELEASE.id}  applied                         2026-09-06`,
     ]);
@@ -94,9 +94,9 @@ describe('device get', () => {
     });
   });
 
-  it('should fail with E_MISSING_PARAMETER naming --device when nobody can answer', async () => {
+  it('should fail with `missing_parameter` naming --device when nobody can answer', async () => {
     await expect(
       deviceGetCommand.action({ app: DEMO_APP.id }, undefined),
-    ).rejects.toMatchObject({ code: 'E_MISSING_PARAMETER' });
+    ).rejects.toMatchObject({ code: 'missing_parameter' });
   });
 });

@@ -20,27 +20,23 @@ import {
 
 describe('errors', () => {
   it.each<[CliError, string, number]>([
-    [new AmbiguousNameError('organization', 'Acme'), 'E_INVALID_PARAMETER', 2],
+    [new AmbiguousNameError('organization', 'Acme'), 'invalid_parameter', 2],
+    [new ApiError('forbidden', 'Your role is too low.', 403), 'forbidden', 1],
     [
-      new ApiError('E_FORBIDDEN', 'Your role is too low.', 403),
-      'E_FORBIDDEN',
-      1,
-    ],
-    [
-      new ApiError('E_UNAUTHENTICATED', 'Sign in again.', 401),
-      'E_UNAUTHENTICATED',
+      new ApiError('unauthenticated', 'Sign in again.', 401),
+      'unauthenticated',
       3,
     ],
     [
       new ConfirmationRequiredError('reaches 10 devices in production'),
-      'E_CONFIRMATION_REQUIRED',
+      'confirmation_required',
       4,
     ],
     [
       new FingerprintUnavailableError(
         new Error('The project has no lockfile.'),
       ),
-      'E_FINGERPRINT_UNAVAILABLE',
+      'fingerprint_unavailable',
       1,
     ],
     [
@@ -49,22 +45,22 @@ describe('errors', () => {
         undefined,
         new Error('Too big'),
       ),
-      'E_INVALID_PARAMETER',
+      'invalid_parameter',
       2,
     ],
-    [new LoginDeniedError(), 'E_LOGIN_DENIED', 1],
-    [new LoginExpiredError(), 'E_LOGIN_EXPIRED', 1],
-    [new MissingParameterError('--channel'), 'E_MISSING_PARAMETER', 2],
-    [new NotLoggedInError(), 'E_NOT_LOGGED_IN', 3],
-    [new PipelineNotLoggedInError(), 'E_NOT_LOGGED_IN', 3],
-    [new SigningKeyUnavailableError(), 'E_SIGNING_KEY_UNAVAILABLE', 1],
-    [new UnexpectedError(new Error('boom')), 'E_UNEXPECTED', 1],
+    [new LoginDeniedError(), 'login_denied', 1],
+    [new LoginExpiredError(), 'login_expired', 1],
+    [new MissingParameterError('--channel'), 'missing_parameter', 2],
+    [new NotLoggedInError(), 'not_logged_in', 3],
+    [new PipelineNotLoggedInError(), 'not_logged_in', 3],
+    [new SigningKeyUnavailableError(), 'signing_key_unavailable', 1],
+    [new UnexpectedError(new Error('boom')), 'unexpected', 1],
     [
       new UnknownCommandError('relese create', 'release create'),
-      'E_UNKNOWN_COMMAND',
+      'unknown_command',
       1,
     ],
-    [new UnknownNameError('channel', 'staging'), 'E_INVALID_PARAMETER', 2],
+    [new UnknownNameError('channel', 'staging'), 'invalid_parameter', 2],
   ])('should carry the code and exit code of %o', (error, code, exitCode) => {
     expect(error.code).toBe(code);
     expect(error.exitCode).toBe(exitCode);

@@ -119,5 +119,5 @@ function respondFromRoutes(
     routes[`${request.method} ${url.pathname}`];
   return respond
     ? respond(request)
-    : respondWithApiError(404, 'E_NOT_FOUND', 'The resource does not exist.');
+    : respondWithApiError(404, 'not_found', 'The resource does not exist.');
 }

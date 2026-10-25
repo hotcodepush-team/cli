@@ -78,7 +78,7 @@ async function deleteChannel(
 function isChannelGone(error: unknown): boolean {
   return (
     error instanceof UnknownNameError ||
-    (error instanceof HotCodePushError && error.code === 'E_NOT_FOUND')
+    (error instanceof HotCodePushError && error.code === 'not_found')
   );
 }
 

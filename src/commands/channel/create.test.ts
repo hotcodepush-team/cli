@@ -34,7 +34,7 @@ describe('channel create', () => {
     harness.routes[CHANNELS_ROUTE] = () =>
       respondWithApiError(
         409,
-        'E_CHANNEL_NAME_TAKEN',
+        'channel_name_taken',
         'A channel of that name exists in the app.',
       );
   }
@@ -111,7 +111,7 @@ describe('channel create', () => {
     expect(harness.readJson()).toEqual(STAGING_CHANNEL);
   });
 
-  it("should pass the API's E_CHANNEL_NAME_TAKEN through without --if-not-exists", async () => {
+  it("should pass the API's `channel_name_taken` error through without --if-not-exists", async () => {
     const stderrWrite = vi
       .spyOn(process.stderr, 'write')
       .mockImplementation(() => true);
@@ -125,7 +125,7 @@ describe('channel create', () => {
 
     expect(exitCode).toBe(1);
     expect(stderrWrite).toHaveBeenCalledWith(
-      'A channel of that name exists in the app.\nhttps://hotcodepush.com/docs/cli/errors#E_CHANNEL_NAME_TAKEN\n',
+      'A channel of that name exists in the app.\nhttps://hotcodepush.com/docs/cli/errors#channel_name_taken\n',
     );
   });
 

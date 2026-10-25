@@ -8,7 +8,7 @@ import type { FrameworkModule } from './frameworks/index.js';
 import { readPackageJson } from './package-json.js';
 import { promptText } from './prompts.js';
 
-export type Framework = 'capacitor' | 'cordova' | 'expo' | 'react-native';
+export type Framework = 'capacitor' | 'cordova' | 'expo' | 'react_native';
 
 interface InputDirectoryOptions extends InteractivityOptions {
   path?: string;
@@ -18,7 +18,7 @@ const FRAMEWORK_PACKAGES: [packageName: string, framework: Framework][] = [
   ['@capacitor/core', 'capacitor'],
   ['cordova', 'cordova'],
   ['expo', 'expo'],
-  ['react-native', 'react-native'],
+  ['react-native', 'react_native'],
 ];
 
 /**
@@ -103,7 +103,7 @@ function hasFrameworkConfigFile(
       return existsSync(join(projectDirectoryPath, 'config.xml'));
     case 'expo':
       return hasExpoAppJson(projectDirectoryPath);
-    case 'react-native':
+    case 'react_native':
       return false;
   }
 }

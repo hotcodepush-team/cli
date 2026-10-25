@@ -75,7 +75,7 @@ describe('organization delete', () => {
     });
   });
 
-  it('should throw E_CONFIRMATION_REQUIRED with the consequence and delete nothing when nobody can be asked', async () => {
+  it('should throw `confirmation_required` with the consequence and delete nothing when nobody can be asked', async () => {
     respondWithOrganizationAndApps([DEMO_APP]);
 
     await expect(

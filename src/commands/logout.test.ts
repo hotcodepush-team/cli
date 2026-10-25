@@ -89,7 +89,7 @@ describe('logout', () => {
     const unauthenticated = () =>
       Response.json(
         {
-          code: 'E_UNAUTHENTICATED',
+          code: 'unauthenticated',
           details: null,
           message: 'The bearer token is missing, invalid or expired.',
         },
@@ -112,7 +112,7 @@ describe('logout', () => {
       .mockResolvedValueOnce(
         Response.json(
           {
-            code: 'E_INTERNAL',
+            code: 'internal',
             details: null,
             message: 'Something went wrong.',
           },
@@ -121,7 +121,7 @@ describe('logout', () => {
       );
 
     await expect(logoutCommand.action({}, undefined)).rejects.toMatchObject({
-      code: 'E_INTERNAL',
+      code: 'internal',
     });
     expect(keyring.deletePassword).not.toHaveBeenCalled();
     expect(readUserConfig()).toEqual({
@@ -178,7 +178,7 @@ describe('logout', () => {
     );
   });
 
-  it('should throw E_NOT_LOGGED_IN when no token is stored', async () => {
+  it('should throw `not_logged_in` when no token is stored', async () => {
     keyring.getPassword.mockReturnValue(null);
 
     await expect(logoutCommand.action({}, undefined)).rejects.toThrow(

@@ -146,14 +146,14 @@ describe('telemetry', () => {
 
     it('should name the step init stopped at', async () => {
       await reportFinishedCommand({
-        cliError: new ReportedFailureError('E_NOT_LOGGED_IN', 'sign-in'),
+        cliError: new ReportedFailureError('not_logged_in', 'sign_in'),
         commandName: 'init',
         durationMs: 10,
       });
 
       expect(readCapturedProperties()).toMatchObject({
         outcome: 'failed',
-        stopped_step: 'sign-in',
+        stopped_step: 'sign_in',
       });
     });
 
@@ -187,7 +187,7 @@ describe('telemetry', () => {
         exception: { values: [{ type: 'RangeError', value: SCRUBBED_STACK }] },
         platform: 'node',
         release: 'hotcodepush@0.0.0',
-        tags: { code: 'E_UNEXPECTED', command: 'bundle upload' },
+        tags: { code: 'unexpected', command: 'bundle upload' },
         timestamp: envelopeHeader?.sent_at,
       });
       expect(body).not.toContain('anna');
@@ -197,7 +197,7 @@ describe('telemetry', () => {
       const cause = createCause(
         new HotCodePushError(
           {
-            code: 'E_UNEXPECTED_RESPONSE',
+            code: 'unexpected_response',
             details: null,
             message: 'The response is not JSON.',
           },
@@ -214,7 +214,7 @@ describe('telemetry', () => {
       const [, , event] = readRequest(ENVELOPE_URL).body.split('\n');
       expect(JSON.parse(event ?? '')).toMatchObject({
         exception: { values: [{ value: SCRUBBED_STACK }] },
-        tags: { code: 'E_UNEXPECTED_RESPONSE', command: 'release list' },
+        tags: { code: 'unexpected_response', command: 'release list' },
       });
     });
 

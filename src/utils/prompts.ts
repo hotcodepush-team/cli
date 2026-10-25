@@ -10,7 +10,7 @@ export interface Choice<TValue extends string> {
 
 /**
  * Asks once before a command changes what devices receive or cannot be undone, stating the consequence.
- * `--yes` answers for the person; without a person to ask, the command stops with `E_CONFIRMATION_REQUIRED`.
+ * `--yes` answers for the person; without a person to ask, the command stops with `confirmation_required`.
  */
 export async function confirmConsequence(
   consequence: string,
@@ -45,7 +45,7 @@ export async function promptYesNo(
 
 /**
  * A required parameter the command line left out, picked from its choices;
- * without a person to ask or anything to pick, `E_MISSING_PARAMETER` naming the flag.
+ * without a person to ask or anything to pick, `missing_parameter` naming the flag.
  */
 export async function promptSelect<TValue extends string>(
   flag: string,
@@ -66,7 +66,7 @@ export async function promptSelect<TValue extends string>(
 
 /**
  * A required secret the command line left out, asked for without showing what is typed;
- * without a person to ask, `E_MISSING_PARAMETER` naming the flag.
+ * without a person to ask, `missing_parameter` naming the flag.
  */
 export function promptSecret(
   flag: string,
@@ -77,7 +77,7 @@ export function promptSecret(
 }
 
 /**
- * A required text parameter the command line left out, asked for; without a person to ask, `E_MISSING_PARAMETER` naming the flag.
+ * A required text parameter the command line left out, asked for; without a person to ask, `missing_parameter` naming the flag.
  */
 export function promptText(
   flag: string,

@@ -163,7 +163,7 @@ describe('upload', () => {
       harness.routes[`PUT ${path}/uploads/upload-1/parts/1`] = () =>
         respondWithApiError(
           409,
-          'E_UPLOAD_INCOMPLETE',
+          'upload_incomplete',
           'The parts cannot be assembled: every part but the last is at least five mebibytes and all of one size, and every part is named.',
         );
       harness.routes[`DELETE ${path}/uploads/upload-1`] = () =>
@@ -174,7 +174,7 @@ describe('upload', () => {
           new HotCodePush({ baseUrl: API_URL, token: TOKEN }),
           writeUploadFile(SINGLE_UPLOAD_LIMIT_BYTES + 1),
         ),
-      ).rejects.toMatchObject({ code: 'E_UPLOAD_INCOMPLETE' });
+      ).rejects.toMatchObject({ code: 'upload_incomplete' });
       expect(readRequestLines()).toEqual([
         `POST ${path}/uploads`,
         `PUT ${path}/uploads/upload-1/parts/1`,
@@ -261,12 +261,12 @@ describe('upload', () => {
     expect(() => assertWithinBundleBytesLimit([half])).not.toThrow();
   });
 
-  it("should read the hashes the API's E_UPLOAD_INCOMPLETE names, and nothing from another error", () => {
+  it("should read the hashes the API's `upload_incomplete` error names, and nothing from another error", () => {
     expect(
       resolveMissingSha256s(
         new HotCodePushError(
           {
-            code: 'E_UPLOAD_INCOMPLETE',
+            code: 'upload_incomplete',
             details: { isPackMissing: false, missingSha256s: [SHA256] },
             message:
               'Objects of the bundle are missing; upload them and complete again.',

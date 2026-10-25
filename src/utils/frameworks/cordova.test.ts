@@ -59,7 +59,7 @@ describe('cordova', () => {
           packageJson: readPackageJson(directoryPath),
         })
         .map(({ check, status }) => `${check}:${status}`),
-    ).toEqual(['package:ok', 'hook:ok', 'android-file-mode:ok']);
+    ).toEqual(['package:ok', 'hook:ok', 'android_file_mode:ok']);
   });
 
   it('should fail the hook with the plugin add command when package.json does not list the plugin', () => {
@@ -93,7 +93,7 @@ describe('cordova', () => {
         packageJson: readPackageJson(directoryPath),
       })[2],
     ).toEqual({
-      check: 'android-file-mode',
+      check: 'android_file_mode',
       manualStep:
         'The plugin serves no update from file:// and stays off. Remove the preference.',
       message:

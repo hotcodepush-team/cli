@@ -99,7 +99,7 @@ describe('invitation create', () => {
     expect(harness.readJson()).toEqual(PENDING_INVITATION);
   });
 
-  it('should throw E_CONFIRMATION_REQUIRED with the consequence and invite nobody when nobody can be asked', async () => {
+  it('should throw `confirmation_required` with the consequence and invite nobody when nobody can be asked', async () => {
     respondWithCreatedInvitation();
 
     await expect(
@@ -145,7 +145,7 @@ describe('invitation create', () => {
     });
   });
 
-  it('should throw E_MISSING_PARAMETER when --email is missing and nobody can be asked', async () => {
+  it('should throw `missing_parameter` when --email is missing and nobody can be asked', async () => {
     await expect(
       invitationCreateCommand.action(
         { organization: ACME_ORGANIZATION.id, role: 'member', yes: true },
@@ -163,7 +163,7 @@ describe('invitation create', () => {
     harness.routes[`POST ${INVITATIONS_PATH}`] = () =>
       respondWithApiError(
         400,
-        'E_VALIDATION',
+        'validation',
         'The json field email is invalid: this address is a member already.',
       );
 
@@ -185,7 +185,7 @@ describe('invitation create', () => {
 
     expect(exitCode).toBe(1);
     expect(stderrWrite).toHaveBeenCalledWith(
-      'The json field email is invalid: this address is a member already.\nhttps://hotcodepush.com/docs/cli/errors#E_VALIDATION\n',
+      'The json field email is invalid: this address is a member already.\nhttps://hotcodepush.com/docs/cli/errors#validation\n',
     );
   });
 });

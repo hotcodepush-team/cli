@@ -60,7 +60,7 @@ describe('package-manager', () => {
     ).toBe('yarn build');
   });
 
-  it('should run a command in the project and turn a failure into E_COMMAND_FAILED', () => {
+  it('should run a command in the project and turn its failure into `command_failed`', () => {
     const directoryPath = writeProject();
 
     expect(() =>

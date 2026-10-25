@@ -190,7 +190,7 @@ describe('signing-key add', () => {
           undefined,
         ),
       ).rejects.toMatchObject({
-        code: 'E_INVALID_PARAMETER',
+        code: 'invalid_parameter',
         message:
           'The key from --private-key-path is not an RSA private key of 2048 bits or more.',
       });
@@ -204,7 +204,7 @@ describe('signing-key add', () => {
     harness.routes[`POST ${SIGNING_KEYS_PATH}`] = () =>
       Response.json(
         {
-          code: 'E_VALIDATION',
+          code: 'validation',
           details: {
             field: 'publicKey',
             rule: 'rsa_public_key',
@@ -225,7 +225,7 @@ describe('signing-key add', () => {
         undefined,
       ),
     ).rejects.toMatchObject({
-      code: 'E_VALIDATION',
+      code: 'validation',
       details: { rule: 'rsa_public_key' },
     });
 
@@ -236,7 +236,7 @@ describe('signing-key add', () => {
     await expect(
       signingKeyAddCommand.action({ app: DEMO_APP.id }, undefined),
     ).rejects.toMatchObject({
-      code: 'E_MISSING_PARAMETER',
+      code: 'missing_parameter',
       message: 'No value was given for --private-key-path.',
     });
 

@@ -118,7 +118,7 @@ describe('release revoke', () => {
     expect(harness.readJson()).toEqual([REVOKED_RELEASE]);
   });
 
-  it('should stop with E_CONFIRMATION_REQUIRED when nobody can confirm', async () => {
+  it('should stop with `confirmation_required` when nobody can confirm', async () => {
     await expect(
       releaseRevokeCommand.action(
         { app: DEMO_APP.id, channel: STAGING_CHANNEL.id, release: '43' },
@@ -405,7 +405,7 @@ describe('release revoke', () => {
         { all: true, app: DEMO_APP.id, release: '43', yes: true },
         undefined,
       ),
-    ).rejects.toMatchObject({ code: 'E_INVALID_PARAMETER' });
+    ).rejects.toMatchObject({ code: 'invalid_parameter' });
 
     expect(harness.requests).toEqual([]);
   });
@@ -421,7 +421,7 @@ describe('release revoke', () => {
         },
         undefined,
       ),
-    ).rejects.toMatchObject({ code: 'E_INVALID_PARAMETER' });
+    ).rejects.toMatchObject({ code: 'invalid_parameter' });
 
     expect(harness.requests).toEqual([]);
   });

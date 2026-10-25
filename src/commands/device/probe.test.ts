@@ -214,7 +214,7 @@ describe('device probe', () => {
     expect(harness.readLines()).toEqual([
       'Channel  staging, ios',
       `Index    published ${INDEX_PUBLISHED_AT}`,
-      'Outcome  AVAILABLE, release #43',
+      'Outcome  available, release #43',
       'Unknown  os, rollout, treated as passing; pass --device for the facts of a real device',
       'RELEASE  ROLLOUT  CONDITIONS                                 VERDICT',
       '#43      0%       binary pass, fingerprint pass, os unknown  eligible',
@@ -250,7 +250,7 @@ describe('device probe', () => {
     ]);
     expect(json).toMatchObject({
       device: { builtAt: null, fingerprint: null },
-      outcome: { release: { id: RELEASE.id }, status: 'AVAILABLE' },
+      outcome: { release: { id: RELEASE.id }, status: 'available' },
       sequence: Date.parse(INDEX_PUBLISHED_AT),
       status: 200,
       unknownFacts: ['fingerprint', 'os', 'rollout'],
@@ -330,7 +330,7 @@ describe('device probe', () => {
         fingerprint: FINGERPRINT,
         osVersion: '17.4',
       },
-      outcome: { condition: 'attribute', reason: 'DEVICE_NOT_TARGETED' },
+      outcome: { condition: 'attribute', reason: 'device_not_targeted' },
       unknownFacts: [],
     });
   });

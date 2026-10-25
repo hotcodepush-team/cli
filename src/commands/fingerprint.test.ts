@@ -112,13 +112,13 @@ describe('fingerprint', () => {
       fixture,
     ]),
   )(
-    'should fail with E_FINGERPRINT_UNAVAILABLE when the recipe refuses the project: %s',
+    'should fail with `fingerprint_unavailable` when the recipe refuses the project: %s',
     async (_name, fixture) => {
       const configPath = writeFixtureProject(fixture);
 
       await expect(
         fingerprintCommand.action({ config: configPath }, undefined),
-      ).rejects.toMatchObject({ code: 'E_FINGERPRINT_UNAVAILABLE' });
+      ).rejects.toMatchObject({ code: 'fingerprint_unavailable' });
     },
   );
 });

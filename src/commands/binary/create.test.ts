@@ -130,7 +130,7 @@ describe('binary create', () => {
       if (createCount === 1) {
         return Response.json(
           {
-            code: 'E_UPLOAD_INCOMPLETE',
+            code: 'upload_incomplete',
             details: { missingSha256s: [INDEX_SHA256] },
             message:
               'Files of the embedded bundle are not stored yet; upload them and create the binary again.',
@@ -261,7 +261,7 @@ describe('binary create', () => {
         undefined,
       ),
     ).rejects.toMatchObject({
-      code: 'E_INVALID_PARAMETER',
+      code: 'invalid_parameter',
       message: 'The channel "beta" from hotcodepush.json does not exist.',
     });
     expect(harness.requests.filter(({ method }) => method === 'POST')).toEqual(
@@ -274,7 +274,7 @@ describe('binary create', () => {
     ).toBe(false);
   });
 
-  it('should fail the build with E_FINGERPRINT_UNAVAILABLE when the project has no lockfile, before writing or creating anything', async () => {
+  it('should fail the build with `fingerprint_unavailable` when the project has no lockfile, before writing or creating anything', async () => {
     rmSync(join(projectDirectoryPath, 'package-lock.json'));
 
     await expect(
@@ -285,7 +285,7 @@ describe('binary create', () => {
         },
         undefined,
       ),
-    ).rejects.toMatchObject({ code: 'E_FINGERPRINT_UNAVAILABLE' });
+    ).rejects.toMatchObject({ code: 'fingerprint_unavailable' });
     expect(harness.requests.filter(({ method }) => method === 'POST')).toEqual(
       [],
     );
@@ -461,12 +461,12 @@ describe('binary create', () => {
       ]);
     });
 
-    it('should fail with E_NOT_LOGGED_IN in CI without a token, naming HOTCODEPUSH_TOKEN and HOTCODEPUSH_OFFLINE, after writing the resource file', async () => {
+    it('should fail with `not_logged_in` in CI without a token, naming HOTCODEPUSH_TOKEN and HOTCODEPUSH_OFFLINE, after writing the resource file', async () => {
       stubNoToken();
       vi.stubEnv('CI', 'true');
 
       await expect(createIosBinary(writeChannelById())).rejects.toMatchObject({
-        code: 'E_NOT_LOGGED_IN',
+        code: 'not_logged_in',
         exitCode: 3,
         fix: 'Set HOTCODEPUSH_TOKEN in the pipeline, or HOTCODEPUSH_OFFLINE=1 for a build that is never shipped.',
       });
@@ -479,7 +479,7 @@ describe('binary create', () => {
 
     it('should write the resource file without a channel and create no binary when the API refuses to resolve the name, and fail only in CI', async () => {
       harness.routes[`GET ${CHANNELS_PATH}`] = () =>
-        respondWithApiError(403, 'E_FORBIDDEN', 'You are not a member.');
+        respondWithApiError(403, 'forbidden', 'You are not a member.');
 
       await createIosBinary();
 
@@ -489,7 +489,7 @@ describe('binary create', () => {
       });
       expect(stderrWrite.mock.calls).toEqual([
         [
-          'Warning: the channel could not be resolved, so the build names none and takes no OTA updates, and no binary was created: E_FORBIDDEN You are not a member.\n',
+          'Warning: the channel could not be resolved, so the build names none and takes no OTA updates, and no binary was created: forbidden You are not a member.\n',
         ],
       ]);
       expect(
@@ -499,7 +499,7 @@ describe('binary create', () => {
       rmSync(join(projectDirectoryPath, 'build'), { recursive: true });
       vi.stubEnv('CI', 'true');
       await expect(createIosBinary()).rejects.toMatchObject({
-        code: 'E_FORBIDDEN',
+        code: 'forbidden',
       });
       expect(readResourceFile('build/ios/hotcodepush.json')).toMatchObject({
         channelId: null,
@@ -567,7 +567,7 @@ describe('binary create', () => {
     harness.routes[`POST ${BINARIES_PATH}`] = () =>
       respondWithApiError(
         409,
-        'E_BINARY_CONFLICT',
+        'binary_conflict',
         'A binary with this version and build carries another fingerprint or other files; a changed bundle under an unbumped build is a pipeline mistake, and `force` updates it deliberately.',
       );
     const options = {
@@ -579,7 +579,7 @@ describe('binary create', () => {
 
     await binaryCreateCommand.action(options, undefined);
     expect(stderrWrite).toHaveBeenCalledWith(
-      expect.stringContaining('E_BINARY_CONFLICT'),
+      expect.stringContaining('binary_conflict'),
     );
     expect(readResourceFile('build/ios/hotcodepush.json')).toMatchObject({
       embeddedBundleId: null,
@@ -590,7 +590,7 @@ describe('binary create', () => {
     await expect(
       binaryCreateCommand.action(options, undefined),
     ).rejects.toMatchObject({
-      code: 'E_BINARY_CONFLICT',
+      code: 'binary_conflict',
     });
   });
 

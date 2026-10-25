@@ -122,7 +122,7 @@ describe('doctor', () => {
       'package:ok',
       'hook:ok',
       'hosts:ok',
-      'signing-key:skipped',
+      'signing_key:skipped',
       'versions:ok',
     ]);
     expect(result.checks.at(-1)?.message).toMatch(
@@ -151,7 +151,7 @@ describe('doctor', () => {
       result.checks
         .slice(3, 6)
         .map(({ check, status }) => `${check}:${status}`),
-    ).toEqual(['package:ok', 'hook:ok', 'android-file-mode:ok']);
+    ).toEqual(['package:ok', 'hook:ok', 'android_file_mode:ok']);
     expect(result.checks.at(-1)?.message).toMatch(
       /, cordova 13\.0\.0, cordova-android 15\.1\.0, cordova-ios missing, @hotcodepush\/cordova-code-push 0\.1\.0\.$/,
     );
@@ -215,7 +215,7 @@ describe('doctor', () => {
       '                 Run "hotcodepush init".',
       '✗ hosts          The CLI cannot reach api (https://api.example.com/health).',
       '                 Check the network, the API URL in config.json and the HOTCODEPUSH_*_BASE_URL variables.',
-      '– signing-key    Code signing is off. Run "hotcodepush signing-key create" to turn it on.',
+      '– signing_key    Code signing is off. Run "hotcodepush signing-key create" to turn it on.',
       expect.stringMatching(/^✓ versions +The versions are hotcodepush /),
     ]);
   });
@@ -243,7 +243,7 @@ describe('doctor', () => {
       'package',
       'hook',
       'hosts',
-      'signing-key',
+      'signing_key',
       'versions',
     ]);
     expect(result.checks[1]).toEqual({
@@ -280,7 +280,7 @@ describe('doctor', () => {
       'package',
       'hook',
       'hosts',
-      'signing-key',
+      'signing_key',
       'versions',
     ]);
   });
@@ -368,7 +368,7 @@ describe('doctor', () => {
       }
     }
     return (harness.readJson() as DoctorResult).checks.find(
-      ({ check }) => check === 'signing-key',
+      ({ check }) => check === 'signing_key',
     );
   }
 
@@ -380,7 +380,7 @@ describe('doctor', () => {
     respondWithSigningKeys([SIGNING_KEY]);
 
     expect(await readSigningKeyCheck(directoryPath)).toEqual({
-      check: 'signing-key',
+      check: 'signing_key',
       message: `HOTCODEPUSH_SIGNING_KEY signs with key ${SIGNING_KEY.fingerprint}.`,
       status: 'ok',
     });
@@ -393,7 +393,7 @@ describe('doctor', () => {
     respondWithSigningKeys([SIGNING_KEY]);
 
     expect(await readSigningKeyCheck(directoryPath)).toEqual({
-      check: 'signing-key',
+      check: 'signing_key',
       message:
         'Code signing is on. An upload signs with --private-key-path or HOTCODEPUSH_SIGNING_KEY.',
       status: 'ok',
@@ -411,7 +411,7 @@ describe('doctor', () => {
     respondWithSigningKeys([SIGNING_KEY]);
 
     expect(await readSigningKeyCheck(directoryPath)).toEqual({
-      check: 'signing-key',
+      check: 'signing_key',
       manualStep:
         'Give the private key of a public key hotcodepush.json lists, or make a new pair with "hotcodepush signing-key create".',
       message:
@@ -427,7 +427,7 @@ describe('doctor', () => {
     respondWithSigningKeys([]);
 
     expect(await readSigningKeyCheck(directoryPath)).toEqual({
-      check: 'signing-key',
+      check: 'signing_key',
       manualStep:
         'Run "hotcodepush signing-key list --json" and keep in publicKeys only the keys it prints.',
       message:
@@ -443,7 +443,7 @@ describe('doctor', () => {
       Response.json({ count: 1 });
 
     expect(await readSigningKeyCheck(directoryPath)).toEqual({
-      check: 'signing-key',
+      check: 'signing_key',
       manualStep:
         'Run "hotcodepush signing-key list --json" and add each publicKey to publicKeys in hotcodepush.json.',
       message: 'The app has a signing key and hotcodepush.json lists none.',
@@ -599,7 +599,7 @@ describe('doctor', () => {
       'hook:ok',
       'host:ok',
       'hosts:ok',
-      'signing-key:skipped',
+      'signing_key:skipped',
       'versions:ok',
     ]);
   });

@@ -75,7 +75,7 @@ export default defineCommand({
 
 function isChannelNameTaken(error: unknown): boolean {
   return (
-    error instanceof HotCodePushError && error.code === 'E_CHANNEL_NAME_TAKEN'
+    error instanceof HotCodePushError && error.code === 'channel_name_taken'
   );
 }
 

@@ -45,19 +45,19 @@ describe('project config', () => {
     expect(readProjectConfig(configPath)).toEqual(PROJECT_CONFIG);
   });
 
-  it('should throw E_INVALID_PARAMETER when --config names a missing file', () => {
+  it('should throw `invalid_parameter` when --config names a missing file', () => {
     expect(() => readProjectConfig(join(projectPath, 'missing.json'))).toThrow(
       InvalidParameterError,
     );
   });
 
-  it('should throw E_INVALID_JSON naming hotcodepush.json when it does not parse', () => {
+  it('should throw `invalid_json` naming hotcodepush.json when it does not parse', () => {
     const configPath = join(projectPath, 'hotcodepush.json');
     writeFileSync(configPath, '{ "appId": ');
 
     expect(() => readProjectConfig(configPath)).toThrow(
       expect.objectContaining({
-        code: 'E_INVALID_JSON',
+        code: 'invalid_json',
         message: `The file ${configPath} is not valid JSON. Unexpected end of JSON input.`,
       }),
     );
@@ -67,10 +67,10 @@ describe('project config', () => {
     expect(() => assertProjectConfigAppId(PROJECT_CONFIG.appId)).not.toThrow();
   });
 
-  it('should throw E_INVALID_PARAMETER naming appId when it is no id', () => {
+  it('should throw `invalid_parameter` naming appId when it is no id', () => {
     expect(() => assertProjectConfigAppId('x & calc')).toThrow(
       expect.objectContaining({
-        code: 'E_INVALID_PARAMETER',
+        code: 'invalid_parameter',
         fix: 'Set appId to the id "hotcodepush app list" prints.',
         message: 'The appId in hotcodepush.json is not an id.',
       }),

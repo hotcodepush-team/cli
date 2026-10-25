@@ -124,18 +124,18 @@ describe('xcode-project', () => {
         xcodeTarget: 'Widget',
       }),
     ).rejects.toMatchObject({
-      code: 'E_INVALID_PARAMETER',
+      code: 'invalid_parameter',
       message: 'No app target is named Widget. The targets are App.',
     });
   });
 
-  it("should answer E_XCODE_PROJECT with the phase's manual step when the project cannot be parsed", async () => {
+  it("should answer `xcode_project` with the phase's manual step when the project cannot be parsed", async () => {
     writeFileSync(projectFilePath, 'not a project');
 
     await expect(
       addBinaryCreatePhase(projectFilePath, APPENDED_PHASE, {}),
     ).rejects.toMatchObject({
-      code: 'E_XCODE_PROJECT',
+      code: 'xcode_project',
       fix: APPENDED_PHASE.fix,
     });
   });
@@ -144,7 +144,7 @@ describe('xcode-project', () => {
     await expect(
       addBinaryCreatePhase(projectFilePath, ANCHORED_PHASE, {}),
     ).rejects.toMatchObject({
-      code: 'E_XCODE_PROJECT',
+      code: 'xcode_project',
       fix: ANCHORED_PHASE.fix,
       message: `The Xcode project ${projectFilePath} has no "Bundle React Native code and images" phase to run the build step after.`,
     });

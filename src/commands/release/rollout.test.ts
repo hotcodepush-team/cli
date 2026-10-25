@@ -109,7 +109,7 @@ describe('release rollout', () => {
     expect(await updateRequest?.json()).toEqual({ rolloutPercentage: 20 });
   });
 
-  it('should name the flag with E_MISSING_PARAMETER when it is missing and nobody can answer', async () => {
+  it('should name the flag with `missing_parameter` when it is missing and nobody can answer', async () => {
     respondWithRolledOutRelease();
 
     await expect(
@@ -123,7 +123,7 @@ describe('release rollout', () => {
         undefined,
       ),
     ).rejects.toMatchObject({
-      code: 'E_MISSING_PARAMETER',
+      code: 'missing_parameter',
       message: 'No value was given for --rollout-percentage.',
     });
   });
@@ -213,7 +213,7 @@ describe('release rollout', () => {
         undefined,
       ),
     ).rejects.toMatchObject({
-      code: 'E_CONFIRMATION_REQUIRED',
+      code: 'confirmation_required',
       message:
         'A confirmation is required. This sets release #43 of staging to 50 percent: devices already on it keep it, and no new device above 50 percent gets it; its progression ends.',
     });
@@ -235,7 +235,7 @@ describe('release rollout', () => {
         undefined,
       ),
     ).rejects.toMatchObject({
-      code: 'E_INVALID_PARAMETER',
+      code: 'invalid_parameter',
       message:
         "The schedule's flags --progress-percentages apply only with --progress.",
     });

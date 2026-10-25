@@ -141,10 +141,10 @@ export interface WiringOptions extends InteractivityOptions {
 }
 
 const FRAMEWORK_MODULES: Record<Framework, FrameworkModule> = {
-  'capacitor': capacitorFramework,
-  'cordova': cordovaFramework,
-  'expo': expoFramework,
-  'react-native': reactNativeFramework,
+  capacitor: capacitorFramework,
+  cordova: cordovaFramework,
+  expo: expoFramework,
+  react_native: reactNativeFramework,
 };
 
 export function resolveFrameworkModule(framework: Framework): FrameworkModule {

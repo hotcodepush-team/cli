@@ -63,7 +63,7 @@ describe('app create', () => {
   it('should ask for the name and the framework when interactive and they are missing', async () => {
     stubInteractiveTerminal();
     vi.mocked(text).mockResolvedValue('Demo');
-    vi.mocked(select).mockResolvedValue('react-native');
+    vi.mocked(select).mockResolvedValue('react_native');
     respondWithCreatedApp(ACME_ORGANIZATION.id);
 
     await appCreateCommand.action(
@@ -74,19 +74,19 @@ describe('app create', () => {
     expect(select).toHaveBeenCalledWith({
       message: 'Which framework does the app use?',
       options: [
-        { label: 'react-native', value: 'react-native' },
+        { label: 'react_native', value: 'react_native' },
         { label: 'expo', value: 'expo' },
         { label: 'capacitor', value: 'capacitor' },
         { label: 'cordova', value: 'cordova' },
       ],
     });
     expect(await harness.requests[0]?.json()).toEqual({
-      framework: 'react-native',
+      framework: 'react_native',
       name: 'Demo',
     });
   });
 
-  it('should throw E_MISSING_PARAMETER naming --framework when it is missing and nobody can be asked', async () => {
+  it('should throw `missing_parameter` naming --framework when it is missing and nobody can be asked', async () => {
     await expect(
       appCreateCommand.action(
         { name: 'Demo', organization: ACME_ORGANIZATION.id },

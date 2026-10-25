@@ -257,7 +257,7 @@ describe('sso-provider set', () => {
     });
   });
 
-  it('should throw E_MISSING_PARAMETER naming --domain when it is missing and nobody can be asked', async () => {
+  it('should throw `missing_parameter` naming --domain when it is missing and nobody can be asked', async () => {
     await expect(
       ssoProviderSetCommand.action(
         { ...OIDC_FLAGS, organization: ACME_ORGANIZATION.id },
@@ -267,7 +267,7 @@ describe('sso-provider set', () => {
     expect(harness.requests).toEqual([]);
   });
 
-  it('should throw E_MISSING_PARAMETER naming either protocol when no protocol flag is passed and nobody can be asked', async () => {
+  it('should throw `missing_parameter` naming either protocol when no protocol flag is passed and nobody can be asked', async () => {
     await expect(
       ssoProviderSetCommand.action(
         { domain: 'example.com', organization: ACME_ORGANIZATION.id },
@@ -278,7 +278,7 @@ describe('sso-provider set', () => {
     );
   });
 
-  it('should throw E_MISSING_PARAMETER naming --oidc-client-secret when it is missing and nobody can be asked', async () => {
+  it('should throw `missing_parameter` naming --oidc-client-secret when it is missing and nobody can be asked', async () => {
     await expect(
       ssoProviderSetCommand.action(
         {
@@ -293,7 +293,7 @@ describe('sso-provider set', () => {
     expect(harness.requests).toEqual([]);
   });
 
-  it('should throw E_MISSING_PARAMETER naming --saml-metadata-path when no SAML document is passed and nobody can be asked', async () => {
+  it('should throw `missing_parameter` naming --saml-metadata-path when no SAML document is passed and nobody can be asked', async () => {
     await expect(
       ssoProviderSetCommand.action(
         {
@@ -307,7 +307,7 @@ describe('sso-provider set', () => {
     expect(harness.requests).toEqual([]);
   });
 
-  it('should throw E_INVALID_PARAMETER before any request when OIDC and SAML flags are passed together', async () => {
+  it('should throw `invalid_parameter` before any request when OIDC and SAML flags are passed together', async () => {
     await expect(
       ssoProviderSetCommand.action(
         {
@@ -322,7 +322,7 @@ describe('sso-provider set', () => {
     expect(harness.requests).toEqual([]);
   });
 
-  it('should throw E_INVALID_PARAMETER naming the flag when the metadata file cannot be read', async () => {
+  it('should throw `invalid_parameter` naming the flag when the metadata file cannot be read', async () => {
     const missingFilePath = join(directoryPath, 'missing.xml');
 
     await expect(

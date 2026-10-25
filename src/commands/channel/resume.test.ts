@@ -80,7 +80,7 @@ describe('channel resume', () => {
     expect(harness.readJson()).toEqual(STAGING_CHANNEL);
   });
 
-  it('should throw E_CONFIRMATION_REQUIRED and resume nothing when nobody can be asked', async () => {
+  it('should throw `confirmation_required` and resume nothing when nobody can be asked', async () => {
     respondWithChannel();
 
     await expect(

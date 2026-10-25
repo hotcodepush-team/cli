@@ -36,14 +36,14 @@ describe('error mapping', () => {
   describe('resolveApiError', () => {
     it("should pass the API's code and message through as received", () => {
       const cliError = resolveApiError({
-        code: 'E_RATE_LIMITED',
+        code: 'rate_limited',
         message: 'Too many attempts; wait 60 seconds and try again.',
         status: 429,
         statusText: 'Too Many Requests',
       });
 
       expect(cliError).toBeInstanceOf(ApiError);
-      expect(cliError.code).toBe('E_RATE_LIMITED');
+      expect(cliError.code).toBe('rate_limited');
       expect(cliError.message).toBe(
         'Too many attempts; wait 60 seconds and try again.',
       );
@@ -62,14 +62,14 @@ describe('error mapping', () => {
       expect(cliError.message).toBe('Invalid device code');
     });
 
-    it('should map a response without a code to E_UNEXPECTED_RESPONSE, as the typed client does', () => {
+    it("should map a response without a code to `unexpected_response`, as it maps the typed client's answer outside the API's shape", () => {
       const cliError = resolveApiError({
         status: 502,
         statusText: 'Bad Gateway',
       });
 
       expect(cliError).toEqual(new UnexpectedResponseError(502));
-      expect(cliError.code).toBe('E_UNEXPECTED_RESPONSE');
+      expect(cliError.code).toBe('unexpected_response');
       expect(cliError.message).toBe(
         'The API answered with status 502 in an unexpected shape.',
       );
@@ -87,7 +87,7 @@ describe('error mapping', () => {
       const cliError = resolveCliError(
         new HotCodePushError(
           {
-            code: 'E_UNAUTHENTICATED',
+            code: 'unauthenticated',
             message: 'The bearer token is missing, invalid or expired.',
           },
           401,
@@ -95,7 +95,7 @@ describe('error mapping', () => {
       );
 
       expect(cliError).toBeInstanceOf(ApiError);
-      expect(cliError.code).toBe('E_UNAUTHENTICATED');
+      expect(cliError.code).toBe('unauthenticated');
       expect(cliError.message).toBe(
         'The bearer token is missing, invalid or expired.',
       );
@@ -106,7 +106,7 @@ describe('error mapping', () => {
       const cliError = resolveCliError(
         new HotCodePushError(
           {
-            code: 'E_UNEXPECTED_RESPONSE',
+            code: 'unexpected_response',
             message: 'Request failed with status 502.',
           },
           502,
@@ -118,7 +118,7 @@ describe('error mapping', () => {
       );
     });
 
-    it('should map a zod validation error to E_INVALID_PARAMETER naming the flag', () => {
+    it('should map a zod validation error to `invalid_parameter` naming the flag', () => {
       const result = z
         .object({ rolloutPercentage: z.number().max(100) })
         .safeParse({
@@ -127,28 +127,28 @@ describe('error mapping', () => {
 
       const cliError = resolveCliError(result.error);
 
-      expect(cliError.code).toBe('E_INVALID_PARAMETER');
+      expect(cliError.code).toBe('invalid_parameter');
       expect(cliError.exitCode).toBe(2);
       expect(cliError.message).toMatch(
         /^The value of --rollout-percentage is invalid\. .+\.$/,
       );
     });
 
-    it('should map a zodline error to E_INVALID_PARAMETER as a sentence without its colour codes', () => {
+    it('should map a zodline error to `invalid_parameter` as a sentence without its colour codes', () => {
       const cliError = resolveCliError(
         new ZodlineError('Unknown option: \x1b[36m--foo\x1b[0m'),
       );
 
-      expect(cliError.code).toBe('E_INVALID_PARAMETER');
+      expect(cliError.code).toBe('invalid_parameter');
       expect(cliError.message).toBe('Unknown option: --foo.');
     });
 
-    it('should map any other error to E_UNEXPECTED with exit code 1', () => {
+    it('should map any other error to `unexpected` with exit code 1', () => {
       const cause = new TypeError('boom');
 
       const cliError = resolveCliError(cause);
 
-      expect(cliError.code).toBe('E_UNEXPECTED');
+      expect(cliError.code).toBe('unexpected');
       expect(cliError.exitCode).toBe(1);
       expect(cliError.cause).toBe(cause);
     });
@@ -158,7 +158,7 @@ describe('error mapping', () => {
     it('should build the one error shape', () => {
       expect(buildErrorJson(new MissingParameterError('--channel'))).toEqual({
         error: {
-          code: 'E_MISSING_PARAMETER',
+          code: 'missing_parameter',
           fix: 'Pass --channel, or run the command interactively to be asked for it.',
           message: 'No value was given for --channel.',
         },
@@ -174,7 +174,7 @@ describe('error mapping', () => {
 
       expect(lines).toEqual([
         'You are not logged in. Run "hotcodepush login" or set HOTCODEPUSH_TOKEN.',
-        'https://hotcodepush.com/docs/cli/errors#E_NOT_LOGGED_IN',
+        'https://hotcodepush.com/docs/cli/errors#not_logged_in',
       ]);
     });
 
@@ -186,10 +186,10 @@ describe('error mapping', () => {
 
       expect(lines).toEqual([
         'There is no command "relese create". Did you mean "release create"?',
-        'https://hotcodepush.com/docs/cli/errors#E_UNKNOWN_COMMAND',
+        'https://hotcodepush.com/docs/cli/errors#unknown_command',
       ]);
       for (const line of lines) {
-        expect(line).not.toMatch(/^E_/);
+        expect(line).not.toMatch(/^unknown_command/);
       }
     });
 
@@ -236,7 +236,7 @@ describe('error mapping', () => {
       });
 
       expect(output.readStderr()).toBe(
-        'No value was given for --channel. Pass --channel, or run the command interactively to be asked for it.\nhttps://hotcodepush.com/docs/cli/errors#E_MISSING_PARAMETER\n',
+        'No value was given for --channel. Pass --channel, or run the command interactively to be asked for it.\nhttps://hotcodepush.com/docs/cli/errors#missing_parameter\n',
       );
       expect(output.readStdout()).toBe('');
     });
@@ -264,7 +264,7 @@ describe('error mapping', () => {
       });
 
       expect(output.readStderr()).toContain('TypeError: boom');
-      expect(JSON.parse(output.readStdout()).error.code).toBe('E_UNEXPECTED');
+      expect(JSON.parse(output.readStdout()).error.code).toBe('unexpected');
     });
   });
 });

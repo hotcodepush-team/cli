@@ -53,13 +53,13 @@ describe('bundle delete', () => {
     ).rejects.toThrow(ConfirmationRequiredError);
   });
 
-  it("should pass the API's E_BUNDLE_IN_USE through", async () => {
+  it("should pass the API's `bundle_in_use` error through", async () => {
     harness.routes[`GET ${BUNDLES_PATH}/${READY_BUNDLE.id}`] = () =>
       Response.json(READY_BUNDLE);
     harness.routes[`DELETE ${BUNDLES_PATH}/${READY_BUNDLE.id}`] = () =>
       respondWithApiError(
         409,
-        'E_BUNDLE_IN_USE',
+        'bundle_in_use',
         'A release still serves the bundle.',
       );
 
@@ -68,7 +68,7 @@ describe('bundle delete', () => {
         { app: DEMO_APP.id, bundle: READY_BUNDLE.id, json: true, yes: true },
         undefined,
       ),
-    ).rejects.toMatchObject({ code: 'E_BUNDLE_IN_USE' });
+    ).rejects.toMatchObject({ code: 'bundle_in_use' });
   });
 
   it('should print the id and version label of the deleted bundle as its name when --yes and --json are passed', async () => {

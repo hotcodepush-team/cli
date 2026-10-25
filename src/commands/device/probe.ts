@@ -356,12 +356,12 @@ function resolveOutcomeText({ outcome }: ChannelIndexEvaluation): string {
       ? 'the embedded bundle'
       : `release #${outcome.release.number}`;
   switch (outcome.status) {
-    case 'AVAILABLE':
-      return `AVAILABLE, ${releaseText}${outcome.isMandatory ? ', mandatory' : ''}`;
-    case 'SKIPPED':
-      return `SKIPPED, ${outcome.reason}${outcome.condition === undefined ? '' : ` (${outcome.condition})`}, ${releaseText}`;
-    case 'UP_TO_DATE':
-      return `UP_TO_DATE, ${releaseText}`;
+    case 'available':
+      return `available, ${releaseText}${outcome.isMandatory ? ', mandatory' : ''}`;
+    case 'skipped':
+      return `skipped, ${outcome.reason}${outcome.condition === undefined ? '' : ` (${outcome.condition})`}, ${releaseText}`;
+    case 'up_to_date':
+      return `up_to_date, ${releaseText}`;
   }
 }
 

@@ -104,7 +104,7 @@ describe('member get', () => {
     expect(harness.readLines()[2]).toBe('Email       bob@example.com');
   });
 
-  it('should throw E_MISSING_PARAMETER when --member is missing and nobody can be asked', async () => {
+  it('should throw `missing_parameter` when --member is missing and nobody can be asked', async () => {
     respondWithMembers([ADMIN_MEMBER]);
 
     await expect(
@@ -116,7 +116,7 @@ describe('member get', () => {
     expect(harness.requests).toEqual([]);
   });
 
-  it('should throw E_INVALID_PARAMETER when no member has the email', async () => {
+  it('should throw `invalid_parameter` when no member has the email', async () => {
     respondWithMembers([]);
 
     await expect(

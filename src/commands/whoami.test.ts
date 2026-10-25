@@ -113,7 +113,7 @@ describe('whoami', () => {
     expect(harness.readLines().at(-1)).toBe('Organizations: none yet.');
   });
 
-  it('should throw E_NOT_LOGGED_IN when no token exists', async () => {
+  it('should throw `not_logged_in` when no token exists', async () => {
     vi.stubEnv('HOTCODEPUSH_TOKEN', undefined);
 
     await expect(whoamiCommand.action({}, undefined)).rejects.toThrow(
@@ -122,7 +122,7 @@ describe('whoami', () => {
     expect(harness.requests).toEqual([]);
   });
 
-  it("should pass the API's E_UNAUTHENTICATED through and exit 3 when the token no longer counts", async () => {
+  it("should pass the API's `unauthenticated` error through and exit 3 when the token no longer counts", async () => {
     const stderrWrite = vi
       .spyOn(process.stderr, 'write')
       .mockImplementation(() => true);
@@ -130,7 +130,7 @@ describe('whoami', () => {
     harness.routes[`GET ${USER_PATH}`] = () =>
       respondWithApiError(
         401,
-        'E_UNAUTHENTICATED',
+        'unauthenticated',
         'The bearer token is missing, invalid or expired; sign in again or create a new token.',
       );
 
@@ -142,7 +142,7 @@ describe('whoami', () => {
 
     expect(exitCode).toBe(3);
     expect(stderrWrite).toHaveBeenCalledWith(
-      'The bearer token is missing, invalid or expired; sign in again or create a new token.\nhttps://hotcodepush.com/docs/cli/errors#E_UNAUTHENTICATED\n',
+      'The bearer token is missing, invalid or expired; sign in again or create a new token.\nhttps://hotcodepush.com/docs/cli/errors#unauthenticated\n',
     );
   });
 });

@@ -181,7 +181,7 @@ describe('runCli', () => {
 
     expect(exitCode).toBe(2);
     expect(output.readStderr()).toBe(
-      'No value was given for --token. Pass --token, or run the command interactively to be asked for it.\nhttps://hotcodepush.com/docs/cli/errors#E_MISSING_PARAMETER\n',
+      'No value was given for --token. Pass --token, or run the command interactively to be asked for it.\nhttps://hotcodepush.com/docs/cli/errors#missing_parameter\n',
     );
   });
 
@@ -193,7 +193,7 @@ describe('runCli', () => {
 
     expect(JSON.parse(output.readStdout())).toEqual({
       error: {
-        code: 'E_MISSING_PARAMETER',
+        code: 'missing_parameter',
         fix: 'Pass --token, or run the command interactively to be asked for it.',
         message: 'No value was given for --token.',
       },
@@ -201,7 +201,7 @@ describe('runCli', () => {
     expect(output.readStderr()).toBe('');
   });
 
-  it('should answer E_INVALID_PARAMETER with exit code 2 when an option is invalid', async () => {
+  it('should answer `invalid_parameter` with exit code 2 when an option is invalid', async () => {
     const { channelCreateAction, commandRegistry } = createCommandTree();
     const output = captureOutput();
 
@@ -213,12 +213,12 @@ describe('runCli', () => {
 
     expect(exitCode).toBe(2);
     expect(JSON.parse(output.readStdout()).error.code).toBe(
-      'E_INVALID_PARAMETER',
+      'invalid_parameter',
     );
     expect(channelCreateAction).not.toHaveBeenCalled();
   });
 
-  it('should answer E_INVALID_PARAMETER when an option is unknown', async () => {
+  it('should answer `invalid_parameter` when an option is unknown', async () => {
     const { commandRegistry } = createCommandTree();
     const output = captureOutput();
 
@@ -230,7 +230,7 @@ describe('runCli', () => {
 
     expect(exitCode).toBe(2);
     expect(output.readStderr()).toBe(
-      'Unknown option: --colour. Run the command with --help to see its options.\nhttps://hotcodepush.com/docs/cli/errors#E_INVALID_PARAMETER\n',
+      'Unknown option: --colour. Run the command with --help to see its options.\nhttps://hotcodepush.com/docs/cli/errors#invalid_parameter\n',
     );
   });
 
@@ -242,7 +242,7 @@ describe('runCli', () => {
 
     expect(exitCode).toBe(1);
     expect(output.readStderr()).toBe(
-      'There is no command "chanel create". Did you mean "channel create"?\nhttps://hotcodepush.com/docs/cli/errors#E_UNKNOWN_COMMAND\n',
+      'There is no command "chanel create". Did you mean "channel create"?\nhttps://hotcodepush.com/docs/cli/errors#unknown_command\n',
     );
   });
 
@@ -322,7 +322,7 @@ describe('runCli', () => {
     expect(exitCode).toBe(2);
     expect(JSON.parse(output.readStdout())).toEqual({
       error: {
-        code: 'E_INVALID_PARAMETER',
+        code: 'invalid_parameter',
         fix: 'Run the command with --help to see its options.',
         message: 'Unknown option: --colour.',
       },
@@ -398,7 +398,7 @@ describe('runCli', () => {
 
     expect(exitCode).toBe(2);
     expect(output.readStderr()).toBe(
-      'Unknown option: --colour. Run the command with --help to see its options.\nhttps://hotcodepush.com/docs/cli/errors#E_INVALID_PARAMETER\n',
+      'Unknown option: --colour. Run the command with --help to see its options.\nhttps://hotcodepush.com/docs/cli/errors#invalid_parameter\n',
     );
   });
 

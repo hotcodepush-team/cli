@@ -164,7 +164,7 @@ describe('signing private key', () => {
     await expect(readSigningKeyPair([], undefined)).resolves.toBeNull();
   });
 
-  it('should throw E_SIGNING_KEY_UNAVAILABLE naming both ways when a public key is listed and no private key is given', async () => {
+  it('should throw `signing_key_unavailable` naming both ways when a public key is listed and no private key is given', async () => {
     const error = await readRejection([SIGNING_KEY.publicKey]);
 
     expect(error).toBeInstanceOf(SigningKeyUnavailableError);
@@ -201,7 +201,7 @@ describe('signing private key', () => {
     );
   });
 
-  it('should throw E_INVALID_PARAMETER naming the flag when no file is at --private-key-path', async () => {
+  it('should throw `invalid_parameter` naming the flag when no file is at --private-key-path', async () => {
     const filePath = join(directoryPath, 'missing.pem');
 
     const error = await readRejection([SIGNING_KEY.publicKey], filePath);

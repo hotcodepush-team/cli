@@ -86,7 +86,7 @@ describe('completion', () => {
     expect(harness.readLines()[0]).toMatch(/^#compdef hotcodepush\n/);
   });
 
-  it('should stop with E_MISSING_PARAMETER when no shell is given and nobody can be asked', async () => {
+  it('should stop with `missing_parameter` when no shell is given and nobody can be asked', async () => {
     await expect(completionCommand.action({}, [])).rejects.toBeInstanceOf(
       MissingParameterError,
     );

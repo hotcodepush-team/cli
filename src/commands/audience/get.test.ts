@@ -115,7 +115,7 @@ describe('audience get', () => {
 
   it('should print the audience as JSON and its warnings on stderr', async () => {
     const warning = {
-      code: 'UNSUPPORTED_CONDITION_SHARE',
+      code: 'unsupported_condition_share',
       details: null,
       message:
         "12 of the channel's 120 active devices run an SDK that does not know the condition type attribute and will not see this release until the app ships a newer SDK.",
@@ -140,7 +140,7 @@ describe('audience get', () => {
     expect(stderrWrite).toHaveBeenCalledWith(`Warning: ${warning.message}\n`);
   });
 
-  it('should fail with E_INVALID_PARAMETER when an attribute is no key=value pair', async () => {
+  it('should fail with `invalid_parameter` when an attribute is no key=value pair', async () => {
     await expect(
       audienceGetCommand.action(
         {
@@ -150,7 +150,7 @@ describe('audience get', () => {
         },
         undefined,
       ),
-    ).rejects.toMatchObject({ code: 'E_INVALID_PARAMETER' });
+    ).rejects.toMatchObject({ code: 'invalid_parameter' });
     expect(readAudienceUrl()).toBeUndefined();
   });
 });

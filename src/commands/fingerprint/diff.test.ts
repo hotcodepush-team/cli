@@ -252,7 +252,7 @@ describe('fingerprint diff', () => {
     ]);
   });
 
-  it('should fail with E_INVALID_PARAMETER when a file is not a fingerprint', async () => {
+  it('should fail with `invalid_parameter` when a file is not a fingerprint', async () => {
     const beforeFilePath = writeFingerprintFile('before.json', {
       extraFingerprintPaths: [],
       packages: [],
@@ -263,12 +263,12 @@ describe('fingerprint diff', () => {
     await expect(
       fingerprintDiffCommand.action({}, [beforeFilePath, afterFilePath]),
     ).rejects.toMatchObject({
-      code: 'E_INVALID_PARAMETER',
+      code: 'invalid_parameter',
       message: `The file ${afterFilePath} from <file-b> is not a fingerprint written by fingerprint --json.`,
     });
   });
 
-  it('should fail with E_INVALID_PARAMETER when a file cannot be read', async () => {
+  it('should fail with `invalid_parameter` when a file cannot be read', async () => {
     const beforeFilePath = join(directoryPath, 'missing.json');
 
     await expect(
@@ -280,22 +280,22 @@ describe('fingerprint diff', () => {
         }),
       ]),
     ).rejects.toMatchObject({
-      code: 'E_INVALID_PARAMETER',
+      code: 'invalid_parameter',
       message: `The file ${beforeFilePath} from <file-a> cannot be read.`,
     });
   });
 
-  it('should fail with E_INVALID_PARAMETER when more than two files are named', async () => {
+  it('should fail with `invalid_parameter` when more than two files are named', async () => {
     await expect(
       fingerprintDiffCommand.action({}, ['a.json', 'b.json', 'c.json']),
     ).rejects.toMatchObject({
-      code: 'E_INVALID_PARAMETER',
+      code: 'invalid_parameter',
       message:
         'The fingerprint diff command compares two files, <file-a> and <file-b>. It does not take c.json.',
     });
   });
 
-  it('should fail with E_MISSING_PARAMETER when a file is not named and nobody can be asked', async () => {
+  it('should fail with `missing_parameter` when a file is not named and nobody can be asked', async () => {
     await expect(
       fingerprintDiffCommand.action({}, [
         writeFingerprintFile('before.json', {
@@ -304,7 +304,7 @@ describe('fingerprint diff', () => {
         }),
       ]),
     ).rejects.toMatchObject({
-      code: 'E_MISSING_PARAMETER',
+      code: 'missing_parameter',
       message: 'No value was given for <file-b>.',
     });
   });

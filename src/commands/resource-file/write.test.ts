@@ -188,14 +188,14 @@ describe('resource-file write', () => {
   it('should leave the channel name unresolved with one warning when the API refuses, in CI too', async () => {
     vi.stubEnv('CI', 'true');
     harness.routes[`GET ${CHANNELS_PATH}`] = () =>
-      respondWithApiError(403, 'E_FORBIDDEN', 'You are not a member.');
+      respondWithApiError(403, 'forbidden', 'You are not a member.');
 
     await writeIosResourceFile();
 
     expect(readResourceFile().channelId).toBeNull();
     expect(stderrWrite.mock.calls).toEqual([
       [
-        'Warning: the channel could not be resolved, so the build names none and takes no OTA updates: E_FORBIDDEN You are not a member.\n',
+        'Warning: the channel could not be resolved, so the build names none and takes no OTA updates: forbidden You are not a member.\n',
       ],
     ]);
   });
@@ -207,7 +207,7 @@ describe('resource-file write', () => {
     );
 
     await expect(writeIosResourceFile()).rejects.toMatchObject({
-      code: 'E_INVALID_PARAMETER',
+      code: 'invalid_parameter',
       message: 'The channel "beta" from hotcodepush.json does not exist.',
     });
     expect(existsSync(resourceFilePath)).toBe(false);

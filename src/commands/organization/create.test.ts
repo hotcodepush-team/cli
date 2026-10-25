@@ -60,7 +60,7 @@ describe('organization create', () => {
     expect(await harness.requests[0]?.json()).toEqual({ name: 'Acme' });
   });
 
-  it('should throw E_MISSING_PARAMETER when --name is missing and nobody can be asked', async () => {
+  it('should throw `missing_parameter` when --name is missing and nobody can be asked', async () => {
     await expect(
       organizationCreateCommand.action({}, undefined),
     ).rejects.toThrow(MissingParameterError);
@@ -74,7 +74,7 @@ describe('organization create', () => {
     harness.routes['POST /v1/organizations'] = () =>
       respondWithApiError(
         400,
-        'E_VALIDATION',
+        'validation',
         'The json field name is invalid: Too small.',
       );
 
@@ -86,7 +86,7 @@ describe('organization create', () => {
 
     expect(exitCode).toBe(1);
     expect(stderrWrite).toHaveBeenCalledWith(
-      'The json field name is invalid: Too small.\nhttps://hotcodepush.com/docs/cli/errors#E_VALIDATION\n',
+      'The json field name is invalid: Too small.\nhttps://hotcodepush.com/docs/cli/errors#validation\n',
     );
   });
 });

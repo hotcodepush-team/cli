@@ -86,7 +86,7 @@ describe('member update', () => {
     expect(await readPatchRequests()[0]?.json()).toEqual({ role: 'billing' });
   });
 
-  it('should throw E_MISSING_PARAMETER and change nothing when --role is missing and nobody can be asked', async () => {
+  it('should throw `missing_parameter` and change nothing when --role is missing and nobody can be asked', async () => {
     respondWithMember();
 
     await expect(
@@ -145,7 +145,7 @@ describe('member update', () => {
     harness.routes[`PATCH ${MEMBER_PATH}`] = () =>
       respondWithApiError(
         403,
-        'E_FORBIDDEN',
+        'forbidden',
         'Only the Owner may transfer the ownership.',
       );
 
@@ -167,7 +167,7 @@ describe('member update', () => {
 
     expect(exitCode).toBe(1);
     expect(stderrWrite).toHaveBeenCalledWith(
-      'Only the Owner may transfer the ownership.\nhttps://hotcodepush.com/docs/cli/errors#E_FORBIDDEN\n',
+      'Only the Owner may transfer the ownership.\nhttps://hotcodepush.com/docs/cli/errors#forbidden\n',
     );
   });
 });

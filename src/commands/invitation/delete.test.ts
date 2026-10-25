@@ -101,7 +101,7 @@ describe('invitation delete', () => {
     });
   });
 
-  it('should throw E_CONFIRMATION_REQUIRED with the consequence and withdraw nothing when nobody can be asked', async () => {
+  it('should throw `confirmation_required` with the consequence and withdraw nothing when nobody can be asked', async () => {
     respondWithInvitations();
 
     await expect(
@@ -142,7 +142,7 @@ describe('invitation delete', () => {
     expect(readDeleteRequests()).toHaveLength(1);
   });
 
-  it('should throw E_MISSING_PARAMETER when --invitation is missing and nobody can be asked', async () => {
+  it('should throw `missing_parameter` when --invitation is missing and nobody can be asked', async () => {
     respondWithInvitations();
 
     await expect(

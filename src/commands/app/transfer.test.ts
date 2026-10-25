@@ -94,7 +94,7 @@ describe('app transfer', () => {
     });
   });
 
-  it('should throw E_CONFIRMATION_REQUIRED and move nothing when nobody can be asked', async () => {
+  it('should throw `confirmation_required` and move nothing when nobody can be asked', async () => {
     respondWithAppAndOrganizations();
 
     await expect(
@@ -110,7 +110,7 @@ describe('app transfer', () => {
     expect(readTransferRequests()).toEqual([]);
   });
 
-  it("should pass the API's E_APP_NAME_TAKEN through when the target has an app of the name", async () => {
+  it("should pass the API's `app_name_taken` error through when the target has an app of the name", async () => {
     const stderrWrite = vi
       .spyOn(process.stderr, 'write')
       .mockImplementation(() => true);
@@ -118,7 +118,7 @@ describe('app transfer', () => {
     harness.routes[`POST /v1/apps/${DEMO_APP.id}/transfer`] = () =>
       respondWithApiError(
         409,
-        'E_APP_NAME_TAKEN',
+        'app_name_taken',
         'An app of that name exists in the organization.',
       );
 
@@ -138,7 +138,7 @@ describe('app transfer', () => {
 
     expect(exitCode).toBe(1);
     expect(stderrWrite).toHaveBeenCalledWith(
-      'An app of that name exists in the organization.\nhttps://hotcodepush.com/docs/cli/errors#E_APP_NAME_TAKEN\n',
+      'An app of that name exists in the organization.\nhttps://hotcodepush.com/docs/cli/errors#app_name_taken\n',
     );
   });
 });

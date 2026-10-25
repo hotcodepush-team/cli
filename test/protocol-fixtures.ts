@@ -27,7 +27,7 @@ export interface EvaluationFixture {
     isMandatory?: boolean;
     reason?: string;
     releaseId: string | null;
-    status: 'AVAILABLE' | 'SKIPPED' | 'UP_TO_DATE';
+    status: 'available' | 'skipped' | 'up_to_date';
   };
   index: ChannelIndex;
   name: string;

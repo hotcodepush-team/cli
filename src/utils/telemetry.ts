@@ -196,9 +196,9 @@ async function sendCommandFinishedEvent({
 }
 
 /**
- * An error that is our bug, `E_UNEXPECTED` or an API answer outside its shape, to Sentry's envelope endpoint: its
- * type, its scrubbed stack, which Sentry groups by, and its code; the other `E_` errors are the user's input or the
- * API's answer and never reach Sentry.
+ * An error that is our bug, `unexpected` or an API answer outside its shape, to Sentry's envelope endpoint: its
+ * type, its scrubbed stack, which Sentry groups by, and its code; every other error is the user's input or the API's
+ * answer and never reaches Sentry.
  */
 async function sendUnexpectedErrorEvent({
   cliError,

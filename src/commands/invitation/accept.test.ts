@@ -85,7 +85,7 @@ describe('invitation accept', () => {
     expect(await harness.requests[1]?.json()).toEqual({ token: 'token-1' });
   });
 
-  it('should throw E_MISSING_PARAMETER when --invitation is missing and nobody can be asked', async () => {
+  it('should throw `missing_parameter` when --invitation is missing and nobody can be asked', async () => {
     respondWithJoinedMember();
 
     await expect(
@@ -94,7 +94,7 @@ describe('invitation accept', () => {
     expect(harness.requests).toEqual([]);
   });
 
-  it('should throw E_MISSING_PARAMETER when --token is missing and nobody can be asked', async () => {
+  it('should throw `missing_parameter` when --token is missing and nobody can be asked', async () => {
     respondWithJoinedMember();
 
     await expect(
@@ -113,7 +113,7 @@ describe('invitation accept', () => {
     harness.routes[`POST ${ACCEPT_PATH}`] = () =>
       respondWithApiError(
         410,
-        'E_INVITATION_INVALID',
+        'invitation_invalid',
         'The invitation is no longer valid.',
       );
 
@@ -132,7 +132,7 @@ describe('invitation accept', () => {
 
     expect(exitCode).toBe(1);
     expect(stderrWrite).toHaveBeenCalledWith(
-      'The invitation is no longer valid.\nhttps://hotcodepush.com/docs/cli/errors#E_INVITATION_INVALID\n',
+      'The invitation is no longer valid.\nhttps://hotcodepush.com/docs/cli/errors#invitation_invalid\n',
     );
   });
 });

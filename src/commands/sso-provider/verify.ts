@@ -30,7 +30,7 @@ export default defineCommand({
 });
 
 /**
- * The lookup's outcome; one that could not run is the API's `E_DNS_LOOKUP_FAILED`, passed through as every API error is.
+ * The lookup's outcome; one that could not run is the API's `dns_lookup_failed`, passed through as every API error is.
  */
 function resolveVerificationText({
   domain,

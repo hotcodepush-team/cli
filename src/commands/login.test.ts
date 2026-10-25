@@ -196,7 +196,7 @@ describe('login', () => {
     ]);
   });
 
-  it('should throw E_LOGIN_EXPIRED when the code expires before it is approved', async () => {
+  it('should throw `login_expired` when the code expires before it is approved', async () => {
     fetchMock
       .mockResolvedValueOnce(Response.json(DEVICE_AUTHORIZATION))
       .mockResolvedValueOnce(respondWithDeviceError('expired_token'));
@@ -207,7 +207,7 @@ describe('login', () => {
     expect(keyring.setPassword).not.toHaveBeenCalled();
   });
 
-  it('should throw E_LOGIN_DENIED when the login is denied', async () => {
+  it('should throw `login_denied` when the login is denied', async () => {
     fetchMock
       .mockResolvedValueOnce(Response.json(DEVICE_AUTHORIZATION))
       .mockResolvedValueOnce(respondWithDeviceError('access_denied'));
@@ -225,7 +225,7 @@ describe('login', () => {
       .mockResolvedValueOnce(new Response('Bad Gateway', { status: 502 }))
       .mockResolvedValueOnce(
         Response.json(
-          { code: 'E_RATE_LIMITED', message: 'Too many requests.' },
+          { code: 'rate_limited', message: 'Too many requests.' },
           { status: 429 },
         ),
       )
@@ -243,7 +243,7 @@ describe('login', () => {
     expect(keyring.setPassword).toHaveBeenCalledWith('session-token-1');
   });
 
-  it("should throw E_LOGIN_EXPIRED at the code's own expiry without asking again", async () => {
+  it("should throw `login_expired` at the code's own expiry without asking again", async () => {
     vi.mocked(setTimeout).mockImplementation(async delay => {
       vi.setSystemTime(Date.now() + (delay ?? 0));
     });
@@ -341,7 +341,7 @@ describe('login', () => {
     });
 
     it.each(['api.example.com', 'ftp://api.example.com', '/v1'])(
-      'should exit 2 with E_INVALID_PARAMETER and keep the stored URL when it is %s',
+      'should exit 2 with `invalid_parameter` and keep the stored URL when it is %s',
       async apiUrl => {
         const stdout = captureStdout();
 
@@ -350,7 +350,7 @@ describe('login', () => {
         expect(exitCode).toBe(2);
         expect(JSON.parse(stdout.read())).toEqual({
           error: {
-            code: 'E_INVALID_PARAMETER',
+            code: 'invalid_parameter',
             fix: 'Run the command with --help to see its options.',
             message:
               'The value of --api-url is invalid. Expected an absolute http or https URL such as https://api.example.com.',
@@ -373,7 +373,7 @@ describe('login', () => {
       expect(exitCode).toBe(3);
       expect(JSON.parse(stdout.read())).toEqual({
         error: {
-          code: 'E_NOT_LOGGED_IN',
+          code: 'not_logged_in',
           fix: 'Approve at https://console.example.com/device?user_code=WDJBMJHT with code WDJBMJHT, then run "hotcodepush login" again.',
           message: 'You are not logged in.',
         },
@@ -496,7 +496,7 @@ describe('login', () => {
       expect(exitCode).toBe(3);
       expect(JSON.parse(stdout.read())).toEqual({
         error: {
-          code: 'E_NOT_LOGGED_IN',
+          code: 'not_logged_in',
           fix: `Approve at ${KEPT_VERIFICATION_URL} with code KEPTCODE, then run "hotcodepush login" again.`,
           message: 'You are not logged in.',
         },

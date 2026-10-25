@@ -169,7 +169,7 @@ describe('fingerprint', () => {
       await expect(
         readFingerprint(projectDirectoryPath, ['native']),
       ).rejects.toMatchObject({
-        code: 'E_FINGERPRINT_UNAVAILABLE',
+        code: 'fingerprint_unavailable',
         fix: "The extra fingerprint path native is not inside the lockfile's directory.",
         message: 'The fingerprint cannot be computed.',
       });
@@ -184,17 +184,17 @@ describe('fingerprint', () => {
     await expect(
       readFingerprint(projectDirectoryPath, ['native']),
     ).rejects.toMatchObject({
-      code: 'E_FINGERPRINT_UNAVAILABLE',
+      code: 'fingerprint_unavailable',
       fix: 'The extra fingerprint path native does not exist.',
       message: 'The fingerprint cannot be computed.',
     });
   });
 
-  it('should throw E_FINGERPRINT_UNAVAILABLE when the project has no lockfile', async () => {
+  it('should throw `fingerprint_unavailable` when the project has no lockfile', async () => {
     await expect(
       readFingerprint(projectDirectoryPath, []),
     ).rejects.toMatchObject({
-      code: 'E_FINGERPRINT_UNAVAILABLE',
+      code: 'fingerprint_unavailable',
       fix: 'The project has no lockfile. Commit one of package-lock.json, pnpm-lock.yaml, yarn.lock.',
       message: 'The fingerprint cannot be computed.',
     });

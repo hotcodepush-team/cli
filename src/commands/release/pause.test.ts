@@ -82,7 +82,7 @@ describe('release pause', () => {
     expect(harness.readJson()).toEqual(PAUSED_RELEASE);
   });
 
-  it('should stop with E_CONFIRMATION_REQUIRED when nobody can confirm', async () => {
+  it('should stop with `confirmation_required` when nobody can confirm', async () => {
     respondWithPausedRelease();
 
     await expect(

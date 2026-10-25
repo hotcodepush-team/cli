@@ -58,7 +58,7 @@ import { isEnvironmentToken, readToken } from '../utils/token-store.js';
 import { readApiUrl } from '../utils/user-config.js';
 
 /**
- * The app check with the app it fetched, which the signing-key check reads.
+ * The `app` check with the app it fetched, which the `signing_key` check reads.
  */
 interface AppCheck {
   app: App | undefined;
@@ -122,7 +122,7 @@ export default defineCommand({
       );
     }
     if (status === 'failed') {
-      throw new ReportedFailureError('E_DOCTOR_FAILED');
+      throw new ReportedFailureError('doctor_failed');
     }
   },
 });
@@ -327,7 +327,7 @@ async function checkSigningKey(
       (await fetchHasSigningKey(createApiClient(), app.id))
     ) {
       return {
-        check: 'signing-key',
+        check: 'signing_key',
         manualStep: `Run "hotcodepush signing-key list --json" and add each publicKey to publicKeys in ${PROJECT_CONFIG_FILE_NAME}.`,
         message: `The app has a signing key and ${PROJECT_CONFIG_FILE_NAME} lists none.`,
         status: 'failed',
@@ -339,7 +339,7 @@ async function checkSigningKey(
         : await fetchUnregisteredPublicKeyCount(app.id, publicKeys);
     if (unregisteredKeyCount > 0) {
       return {
-        check: 'signing-key',
+        check: 'signing_key',
         manualStep:
           'Run "hotcodepush signing-key list --json" and keep in publicKeys only the keys it prints.',
         message: `The file ${PROJECT_CONFIG_FILE_NAME} lists ${resolveQuantityText(unregisteredKeyCount, 'public key')} the app has not registered.`,
@@ -348,7 +348,7 @@ async function checkSigningKey(
     }
     return await checkSigningPrivateKey(publicKeys);
   } catch (error) {
-    return resolveFailedCheck('signing-key', error);
+    return resolveFailedCheck('signing_key', error);
   }
 }
 
@@ -363,20 +363,20 @@ async function checkSigningPrivateKey(
     const signingKeyPair = await readSigningKeyPair(publicKeys, undefined);
     return signingKeyPair === null
       ? {
-          check: 'signing-key',
+          check: 'signing_key',
           message:
             'Code signing is off. Run "hotcodepush signing-key create" to turn it on.',
           status: 'skipped',
         }
       : {
-          check: 'signing-key',
+          check: 'signing_key',
           message: `HOTCODEPUSH_SIGNING_KEY signs with key ${resolveSigningKeyFingerprint(signingKeyPair.publicKey)}.`,
           status: 'ok',
         };
   } catch (error) {
     if (error instanceof SigningKeyUnavailableError) {
       return {
-        check: 'signing-key',
+        check: 'signing_key',
         message:
           'Code signing is on. An upload signs with --private-key-path or HOTCODEPUSH_SIGNING_KEY.',
         status: 'ok',

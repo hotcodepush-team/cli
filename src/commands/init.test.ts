@@ -193,15 +193,15 @@ describe('init', () => {
     const result = harness.readJson() as InitResult;
     expect(result.status).toBe('complete');
     expect(readStepStatuses(result)).toEqual({
-      'app': 'done',
-      'build': 'skipped',
-      'configuration': 'done',
-      'hook': 'done',
-      'organization': 'done',
-      'package': 'done',
-      'release': 'skipped',
-      'sign-in': 'skipped',
-      'signing-key': 'skipped',
+      app: 'done',
+      build: 'skipped',
+      configuration: 'done',
+      hook: 'done',
+      organization: 'done',
+      package: 'done',
+      release: 'skipped',
+      sign_in: 'skipped',
+      signing_key: 'skipped',
     });
     expect(result.steps.map(({ message }) => message)).toEqual([
       'Logged in as Anna Example (anna@example.com).',
@@ -235,13 +235,13 @@ describe('init', () => {
 
     expect(runCommandLineVisibly).not.toHaveBeenCalled();
     expect(harness.readLines()).toEqual([
-      '– sign-in        Logged in as Anna Example (anna@example.com).',
+      '– sign_in        Logged in as Anna Example (anna@example.com).',
       "✓ organization   Used organization Acme, the one of hotcodepush.json's app.",
       '✓ app            Used app Demo, as hotcodepush.json names it.',
       '– package        The package @hotcodepush/capacitor-live-updates is already installed.',
       '– configuration  The file hotcodepush.json is already present.',
       '– hook           The Xcode phase and the Gradle task are already wired.',
-      '– signing-key    Run "hotcodepush signing-key create" to enable code signing.',
+      '– signing_key    Run "hotcodepush signing-key create" to enable code signing.',
       '– build          No release follows. Run "npm run build", then "hotcodepush release create".',
       '– release        Run "hotcodepush release create" to publish the first release.',
       '',
@@ -337,7 +337,7 @@ describe('init', () => {
     });
   });
 
-  it('should stop the editing steps with E_CONFIRMATION_REQUIRED when nobody can confirm the files to change, naming the first step it stopped at', async () => {
+  it('should stop the editing steps with `confirmation_required` when nobody can confirm the files to change, naming the first step it stopped at', async () => {
     const directoryPath = writeProject({ isPackageInstalled: true });
     respondWithSession([ACME_ORGANIZATION]);
     harness.routes[`GET ${APPS_PATH}`] = () => Response.json([DEMO_APP]);
@@ -345,7 +345,7 @@ describe('init', () => {
     await expect(
       initCommand.action({ json: true, ...withCwd(directoryPath) }, undefined),
     ).rejects.toMatchObject({
-      code: 'E_CONFIRMATION_REQUIRED',
+      code: 'confirmation_required',
       stoppedStep: 'configuration',
     });
 
@@ -356,7 +356,7 @@ describe('init', () => {
     );
     const filesText = `hotcodepush.json, ${CAPACITOR_XCODE_PROJECT_FILE_PATH}, ${CAPACITOR_APP_GRADLE_FILE_PATH}`;
     expect(configurationStep).toEqual({
-      code: 'E_CONFIRMATION_REQUIRED',
+      code: 'confirmation_required',
       manualStep: `Run "hotcodepush init --yes" to change ${filesText}.`,
       message: `A confirmation is required. This changes ${filesText}.`,
       status: 'stopped',
@@ -420,7 +420,7 @@ describe('init', () => {
       message:
         'Authenticated with HOTCODEPUSH_TOKEN as Anna Example (anna@example.com).',
       status: 'skipped',
-      step: 'sign-in',
+      step: 'sign_in',
     });
     expect(
       harness.requests.filter(({ url }) => url.includes('/device')),
@@ -482,12 +482,12 @@ describe('init', () => {
     expect(result.steps[0]).toEqual({
       message: 'Logged in as Anna Example (anna@example.com).',
       status: 'done',
-      step: 'sign-in',
+      step: 'sign_in',
     });
     expect(readUserConfig().pendingDeviceCode).toBeUndefined();
   });
 
-  it('should stop at the hook with E_XCODE_PROJECT and the manual step when the Xcode project cannot be parsed, still adding the Gradle line', async () => {
+  it('should stop at the hook with `xcode_project` and the manual step when the Xcode project cannot be parsed, still adding the Gradle line', async () => {
     const directoryPath = writeProject({ isPackageInstalled: true });
     writeFileSync(
       join(directoryPath, CAPACITOR_XCODE_PROJECT_FILE_PATH),
@@ -505,15 +505,15 @@ describe('init', () => {
 
     const result = harness.readJson() as InitResult;
     expect(result.steps.find(({ step }) => step === 'hook')).toMatchObject({
-      code: 'E_XCODE_PROJECT',
+      code: 'xcode_project',
       manualStep:
         "Add a Run Script phase after the app target's last phase that runs node_modules/@hotcodepush/capacitor-live-updates/scripts/binary-create-xcode.sh.",
       status: 'stopped',
     });
     expect(readStepStatuses(result)).toMatchObject({
-      'build': 'skipped',
-      'release': 'skipped',
-      'signing-key': 'skipped',
+      build: 'skipped',
+      release: 'skipped',
+      signing_key: 'skipped',
     });
     expect(
       readFileSync(join(directoryPath, CAPACITOR_APP_GRADLE_FILE_PATH), 'utf8'),
@@ -533,17 +533,17 @@ describe('init', () => {
 
     const result = harness.readJson() as InitResult;
     expect(readStepStatuses(result)).toEqual({
-      'app': 'skipped',
-      'build': 'skipped',
-      'configuration': 'skipped',
-      'hook': 'done',
-      'organization': 'stopped',
-      'package': 'done',
-      'release': 'skipped',
-      'sign-in': 'skipped',
-      'signing-key': 'skipped',
+      app: 'skipped',
+      build: 'skipped',
+      configuration: 'skipped',
+      hook: 'done',
+      organization: 'stopped',
+      package: 'done',
+      release: 'skipped',
+      sign_in: 'skipped',
+      signing_key: 'skipped',
     });
-    expect(result.steps[1]?.code).toBe('E_MISSING_PARAMETER');
+    expect(result.steps[1]?.code).toBe('missing_parameter');
     expect(result.steps[2]?.message).toBe('Waits on the organization step.');
     expect(result.steps[4]?.message).toBe('Waits on the app step.');
     expect(result.steps[8]?.message).toBe('Waits on the configuration step.');
@@ -568,22 +568,22 @@ describe('init', () => {
     const result = harness.readJson() as InitResult;
     expect(result.status).toBe('incomplete');
     expect(result.steps[1]).toEqual({
-      code: 'E_NOT_FOUND',
+      code: 'not_found',
       manualStep: 'The resource does not exist.',
       message: 'The resource does not exist.',
       status: 'stopped',
       step: 'organization',
     });
     expect(readStepStatuses(result)).toEqual({
-      'app': 'skipped',
-      'build': 'skipped',
-      'configuration': 'skipped',
-      'hook': 'done',
-      'organization': 'stopped',
-      'package': 'done',
-      'release': 'skipped',
-      'sign-in': 'skipped',
-      'signing-key': 'skipped',
+      app: 'skipped',
+      build: 'skipped',
+      configuration: 'skipped',
+      hook: 'done',
+      organization: 'stopped',
+      package: 'done',
+      release: 'skipped',
+      sign_in: 'skipped',
+      signing_key: 'skipped',
     });
   });
 
@@ -658,7 +658,7 @@ describe('init', () => {
       ).publicKeys,
     ).toEqual([expect.stringMatching(/^rsa-v1_5-sha256:/)]);
     expect(harness.readLines()).toContain(
-      '✓ signing-key    Generated a signing key pair, its private key in the file named above.',
+      '✓ signing_key    Generated a signing key pair, its private key in the file named above.',
     );
     expect(existsSync(join(directoryPath, 'hotcodepush-private-key.pem'))).toBe(
       true,
@@ -688,12 +688,12 @@ describe('init', () => {
 
     expect(
       (harness.readJson() as InitResult).steps.find(
-        ({ step }) => step === 'signing-key',
+        ({ step }) => step === 'signing_key',
       ),
     ).toEqual({
       message: 'The app already has a signing key.',
       status: 'skipped',
-      step: 'signing-key',
+      step: 'signing_key',
     });
   });
 
@@ -754,7 +754,7 @@ describe('init', () => {
 
     const result = harness.readJson() as InitResult;
     expect(result.steps.find(({ step }) => step === 'hook')).toEqual({
-      code: 'E_MISSING_PARAMETER',
+      code: 'missing_parameter',
       manualStep:
         'Neither ios nor android exists. Run "npx cap add ios" and "npx cap add android", or pass --ios-path and --android-path.',
       message: 'No value was given for --ios-path.',
@@ -846,7 +846,7 @@ describe('init', () => {
       harness.routes[`GET ${APPS_PATH}`] = () => Response.json([]);
       harness.routes[`POST ${APPS_PATH}`] = () =>
         Response.json(
-          { ...DEMO_APP, framework: 'react-native' },
+          { ...DEMO_APP, framework: 'react_native' },
           { status: 201 },
         );
 
@@ -859,7 +859,7 @@ describe('init', () => {
         ({ method }) => method === 'POST',
       );
       expect(await createRequest?.json()).toEqual({
-        framework: 'react-native',
+        framework: 'react_native',
         name: 'Demo',
       });
       expect(readJsonFile(join(directoryPath, 'hotcodepush.json'))).toEqual({
@@ -899,7 +899,7 @@ describe('init', () => {
       ]);
     }, 15_000);
 
-    it('should stop the hook with E_NATIVE_PROJECT and the manual step when the app delegate is Objective-C', async () => {
+    it('should stop the hook with `native_project` and the manual step when the app delegate is Objective-C', async () => {
       const directoryPath = writeReactNative({
         isPackageInstalled: true,
         projectConfig: {
@@ -926,7 +926,7 @@ describe('init', () => {
       );
       expect(result.status).toBe('incomplete');
       expect(result.steps.find(({ step }) => step === 'hook')).toEqual({
-        code: 'E_NATIVE_PROJECT',
+        code: 'native_project',
         manualStep: `Import <HotcodepushReactNativeCodePush/HotcodepushReactNativeCodePush-Swift.h> in ${appDelegatePath} and return [HotCodePush bundleURL] from bundleURL where it returns the embedded bundle.`,
         message: `The app delegate ${appDelegatePath} is Objective-C, and init edits only the Swift file that overrides bundleURL().`,
         status: 'stopped',

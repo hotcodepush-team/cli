@@ -26,13 +26,13 @@ describe('framework', () => {
     );
   }
 
-  it('should throw E_INVALID_JSON naming package.json when it does not parse', () => {
+  it('should throw `invalid_json` naming package.json when it does not parse', () => {
     const packageJsonPath = join(projectDirectoryPath, 'package.json');
     writeFileSync(packageJsonPath, '{ "dependencies": ');
 
     expect(() => detectFramework(projectDirectoryPath)).toThrow(
       expect.objectContaining({
-        code: 'E_INVALID_JSON',
+        code: 'invalid_json',
         message: `The file ${packageJsonPath} is not valid JSON. Unexpected end of JSON input.`,
       }),
     );
@@ -116,7 +116,7 @@ describe('framework', () => {
         CAPACITOR,
       ),
     ).rejects.toMatchObject({
-      code: 'E_MISSING_PARAMETER',
+      code: 'missing_parameter',
       fix: 'Pass --path, since there is no capacitor.config.json or capacitor.config.ts to read webDir from.',
       message: 'No value was given for --path.',
     });
@@ -136,7 +136,7 @@ describe('framework', () => {
         CAPACITOR,
       ),
     ).rejects.toMatchObject({
-      code: 'E_MISSING_PARAMETER',
+      code: 'missing_parameter',
       fix: 'Pass --path, since capacitor.config.ts sets no webDir the CLI can read as a quoted string.',
     });
   });

@@ -238,12 +238,12 @@ export async function uploadPack(
 }
 
 /**
- * The hashes the app lacks per its refusal to create the bundle or the binary: `E_UPLOAD_INCOMPLETE` names them in its details.
+ * The hashes the app lacks per its refusal to create the bundle or the binary: `upload_incomplete` names them in its details.
  */
 export function resolveMissingSha256s(error: unknown): string[] | undefined {
   if (
     !(error instanceof HotCodePushError) ||
-    error.code !== 'E_UPLOAD_INCOMPLETE'
+    error.code !== 'upload_incomplete'
   ) {
     return undefined;
   }
