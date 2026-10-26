@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { InvalidParameterError } from './errors.js';
 
 /**
- * The schedule `--progress` gives a release: the percentages it widens through and the minimum time and sample of each step.
+ * The schedule `--progression` gives a release: the percentages it widens through and the minimum time and sample of each step.
  */
 export type Progression = NonNullable<Release['progression']>;
 
@@ -19,10 +19,10 @@ type ProgressionGate =
   | { readyAt: string; type: 'time' };
 
 export interface ProgressionOptions {
-  progress?: boolean;
-  progressMinimumSeconds?: number;
-  progressMinimumUpdateCount?: number;
-  progressPercentages?: number[];
+  progression?: boolean;
+  progressionMinimumSeconds?: number;
+  progressionMinimumUpdateCount?: number;
+  progressionPercentages?: number[];
 }
 
 /**
@@ -49,50 +49,52 @@ const percentageListSchema = z
  * The flags of the schedule `release create` and `release rollout` give a release; the API checks the schedule itself.
  */
 export const progressionShape = {
-  progress: z
+  progression: z
     .boolean()
     .optional()
     .describe(
       'Widen the rollout step by step while the release stays healthy: 10, 50 and 100 percent by default, each step after at least an hour and 50 applied updates.',
     ),
-  progressMinimumSeconds: z.coerce
+  progressionMinimumSeconds: z.coerce
     .number()
     .int()
     .optional()
     .describe(
-      'The seconds a step lasts at least before the next one, with --progress; 3600 by default.',
+      'The seconds a step lasts at least before the next one, with --progression; 3600 by default.',
     ),
-  progressMinimumUpdateCount: z.coerce
+  progressionMinimumUpdateCount: z.coerce
     .number()
     .int()
     .optional()
     .describe(
-      'The applied updates each step needs before the next one, with --progress; 50 by default.',
+      'The applied updates each step needs before the next one, with --progression; 50 by default.',
     ),
-  progressPercentages: percentageListSchema
+  progressionPercentages: percentageListSchema
     .optional()
     .describe(
-      'The percentages the rollout widens through, rising, the last above the starting rollout, with --progress; 10,50,100 by default.',
+      'The percentages the rollout widens through, rising, the last above the starting rollout, with --progression; 10,50,100 by default.',
     ),
 };
 
 /**
- * The schedule from its flags, the defaults filling what is left out, or null without `--progress`;
+ * The schedule from its flags, the defaults filling what is left out, or null without `--progression`;
  * a schedule's flag without the switch is refused rather than taken as one.
  */
 export function resolveProgression(
   options: ProgressionOptions,
 ): Progression | null {
-  if (!options.progress) {
+  if (!options.progression) {
     assertNoProgressionFlags(options);
     return null;
   }
   return {
-    percentages: options.progressPercentages ?? DEFAULT_PROGRESSION.percentages,
+    percentages:
+      options.progressionPercentages ?? DEFAULT_PROGRESSION.percentages,
     stepMinimumSeconds:
-      options.progressMinimumSeconds ?? DEFAULT_PROGRESSION.stepMinimumSeconds,
+      options.progressionMinimumSeconds ??
+      DEFAULT_PROGRESSION.stepMinimumSeconds,
     stepMinimumUpdateCount:
-      options.progressMinimumUpdateCount ??
+      options.progressionMinimumUpdateCount ??
       DEFAULT_PROGRESSION.stepMinimumUpdateCount,
   };
 }
@@ -182,20 +184,20 @@ export function resolveProgressionText({
 
 function assertNoProgressionFlags(options: ProgressionOptions): void {
   const progressionFlags = [
-    options.progressMinimumSeconds === undefined
+    options.progressionMinimumSeconds === undefined
       ? undefined
-      : '--progress-minimum-seconds',
-    options.progressMinimumUpdateCount === undefined
+      : '--progression-minimum-seconds',
+    options.progressionMinimumUpdateCount === undefined
       ? undefined
-      : '--progress-minimum-update-count',
-    options.progressPercentages === undefined
+      : '--progression-minimum-update-count',
+    options.progressionPercentages === undefined
       ? undefined
-      : '--progress-percentages',
+      : '--progression-percentages',
   ].filter(flag => flag !== undefined);
   if (progressionFlags.length > 0) {
     throw new InvalidParameterError(
-      `The schedule's flags ${progressionFlags.join(' and ')} apply only with --progress.`,
-      'Pass --progress to give the release a schedule.',
+      `The schedule's flags ${progressionFlags.join(' and ')} apply only with --progression.`,
+      'Pass --progression to give the release a schedule.',
     );
   }
 }

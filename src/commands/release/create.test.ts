@@ -435,7 +435,7 @@ describe('release create', () => {
     });
   });
 
-  describe('when --progress gives the release a schedule', () => {
+  describe('when --progression gives the release a schedule', () => {
     beforeEach(() => {
       respondWithStagingChannel();
       harness.routes[`GET ${BUNDLES_PATH}/${READY_BUNDLE.id}`] = () =>
@@ -452,7 +452,7 @@ describe('release create', () => {
           app: DEMO_APP.id,
           bundle: READY_BUNDLE.id,
           channel: [STAGING_CHANNEL.id],
-          progress: true,
+          progression: true,
         },
         undefined,
       );
@@ -486,10 +486,10 @@ describe('release create', () => {
           bundle: READY_BUNDLE.id,
           channel: [STAGING_CHANNEL.id],
           json: true,
-          progress: true,
-          progressMinimumSeconds: 600,
-          progressMinimumUpdateCount: 20,
-          progressPercentages: [25, 100],
+          progression: true,
+          progressionMinimumSeconds: 600,
+          progressionMinimumUpdateCount: 20,
+          progressionPercentages: [25, 100],
           rolloutPercentage: 5,
           yes: true,
         },
@@ -510,13 +510,13 @@ describe('release create', () => {
       ]);
     });
 
-    it("should refuse a schedule's flag without --progress before any request", async () => {
+    it("should refuse a schedule's flag without --progression before any request", async () => {
       await expect(
         releaseCreateCommand.action(
           {
             app: DEMO_APP.id,
             bundle: READY_BUNDLE.id,
-            progressMinimumSeconds: 600,
+            progressionMinimumSeconds: 600,
             yes: true,
           },
           undefined,
@@ -524,7 +524,7 @@ describe('release create', () => {
       ).rejects.toMatchObject({
         code: 'invalid_parameter',
         message:
-          "The schedule's flags --progress-minimum-seconds apply only with --progress.",
+          "The schedule's flags --progression-minimum-seconds apply only with --progression.",
       });
       expect(harness.requests).toEqual([]);
     });

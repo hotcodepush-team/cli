@@ -116,7 +116,7 @@ export default defineCommand({
     'Release a bundle to a channel, uploading the build first unless --bundle or --from-channel names one, and wait until it is live.',
   examples: [
     'hotcodepush release create --path dist',
-    'hotcodepush release create --from-channel staging --channel production --binary ">=2.3.0" --progress --dry-run',
+    'hotcodepush release create --from-channel staging --channel production --binary ">=2.3.0" --progression --dry-run',
   ],
   options: defineCommandOptions({
     ...bundleUploadOptionShape,
@@ -161,7 +161,7 @@ export default defineCommand({
       .max(100)
       .optional()
       .describe(
-        "The share of devices the release reaches, 0 to 100; 100 by default, the schedule's first percentage with --progress.",
+        "The share of devices the release reaches, 0 to 100; 100 by default, the schedule's first percentage with --progression.",
       ),
   }),
   action: options =>

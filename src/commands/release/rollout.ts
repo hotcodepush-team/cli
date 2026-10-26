@@ -23,10 +23,10 @@ const rolloutPercentageSchema = z.coerce.number().int().min(0).max(100);
 
 export default defineCommand({
   description:
-    "Set a release's rollout percentage in either direction, or widen it step by step with --progress; a device that has the release keeps it.",
+    "Set a release's rollout percentage in either direction, or widen it step by step with --progression; a device that has the release keeps it.",
   examples: [
     'hotcodepush release rollout --release 43 --rollout-percentage 50',
-    'hotcodepush release rollout --channel staging --release 43 --rollout-percentage 10 --progress --yes',
+    'hotcodepush release rollout --channel staging --release 43 --rollout-percentage 10 --progression --yes',
   ],
   options: defineCommandOptions({
     ...channelOptionShape,
@@ -35,7 +35,7 @@ export default defineCommand({
     rolloutPercentage: rolloutPercentageSchema
       .optional()
       .describe(
-        "The share of devices the release reaches from now on, 0 to 100; with --progress where the schedule starts, the release's own percentage by default.",
+        "The share of devices the release reaches from now on, 0 to 100; with --progression where the schedule starts, the release's own percentage by default.",
       ),
   }),
   action: async options => {

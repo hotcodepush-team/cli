@@ -44,10 +44,10 @@ npx hotcodepush signing-key add --private-key-path my-app-private-key.pem
 npx hotcodepush signing-key list
 npx hotcodepush release create --path dist
 npx hotcodepush release create --bundle 17 --channel staging --rollout-percentage 10
-npx hotcodepush release create --path dist --rollout-percentage 10 --progress
+npx hotcodepush release create --path dist --rollout-percentage 10 --progression
 npx hotcodepush release create --from-channel staging --channel production --binary ">=2.3.0" --dry-run
 npx hotcodepush release rollout --release 43 --rollout-percentage 100
-npx hotcodepush release rollout --release 43 --progress
+npx hotcodepush release rollout --release 43 --progression
 npx hotcodepush release rollback
 npx hotcodepush release revoke --release-from 40 --yes
 npx hotcodepush release list --json
@@ -68,7 +68,7 @@ Every command prints its options and two examples with `--help`, and `--json` tu
 `login --api-url https://api.example.com` points the CLI at another API, and the choice persists in the CLI's `config.json` for every later command.
 An organization, app or channel is named by id or by name, `--app "My App"`, a member or an invitation by id or by email; `--app` defaults to the app id in the project's `hotcodepush.json` and `--channel` to the channel it names, `production` unless the file or `HOTCODEPUSH_CHANNEL` says otherwise.
 A command that changes what devices receive, sends a mail or cannot be undone — a release, a rollout, a pause, a revoke, a rollback, a delete, a spending-cap change, an invitation, an app transfer, an ownership transfer — asks once with the consequence, `--yes` confirming in scripts.
-`--progress` on `release create` and `release rollout` steps the rollout through 10, 50 and 100 percent, each step held at least an hour and fifty applied updates before the next, the three `--progress-*` flags overriding the schedule; `release get` shows the step reached and what it waits on.
+`--progression` on `release create` and `release rollout` steps the rollout through 10, 50 and 100 percent, each step held at least an hour and fifty applied updates before the next, the three `--progression-*` flags overriding the schedule; `release get` shows the step reached and what it waits on.
 `channel get` and `release get` print the auto-pause policy that applies, each value with where it comes from, the release's own, its channel's or the default of 5 %, 50 applied updates and pause; `--failure-action none` lets auto-pause watch and do nothing, for a channel whose crashes are its own, a progression still stopping its widening on the failure bound.
 On React Native and Expo `bundle upload` and `release create` package the bundles themselves: `react-native bundle` per platform, `expo export:embed` on Expo, compiled with Hermes where the app runs it, one bundle per platform and so one release per platform and channel; `--platform ios` limits both to one, and `--path` names a prepared bundle directory for the one platform `--platform` names.
 That directory holds the JavaScript under the name the platform's app loads, `main.jsbundle` on iOS or `index.android.bundle` on Android, and is refused without it, so an `expo export` directory is not one.

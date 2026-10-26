@@ -139,7 +139,7 @@ describe('release rollout', () => {
       {
         app: DEMO_APP.id,
         channel: STAGING_CHANNEL.id,
-        progress: true,
+        progression: true,
         release: '43',
         rolloutPercentage: 10,
       },
@@ -176,10 +176,10 @@ describe('release rollout', () => {
         app: DEMO_APP.id,
         channel: STAGING_CHANNEL.id,
         json: true,
-        progress: true,
-        progressMinimumSeconds: 600,
-        progressMinimumUpdateCount: 20,
-        progressPercentages: [20, 100],
+        progression: true,
+        progressionMinimumSeconds: 600,
+        progressionMinimumUpdateCount: 20,
+        progressionPercentages: [20, 100],
         release: '43',
         yes: true,
       },
@@ -219,7 +219,7 @@ describe('release rollout', () => {
     });
   });
 
-  it("should refuse a schedule's flag without --progress before any request", async () => {
+  it("should refuse a schedule's flag without --progression before any request", async () => {
     respondWithRolledOutRelease();
 
     await expect(
@@ -227,7 +227,7 @@ describe('release rollout', () => {
         {
           app: DEMO_APP.id,
           channel: STAGING_CHANNEL.id,
-          progressPercentages: [20, 100],
+          progressionPercentages: [20, 100],
           release: '43',
           rolloutPercentage: 20,
           yes: true,
@@ -237,7 +237,7 @@ describe('release rollout', () => {
     ).rejects.toMatchObject({
       code: 'invalid_parameter',
       message:
-        "The schedule's flags --progress-percentages apply only with --progress.",
+        "The schedule's flags --progression-percentages apply only with --progression.",
     });
     expect(harness.requests).toEqual([]);
   });
