@@ -20,8 +20,6 @@ export const APP_DELEGATE_FILE_PATH = join('ios', 'Demo', 'AppDelegate.swift');
 
 export const APP_GRADLE_FILE_PATH = join('android', 'app', 'build.gradle');
 
-export const CORE_POD_COMMIT = '0123456789abcdef0123456789abcdef01234567';
-
 export const JAVA_MAIN_APPLICATION_FILE_PATH = join(
   'android',
   'app',
@@ -51,8 +49,6 @@ export const OBJECTIVE_C_APP_DELEGATE_FILE_PATH = join(
   'Demo',
   'AppDelegate.mm',
 );
-
-export const PODFILE_PATH = join('ios', 'Podfile');
 
 export const SCENE_DELEGATE_FILE_PATH = join(
   'ios',
@@ -246,7 +242,7 @@ export function writeReactNativeProject({
   writeFile(join(directoryPath, APP_DELEGATE_FILE_PATH), APP_DELEGATE);
   writeFile(join(directoryPath, APP_GRADLE_FILE_PATH), APP_GRADLE);
   writeFile(join(directoryPath, MAIN_APPLICATION_FILE_PATH), MAIN_APPLICATION);
-  writeFile(join(directoryPath, PODFILE_PATH), PODFILE);
+  writeFile(join(directoryPath, 'ios', 'Podfile'), PODFILE);
   writeFile(
     join(directoryPath, XCODE_PROJECT_FILE_PATH),
     readFileSync(PBXPROJ_FIXTURE_PATH, 'utf8'),
@@ -255,7 +251,7 @@ export function writeReactNativeProject({
 }
 
 /**
- * The SDK as `node_modules` holds it after the install, naming the commit of the pod the Podfile pins.
+ * The SDK as `node_modules` holds it after the install.
  */
 export function writeInstalledSdk(directoryPath: string): void {
   writeJson(
@@ -267,7 +263,6 @@ export function writeInstalledSdk(directoryPath: string): void {
       'package.json',
     ),
     {
-      hotcodepush: { coreIos: CORE_POD_COMMIT },
       name: '@hotcodepush/react-native-code-push',
       version: '0.1.0',
     },

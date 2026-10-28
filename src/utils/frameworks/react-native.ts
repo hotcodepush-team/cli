@@ -11,7 +11,6 @@ import { resolveGradleEdit } from '../native-project-edit.js';
 import { runCommandLineVisibly } from '../package-manager.js';
 import {
   resolveBundleUrlEdit,
-  resolveCorePodEdit,
   resolveReactHostEdit,
 } from '../react-native-project.js';
 import type { Platform } from '../upload.js';
@@ -157,13 +156,11 @@ function resolveBundlerArgs(
  * Every line `init` adds to the native projects besides the Xcode phase, in the order it adds them.
  */
 function resolveEdits(
-  projectDirectoryPath: string,
   nativeProjectPaths: NativeProjectPaths,
 ): NativeProjectEdit[] {
   return [
     resolveGradleEdit(nativeProjectPaths.android, REACT_NATIVE_PACKAGE_NAME),
     ...resolveBundleWiringEdits(nativeProjectPaths),
-    resolveCorePodEdit(nativeProjectPaths.ios, projectDirectoryPath),
   ].filter(edit => edit !== undefined);
 }
 
@@ -189,7 +186,7 @@ async function resolveWiring(
       hasBinaryCreatePhase(xcodeProjectFilePath)
         ? []
         : [xcodeProjectFilePath]),
-      ...resolveEdits(directoryPath, nativeProjects)
+      ...resolveEdits(nativeProjects)
         .filter(edit => !edit.isRefused && !edit.isApplied())
         .map(({ filePath }) => filePath),
     ].map(filePath => relative(directoryPath, filePath)),
@@ -202,7 +199,6 @@ async function resolveWiring(
       ),
     wireBinaryCreateStep: editBlocker =>
       wireBinaryCreateStep(
-        directoryPath,
         nativeProjects,
         xcodeProjectFilePath,
         editBlocker,
@@ -212,12 +208,11 @@ async function resolveWiring(
 }
 
 /**
- * The Xcode phase, the Gradle line, the bundle wiring of both apps and the pod, each left alone when present, then
+ * The Xcode phase, the Gradle line and the bundle wiring of both apps, each left alone when present, then
  * `pod install` where the SDK's pod is not installed yet. An edit a file has no place for does not hold the others back:
  * they are made, and the step stops with the first one's manual step.
  */
 async function wireBinaryCreateStep(
-  projectDirectoryPath: string,
   nativeProjects: NativeProjects,
   xcodeProjectFilePath: string | undefined,
   editBlocker: ConfirmationRequiredError | undefined,
@@ -229,10 +224,9 @@ async function wireBinaryCreateStep(
   const isPhaseWired =
     xcodeProjectFilePath === undefined ||
     hasBinaryCreatePhase(xcodeProjectFilePath);
-  const pendingEdits = resolveEdits(
-    projectDirectoryPath,
-    nativeProjects,
-  ).filter(edit => !edit.isApplied());
+  const pendingEdits = resolveEdits(nativeProjects).filter(
+    edit => !edit.isApplied(),
+  );
   const arePodsInstalled = isPodInstalled(nativeProjects.ios);
   if (isPhaseWired && pendingEdits.length === 0 && arePodsInstalled) {
     return {

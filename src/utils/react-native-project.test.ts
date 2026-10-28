@@ -3,14 +3,11 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   APP_DELEGATE_FILE_PATH,
-  CORE_POD_COMMIT,
   JAVA_MAIN_APPLICATION_FILE_PATH,
   MAIN_APPLICATION_FILE_PATH,
   OBJECTIVE_C_APP_DELEGATE_FILE_PATH,
-  PODFILE_PATH,
   SCENE_DELEGATE_FILE_PATH,
   readProjectFile,
-  writeInstalledSdk,
   wireObjectiveCAndJavaByHand,
   writeObjectiveCAndJavaLayout,
   writeReactNativeProject,
@@ -19,7 +16,6 @@ import {
 import { NativeProjectError } from './errors.js';
 import {
   resolveBundleUrlEdit,
-  resolveCorePodEdit,
   resolveReactHostEdit,
 } from './react-native-project.js';
 
@@ -169,50 +165,6 @@ describe('react-native-project', () => {
       rmSync(join(directoryPath, 'ios'), { recursive: true });
 
       expect(resolveBundleUrlEdit(join(directoryPath, 'ios'))).toBeUndefined();
-    });
-  });
-
-  describe('resolveCorePodEdit', () => {
-    it('should pin the pod at the commit the installed SDK names, after use_native_modules!', () => {
-      writeInstalledSdk(directoryPath);
-      const edit = resolveCorePodEdit(
-        join(directoryPath, 'ios'),
-        directoryPath,
-      );
-      expect(edit?.isApplied()).toBe(false);
-
-      edit?.apply();
-
-      expect(edit?.isApplied()).toBe(true);
-      expect(readProjectFile(directoryPath, PODFILE_PATH)).toContain(
-        `  config = use_native_modules!\n  pod 'HotCodePushCore', :git => 'https://github.com/hotcodepush-team/core-ios.git', :commit => '${CORE_POD_COMMIT}'\n`,
-      );
-    });
-
-    it('should pin the pod when the Podfile names it outside a pod line', () => {
-      writeInstalledSdk(directoryPath);
-      const filePath = join(directoryPath, PODFILE_PATH);
-      writeFileSync(
-        filePath,
-        `${readProjectFile(directoryPath, PODFILE_PATH)}\npost_install do |installer|\n  # HotCodePushCore's resource bundle\nend\n`,
-      );
-      const edit = resolveCorePodEdit(
-        join(directoryPath, 'ios'),
-        directoryPath,
-      );
-      expect(edit?.isApplied()).toBe(false);
-
-      edit?.apply();
-
-      expect(readProjectFile(directoryPath, PODFILE_PATH)).toContain(
-        "  config = use_native_modules!\n  pod 'HotCodePushCore', :git =>",
-      );
-    });
-
-    it('should stop with the manual step when the SDK is not installed yet', () => {
-      expect(() =>
-        resolveCorePodEdit(join(directoryPath, 'ios'), directoryPath)?.apply(),
-      ).toThrow(NativeProjectError);
     });
   });
 

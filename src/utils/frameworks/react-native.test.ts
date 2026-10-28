@@ -7,7 +7,6 @@ import {
   JAVA_MAIN_APPLICATION_FILE_PATH,
   MAIN_APPLICATION_FILE_PATH,
   OBJECTIVE_C_APP_DELEGATE_FILE_PATH,
-  PODFILE_PATH,
   SCENE_DELEGATE_FILE_PATH,
   XCODE_PROJECT_FILE_PATH,
   readProjectFile,
@@ -123,7 +122,6 @@ describe('reactNativeFramework', () => {
         APP_GRADLE_FILE_PATH,
         APP_DELEGATE_FILE_PATH,
         MAIN_APPLICATION_FILE_PATH,
-        PODFILE_PATH,
       ]);
     });
 
@@ -139,9 +137,8 @@ describe('reactNativeFramework', () => {
     });
 
     describe('wireBinaryCreateStep', () => {
-      it('should wire the phase, the Gradle line, both apps and the pod, then run pod install', async () => {
+      it('should wire the phase, the Gradle line and both apps, then run pod install', async () => {
         const directoryPath = writeProject({ isPackageInstalled: true });
-        writeInstalledSdk(directoryPath);
         const wiring = await reactNativeFramework.resolveWiring(
           readProject(directoryPath),
           { yes: true },
@@ -151,7 +148,7 @@ describe('reactNativeFramework', () => {
 
         expect(outcome).toEqual({
           message:
-            'Wired the Create HotCodePush binary phase in Xcode, the Gradle task that runs the build step, HotCodePush.bundleURL() in AppDelegate.swift, HotCodePushReactHost in MainApplication.kt, the HotCodePushCore pod in the Podfile, the pods through "pod install".',
+            'Wired the Create HotCodePush binary phase in Xcode, the Gradle task that runs the build step, HotCodePush.bundleURL() in AppDelegate.swift, HotCodePushReactHost in MainApplication.kt, the pods through "pod install".',
           status: 'done',
           value: undefined,
         });
@@ -171,7 +168,6 @@ describe('reactNativeFramework', () => {
 
       it("should name SceneDelegate.swift and wire HotCodePush.bundleURL() there when the project has React Native 0.88's layout", async () => {
         const directoryPath = writeProject({ isPackageInstalled: true });
-        writeInstalledSdk(directoryPath);
         writeSceneDelegateLayout(directoryPath);
         const wiring = await reactNativeFramework.resolveWiring(
           readProject(directoryPath),
@@ -192,7 +188,6 @@ describe('reactNativeFramework', () => {
 
       it("should add the phase after React Native's bundling, running the SDK package script through with-environment.sh", async () => {
         const directoryPath = writeProject({ isPackageInstalled: true });
-        writeInstalledSdk(directoryPath);
 
         await (
           await reactNativeFramework.resolveWiring(readProject(directoryPath), {
@@ -214,7 +209,6 @@ describe('reactNativeFramework', () => {
 
       it('should skip what is wired and run nothing once the pods hold the SDK', async () => {
         const directoryPath = writeProject({ isPackageInstalled: true });
-        writeInstalledSdk(directoryPath);
         const options = { yes: true };
         await (
           await reactNativeFramework.resolveWiring(
@@ -261,7 +255,6 @@ describe('reactNativeFramework', () => {
 
       it('should make the edits it can and stop with the manual step of the one it cannot', async () => {
         const directoryPath = writeProject({ isPackageInstalled: true });
-        writeInstalledSdk(directoryPath);
         writeFile(
           join(directoryPath, MAIN_APPLICATION_FILE_PATH),
           'package com.example.demo\n\nclass MainApplication\n',
@@ -286,7 +279,6 @@ describe('reactNativeFramework', () => {
 
       it('should name only the files it edits, make those edits and stop with the manual step naming AppDelegate.mm when the apps are Objective-C and Java', async () => {
         const directoryPath = writeProject({ isPackageInstalled: true });
-        writeInstalledSdk(directoryPath);
         writeObjectiveCAndJavaLayout(directoryPath);
         const wiring = await reactNativeFramework.resolveWiring(
           readProject(directoryPath),
@@ -295,7 +287,6 @@ describe('reactNativeFramework', () => {
         expect(wiring.nativeFilePaths).toEqual([
           XCODE_PROJECT_FILE_PATH,
           APP_GRADLE_FILE_PATH,
-          PODFILE_PATH,
         ]);
 
         await expect(wiring.wireBinaryCreateStep(undefined)).rejects.toThrow(
@@ -308,15 +299,11 @@ describe('reactNativeFramework', () => {
         expect(readProjectFile(directoryPath, APP_GRADLE_FILE_PATH)).toContain(
           'hotcodepush.gradle',
         );
-        expect(readProjectFile(directoryPath, PODFILE_PATH)).toContain(
-          "pod 'HotCodePushCore'",
-        );
         expect(runCommandLineVisibly).not.toHaveBeenCalled();
       });
 
       it('should name no file to change on a rerun where only the Objective-C and Java files are left, so the manual step is what stops it', async () => {
         const directoryPath = writeProject({ isPackageInstalled: true });
-        writeInstalledSdk(directoryPath);
         writeObjectiveCAndJavaLayout(directoryPath);
         await expect(
           (
@@ -340,7 +327,6 @@ describe('reactNativeFramework', () => {
 
       it('should stop no more once the Objective-C and Java apps are wired by hand', async () => {
         const directoryPath = writeProject({ isPackageInstalled: true });
-        writeInstalledSdk(directoryPath);
         writeObjectiveCAndJavaLayout(directoryPath);
         await expect(
           (
@@ -440,7 +426,6 @@ describe('reactNativeFramework', () => {
 
     it('should report the hook and the host of Objective-C and Java apps wired by hand', async () => {
       const directoryPath = writeProject({ isPackageInstalled: true });
-      writeInstalledSdk(directoryPath);
       writeObjectiveCAndJavaLayout(directoryPath);
       await expect(
         (
