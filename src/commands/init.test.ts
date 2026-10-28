@@ -676,6 +676,42 @@ describe('init', () => {
       });
     });
 
+    it('should set the app in the file --config names and leave hotcodepush.json alone', async () => {
+      const directoryPath = writeProject({
+        isPackageInstalled: true,
+        projectConfig,
+      });
+      const configPath = join(directoryPath, 'demo.json');
+      writeFileSync(configPath, `${JSON.stringify(projectConfig, null, 2)}\n`);
+      respondWithSession([ACME_ORGANIZATION]);
+      harness.routes[`GET ${APPS_PATH}`] = () => Response.json([DEMO_APP]);
+
+      await initCommand.action(
+        {
+          app: DEMO_APP.id,
+          config: configPath,
+          json: true,
+          yes: true,
+          ...withCwd(directoryPath),
+        },
+        undefined,
+      );
+
+      expect(readJsonFile(configPath)).toEqual({
+        appId: DEMO_APP.id,
+        channel: PRODUCTION_CHANNEL.name,
+      });
+      expect(readJsonFile(join(directoryPath, 'hotcodepush.json'))).toEqual(
+        projectConfig,
+      );
+      const result = harness.readJson() as InitResult;
+      expect(result.steps[4]).toEqual({
+        message: 'Set the app in demo.json to Demo.',
+        status: 'done',
+        step: 'configuration',
+      });
+    });
+
     it('should offer the app picker interactively and set the picked app in hotcodepush.json', async () => {
       stubInteractiveTerminal();
       vi.mocked(select)

@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import type { App, HotCodePush, Organization } from '@hotcodepush/node';
 import { HotCodePushError } from '@hotcodepush/node';
 import { z } from 'zod';
@@ -84,6 +84,8 @@ interface InitOptions extends InteractivityOptions {
  * What the run knows about the project once the app is settled: the files the remaining steps edit and what its framework wires.
  */
 interface ProjectFiles {
+  /** The configuration file `--config` named or the one found, else `hotcodepush.json` in the project root. */
+  configFilePath: string;
   directoryPath: string;
   framework: FrameworkModule;
   packageJson: PackageJson;
@@ -157,8 +159,7 @@ export default defineCommand({
       { dependsOn: ['organization'] },
     );
     const projectFiles = await resolveProjectFiles(
-      directoryPath,
-      projectConfig,
+      projectConfigLocation,
       frameworkModule,
       options,
     );
@@ -364,13 +365,13 @@ async function resolveApp(
 }
 
 async function resolveProjectFiles(
-  directoryPath: string,
-  projectConfig: ProjectConfig | undefined,
+  { directoryPath, filePath, projectConfig }: ProjectConfigLocation,
   framework: FrameworkModule,
   options: InitOptions,
 ): Promise<ProjectFiles> {
   const packageJson = readPackageJson(directoryPath);
   return {
+    configFilePath: filePath ?? join(directoryPath, PROJECT_CONFIG_FILE_NAME),
     directoryPath,
     framework,
     packageJson,
@@ -413,14 +414,14 @@ async function resolveEditBlocker(
  * Without an app the configuration step waits, so `hotcodepush.json` is not among the files.
  */
 function resolveFilesToChange(
-  { projectConfig, wiring }: ProjectFiles,
+  { configFilePath, projectConfig, wiring }: ProjectFiles,
   app: App | undefined,
 ): string[] {
   return [
     ...wiring.packageFilePaths,
     ...(app === undefined || isConfigurationComplete(projectConfig, app)
       ? []
-      : [PROJECT_CONFIG_FILE_NAME]),
+      : [basename(configFilePath)]),
     ...wiring.nativeFilePaths,
   ];
 }
@@ -451,13 +452,13 @@ function installPackage(
  */
 async function writeConfiguration(
   hotCodePush: HotCodePush,
-  { directoryPath, projectConfig }: ProjectFiles,
+  { configFilePath, projectConfig }: ProjectFiles,
   app: App,
   editBlocker: ConfirmationRequiredError | undefined,
 ): Promise<StepOutcome<undefined>> {
   if (isConfigurationComplete(projectConfig, app)) {
     return {
-      message: `The file ${PROJECT_CONFIG_FILE_NAME} is already present.`,
+      message: `The file ${basename(configFilePath)} is already present.`,
       status: 'skipped',
       value: undefined,
     };
@@ -465,10 +466,11 @@ async function writeConfiguration(
   if (editBlocker !== undefined) {
     throw editBlocker;
   }
-  const filePath = join(directoryPath, PROJECT_CONFIG_FILE_NAME);
-  const sourceText = existsSync(filePath) ? readFileSync(filePath, 'utf8') : '';
+  const sourceText = existsSync(configFilePath)
+    ? readFileSync(configFilePath, 'utf8')
+    : '';
   writeFileSync(
-    filePath,
+    configFilePath,
     stringifyLikeSource(
       {
         ...projectConfig,
@@ -481,23 +483,28 @@ async function writeConfiguration(
     ),
   );
   return {
-    message: resolveConfigurationMessage(projectConfig, app),
+    message: resolveConfigurationMessage(
+      basename(configFilePath),
+      projectConfig,
+      app,
+    ),
     status: 'done',
     value: undefined,
   };
 }
 
 function resolveConfigurationMessage(
+  fileName: string,
   projectConfig: ProjectConfig | undefined,
   app: App,
 ): string {
   if (projectConfig === undefined) {
-    return `Wrote ${PROJECT_CONFIG_FILE_NAME}.`;
+    return `Wrote ${fileName}.`;
   }
   if (projectConfig.appId !== undefined && projectConfig.appId !== app.id) {
-    return `Set the app in ${PROJECT_CONFIG_FILE_NAME} to ${app.name}.`;
+    return `Set the app in ${fileName} to ${app.name}.`;
   }
-  return `Completed ${PROJECT_CONFIG_FILE_NAME}.`;
+  return `Completed ${fileName}.`;
 }
 
 /**
@@ -523,7 +530,7 @@ async function fetchDefaultChannelName(
  */
 async function createSigningKey(
   app: App | undefined,
-  { directoryPath }: ProjectFiles,
+  { configFilePath }: ProjectFiles,
   options: InitOptions,
 ): Promise<StepOutcome<undefined>> {
   if (
@@ -546,11 +553,10 @@ async function createSigningKey(
       value: undefined,
     };
   }
-  const configPath = join(directoryPath, PROJECT_CONFIG_FILE_NAME);
   await signingKeyCreateCommand.action(
     {
       app: app.id,
-      config: existsSync(configPath) ? configPath : undefined,
+      config: existsSync(configFilePath) ? configFilePath : undefined,
       json: options.json,
     },
     undefined,
@@ -606,7 +612,7 @@ function buildProject(
  * The first release through `release create`, interactively only; the web build must exist by then.
  */
 async function releaseFirst(
-  { directoryPath, framework, packageJson }: ProjectFiles,
+  { configFilePath, directoryPath, framework, packageJson }: ProjectFiles,
   isReleaseWanted: boolean,
   isBuilt: boolean,
   options: InitOptions,
@@ -637,7 +643,7 @@ async function releaseFirst(
   }
   await releaseCreateCommand.action(
     {
-      config: join(directoryPath, PROJECT_CONFIG_FILE_NAME),
+      config: configFilePath,
       json: options.json,
       yes: true,
     },
