@@ -79,10 +79,13 @@ export class InitRun {
   }
 }
 
+/**
+ * The rows the terminal prints: an API error's message is its manual step too, printed once.
+ */
 export function resolveStepRows(steps: InitStep[]): OutcomeRow[] {
   return steps.map(({ manualStep, message, status, step }) => ({
     label: step,
-    manualStep,
+    manualStep: manualStep === message ? undefined : manualStep,
     message,
     status,
   }));
