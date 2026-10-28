@@ -2,6 +2,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { PACKAGE_JSON } from '../config/consts.js';
 import {
   isNewerVersion,
   printUpdateNotice,
@@ -99,7 +100,9 @@ describe('update notice', () => {
       printUpdateNotice();
 
       expect(stderrWrite.mock.calls).toEqual([
-        ['HotCodePush CLI 1.2.0 is available; you run 0.0.0.\n'],
+        [
+          `HotCodePush CLI 1.2.0 is available; you run ${PACKAGE_JSON.version}.\n`,
+        ],
       ]);
     });
 
@@ -107,7 +110,7 @@ describe('update notice', () => {
       const stderrWrite = vi
         .spyOn(process.stderr, 'write')
         .mockImplementation(() => true);
-      writeUserConfig({ latestKnownVersion: '0.0.0' });
+      writeUserConfig({ latestKnownVersion: PACKAGE_JSON.version });
 
       printUpdateNotice();
 

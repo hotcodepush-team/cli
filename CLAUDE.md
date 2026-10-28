@@ -120,6 +120,7 @@ A project with an app config that is code, or with a JSON one that does not pars
   an Expo project's JSON app config one plugin entry,
   and `init` names the files it will change and asks once before touching them.
 - **The token** is `readToken()`: `HOTCODEPUSH_TOKEN` when set, then the keyring, then the `config.json` fallback that any keyring failure latches for the rest of the process.
+- **The API URL** is `readApiUrl()`: `HOTCODEPUSH_API_URL` when set, then the URL `login --api-url` stored in `config.json`, then production; an empty variable is unset.
 - **An upload never holds a file in memory**: every file is hashed and gzip-compressed through streams into a temporary directory,
   put as a `Blob` opened from disk so the client can retry it, and the Node client splits it into parts above its `SINGLE_UPLOAD_LIMIT_BYTES`; the packs go the same way.
   Only the hashes of the bundle's files the files list answers with `isStored=false` move, each once, then the full pack; the platform derives the delta packs and the patches by its own triggers, so the CLI reads no base, fetches no base file and computes no patch (cli#82, 2026-10-10).

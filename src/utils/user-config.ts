@@ -25,8 +25,15 @@ export interface UserConfig {
   token?: string;
 }
 
+/**
+ * `HOTCODEPUSH_API_URL` when set, so a CI reaches the API its `HOTCODEPUSH_TOKEN` belongs to, then the URL `login --api-url` stored; an empty variable is unset.
+ */
 export function readApiUrl(): string {
-  return readUserConfig().apiUrl ?? DEFAULT_API_URL;
+  return (
+    process.env.HOTCODEPUSH_API_URL ||
+    readUserConfig().apiUrl ||
+    DEFAULT_API_URL
+  ).replace(/\/+$/, '');
 }
 
 export function readUserConfig(): UserConfig {
