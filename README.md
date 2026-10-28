@@ -22,7 +22,7 @@ npx hotcodepush --help                                # every command; <command>
 ```
 
 Every command takes `--json` for machine-readable output and `--yes` to skip confirmations.
-In CI, set `HOTCODEPUSH_TOKEN` instead of logging in.
+In CI, set `HOTCODEPUSH_TOKEN` instead of logging in, and `HOTCODEPUSH_API_URL` when the token belongs to an API other than production.
 
 ### Telemetry
 

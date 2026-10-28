@@ -10,6 +10,7 @@ import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  readApiUrl,
   readUserConfig,
   resolveConfigDirectoryPath,
   writeUserConfig,
@@ -24,11 +25,30 @@ describe('user config', () => {
     configHomePath = mkdtempSync(join(tmpdir(), 'hotcodepush-'));
     vi.stubEnv('APPDATA', configHomePath);
     vi.stubEnv('XDG_CONFIG_HOME', configHomePath);
+    vi.stubEnv('HOTCODEPUSH_API_URL', undefined);
   });
 
   afterEach(() => {
     Object.defineProperty(process, 'platform', { value: originalPlatform });
     rmSync(configHomePath, { force: true, recursive: true });
+  });
+
+  it('should read the production API URL when neither the variable nor the config names one', () => {
+    expect(readApiUrl()).toBe('https://api.hotcodepush.com');
+  });
+
+  it('should read the API URL from HOTCODEPUSH_API_URL before the one login stored', () => {
+    writeUserConfig({ apiUrl: 'https://api.example.com' });
+    vi.stubEnv('HOTCODEPUSH_API_URL', 'https://api.staging.example.com/');
+
+    expect(readApiUrl()).toBe('https://api.staging.example.com');
+  });
+
+  it('should read the API URL login stored when HOTCODEPUSH_API_URL is empty', () => {
+    writeUserConfig({ apiUrl: 'https://api.example.com' });
+    vi.stubEnv('HOTCODEPUSH_API_URL', '');
+
+    expect(readApiUrl()).toBe('https://api.example.com');
   });
 
   it('should read an empty config when the file does not exist', () => {
