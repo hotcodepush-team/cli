@@ -1,7 +1,7 @@
 {
   "name": "hotcodepush",
   "description": "The HotCodePush CLI: set up, release and manage over-the-air (OTA) updates from the terminal and CI",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "private": false,
   "license": "MIT",
   "homepage": "https://hotcodepush.com",
