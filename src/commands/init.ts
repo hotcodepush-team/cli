@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { App, HotCodePush, Organization } from '@hotcodepush/node';
+import { HotCodePushError } from '@hotcodepush/node';
 import { z } from 'zod';
 import { defineCommand } from 'zodline';
 import { DOCS_URL, PROJECT_CONFIG_FILE_NAME } from '../config/consts.js';
@@ -43,7 +44,10 @@ import {
   resolveRunScriptCommandLine,
   runCommandLineVisibly,
 } from '../utils/package-manager.js';
-import type { ProjectConfig } from '../utils/project-config.js';
+import type {
+  ProjectConfig,
+  ProjectConfigLocation,
+} from '../utils/project-config.js';
 import {
   ID_SCHEMA,
   locateProjectConfig,
@@ -88,7 +92,7 @@ interface ProjectFiles {
 }
 
 /**
- * What the organization step settles: the organization, and the app when `hotcodepush.json` named it.
+ * What the organization step settles: the organization, and the app when `hotcodepush.json` names one that exists and `--app` is not given.
  */
 interface Scope {
   app: App | undefined;
@@ -128,9 +132,8 @@ export default defineCommand({
       ),
   }),
   action: async options => {
-    const { directoryPath, projectConfig } = locateProjectConfig(
-      options.config,
-    );
+    const projectConfigLocation = locateProjectConfig(options.config);
+    const { directoryPath, projectConfig } = projectConfigLocation;
     const framework = options.framework ?? detectFramework(directoryPath);
     const frameworkModule = resolveFrameworkModule(framework);
     const run = new InitRun();
@@ -147,6 +150,7 @@ export default defineCommand({
         resolveApp(
           requireValue(hotCodePush),
           requireValue(scope),
+          projectConfigLocation,
           framework,
           options,
         ),
@@ -158,7 +162,7 @@ export default defineCommand({
       frameworkModule,
       options,
     );
-    const editBlocker = await resolveEditBlocker(projectFiles, options);
+    const editBlocker = await resolveEditBlocker(projectFiles, app, options);
     await run.run('package', () => installPackage(projectFiles, editBlocker));
     await run.run(
       'configuration',
@@ -236,16 +240,20 @@ async function signIn(options: InitOptions): Promise<StepOutcome<HotCodePush>> {
 }
 
 /**
- * The organization of the app `hotcodepush.json` names, when it names one; otherwise `--organization`, used when it
- * exists and created when not; without the flag a picker with "create a new one", or non-interactively the only one.
+ * The organization of the app `hotcodepush.json` names, when it names one that exists and `--app` names no other;
+ * otherwise `--organization`, used when it exists and created when not; without the flag a picker with
+ * "create a new one", or non-interactively the only one.
  */
 async function resolveOrganization(
   hotCodePush: HotCodePush,
   projectConfig: ProjectConfig | undefined,
   options: InitOptions,
 ): Promise<StepOutcome<Scope>> {
-  if (projectConfig?.appId !== undefined) {
-    const app = await hotCodePush.apps.get({ appId: projectConfig.appId });
+  const app =
+    options.app === undefined && projectConfig?.appId !== undefined
+      ? await fetchExistingApp(hotCodePush, projectConfig.appId)
+      : undefined;
+  if (app !== undefined) {
     const organization = await hotCodePush.organizations.get({
       organizationId: app.organizationId,
     });
@@ -293,11 +301,12 @@ async function resolveOrganization(
 
 /**
  * The app `hotcodepush.json` names, as the organization step read it; otherwise `--app`'s rule as for the organization,
- * the creation carrying the framework.
+ * the creation carrying the framework. A file's app the API lacks is refused non-interactively, and a person picks or creates another.
  */
 async function resolveApp(
   hotCodePush: HotCodePush,
   { app, organization }: Scope,
+  { filePath, projectConfig }: ProjectConfigLocation,
   framework: Framework,
   options: InitOptions,
 ): Promise<StepOutcome<App>> {
@@ -307,6 +316,16 @@ async function resolveApp(
       status: 'done',
       value: app,
     };
+  }
+  if (
+    options.app === undefined &&
+    projectConfig?.appId !== undefined &&
+    !isInteractive(options)
+  ) {
+    throw new InvalidParameterError(
+      `The app ${projectConfig.appId} in ${filePath ?? PROJECT_CONFIG_FILE_NAME} does not exist.`,
+      `Pass --app with the app's id or name, or delete ${PROJECT_CONFIG_FILE_NAME} to create a new app.`,
+    );
   }
   const apps = await fetchApps(hotCodePush, organization.id);
   if (options.app !== undefined) {
@@ -369,9 +388,10 @@ async function resolveProjectFiles(
  */
 async function resolveEditBlocker(
   projectFiles: ProjectFiles,
+  app: App | undefined,
   options: InitOptions,
 ): Promise<ConfirmationRequiredError | undefined> {
-  const filePaths = resolveFilesToChange(projectFiles);
+  const filePaths = resolveFilesToChange(projectFiles, app);
   if (filePaths.length === 0) {
     return undefined;
   }
@@ -389,13 +409,16 @@ async function resolveEditBlocker(
   }
 }
 
-function resolveFilesToChange({
-  projectConfig,
-  wiring,
-}: ProjectFiles): string[] {
+/**
+ * Without an app the configuration step waits, so `hotcodepush.json` is not among the files.
+ */
+function resolveFilesToChange(
+  { projectConfig, wiring }: ProjectFiles,
+  app: App | undefined,
+): string[] {
   return [
     ...wiring.packageFilePaths,
-    ...(isConfigurationComplete(projectConfig)
+    ...(app === undefined || isConfigurationComplete(projectConfig, app)
       ? []
       : [PROJECT_CONFIG_FILE_NAME]),
     ...wiring.nativeFilePaths,
@@ -424,7 +447,7 @@ function installPackage(
 }
 
 /**
- * `hotcodepush.json` with the app and its default channel by name; a file present keeps what it has.
+ * `hotcodepush.json` with the app and its default channel by name; a file present keeps its other keys.
  */
 async function writeConfiguration(
   hotCodePush: HotCodePush,
@@ -432,7 +455,7 @@ async function writeConfiguration(
   app: App,
   editBlocker: ConfirmationRequiredError | undefined,
 ): Promise<StepOutcome<undefined>> {
-  if (isConfigurationComplete(projectConfig)) {
+  if (isConfigurationComplete(projectConfig, app)) {
     return {
       message: `The file ${PROJECT_CONFIG_FILE_NAME} is already present.`,
       status: 'skipped',
@@ -449,7 +472,7 @@ async function writeConfiguration(
     stringifyLikeSource(
       {
         ...projectConfig,
-        appId: projectConfig?.appId ?? app.id,
+        appId: app.id,
         ...(projectConfig?.channel !== undefined
           ? {}
           : { channel: await fetchDefaultChannelName(hotCodePush, app) }),
@@ -458,10 +481,23 @@ async function writeConfiguration(
     ),
   );
   return {
-    message: `${projectConfig === undefined ? 'Wrote' : 'Completed'} ${PROJECT_CONFIG_FILE_NAME}.`,
+    message: resolveConfigurationMessage(projectConfig, app),
     status: 'done',
     value: undefined,
   };
+}
+
+function resolveConfigurationMessage(
+  projectConfig: ProjectConfig | undefined,
+  app: App,
+): string {
+  if (projectConfig === undefined) {
+    return `Wrote ${PROJECT_CONFIG_FILE_NAME}.`;
+  }
+  if (projectConfig.appId !== undefined && projectConfig.appId !== app.id) {
+    return `Set the app in ${PROJECT_CONFIG_FILE_NAME} to ${app.name}.`;
+  }
+  return `Completed ${PROJECT_CONFIG_FILE_NAME}.`;
 }
 
 /**
@@ -645,6 +681,23 @@ async function confirmCreation(
   }
 }
 
+/**
+ * The app, or none when the API no longer has it: a copied project, a cloned demo, a reset environment.
+ */
+async function fetchExistingApp(
+  hotCodePush: HotCodePush,
+  appId: string,
+): Promise<App | undefined> {
+  try {
+    return await hotCodePush.apps.get({ appId });
+  } catch (error) {
+    if (error instanceof HotCodePushError && error.code === 'not_found') {
+      return undefined;
+    }
+    throw error;
+  }
+}
+
 function findNamed<TResource extends { id: string; name: string }>(
   resources: TResource[],
   reference: string,
@@ -661,10 +714,9 @@ function findNamed<TResource extends { id: string; name: string }>(
  */
 function isConfigurationComplete(
   projectConfig: ProjectConfig | undefined,
+  app: App,
 ): boolean {
-  return (
-    projectConfig?.appId !== undefined && projectConfig.channel !== undefined
-  );
+  return projectConfig?.appId === app.id && projectConfig.channel !== undefined;
 }
 
 function promptCreateOrPick(
