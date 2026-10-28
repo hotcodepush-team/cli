@@ -36,10 +36,8 @@ import {
   APP_GRADLE_FILE_PATH,
   MAIN_APPLICATION_FILE_PATH,
   OBJECTIVE_C_APP_DELEGATE_FILE_PATH,
-  PODFILE_PATH,
   XCODE_PROJECT_FILE_PATH,
   readProjectFile,
-  writeInstalledSdk,
   writeObjectiveCAndJavaLayout,
   writeReactNativeProject,
 } from '../../test/react-native-project.js';
@@ -834,14 +832,8 @@ describe('init', () => {
       vi.mocked(runCommandLineVisibly).mockReset();
     });
 
-    it('should install the SDK, write hotcodepush.json, and wire the phase, the Gradle line, both apps and the pod', async () => {
+    it('should install the SDK, write hotcodepush.json, and wire the phase, the Gradle line and both apps', async () => {
       const directoryPath = writeReactNative();
-      // the Podfile pins the commit the SDK names, which is there once the install ran
-      vi.mocked(runCommandLineVisibly).mockImplementation(({ command }) => {
-        if (command === 'npm') {
-          writeInstalledSdk(directoryPath);
-        }
-      });
       respondWithSession([ACME_ORGANIZATION]);
       harness.routes[`GET ${APPS_PATH}`] = () => Response.json([]);
       harness.routes[`POST ${APPS_PATH}`] = () =>
@@ -875,9 +867,6 @@ describe('init', () => {
       expect(
         readProjectFile(directoryPath, MAIN_APPLICATION_FILE_PATH),
       ).toContain('HotCodePushReactHost.getDefaultReactHost');
-      expect(readProjectFile(directoryPath, PODFILE_PATH)).toContain(
-        "pod 'HotCodePushCore'",
-      );
       expect(readProjectFile(directoryPath, XCODE_PROJECT_FILE_PATH)).toContain(
         'Create HotCodePush binary',
       );
@@ -892,7 +881,7 @@ describe('init', () => {
           /^Installed @hotcodepush\/react-native-code-push from https:\/\/pkg\.pr\.new\//,
         ),
         'Wrote hotcodepush.json.',
-        'Wired the Create HotCodePush binary phase in Xcode, the Gradle task that runs the build step, HotCodePush.bundleURL() in AppDelegate.swift, HotCodePushReactHost in MainApplication.kt, the HotCodePushCore pod in the Podfile, the pods through "pod install".',
+        'Wired the Create HotCodePush binary phase in Xcode, the Gradle task that runs the build step, HotCodePush.bundleURL() in AppDelegate.swift, HotCodePushReactHost in MainApplication.kt, the pods through "pod install".',
         'Run "hotcodepush signing-key create" to enable code signing.',
         'The command "hotcodepush release create" packages the bundles itself.',
         'Run "hotcodepush release create" to publish the first release.',
@@ -907,7 +896,6 @@ describe('init', () => {
           channel: PRODUCTION_CHANNEL.name,
         },
       });
-      writeInstalledSdk(directoryPath);
       writeObjectiveCAndJavaLayout(directoryPath);
       respondWithSession([ACME_ORGANIZATION]);
       respondWithConfiguredApp();
@@ -948,7 +936,7 @@ describe('init', () => {
 
       const result = harness.readJson() as InitResult;
       expect(result.steps.find(({ step }) => step === 'hook')?.message).toBe(
-        `A confirmation is required. This changes package.json, hotcodepush.json, ${XCODE_PROJECT_FILE_PATH}, ${APP_GRADLE_FILE_PATH}, ${APP_DELEGATE_FILE_PATH}, ${MAIN_APPLICATION_FILE_PATH}, ${PODFILE_PATH}.`,
+        `A confirmation is required. This changes package.json, hotcodepush.json, ${XCODE_PROJECT_FILE_PATH}, ${APP_GRADLE_FILE_PATH}, ${APP_DELEGATE_FILE_PATH}, ${MAIN_APPLICATION_FILE_PATH}.`,
       );
       expect(
         readProjectFile(directoryPath, APP_GRADLE_FILE_PATH),

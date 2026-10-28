@@ -1,6 +1,5 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
-import { REACT_NATIVE_PACKAGE_NAME } from '../config/consts.js';
 import { NativeProjectError } from './errors.js';
 import type { NativeProjectEdit } from './native-project-edit.js';
 import { resolveRefusedEdit } from './native-project-edit.js';
@@ -12,13 +11,6 @@ const BUNDLE_URL_CALL = 'HotCodePush.bundleURL()';
 const BUNDLE_URL_FIX = `Import HotcodepushReactNativeCodePush in the file that overrides bundleURL() and return ${BUNDLE_URL_CALL} from it where it returns the embedded bundle.`;
 
 const BUNDLE_URL_OVERRIDE = 'func bundleURL()';
-
-const CORE_POD_NAME = 'HotCodePushCore';
-
-const CORE_POD_LINE_START = `pod '${CORE_POD_NAME}'`;
-
-const CORE_POD_REPOSITORY_URL =
-  'https://github.com/hotcodepush-team/core-ios.git';
 
 const EMBEDDED_BUNDLE_URL_CALL =
   'Bundle.main.url(forResource: "main", withExtension: "jsbundle")';
@@ -93,49 +85,6 @@ export function resolveBundleUrlEdit(
         source
           .replace(lastImportLine, `${lastImportLine}\n${SWIFT_MODULE_IMPORT}`)
           .replace(EMBEDDED_BUNDLE_URL_CALL, BUNDLE_URL_CALL),
-      );
-    },
-  };
-}
-
-/**
- * Until `HotCodePushCore` is published, the Podfile pins the pod at the commit the installed SDK names in its
- * `package.json`, read when the edit is made, since `init` installs the SDK first; the pin falls away at publish.
- */
-export function resolveCorePodEdit(
-  iosProjectPath: string,
-  projectDirectoryPath: string,
-): NativeProjectEdit | undefined {
-  const filePath = join(iosProjectPath, 'Podfile');
-  if (!existsSync(filePath)) {
-    return undefined;
-  }
-  return {
-    description: 'the HotCodePushCore pod in the Podfile',
-    filePath,
-    isApplied: () =>
-      readFileSync(filePath, 'utf8').includes(CORE_POD_LINE_START),
-    apply: () => {
-      const source = readFileSync(filePath, 'utf8');
-      const commit = readCorePodCommit(projectDirectoryPath);
-      const nativeModulesLine = source
-        .split('\n')
-        .find(line => line.includes('use_native_modules!'));
-      if (commit === undefined || nativeModulesLine === undefined) {
-        throw new NativeProjectError(
-          commit === undefined
-            ? `The package ${REACT_NATIVE_PACKAGE_NAME} in node_modules names no ${CORE_POD_NAME} commit to pin.`
-            : `The Podfile ${filePath} has no use_native_modules! line to add the pod after.`,
-          `Add "pod '${CORE_POD_NAME}', :git => '${CORE_POD_REPOSITORY_URL}', :commit => '<sha>'" to the app target in ${filePath}, the commit the SDK's README names.`,
-        );
-      }
-      const indentation = /^\s*/.exec(nativeModulesLine)?.[0] ?? '';
-      writeFileSync(
-        filePath,
-        source.replace(
-          nativeModulesLine,
-          `${nativeModulesLine}\n${indentation}${CORE_POD_LINE_START}, :git => '${CORE_POD_REPOSITORY_URL}', :commit => '${commit}'`,
-        ),
       );
     },
   };
@@ -226,22 +175,6 @@ function hasBundleUrlOverride(filePath: string): boolean {
     existsSync(filePath) &&
     readFileSync(filePath, 'utf8').includes(BUNDLE_URL_OVERRIDE)
   );
-}
-
-function readCorePodCommit(projectDirectoryPath: string): string | undefined {
-  const packageJsonPath = join(
-    projectDirectoryPath,
-    'node_modules',
-    REACT_NATIVE_PACKAGE_NAME,
-    'package.json',
-  );
-  if (!existsSync(packageJsonPath)) {
-    return undefined;
-  }
-  const { hotcodepush } = JSON.parse(readFileSync(packageJsonPath, 'utf8')) as {
-    hotcodepush?: { coreIos?: string };
-  };
-  return hotcodepush?.coreIos;
 }
 
 function resolveReactHostFix(location: string): string {
