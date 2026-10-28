@@ -33,7 +33,7 @@ export const DOCS_URL = 'https://hotcodepush.com/docs';
 export const ERRORS_DOCS_URL = 'https://hotcodepush.com/docs/cli/errors';
 export const EXPO_PACKAGE_NAME = '@hotcodepush/expo-ota-updates';
 export const EXPO_PACKAGE_SPEC =
-  'https://pkg.pr.new/hotcodepush-team/expo-ota-updates/@hotcodepush/expo-ota-updates@bd2d070';
+  'https://pkg.pr.new/hotcodepush-team/expo-ota-updates/@hotcodepush/expo-ota-updates@0219169';
 export const INIT_MANUAL_STEP = 'Run "hotcodepush init".';
 export const ISSUES_URL = 'https://github.com/hotcodepush-team/cli/issues';
 export const KEYRING_ACCOUNT_NAME = 'token';
