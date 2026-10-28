@@ -4,7 +4,7 @@ The HotCodePush CLI: set up, release and manage over-the-air (OTA) updates for R
 
 ## Installation
 
-The CLI is not on npm yet; install the preview build of a commit on `main` as a dev dependency, `<sha>` being the commit's short hash:
+The CLI is not on npm yet. Install the preview build of a commit on `main` as a dev dependency, `<sha>` being the commit's short hash:
 
 ```sh
 npm install --save-dev https://pkg.pr.new/hotcodepush-team/cli/hotcodepush@<sha>
@@ -13,92 +13,22 @@ npm install --save-dev https://pkg.pr.new/hotcodepush-team/cli/hotcodepush@<sha>
 ## Usage
 
 ```sh
-npx hotcodepush init
-npx hotcodepush doctor --json
-npx hotcodepush open
-npx hotcodepush --help
 npx hotcodepush login
-npx hotcodepush organization create --name Acme
-npx hotcodepush member list
-npx hotcodepush member update --member bob@example.com --role admin
-npx hotcodepush invitation create --email anna@example.com --role member
-npx hotcodepush invitation accept
-npx hotcodepush audit-log list --type "channel.*" --created-since 7d
-npx hotcodepush sso-provider set --domain example.com --oidc-issuer https://login.example.com --oidc-client-id <id> --oidc-client-secret "$OIDC_CLIENT_SECRET"
-npx hotcodepush sso-provider verify
-npx hotcodepush organization update --spending-cap 100
-npx hotcodepush checkout create
-npx hotcodepush customer-portal-session create
-npx hotcodepush limit list
-npx hotcodepush usage get --month 2026-09
-npx hotcodepush app create --name "My App" --framework capacitor
-npx hotcodepush channel create --app "My App" --name staging
-npx hotcodepush channel pause --app "My App" --channel staging
-npx hotcodepush channel list --app "My App" --json
-npx hotcodepush bundle upload --path dist --bundle-version 1.4.2
-npx hotcodepush bundle list --json
-npx hotcodepush bundle list --source binary
-npx hotcodepush binary list
-npx hotcodepush signing-key create
-npx hotcodepush signing-key add --private-key-path my-app-private-key.pem
-npx hotcodepush signing-key list
-npx hotcodepush release create --path dist
-npx hotcodepush release create --bundle 17 --channel staging --rollout-percentage 10
-npx hotcodepush release create --path dist --rollout-percentage 10 --progression
-npx hotcodepush release create --from-channel staging --channel production --binary ">=2.3.0" --dry-run
-npx hotcodepush release rollout --release 43 --rollout-percentage 100
-npx hotcodepush release rollout --release 43 --progression
-npx hotcodepush release rollback
-npx hotcodepush release revoke --release-from 40 --yes
-npx hotcodepush release list --json
-npx hotcodepush audience get --binary ">=2.3.0" --rollout-percentage 10
-npx hotcodepush device list --attribute userId=42
-npx hotcodepush device probe --platform ios --binary-version 2.4.1 --binary-build 57
-npx hotcodepush statistics get --type fleet
-npx hotcodepush fingerprint
-npx hotcodepush fingerprint diff store-build.json fingerprint.json
+npx hotcodepush init                                  # wires the SDK and the build step into your project
+npx hotcodepush release create --path dist            # uploads the build and releases it to the project's channel
+npx hotcodepush release create --channel staging --rollout-percentage 10
+npx hotcodepush doctor                                # checks the setup
+npx hotcodepush --help                                # every command; <command> --help for its flags
 ```
 
-`init` takes a React Native, Expo, Capacitor or Cordova project from sign-in to the first release — the organization, the app, the SDK package from its pkg.pr.new build until it is published, `hotcodepush.json` and the build step — re-runnable at any step, each step `done`, `skipped` or `stopped` with the manual step; `doctor` is the read-only check of the same, and `open` opens the app's console page.
-On React Native `init` adds the Xcode phase "Create HotCodePush binary" after "Bundle React Native code and images" and one `apply from` line to `android/app/build.gradle`, which run the build step inside the native build, makes `AppDelegate.swift` and `MainApplication.kt` ask the SDK for the bundle React Native runs, pins the `HotCodePushCore` pod in the Podfile until it is published, and runs `pod install`; an edit a file has no place for is that step's manual step.
-On Expo `init` installs the package and adds its config plugin to the app config, `app.config.json` where the project has one and `app.json` otherwise; the plugin wires the native projects at `npx expo prebuild` as `init` wires a React Native project, so `init` edits no native file and runs no prebuild.
-Beside an app config that is code, or with a JSON one the CLI cannot parse, `init` edits no app config and the entry to add is that step's manual step.
-On Capacitor `init` adds the Xcode phase "Create HotCodePush binary" after the app target's last phase and one `apply from` line to `android/app/build.gradle`, which run the build step inside the native build, and removes the resource reference an earlier `init` added; on Cordova `init` runs `cordova plugin add`, and the plugin wires its own Xcode phase and Gradle task, so nothing is wired.
-Every command prints its options and two examples with `--help`, and `--json` turns its output into JSON for scripts and agents.
-`login --api-url https://api.example.com` points the CLI at another API, and the choice persists in the CLI's `config.json` for every later command.
-An organization, app or channel is named by id or by name, `--app "My App"`, a member or an invitation by id or by email; `--app` defaults to the app id in the project's `hotcodepush.json` and `--channel` to the channel it names, `production` unless the file or `HOTCODEPUSH_CHANNEL` says otherwise.
-A command that changes what devices receive, sends a mail or cannot be undone — a release, a rollout, a pause, a revoke, a rollback, a delete, a spending-cap change, an invitation, an app transfer, an ownership transfer — asks once with the consequence, `--yes` confirming in scripts.
-`--progression` on `release create` and `release rollout` steps the rollout through 10, 50 and 100 percent, each step held at least an hour and fifty applied updates before the next, the three `--progression-*` flags overriding the schedule; `release get` shows the step reached and what it waits on.
-`channel get` and `release get` print the auto-pause policy that applies, each value with where it comes from, the release's own, its channel's or the default of 5 %, 50 applied updates and pause; `--failure-action none` lets auto-pause watch and do nothing, for a channel whose crashes are its own, a progression still stopping its widening on the failure bound.
-On React Native and Expo `bundle upload` and `release create` package the bundles themselves: `react-native bundle` per platform, `expo export:embed` on Expo, compiled with Hermes where the app runs it, one bundle per platform and so one release per platform and channel; `--platform ios` limits both to one, and `--path` names a prepared bundle directory for the one platform `--platform` names.
-That directory holds the JavaScript under the name the platform's app loads, `main.jsbundle` on iOS or `index.android.bundle` on Android, and is refused without it, so an `expo export` directory is not one.
-`bundle upload` hashes every file of the build, Capacitor's `webDir` as `capacitor.config` sets it when the upload runs or Cordova's `www`, `--path` overriding, and on those two frameworks leaves out the native glue the binary carries, `cordova.js`, `cordova_plugins.js` and `plugins/`, saying so in one line; it signs the manifest when `hotcodepush.json` lists a public key, uploads only the files the app lacks, then the full pack, and records the commit it was built from; the platform derives the delta packs and the patches devices download.
-It signs with the private key file `--private-key-path` names, otherwise with the key in `HOTCODEPUSH_SIGNING_KEY`, which CI sets from a secret holding the file's content; `release create` takes both where it uploads.
-The bases are the bundles a device may run before it asks for the new one: the three newest earlier bundles with the same fingerprint and a platform in common, and the bundles the three newest binaries with that fingerprint ship on each of its platforms.
-On React Native and Expo the delta packs against the newest earlier bundle and the binaries carry the main JavaScript bundle as a patch in place of the whole file, where the patch is smaller.
-The bundles are compiled with React Native's default release flags, so they match what a store build embeds; a project that changes `hermesFlags` in its Gradle file or sets `SOURCEMAP_FILE` for its Xcode build still gets working updates, only with a larger download for the main bundle.
-`bundle list` shows the bundles you uploaded; `--source binary` shows the ones your binaries ship, which carry no number, and `--source all` both.
-`signing-key create` turns code signing on: it generates an RSA key pair of 4096 bits on this machine, registers the public key with the app, adds it to `publicKeys` in `hotcodepush.json` and writes the private key, which it never prints, to a new file — `hotcodepush-private-key.pem` in the working directory unless `--private-key-path` names another — after which the app releases only signed bundles.
-Keep the file out of version control: whoever holds it can sign the app's bundles.
-The CLI keeps no copy and HotCodePush receives only the public key, so a lost private key means a new key and a new store build that trusts it.
-`signing-key add` brings a key pair you already have: it reads the private key file `--private-key-path` names, derives the public key from it on this machine so the two halves cannot mismatch, registers that public key with the app and adds it to `publicKeys`, leaving the file where it is; a key that is no RSA key of 2048 bits or more is refused before anything is sent.
-`signing-key list` shows the fingerprints, and `signing-key delete` unregisters a key.
-`release create` uploads the web build unless `--bundle` names one already uploaded, releases it to every `--channel` named with the project's channel as the default, and waits until the release is live; the client keeps one `Idempotency-Key` across its own retries of a request, and a pipeline run again creates the release again, which after a revoke is the point.
-A release carries its conditions as flags — `--binary`, `--os`, `--attribute` and `--device` — and `--from-channel` releases what another channel serves; `--dry-run` publishes nothing and prints the audience the release would reach, the count `audience get` answers on its own.
-`release revoke` takes one release, every release from a number on with `--release-from`, a channel's whole log with `--all`, or every release of a bundle with `--bundle`; revoked is final, and the confirmation says how many releases move and where their devices land.
-`device probe` answers why a device did not update: it reads the live index as a device would, evaluates every release in the frontier for the facts given, or for a registered device with `--device`, and marks each condition passed, failed or unknown.
-`statistics get` reads the fleet, the updates or the usage of an app, chosen with `--type`, and `fingerprint` prints the native contract's hash with the packages and extra fingerprint paths behind it, without a login; `fingerprint diff` takes two files `fingerprint --json` wrote, the store build's first, and prints the packages and extra fingerprint paths added, removed or moved between them, so a release the store build cannot take names the package that moved; `completion` prints the script that completes the commands and their flags in bash, fish or zsh.
-The build step runs inside every native build, from the Xcode phase and the Gradle task the SDK ships, which pass in the platform, the embedded bundle's directory and where the resource file goes: an Xcode archive or a Gradle release variant runs `binary create`, which creates the store build's binary in HotCodePush, with the bundle it ships and its fingerprint, and writes the resource file the SDK reads; every other build runs `resource-file write`, which writes the same file and creates nothing. The version and build number come from the build itself on every framework, the processed `Info.plist` on iOS and the variant on Android. On Capacitor and Cordova the embedded manifest leaves out the same native glue, so it equals a release built from the same web build.
-A React Native or Expo build that bundled nothing, a debug build Metro serves, gets the file without an embedded bundle and with the channel only where `hotcodepush.json` names it by id, no binary, no request and no login, so every check in that build answers `skipped` with `build_debug`.
-`resource-file write` never fails for want of a token or an API: without a token, or with `HOTCODEPUSH_OFFLINE=1`, it writes the file without a channel, so the build takes no OTA updates, and says so. `binary create` behaves the same on a laptop, warning and creating no binary, and fails the build in CI, where a missing token, an unreachable API or a conflicting binary is a pipeline mistake someone must see.
+Every command takes `--json` for machine-readable output and `--yes` to skip confirmations.
+In CI, set `HOTCODEPUSH_TOKEN` instead of logging in.
 
-## Telemetry
+### Telemetry
 
-The CLI collects anonymous usage and error data to improve it.
-After each command it sends one event, `cli.command_finished`, to PostHog: the command's name, its outcome, the step `init` stopped at, the duration, the CLI's version, whether it ran in CI, and the project's framework.
-The event's id is a hash of the machine's host name. No argument, path or name from your project is ever sent.
-An error the CLI did not expect goes to Sentry with its code, the command's name and a stack whose file names are cut below `node_modules`. The error's message is not sent, and errors with a code of their own, your input or the API's answer, are never sent.
-Set `HOTCODEPUSH_TELEMETRY_DISABLED=1` or `DO_NOT_TRACK=1` to turn both off. The first run on a machine prints one line that says so.
+After each command, the CLI sends one anonymous event (command name, outcome, duration, version, CI flag, framework) to PostHog, and unexpected errors without their message to Sentry.
+No argument, path or name from your project is ever sent.
+Set `HOTCODEPUSH_TELEMETRY_DISABLED=1` or `DO_NOT_TRACK=1` to turn it off.
 
 ## Documentation
 
@@ -109,13 +39,14 @@ See [hotcodepush.com/docs/cli](https://hotcodepush.com/docs/cli).
 ```sh
 nvm use
 npm ci
-npm run lint
-npm run typecheck
+npm run build        # compiles src/ into dist/; node dist/index.js --help runs it
 npm test
-npm run build
+npm run lint && npm run typecheck
+npm run fmt          # Prettier, run before every commit
 ```
 
-`npm run fmt` formats the code with Prettier.
+Tests live next to the code they test as `*.test.ts`.
+`CLAUDE.md` holds the layout, the rules and how to add a command or a framework.
 
 ## License
 
