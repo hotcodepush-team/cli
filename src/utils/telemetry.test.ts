@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { HotCodePushError } from '@hotcodepush/node';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type * as constsModule from '../config/consts.js';
+import { PACKAGE_JSON } from '../config/consts.js';
 import {
   InvalidParameterError,
   ReportedFailureError,
@@ -114,7 +115,7 @@ describe('telemetry', () => {
         properties: {
           $geoip_disable: true,
           $process_person_profile: false,
-          cli_version: '0.0.0',
+          cli_version: PACKAGE_JSON.version,
           command: 'release create',
           duration_ms: 1235,
           framework: null,
@@ -168,8 +169,7 @@ describe('telemetry', () => {
       expect(init).toMatchObject({
         headers: {
           'Content-Type': 'application/x-sentry-envelope',
-          'X-Sentry-Auth':
-            'Sentry sentry_version=7, sentry_key=publickey, sentry_client=hotcodepush/0.0.0',
+          'X-Sentry-Auth': `Sentry sentry_version=7, sentry_key=publickey, sentry_client=hotcodepush/${PACKAGE_JSON.version}`,
         },
         method: 'POST',
         signal: expect.any(AbortSignal),
@@ -186,7 +186,7 @@ describe('telemetry', () => {
         event_id: envelopeHeader?.event_id,
         exception: { values: [{ type: 'RangeError', value: SCRUBBED_STACK }] },
         platform: 'node',
-        release: 'hotcodepush@0.0.0',
+        release: `hotcodepush@${PACKAGE_JSON.version}`,
         tags: { code: 'unexpected', command: 'bundle upload' },
         timestamp: envelopeHeader?.sent_at,
       });
