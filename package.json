@@ -48,10 +48,10 @@
     "@hotcodepush/node": "https://pkg.pr.new/hotcodepush-team/hotcodepush-node/@hotcodepush/node@cebeadc",
     "@hotcodepush/protocol": "https://pkg.pr.new/hotcodepush-team/protocol/@hotcodepush/protocol@313a015",
     "@napi-rs/keyring": "2.1.0",
-    "better-auth": "1.7.6",
+    "better-auth": "1.7.12",
     "fast-xml-parser": "5.11.2",
     "open": "11.0.4",
-    "xcode": "3.0.1",
+    "xcode": "4.0.0",
     "zod": "4.6.7",
     "zodline": "0.3.1"
   },
@@ -66,6 +66,6 @@
     "prettier": "3.9.8",
     "typescript": "5.9.3",
     "typescript-eslint": "8.70.0",
-    "vitest": "5.0.1"
+    "vitest": "5.0.5"
   }
 }
