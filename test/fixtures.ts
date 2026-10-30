@@ -173,8 +173,8 @@ export const BINARY: Binary = {
   version: '1.0',
 };
 
-/** The ready bundle's delta packs with their bases embedded: one built against the previous bundle, one requested against the binary's. */
-export const READY_BUNDLE_DELTA_PACKS: BundleDelta[] = [
+/** The ready bundle's deltas with their bases embedded: one built against the previous bundle, one requested against the binary's. */
+export const READY_BUNDLE_DELTAS: BundleDelta[] = [
   {
     baseBundle: PREVIOUS_BUNDLE,
     baseBundleId: PREVIOUS_BUNDLE.id,

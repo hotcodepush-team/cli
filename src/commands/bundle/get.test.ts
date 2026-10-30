@@ -4,7 +4,7 @@ import {
   DEMO_APP,
   PREVIOUS_BUNDLE,
   READY_BUNDLE,
-  READY_BUNDLE_DELTA_PACKS,
+  READY_BUNDLE_DELTAS,
 } from '../../../test/fixtures.js';
 import { InvalidParameterError } from '../../utils/errors.js';
 import bundleGetCommand from './get.js';
@@ -20,13 +20,13 @@ const NUMBER_SEARCH_PATH = `${BUNDLES_PATH}?limit=100&offset=0&query=17`;
 describe('bundle get', () => {
   const harness = useCommandHarness();
 
-  function respondWithBundle(deltaPacks: object[]): void {
+  function respondWithBundle(deltas: object[]): void {
     harness.routes[`GET ${BUNDLE_PATH}`] = () => Response.json(READY_BUNDLE);
-    harness.routes[`GET ${DELTAS_PATH}`] = () => Response.json(deltaPacks);
+    harness.routes[`GET ${DELTAS_PATH}`] = () => Response.json(deltas);
   }
 
-  it('should read the bundle named by its id and print it with its delta packs', async () => {
-    respondWithBundle(READY_BUNDLE_DELTA_PACKS);
+  it('should read the bundle named by its id and print it with its deltas', async () => {
+    respondWithBundle(READY_BUNDLE_DELTAS);
 
     await bundleGetCommand.action(
       { app: DEMO_APP.id, bundle: READY_BUNDLE.id },
@@ -41,7 +41,7 @@ describe('bundle get', () => {
       'Status       ready',
       'Platforms    android, ios',
       'Size         812.3 kB',
-      'Delta packs  #16: 48.2 kB, 2 patches, built; embedded: requested',
+      'Deltas       #16: 48.2 kB, 2 patches, built; embedded: requested',
       'Fingerprint  none',
       `Commit       ${READY_BUNDLE.gitSha}`,
       'Expires      in use',
@@ -49,7 +49,7 @@ describe('bundle get', () => {
     ]);
   });
 
-  it('should print none for the delta packs when the bundle has none', async () => {
+  it('should print none for the deltas when the bundle has none', async () => {
     respondWithBundle([]);
 
     await bundleGetCommand.action(
@@ -57,13 +57,13 @@ describe('bundle get', () => {
       undefined,
     );
 
-    expect(harness.readLines()).toContain('Delta packs  none');
+    expect(harness.readLines()).toContain('Deltas       none');
   });
 
   it("should resolve the number to its bundle's id through the list's search and read the bundle by it", async () => {
     harness.routes[`GET ${NUMBER_SEARCH_PATH}`] = () =>
       Response.json([{ ...PREVIOUS_BUNDLE, number: 117 }, READY_BUNDLE]);
-    respondWithBundle(READY_BUNDLE_DELTA_PACKS);
+    respondWithBundle(READY_BUNDLE_DELTAS);
 
     await bundleGetCommand.action(
       { app: DEMO_APP.id, bundle: '17' },
@@ -85,7 +85,7 @@ describe('bundle get', () => {
     async (_, bundle) => {
       harness.routes[`GET ${NUMBER_SEARCH_PATH}`] = () =>
         Response.json([READY_BUNDLE]);
-      respondWithBundle(READY_BUNDLE_DELTA_PACKS);
+      respondWithBundle(READY_BUNDLE_DELTAS);
 
       await bundleGetCommand.action(
         { app: DEMO_APP.id, bundle, json: true },
@@ -94,7 +94,7 @@ describe('bundle get', () => {
 
       expect(harness.readJson()).toEqual({
         ...READY_BUNDLE,
-        deltaPacks: READY_BUNDLE_DELTA_PACKS,
+        deltas: READY_BUNDLE_DELTAS,
       });
     },
   );

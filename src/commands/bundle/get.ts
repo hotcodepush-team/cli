@@ -17,7 +17,7 @@ import { readProjectConfig } from '../../utils/project-config.js';
 import { fetchAppId } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
-  description: 'Print a bundle, by its number or id, with its delta packs.',
+  description: 'Print a bundle, by its number or id, with its deltas.',
   examples: [
     'hotcodepush bundle get --bundle 17',
     'hotcodepush bundle get --bundle 17 --json',
@@ -31,7 +31,7 @@ export default defineCommand({
       readProjectConfig(options.config),
     );
     const fetchedBundle = await fetchBundle(hotCodePush, appId, options);
-    const fetchedDeltaPacks = await fetchAllPages(page =>
+    const fetchedDeltas = await fetchAllPages(page =>
       hotCodePush.apps.bundles.deltas.list({
         ...page,
         appId,
@@ -40,7 +40,7 @@ export default defineCommand({
       }),
     );
     if (options.json) {
-      printJson({ ...fetchedBundle, deltaPacks: fetchedDeltaPacks });
+      printJson({ ...fetchedBundle, deltas: fetchedDeltas });
       return;
     }
     printDetails([
@@ -54,7 +54,7 @@ export default defineCommand({
       ['Status', fetchedBundle.status],
       ['Platforms', fetchedBundle.platforms.join(', ')],
       ['Size', resolveByteText(fetchedBundle.sizeBytes)],
-      ['Delta packs', resolveDeltaPacksText(fetchedDeltaPacks)],
+      ['Deltas', resolveDeltasText(fetchedDeltas)],
       ['Fingerprint', fetchedBundle.fingerprint ?? 'none'],
       ['Commit', fetchedBundle.gitSha ?? 'unknown'],
       ['Expires', fetchedBundle.expiresAt ?? 'in use'],
@@ -64,17 +64,17 @@ export default defineCommand({
 });
 
 /**
- * The delta packs on one line, each by its base's number, `embedded` for a binary's bundle: `#16: 48.2 kB, 2 patches, built`,
+ * The deltas on one line, each by its base's number, `embedded` for a binary's bundle: `#16: 48.2 kB, 2 patches, built`,
  * a pack without a build, requested or failed, by its status alone.
  */
-function resolveDeltaPacksText(deltaPacks: BundleDelta[]): string {
-  if (deltaPacks.length === 0) {
+function resolveDeltasText(deltas: BundleDelta[]): string {
+  if (deltas.length === 0) {
     return 'none';
   }
-  return deltaPacks.map(resolveDeltaPackText).join('; ');
+  return deltas.map(resolveDeltaText).join('; ');
 }
 
-function resolveDeltaPackText({
+function resolveDeltaText({
   baseBundle,
   patchCount,
   sizeBytes,

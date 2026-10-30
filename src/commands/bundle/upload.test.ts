@@ -343,7 +343,7 @@ describe('bundle upload', () => {
     });
   });
 
-  it('should read no base and upload no delta pack, printing only the files moved and their bytes under --json', async () => {
+  it('should read no base and upload no delta, printing only the files moved and their bytes under --json', async () => {
     respondWithUploadRoutes();
 
     await bundleUploadCommand.action(
