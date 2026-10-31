@@ -156,6 +156,7 @@ function checkConfiguration({
   if (projectConfig === undefined) {
     return {
       check: 'configuration',
+      code: 'project_config_missing',
       manualStep: INIT_MANUAL_STEP,
       message: `There is no ${PROJECT_CONFIG_FILE_NAME} in ${directoryPath} or a directory above it.`,
       status: 'failed',
@@ -165,6 +166,7 @@ function checkConfiguration({
   if (problems.length > 0) {
     return {
       check: 'configuration',
+      code: 'project_config_invalid',
       manualStep: INIT_MANUAL_STEP,
       message: `The file ${PROJECT_CONFIG_FILE_NAME} ${problems.join(' and ')}.`,
       status: 'failed',
@@ -227,17 +229,19 @@ async function checkSessionAndApp({
 }
 
 function resolveFailedSessionCheck(error: unknown): DoctorCheck {
+  const { code, fix, message } = resolveCliError(error);
   if (isUnauthenticatedError(error) || error instanceof NotLoggedInError) {
     return {
       check: 'session',
+      code,
       manualStep: 'Run "hotcodepush login", or set a valid HOTCODEPUSH_TOKEN.',
       message: 'The API does not accept the credential.',
       status: 'failed',
     };
   }
-  const { fix, message } = resolveCliError(error);
   return {
     check: 'session',
+    code,
     manualStep: fix ?? undefined,
     message: `The credential cannot be checked. ${resolveSentence(message)}`,
     status: 'failed',
@@ -285,6 +289,7 @@ async function checkApp(
       app: undefined,
       check: {
         check: 'app',
+        code: resolveCliError(error).code,
         manualStep: INIT_MANUAL_STEP,
         message: `The API does not know the app or the channel. ${resolveSentence(error instanceof Error ? error.message : String(error))}`,
         status: 'failed',
@@ -309,6 +314,7 @@ async function checkSigningKey(
     ) {
       return {
         check: 'signing_key',
+        code: 'public_key_unlisted',
         manualStep: `Run "hotcodepush signing-key list --json" and add each publicKey to publicKeys in ${PROJECT_CONFIG_FILE_NAME}.`,
         message: `The app has a signing key and ${PROJECT_CONFIG_FILE_NAME} lists none.`,
         status: 'failed',
@@ -321,6 +327,7 @@ async function checkSigningKey(
     if (unregisteredKeyCount > 0) {
       return {
         check: 'signing_key',
+        code: 'public_key_unregistered',
         manualStep:
           'Run "hotcodepush signing-key list --json" and keep in publicKeys only the keys it prints.',
         message: `The file ${PROJECT_CONFIG_FILE_NAME} lists ${resolveQuantityText(unregisteredKeyCount, 'public key')} the app has not registered.`,
@@ -410,6 +417,7 @@ async function checkHosts(): Promise<DoctorCheck> {
   if (unreachable.length > 0) {
     return {
       check: 'hosts',
+      code: 'host_unreachable',
       manualStep:
         'Check the network, the API URL in config.json and the HOTCODEPUSH_*_BASE_URL variables.',
       message: `The CLI cannot reach ${unreachable.join(', ')}.`,
@@ -452,9 +460,10 @@ function checkVersions({
 }
 
 function resolveFailedCheck(check: string, error: unknown): DoctorCheck {
-  const { fix, message } = resolveCliError(error);
+  const { code, fix, message } = resolveCliError(error);
   return {
     check,
+    code,
     manualStep: fix ?? undefined,
     message: resolveSentence(message),
     status: 'failed',

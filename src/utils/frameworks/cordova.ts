@@ -76,6 +76,7 @@ function checkHook({ packageJson }: FrameworkProject): FrameworkCheck {
       }
     : {
         check: 'hook',
+        code: 'wiring_missing',
         manualStep: `Run "${resolveCommandLineText(PLUGIN_ADD_COMMAND_LINE)}".`,
         message: `The plugin ${CORDOVA_PACKAGE_NAME} is not among package.json's cordova plugins.`,
         status: 'failed',
@@ -88,6 +89,7 @@ function checkInsecureFileMode({
   return isInsecureFileModeEnabled(readWidget(directoryPath))
     ? {
         check: 'android_file_mode',
+        code: 'insecure_file_mode',
         manualStep:
           'The plugin serves no update from file:// and stays off. Remove the preference.',
         message: `The file ${CONFIG_FILE_NAME} sets ${INSECURE_FILE_MODE_PREFERENCE_NAME}, which loads the Android app from file://.`,

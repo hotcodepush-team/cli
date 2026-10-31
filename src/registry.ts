@@ -40,7 +40,6 @@ export const commandRegistry: CommandRegistry = {
   'invitation create': () => import('./commands/invitation/create.js'),
   'invitation delete': () => import('./commands/invitation/delete.js'),
   'invitation list': () => import('./commands/invitation/list.js'),
-  'limit get': () => import('./commands/limit/get.js'),
   'limit list': () => import('./commands/limit/list.js'),
   'login': () => import('./commands/login.js'),
   'logout': () => import('./commands/logout.js'),
@@ -75,5 +74,14 @@ export const commandRegistry: CommandRegistry = {
   'statistics get': () => import('./commands/statistics/get.js'),
   'usage get': () => import('./commands/usage/get.js'),
   'usage list': () => import('./commands/usage/list.js'),
+  'webhook create': () => import('./commands/webhook/create.js'),
+  'webhook delete': () => import('./commands/webhook/delete.js'),
+  'webhook get': () => import('./commands/webhook/get.js'),
+  'webhook list': () => import('./commands/webhook/list.js'),
+  'webhook test': () => import('./commands/webhook/test.js'),
+  'webhook update': () => import('./commands/webhook/update.js'),
+  'webhook-delivery list': () => import('./commands/webhook-delivery/list.js'),
+  'webhook-delivery redeliver': () =>
+    import('./commands/webhook-delivery/redeliver.js'),
   'whoami': () => import('./commands/whoami.js'),
 };

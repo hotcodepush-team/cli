@@ -35,7 +35,7 @@ export function ignoreUserConfigErrors<T>(readOrWrite: () => T): T | undefined {
 // The variable comes first, so a CI reaches the API its `HOTCODEPUSH_TOKEN` belongs to.
 export function readApiUrl(): string {
   return (
-    process.env.HOTCODEPUSH_API_URL ||
+    process.env.HOTCODEPUSH_API_BASE_URL ||
     readUserConfig().apiUrl ||
     DEFAULT_API_URL
   ).replace(/\/+$/, '');

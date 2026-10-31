@@ -60,6 +60,7 @@ export function checkEdits(
   if (missingFilePaths.length > 0 || isPhaseMissing) {
     return {
       check,
+      code: 'wiring_missing',
       manualStep: INIT_MANUAL_STEP,
       message: `The wiring is missing from ${[...(isPhaseMissing ? ['the Xcode project'] : []), ...missingFilePaths].join(' and ')}.`,
       status: 'failed',

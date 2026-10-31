@@ -13,12 +13,21 @@ import { reactNativeFramework } from './react-native.js';
 // A module without a build output gives the reason, and `--path` must then name the directory.
 export type BuildDirectory = { missingReason: string } | { path: string };
 
-export interface FrameworkCheck {
-  check: string;
-  manualStep?: string;
-  message: string;
-  status: 'failed' | 'ok' | 'skipped';
-}
+// A failed check carries a code, so the init skill can branch on why it failed.
+export type FrameworkCheck =
+  | {
+      check: string;
+      code: string;
+      manualStep?: string;
+      message: string;
+      status: 'failed';
+    }
+  | {
+      check: string;
+      manualStep?: undefined;
+      message: string;
+      status: 'ok' | 'skipped';
+    };
 
 export interface FrameworkModule {
   // Files the platform copies beside the web build. They stay out of the embedded manifest and of an upload alike.

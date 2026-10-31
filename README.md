@@ -22,11 +22,11 @@ npx hotcodepush --help                                # every command; <command>
 ```
 
 Every command takes `--json` for machine-readable output and `--yes` to skip confirmations.
-In CI, set `HOTCODEPUSH_TOKEN` instead of logging in, and `HOTCODEPUSH_API_URL` when the token belongs to an API other than production.
+In CI, set `HOTCODEPUSH_TOKEN` instead of logging in, and `HOTCODEPUSH_API_BASE_URL` when the token belongs to an API other than production.
 
 ### Telemetry
 
-After each command, the CLI sends one anonymous event (command name, outcome, duration, version, CI flag, framework) to PostHog, and unexpected errors without their message to Sentry.
+After each command, the CLI sends one anonymous event (`command`, `outcome`, `stopped_step` for `init`, `duration_ms`, `cli_version`, `is_ci`, `framework` and `source`) to PostHog, and unexpected errors without their message to Sentry.
 No argument, path or name from your project is ever sent.
 Set `HOTCODEPUSH_TELEMETRY_DISABLED=1` or `DO_NOT_TRACK=1` to turn it off.
 

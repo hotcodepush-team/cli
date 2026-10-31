@@ -84,5 +84,5 @@ async function fetchLatestVersion(): Promise<string | undefined> {
 
 // Nobody updates from a CI log line.
 function isUpdateNoticeEnabled(): boolean {
-  return !isCi() && process.env.HOTCODEPUSH_NO_UPDATE_NOTIFIER !== '1';
+  return !isCi() && process.env.HOTCODEPUSH_UPDATE_NOTICE_DISABLED !== '1';
 }

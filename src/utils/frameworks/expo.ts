@@ -103,6 +103,7 @@ function checkPluginEntry({ directoryPath }: FrameworkProject): FrameworkCheck {
   const appConfigFileName = codeFileName ?? jsonFileName;
   return {
     check: 'hook',
+    code: 'wiring_missing',
     manualStep: isPluginEntryEditable(directoryPath, appConfigFileNames)
       ? INIT_MANUAL_STEP
       : resolvePluginEntryStep(appConfigFileName),

@@ -16,6 +16,8 @@ import type {
   SigningKey,
   SsoProvider,
   User,
+  Webhook,
+  WebhookDelivery,
 } from '@hotcodepush/node';
 import type {
   CompletionCommand,
@@ -441,6 +443,35 @@ export const VERIFIED_SAML_SSO_PROVIDER: SsoProvider = {
   domainVerified: true,
   issuer: 'https://idp.example.com',
   type: 'saml',
+};
+
+export const WEBHOOK: Webhook = {
+  appId: null,
+  consecutiveFailureCount: 0,
+  createdAt: '2026-09-12T08:00:00.000Z',
+  events: ['release.created', 'release.paused'],
+  format: 'raw',
+  id: '3c9e7a52-8d14-4b6f-a0e2-5f71c3d8b946',
+  isEnabled: true,
+  name: 'releases',
+  organizationId: ACME_ORGANIZATION.id,
+  updatedAt: '2026-09-12T08:00:00.000Z',
+  url: 'https://hooks.example.com/hotcodepush',
+};
+
+// The receiver answered 500 to every attempt.
+export const FAILED_WEBHOOK_DELIVERY: WebhookDelivery = {
+  attemptCount: 3,
+  auditRowId: '7e1b4d93-2a6c-4f08-b5d1-8c3e9f2a6b70',
+  createdAt: '2026-09-12T09:00:00.000Z',
+  id: '9a4f2e71-3b8c-4d65-b1e7-0c2d5f8a6e93',
+  nextAttemptAt: null,
+  responseBody: 'Internal Server Error',
+  responseCode: 500,
+  status: 'failed',
+  type: 'release.created',
+  updatedAt: '2026-09-12T09:30:00.000Z',
+  webhookId: WEBHOOK.id,
 };
 
 export const OWNER_MEMBER: Member = {

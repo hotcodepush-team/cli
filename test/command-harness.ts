@@ -64,7 +64,7 @@ export function useCommandHarness(): CommandHarness {
     vi.stubEnv('APPDATA', temporaryDirectoryPath);
     vi.stubEnv('CI', undefined);
     // The update check would ask the real npm registry, not the faked API.
-    vi.stubEnv('HOTCODEPUSH_NO_UPDATE_NOTIFIER', '1');
+    vi.stubEnv('HOTCODEPUSH_UPDATE_NOTICE_DISABLED', '1');
     vi.stubEnv('HOTCODEPUSH_SIGNING_KEY', undefined);
     vi.stubEnv('HOTCODEPUSH_TOKEN', TOKEN);
     vi.stubEnv('XDG_CONFIG_HOME', temporaryDirectoryPath);
