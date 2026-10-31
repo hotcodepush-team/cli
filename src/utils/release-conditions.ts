@@ -13,9 +13,9 @@ import { InvalidParameterError } from './errors.js';
 
 export interface ConditionOptions {
   attribute?: string[];
-  binary?: string;
+  binaryVersion?: string;
   device?: string[];
-  os?: string;
+  osVersion?: string;
 }
 
 type AudienceQuery = Omit<GetAudienceOptions, 'appId' | 'channelId'>;
@@ -29,7 +29,7 @@ export const conditionOptionShape = {
     .describe(
       'An attribute the app sets that the device must carry, key=value, repeatable.',
     ),
-  binary: z
+  binaryVersion: z
     .string()
     .optional()
     .describe(
@@ -39,7 +39,7 @@ export const conditionOptionShape = {
     .array(z.string())
     .optional()
     .describe('A device the release is limited to, by id, repeatable.'),
-  os: z
+  osVersion: z
     .string()
     .optional()
     .describe('The OS versions served, a range such as ">=17".'),
@@ -55,10 +55,10 @@ export function buildAudienceQuery(
     attribute: resolveAttributePairs(options.attribute).map(
       ({ key, value }) => `${key}=${value}`,
     ),
-    binary: resolveList(options.binary),
+    binary: resolveList(options.binaryVersion),
     device: options.device ?? [],
     fingerprint: resolveList(fingerprint ?? undefined),
-    os: resolveList(options.os),
+    os: resolveList(options.osVersion),
     rolloutPercentage,
   };
 }
@@ -77,7 +77,7 @@ export function buildReleaseConditions(
         valueSha256: hashAttribute(key, value),
       }),
     ),
-    ...resolveList(options.binary).map((range): ReleaseCondition => ({
+    ...resolveList(options.binaryVersion).map((range): ReleaseCondition => ({
       range,
       type: 'binary',
     })),
@@ -95,7 +95,7 @@ export function buildReleaseConditions(
         type: 'fingerprint',
       }),
     ),
-    ...resolveList(options.os).map((range): ReleaseCondition => ({
+    ...resolveList(options.osVersion).map((range): ReleaseCondition => ({
       range,
       type: 'os',
     })),

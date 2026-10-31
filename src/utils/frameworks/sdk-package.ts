@@ -17,6 +17,7 @@ export function checkSdkPackage(
   if (!isSdkPackageDeclared(packageJson, packageName)) {
     return {
       check: 'package',
+      code: 'package_missing',
       manualStep: INIT_MANUAL_STEP,
       message: `The package ${packageName} is not in package.json.`,
       status: 'failed',
@@ -29,6 +30,7 @@ export function checkSdkPackage(
   if (installedVersion === undefined) {
     return {
       check: 'package',
+      code: 'package_not_installed',
       manualStep: 'Install the dependencies.',
       message: `The package ${packageName} is declared but not in node_modules.`,
       status: 'failed',

@@ -344,11 +344,11 @@ describe('release create', () => {
     const OPTIONS = {
       app: DEMO_APP.id,
       attribute: ['tier=beta'],
-      binary: '>=2.3.0 <3.0.0',
+      binaryVersion: '>=2.3.0 <3.0.0',
       bundle: READY_BUNDLE.id,
       channel: [STAGING_CHANNEL.id],
       device: [DEVICE_ID],
-      os: '>=17',
+      osVersion: '>=17',
       yes: true,
     };
 

@@ -197,7 +197,7 @@ describe('release get', () => {
   it('should print the schedule and the step reached with the sample its widening waits on', async () => {
     expect(await readProgressionLines(PROGRESSING_RELEASE)).toEqual([
       'Progression                   10, 50, 100 percent, each step at least 3600 seconds and 50 applied updates',
-      'Progression step              1 of 3, waiting on sample: 12 of 50 applied',
+      'Progression step              1 of 3, Waiting on updates: 12 of 50 applied',
     ]);
   });
 

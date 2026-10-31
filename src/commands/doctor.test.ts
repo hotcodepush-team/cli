@@ -247,12 +247,16 @@ describe('doctor', () => {
     ]);
     expect(result.checks[1]).toEqual({
       check: 'session',
+      code: 'unexpected',
       manualStep:
         'Run the command again with --verbose, and report it at https://github.com/hotcodepush-team/cli/issues if it persists.',
       message: 'The credential cannot be checked. fetch failed.',
       status: 'failed',
     });
-    expect(result.checks[4]?.status).toBe('failed');
+    expect(result.checks[4]).toMatchObject({
+      code: 'host_unreachable',
+      status: 'failed',
+    });
   });
 
   it('should fail the configuration when hotcodepush.json does not parse, and still run every other check', async () => {
@@ -268,6 +272,7 @@ describe('doctor', () => {
     const result = harness.readJson() as DoctorResult;
     expect(result.checks[0]).toEqual({
       check: 'configuration',
+      code: 'invalid_json',
       manualStep: 'Correct the JSON in that file and run the command again.',
       message: `The file ${configPath} is not valid JSON. Unexpected end of JSON input.`,
       status: 'failed',
@@ -300,6 +305,7 @@ describe('doctor', () => {
     const result = harness.readJson() as DoctorResult;
     expect(result.checks.find(({ check }) => check === 'framework')).toEqual({
       check: 'framework',
+      code: 'invalid_json',
       manualStep: 'Correct the JSON in that file and run the command again.',
       message: `The file ${packageJsonPath} is not valid JSON. Unexpected end of JSON input.`,
       status: 'failed',
@@ -323,12 +329,14 @@ describe('doctor', () => {
     expect(result.checks.filter(({ status }) => status === 'failed')).toEqual([
       {
         check: 'session',
+        code: 'invalid_json',
         manualStep: 'Correct the JSON in that file and run the command again.',
         message: `The credential cannot be checked. ${invalidJsonMessage}`,
         status: 'failed',
       },
       {
         check: 'hosts',
+        code: 'invalid_json',
         manualStep: 'Correct the JSON in that file and run the command again.',
         message: invalidJsonMessage,
         status: 'failed',
@@ -411,6 +419,7 @@ describe('doctor', () => {
 
     expect(await readSigningKeyCheck(directoryPath)).toEqual({
       check: 'signing_key',
+      code: 'invalid_parameter',
       manualStep:
         'Give the private key of a public key hotcodepush.json lists, or make a new pair with "hotcodepush signing-key create".',
       message:
@@ -427,6 +436,7 @@ describe('doctor', () => {
 
     expect(await readSigningKeyCheck(directoryPath)).toEqual({
       check: 'signing_key',
+      code: 'public_key_unregistered',
       manualStep:
         'Run "hotcodepush signing-key list --json" and keep in publicKeys only the keys it prints.',
       message:
@@ -443,6 +453,7 @@ describe('doctor', () => {
 
     expect(await readSigningKeyCheck(directoryPath)).toEqual({
       check: 'signing_key',
+      code: 'public_key_unlisted',
       manualStep:
         'Run "hotcodepush signing-key list --json" and add each publicKey to publicKeys in hotcodepush.json.',
       message: 'The app has a signing key and hotcodepush.json lists none.',
@@ -497,6 +508,7 @@ describe('doctor', () => {
 
     expect((harness.readJson() as DoctorResult).checks[0]).toEqual({
       check: 'configuration',
+      code: 'project_config_invalid',
       manualStep: 'Run "hotcodepush init".',
       message:
         'The file hotcodepush.json has a channel that is not a channel name.',
@@ -521,6 +533,7 @@ describe('doctor', () => {
 
     expect((harness.readJson() as DoctorResult).checks[2]).toEqual({
       check: 'app',
+      code: 'invalid_parameter',
       manualStep: 'Run "hotcodepush init".',
       message:
         'The API does not know the app or the channel. The channel "beta" from hotcodepush.json does not exist.',
@@ -543,6 +556,7 @@ describe('doctor', () => {
     expect(result.checks.slice(0, 2)).toEqual([
       {
         check: 'configuration',
+        code: 'project_config_missing',
         manualStep: 'Run "hotcodepush init".',
         message: `There is no hotcodepush.json in ${directoryPath} or a directory above it.`,
         status: 'failed',

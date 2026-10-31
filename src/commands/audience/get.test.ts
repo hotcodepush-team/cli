@@ -50,10 +50,10 @@ describe('audience get', () => {
       {
         app: DEMO_APP.id,
         attribute: ['tier=beta'],
-        binary: '>=2.3.0',
+        binaryVersion: '>=2.3.0',
         channel: STAGING_CHANNEL.name,
         device: [DEVICE_ID],
-        os: '>=17',
+        osVersion: '>=17',
         rolloutPercentage: 10,
       },
       undefined,

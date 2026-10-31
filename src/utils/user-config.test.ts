@@ -28,7 +28,7 @@ describe('user config', () => {
     configHomePath = mkdtempSync(join(tmpdir(), 'hotcodepush-'));
     vi.stubEnv('APPDATA', configHomePath);
     vi.stubEnv('XDG_CONFIG_HOME', configHomePath);
-    vi.stubEnv('HOTCODEPUSH_API_URL', undefined);
+    vi.stubEnv('HOTCODEPUSH_API_BASE_URL', undefined);
   });
 
   afterEach(() => {
@@ -40,16 +40,16 @@ describe('user config', () => {
     expect(readApiUrl()).toBe('https://api.hotcodepush.com');
   });
 
-  it('should read the API URL from HOTCODEPUSH_API_URL before the one login stored', () => {
+  it('should read the API URL from HOTCODEPUSH_API_BASE_URL before the one login stored', () => {
     writeUserConfig({ apiUrl: 'https://api.example.com' });
-    vi.stubEnv('HOTCODEPUSH_API_URL', 'https://api.staging.example.com/');
+    vi.stubEnv('HOTCODEPUSH_API_BASE_URL', 'https://api.staging.example.com/');
 
     expect(readApiUrl()).toBe('https://api.staging.example.com');
   });
 
-  it('should read the API URL login stored when HOTCODEPUSH_API_URL is empty', () => {
+  it('should read the API URL login stored when HOTCODEPUSH_API_BASE_URL is empty', () => {
     writeUserConfig({ apiUrl: 'https://api.example.com' });
-    vi.stubEnv('HOTCODEPUSH_API_URL', '');
+    vi.stubEnv('HOTCODEPUSH_API_BASE_URL', '');
 
     expect(readApiUrl()).toBe('https://api.example.com');
   });

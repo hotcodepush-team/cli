@@ -22,7 +22,7 @@ describe('update notice', () => {
     temporaryDirectoryPath = mkdtempSync(join(tmpdir(), 'hotcodepush-'));
     vi.stubEnv('APPDATA', temporaryDirectoryPath);
     vi.stubEnv('CI', undefined);
-    vi.stubEnv('HOTCODEPUSH_NO_UPDATE_NOTIFIER', undefined);
+    vi.stubEnv('HOTCODEPUSH_UPDATE_NOTICE_DISABLED', undefined);
     vi.stubEnv('XDG_CONFIG_HOME', temporaryDirectoryPath);
     vi.stubGlobal('fetch', fetchLatestVersion);
   });
@@ -77,8 +77,8 @@ describe('update notice', () => {
     it.each([
       ['in CI', 'CI', 'true'],
       [
-        'under HOTCODEPUSH_NO_UPDATE_NOTIFIER=1',
-        'HOTCODEPUSH_NO_UPDATE_NOTIFIER',
+        'under HOTCODEPUSH_UPDATE_NOTICE_DISABLED=1',
+        'HOTCODEPUSH_UPDATE_NOTICE_DISABLED',
         '1',
       ],
     ])('should ask nothing %s', async (_, variableName, value) => {

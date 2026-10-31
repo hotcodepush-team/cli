@@ -19,7 +19,7 @@ export default defineCommand({
   description:
     "Preview the devices a release's conditions would reach in a channel, before it exists, the project's fingerprint among them; what release create --dry-run prints.",
   examples: [
-    'hotcodepush audience get --binary ">=2.3.0" --rollout-percentage 10',
+    'hotcodepush audience get --binary-version ">=2.3.0" --rollout-percentage 10',
     'hotcodepush audience get --channel production --attribute tier=beta --device 6b1e9d37-2f5c-4a80-9c46-d8e3a1f7b259 --json',
   ],
   options: defineCommandOptions({

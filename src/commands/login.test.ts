@@ -91,7 +91,7 @@ describe('login', () => {
     vi.stubEnv('APPDATA', configHomePath);
     vi.stubEnv('XDG_CONFIG_HOME', configHomePath);
     vi.stubEnv('CI', undefined);
-    vi.stubEnv('HOTCODEPUSH_NO_UPDATE_NOTIFIER', '1');
+    vi.stubEnv('HOTCODEPUSH_UPDATE_NOTICE_DISABLED', '1');
     vi.stubGlobal('fetch', fetchMock);
     process.stdin.isTTY = true;
     process.stdout.isTTY = true;

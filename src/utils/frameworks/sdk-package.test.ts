@@ -10,7 +10,11 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type * as packageManagerModule from '../package-manager.js';
 import { runCommandLineVisibly } from '../package-manager.js';
-import { installSdkPackage, readSdkDependencyVersion } from './sdk-package.js';
+import {
+  checkSdkPackage,
+  installSdkPackage,
+  readSdkDependencyVersion,
+} from './sdk-package.js';
 
 vi.mock('../package-manager.js', async importOriginal => ({
   ...(await importOriginal<typeof packageManagerModule>()),
@@ -33,6 +37,27 @@ describe('sdk-package', () => {
 
   afterEach(() => {
     rmSync(directoryPath, { force: true, recursive: true });
+  });
+
+  describe('checkSdkPackage', () => {
+    it.each([
+      ['package_missing', 'is not in package.json', {}],
+      [
+        'package_not_installed',
+        'is declared but not in node_modules',
+        { [SDK_PACKAGE_NAME]: '1.0.0' },
+      ],
+    ])(
+      'should fail the package with `%s` when it %s',
+      (code, _, dependencies) => {
+        expect(
+          checkSdkPackage(
+            { directoryPath, packageJson: { dependencies } },
+            SDK_PACKAGE_NAME,
+          ),
+        ).toMatchObject({ check: 'package', code, status: 'failed' });
+      },
+    );
   });
 
   describe('installSdkPackage', () => {

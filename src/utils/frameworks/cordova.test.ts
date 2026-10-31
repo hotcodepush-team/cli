@@ -72,6 +72,7 @@ describe('cordova', () => {
       })[1],
     ).toEqual({
       check: 'hook',
+      code: 'wiring_missing',
       manualStep: expect.stringMatching(
         /^Run "npx cordova plugin add https:\/\/pkg\.pr\.new\//,
       ) as string,
@@ -94,6 +95,7 @@ describe('cordova', () => {
       })[2],
     ).toEqual({
       check: 'android_file_mode',
+      code: 'insecure_file_mode',
       manualStep:
         'The plugin serves no update from file:// and stays off. Remove the preference.',
       message:

@@ -307,6 +307,7 @@ describe('expoFramework', () => {
       ).toEqual([
         {
           check: 'hook',
+          code: 'wiring_missing',
           manualStep: 'Run "hotcodepush init".',
           message:
             'The app config app.json does not list the config plugin @hotcodepush/expo-ota-updates.',
@@ -323,6 +324,7 @@ describe('expoFramework', () => {
       ).toEqual([
         {
           check: 'hook',
+          code: 'wiring_missing',
           manualStep:
             'Add "@hotcodepush/expo-ota-updates" to the plugins in app.json.',
           message:
@@ -340,6 +342,7 @@ describe('expoFramework', () => {
       ).toEqual([
         {
           check: 'hook',
+          code: 'wiring_missing',
           manualStep:
             'Add "@hotcodepush/expo-ota-updates" to the plugins in app.config.js.',
           message:

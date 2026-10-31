@@ -378,12 +378,14 @@ describe('reactNativeFramework', () => {
       ).toEqual([
         {
           check: 'hook',
+          code: 'wiring_missing',
           manualStep: 'Run "hotcodepush init".',
           message: `The wiring is missing from the Xcode project and ${APP_GRADLE_FILE_PATH}.`,
           status: 'failed',
         },
         {
           check: 'host',
+          code: 'wiring_missing',
           manualStep: 'Run "hotcodepush init".',
           message: `The wiring is missing from ${APP_DELEGATE_FILE_PATH} and ${MAIN_APPLICATION_FILE_PATH}.`,
           status: 'failed',
@@ -401,6 +403,7 @@ describe('reactNativeFramework', () => {
           .find(({ check }) => check === 'host'),
       ).toEqual({
         check: 'host',
+        code: 'wiring_missing',
         manualStep: 'Run "hotcodepush init".',
         message: `The wiring is missing from ${SCENE_DELEGATE_FILE_PATH} and ${MAIN_APPLICATION_FILE_PATH}.`,
         status: 'failed',
@@ -417,6 +420,7 @@ describe('reactNativeFramework', () => {
           .find(({ check }) => check === 'host'),
       ).toEqual({
         check: 'host',
+        code: 'wiring_missing',
         manualStep: 'Run "hotcodepush init".',
         message: `The wiring is missing from ${OBJECTIVE_C_APP_DELEGATE_FILE_PATH} and ${JAVA_MAIN_APPLICATION_FILE_PATH}.`,
         status: 'failed',
@@ -453,6 +457,7 @@ describe('reactNativeFramework', () => {
           .find(({ check }) => check === 'hook'),
       ).toEqual({
         check: 'hook',
+        code: 'wiring_missing',
         manualStep: 'Run "hotcodepush init".',
         message: `The wiring is missing from the Xcode project and ${APP_GRADLE_FILE_PATH}.`,
         status: 'failed',

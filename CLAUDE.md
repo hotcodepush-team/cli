@@ -14,7 +14,7 @@ When code and plan disagree, stop and surface it; never improvise.
 src/
   index.ts     the entry point: runs the command line through the registry
   registry.ts  the registry: space-separated command names, each a lazy import
-  commands/    a folder per noun and a file per verb, channel/create.ts, resource-file/write.ts; the standalone commands flat, login.ts, init.ts, doctor.ts, open.ts, completion.ts
+  commands/    a folder per noun and a file per verb, channel/create.ts, resource-file/write.ts; the standalone commands flat, login.ts, logout.ts, whoami.ts, doctor.ts, init.ts, open.ts, fingerprint.ts, completion.ts
   utils/       the runner, command resolution and did-you-mean, the error catalog and its one mapping,
                the global options, environment detection, config.json, the token store,
                the auth client, the API client, hotcodepush.json and its directory, the JSON files a person edits read as `invalid_json` when they do not parse, a resource by id or name,
@@ -28,7 +28,7 @@ src/
                the files of a build hashed, their gzip copies,
                the pack writer, the git provenance, the device hosts derived from the API URL,
                the upload flow, the private key an upload is given, read into the pair that signs, and the writer of its file,
-               the progression schedule from its flags, the spending cap in whole dollars, a member or an invitation by id or email,
+               the progression schedule from its flags, the spending cap in whole dollars, a member or an invitation by id or email, a webhook by id or name,
                the native glue the Capacitor and Cordova modules name, one constant in `frameworks/native-glue.ts`,
                the build step both commands share, the resource file,
                the progress lines, the browser opener, the JSON, tables and details output, the telemetry, the update notice,
@@ -101,6 +101,7 @@ A project with an app config that is code, or with a JSON one that does not pars
 - **Exit codes**: `0` done, `1` an error, `2` a missing or invalid parameter, `3` not logged in, `4` a confirmation required without `--yes`.
 - **Parameters are the API's field names**, `--rollout-percentage`, `--channel`: nothing is renamed between the console, the API and the terminal.
   The one exception is a version: `--version` is the CLI's own flag, so a bundle's `version` is `--bundle-version` and a binary's `version` and `build` are `--binary-version` and `--binary-build`, the names a device's `binaryVersion` and `binaryBuild` already carry.
+  A condition flag is named after the device field it ranges over, `--binary-version <range>` and `--os-version <range>` on `release create` and `audience get`, while a resource flag stays `--<noun> <id|name>`.
   The schema key is the camelCase field, and zodline takes the kebab-case flag.
 - **Options are optional in the schema.**
   A missing required parameter is a prompt when interactive and a `MissingParameterError` naming the flag otherwise, never a zod error.
@@ -115,12 +116,13 @@ A project with an app config that is code, or with a JSON one that does not pars
 - **Commands call commands**: a command that needs what another does runs that command's action in place, never a copy of its logic.
 - **A command that reports several outcomes** — `init`'s steps, `doctor`'s checks — prints them itself and ends with `ReportedFailureError` when one failed,
   so the exit code is set without a second message; nothing else throws it.
+  Under `--json` a stopped step and a failed check carry a `code`: the error's code, or the reason a check built itself, such as `wiring_missing`.
 - **`init` edits only what it can recognise afterwards**: the Xcode project gains one run-script phase through the `xcode` package and loses the resource reference an earlier `init` added,
   a React Native or Capacitor project's other files one line each,
   an Expo project's JSON app config one plugin entry,
   and `init` names the files it will change and asks once before touching them.
 - **The token** is `readToken()`: `HOTCODEPUSH_TOKEN` when set, then the keyring, then the `config.json` fallback that any keyring failure latches for the rest of the process.
-- **The API URL** is `readApiUrl()`: `HOTCODEPUSH_API_URL` when set, then the URL `login --api-url` stored in `config.json`, then production; an empty variable is unset.
+- **The API URL** is `readApiUrl()`: `HOTCODEPUSH_API_BASE_URL` when set, then the URL `login --api-url` stored in `config.json`, then production; an empty variable is unset.
 - **An upload never holds a file in memory**: every file is hashed and gzip-compressed through streams into a temporary directory,
   put as a `Blob` opened from disk so the client can retry it, and the Node client splits it into parts above its `SINGLE_UPLOAD_LIMIT_BYTES`; the packs go the same way.
   Only the hashes of the bundle's files the files list answers with `isStored=false` move, each once, then the full pack; the platform derives the deltas and the patches by its own triggers, so the CLI reads no base, fetches no base file and computes no patch (cli#82, 2026-10-10).
@@ -149,7 +151,7 @@ A project with an app config that is code, or with a JSON one that does not pars
 - **Telemetry is one switch**: `HOTCODEPUSH_TELEMETRY_DISABLED=1` or `DO_NOT_TRACK=1` turns off both the `cli.command_finished` event to PostHog and the unexpected errors to Sentry; the first run on a machine prints the notice on stderr, remembered as `telemetryNoticeShownAt`; `completion`, which a shell runs as it starts, sends neither and prints no notice.
   `runCli` sends both through two `fetch` calls of ours, no SDK, waited for at most 1.5 seconds and silent when they fail: PostHog's capture endpoint takes `command`, `outcome`, `stopped_step` for `init`, `duration_ms`, `cli_version`, `is_ci`, `framework` and `source` under the hashed host name; Sentry's envelope endpoint takes `unexpected` and `unexpected_response` with the code, the command and a stack cut below `node_modules`, never the message.
   The keys are `telemetry.posthogProjectKey` and `telemetry.sentryDsn` in `package.json`, empty in the repository so every build but the release sends nothing; the release build sets them from the repository variables `POSTHOG_PROJECT_KEY` and `SENTRY_DSN` with `npm pkg set` before publishing.
-- **The update notice** is one line on stderr after a command once the registry knows a newer version, read from `latestKnownVersion`; `runCli` asks the npm registry beside the command at most once a day by `lastUpdateCheckAt`, a failed check included, with a one-second timeout and silent failures, never in CI, under `HOTCODEPUSH_NO_UPDATE_NOTIFIER=1` or for `completion`, which prints no notice either.
+- **The update notice** is one line on stderr after a command once the registry knows a newer version, read from `latestKnownVersion`; `runCli` asks the npm registry beside the command at most once a day by `lastUpdateCheckAt`, a failed check included, with a one-second timeout and silent failures, never in CI, under `HOTCODEPUSH_UPDATE_NOTICE_DISABLED=1` or for `completion`, which prints no notice either.
 - **Every login** keeps its device code, expiry, user code and verification URL in `config.json` until approved; the next `login` redeems the code first and, while it is pending, shows the same code again, so an agent sees one output until the person approves.
 
 ## Naming
