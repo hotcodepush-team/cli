@@ -47,7 +47,6 @@ import {
 import { MissingParameterError } from '../../utils/errors.js';
 import binaryCreateCommand from './create.js';
 
-// the not-logged-in case must not find a token in the machine's keyring
 vi.mock('@napi-rs/keyring', () => ({
   Entry: vi.fn(function () {
     return { getPassword: () => null };
@@ -100,9 +99,6 @@ describe('binary create', () => {
     vi.unstubAllEnvs();
   });
 
-  /**
-   * What the native build passes in: the platform, its identity and where the resource file goes in the app it builds.
-   */
   function resolveBuildOptions(platform: 'android' | 'ios') {
     return {
       binaryBuild: '1',
@@ -143,7 +139,7 @@ describe('binary create', () => {
     let uploadedByteCount = 0;
     harness.routes[`PUT /v1/apps/${DEMO_APP.id}/files/${INDEX_SHA256}`] =
       async request => {
-        // the gzip stream differs by platform, so the count printed is read back from the upload
+        // The gzip stream differs by platform, so the printed count is read back from the upload.
         uploadedByteCount = (await request.arrayBuffer()).byteLength;
         return Response.json(
           {
@@ -416,7 +412,7 @@ describe('binary create', () => {
         readResourceFile('build/ios/hotcodepush.json'),
       ).publicKeys;
       expect(iosPublicKey?.keyId).toBe(SIGNING_KEY.fingerprint);
-      // PKCS #1 is the key inside the SPKI wrapper: shorter, and the tail of the same bytes
+      // PKCS #1 is the key inside the SPKI wrapper, so it is the shorter tail of the same bytes.
       expect(Buffer.from(spkiDer, 'base64').subarray(-64).toString('hex')).toBe(
         Buffer.from(iosPublicKey?.der ?? '', 'base64')
           .subarray(-64)
@@ -792,9 +788,6 @@ describe('binary create', () => {
   });
 });
 
-/**
- * No token anywhere: none in the environment, and a config home of the test's own.
- */
 function stubNoToken(): void {
   const configHomePath = createTemporaryDirectory('hotcodepush-nohome-');
   vi.stubEnv('APPDATA', configHomePath);
@@ -802,9 +795,6 @@ function stubNoToken(): void {
   vi.stubEnv('XDG_CONFIG_HOME', configHomePath);
 }
 
-/**
- * A temporary directory of the running test's own, removed when the test finishes however it finishes.
- */
 function createTemporaryDirectory(prefix: string): string {
   const directoryPath = mkdtempSync(join(tmpdir(), prefix));
   onTestFinished(() => {

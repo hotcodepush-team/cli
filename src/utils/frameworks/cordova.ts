@@ -19,9 +19,6 @@ import type {
   FrameworkWiring,
 } from './index.js';
 
-/**
- * A `<platform>` section of `config.xml` and the preferences it sets for that platform alone.
- */
 interface PlatformSection {
   name?: string;
   preference?: Preference[];
@@ -32,9 +29,6 @@ interface Preference {
   value?: string;
 }
 
-/**
- * The `<widget>` of `config.xml` as the CLI reads it: the preferences, the widget's and each platform's.
- */
 interface Widget {
   platform?: PlatformSection[];
   preference?: Preference[];
@@ -53,10 +47,6 @@ const PLUGIN_ADD_COMMAND_LINE: CommandLine = {
 
 const WEB_DIRECTORY = 'www';
 
-/**
- * Cordova: the web build at `www`, the native projects under `platforms/`, and the build step inside the native build,
- * an Xcode phase and a Gradle task the plugin wires itself, which write the resource file into the app they build.
- */
 export const cordovaFramework: FrameworkModule = {
   nativeGluePaths: NATIVE_GLUE_PATHS,
   packageName: CORDOVA_PACKAGE_NAME,
@@ -71,14 +61,12 @@ export const cordovaFramework: FrameworkModule = {
     checkHook(project),
     checkInsecureFileMode(project),
   ],
-  // the start page `config.xml` names is a page inside `www`, which the app serves as its root
+  // The start page in `config.xml` is a page inside `www`, which the app serves as its root.
   readBuildDirectory: () => ({ path: WEB_DIRECTORY }),
   resolveWiring: project => Promise.resolve(resolveWiring(project)),
 };
 
-/**
- * The build steps are the plugin's: it wires them into each platform it is added to once `package.json` lists it among Cordova's.
- */
+// The plugin wires the build steps itself into each platform once `package.json` lists it among Cordova's plugins.
 function checkHook({ packageJson }: FrameworkProject): FrameworkCheck {
   return isPluginListed(packageJson)
     ? {
@@ -94,9 +82,6 @@ function checkHook({ packageJson }: FrameworkProject): FrameworkCheck {
       };
 }
 
-/**
- * Under `AndroidInsecureFileModeEnabled` the Android app loads from `file://`, where the plugin serves no update and stays off.
- */
 function checkInsecureFileMode({
   directoryPath,
 }: FrameworkProject): FrameworkCheck {
@@ -115,10 +100,8 @@ function checkInsecureFileMode({
       };
 }
 
-/**
- * The preference as Cordova's Android preferences read it: the name in any case, the Android section's value over
- * the widget's and the later over the earlier, `true` in any case.
- */
+// Matches how Cordova reads Android preferences: names and values ignore case, and the last one wins.
+// The Android section comes after the widget's, so it wins too.
 function isInsecureFileModeEnabled(widget: Widget | undefined): boolean {
   const preferences = [
     ...(widget?.preference ?? []),

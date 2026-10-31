@@ -19,9 +19,6 @@ import {
 import { fetchAppId } from '../../utils/resource-resolution.js';
 import { writeSigningPrivateKeyFile } from '../../utils/signing-private-key.js';
 
-/**
- * How uploads sign with the private key, the line `signing-key create` and `signing-key add` end with.
- */
 export const UPLOAD_SIGNING_TEXT =
   "Uploads sign with it through --private-key-path; in CI, set HOTCODEPUSH_SIGNING_KEY to the file's content.";
 
@@ -53,12 +50,12 @@ export default defineCommand({
       projectConfigLocation.projectConfig,
     );
     const { privateKey, publicKey } = await generateSigningKeyPair();
-    // Written before the public half is registered: a registered key whose private half was lost could sign nothing
+    // Written before the public key is registered, since a registered key without its private key could sign nothing.
     writeSigningPrivateKeyFile(privateKeyPath, privateKey);
     const createdSigningKey = await hotCodePush.apps.signingKeys
       .create({ appId, publicKey })
       .catch((error: unknown) => {
-        // and removed when the registration fails, since the app would refuse what it signs
+        // Removed when the registration fails, since the app would refuse what it signs.
         rmSync(privateKeyPath);
         throw error;
       });
@@ -83,11 +80,8 @@ export default defineCommand({
   },
 });
 
-/**
- * The public key appended to the `publicKeys` of the `hotcodepush.json` that names the app, after the keys it lists,
- * which the next builds keep trusting beside it; a key the file lists already stays where it is. A file of another app,
- * or none, is left alone and answers false.
- */
+// Keys already listed stay, so the next builds keep trusting them.
+// A file of another app, or no file, is left alone.
 export function addPublicKeyToProjectConfig(
   { filePath, projectConfig }: ProjectConfigLocation,
   appId: string,
@@ -106,10 +100,7 @@ export function addPublicKeyToProjectConfig(
   return true;
 }
 
-/**
- * The private key goes to a new file in an existing folder, checked before any request: an existing file may hold the key
- * a store build trusts, and no folder is made on the person's behalf.
- */
+// An existing file may hold a key that a store build trusts, and no folder is made on the person's behalf.
 function assertNewFilePath(filePath: string): void {
   if (existsSync(filePath)) {
     throw new InvalidParameterError(
@@ -126,9 +117,6 @@ function assertNewFilePath(filePath: string): void {
   }
 }
 
-/**
- * Where the registered public key went: into `publicKeys`, or, for a file of another app or none, the key to add by hand.
- */
 export function resolvePublicKeyListingText(
   isConfigured: boolean,
   publicKey: string,

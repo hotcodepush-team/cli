@@ -46,6 +46,13 @@ describe('reactNativeFramework', () => {
     writeFileSync(filePath, content);
   }
 
+  function disableAndroidHermes(directoryPath: string): void {
+    writeFile(
+      join(directoryPath, 'android', 'gradle.properties'),
+      'hermesEnabled=false\n',
+    );
+  }
+
   function readProject(directoryPath: string) {
     return {
       directoryPath,
@@ -66,11 +73,7 @@ describe('reactNativeFramework', () => {
   describe('packageBundles', () => {
     it('should bundle with react-native bundle from index.js', async () => {
       const directoryPath = writeProject();
-      // without Hermes the bundler is the one command an Android bundle runs
-      writeFile(
-        join(directoryPath, 'android', 'gradle.properties'),
-        'hermesEnabled=false\n',
-      );
+      disableAndroidHermes(directoryPath);
 
       await reactNativeFramework.packageBundles?.({
         packagingDirectoryPath: join(directoryPath, 'packaging'),
@@ -86,11 +89,7 @@ describe('reactNativeFramework', () => {
 
     it('should bundle from index.android.js where the project has one', async () => {
       const directoryPath = writeProject();
-      // without Hermes the bundler is the one command an Android bundle runs
-      writeFile(
-        join(directoryPath, 'android', 'gradle.properties'),
-        'hermesEnabled=false\n',
-      );
+      disableAndroidHermes(directoryPath);
       writeFile(join(directoryPath, 'index.android.js'), '// android entry\n');
 
       await reactNativeFramework.packageBundles?.({

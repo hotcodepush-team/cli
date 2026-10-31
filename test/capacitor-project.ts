@@ -11,9 +11,6 @@ import type { LockedPackage } from '@hotcodepush/protocol/fingerprint';
 import { computeFingerprint } from '@hotcodepush/protocol/fingerprint';
 import { capacitorFramework } from '../src/utils/frameworks/capacitor.js';
 
-/**
- * What a Capacitor project starts with in a test: the framework, the SDK when installed, its configuration and web build.
- */
 export interface CapacitorProjectOptions {
   isPackageInstalled?: boolean;
   projectConfig?: object;
@@ -22,9 +19,7 @@ export interface CapacitorProjectOptions {
 
 const CAPACITOR_CORE_INTEGRITY = 'sha512-capacitorcore800invented==';
 
-/**
- * The packages of the fingerprint inputs that contribute: `@capacitor/core` 8.0.0, never the package without native code.
- */
+// The package without native code never contributes to the fingerprint.
 export const CAPACITOR_LOCKED_PACKAGES: LockedPackage[] = [
   {
     integrity: CAPACITOR_CORE_INTEGRITY,
@@ -33,9 +28,6 @@ export const CAPACITOR_LOCKED_PACKAGES: LockedPackage[] = [
   },
 ];
 
-/**
- * The fingerprint of the fingerprint inputs without extra fingerprint paths.
- */
 export const CAPACITOR_FINGERPRINT = computeFingerprint({
   extraFingerprintPaths: [],
   packages: CAPACITOR_LOCKED_PACKAGES,
@@ -59,10 +51,6 @@ export const PBXPROJ_FIXTURE_PATH = join(
   'capacitor-project.pbxproj',
 );
 
-/**
- * A Capacitor project in a temporary directory: `package.json`, `capacitor.config.json`, the web build,
- * the iOS project of `cap add ios` and the app's Gradle file of `cap add android`, neither wired; the caller removes it.
- */
 export function writeCapacitorProject({
   isPackageInstalled = false,
   projectConfig,
@@ -100,9 +88,6 @@ export function writeCapacitorProject({
   return directoryPath;
 }
 
-/**
- * The project with the Xcode phase and the Gradle line `init` wires, made the way `init` makes them.
- */
 export async function wireCapacitorProject(
   directoryPath: string,
 ): Promise<void> {
@@ -113,10 +98,7 @@ export async function wireCapacitorProject(
   await wiring.wireBinaryCreateStep(undefined);
 }
 
-/**
- * The `hotcodepush.json` reference in the app target's resources that `init` added while the resource file lay in the
- * project, the lines it wrote: the build file, the file reference, its place in the `App` group and in the resources phase.
- */
+// The lines an earlier `init` wrote while the resource file lay in the project.
 export function writeResourceReference(directoryPath: string): void {
   const projectFilePath = join(
     directoryPath,
@@ -152,10 +134,7 @@ export function writeResourceReference(directoryPath: string): void {
   );
 }
 
-/**
- * What the fingerprint reads: an npm lockfile and the packages it installs, `@capacitor/core` and a package without native code,
- * both added to the dependencies of the project's `package.json`, which the recipe walks from.
- */
+// The fingerprint recipe walks from the dependencies in `package.json`.
 export function writeFingerprintInputs(directoryPath: string): void {
   const packages = { '@capacitor/core': '8.0.0', 'left-pad': '1.3.0' };
   const packageJsonPath = join(directoryPath, 'package.json');

@@ -6,9 +6,6 @@ import { join, relative, sep } from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import { InvalidParameterError } from './errors.js';
 
-/**
- * One file of a web build as the manifest lists it, plus where it lies on disk.
- */
 export interface BundleFile {
   filePath: string;
   path: string;
@@ -18,9 +15,6 @@ export interface BundleFile {
 
 const DEAD_LINK_ERROR_CODES = new Set(['ELOOP', 'ENOENT']);
 
-/**
- * Every file under the input except source maps and dotfiles — neither ships to devices — hashed and sorted by path.
- */
 export async function collectBundleFiles(
   directoryPath: string,
 ): Promise<BundleFile[]> {
@@ -43,18 +37,14 @@ export async function collectBundleFiles(
   return collectedFiles.sort((a, b) => a.path.localeCompare(b.path));
 }
 
-/**
- * The SHA-256 of a file's raw content, streamed: the hash the manifest names and the path of its upload.
- */
+// The manifest names files by this hash, and the upload path uses it too.
 export async function computeFileSha256(filePath: string): Promise<string> {
   const hash = createHash('sha256');
   await pipeline(createReadStream(filePath), hash);
   return hash.digest('hex');
 }
 
-/**
- * Source maps belong in the error tracker and dotfiles are tooling; neither ships to devices.
- */
+// Source maps belong in the error tracker and dotfiles are tooling, so neither ships to devices.
 export function isShipped(path: string): boolean {
   return (
     !path.endsWith('.map') &&
@@ -73,11 +63,8 @@ async function assertDirectory(directoryPath: string): Promise<void> {
   }
 }
 
-/**
- * The files under a directory as a web server serves them: a link counts as what it points to, and a linked directory
- * is walked like any other, so the bundle carries what the native build copies through the link.
- * A link back into a directory the walk is inside ends there instead of looping.
- */
+// Follows links like a web server, so the bundle carries what the native build copies through a link.
+// A link back into a directory the walk is inside ends there instead of looping.
 async function collectFilePaths(
   directoryPath: string,
   ancestorRealPaths: ReadonlySet<string>,
@@ -110,9 +97,7 @@ function isDeadLinkError(error: unknown): boolean {
   );
 }
 
-/**
- * The stats of what an entry is or links to; none for a link that points nowhere or to itself, which has no content to serve.
- */
+// A link that points nowhere or to itself has no content to serve.
 async function readEntryStats(entryPath: string): Promise<Stats | undefined> {
   try {
     return await stat(entryPath);

@@ -16,18 +16,11 @@ import type {
   WiringOptions,
 } from './index.js';
 
-/**
- * The binary create phase a framework adds to the Xcode project it names.
- */
 export interface BinaryCreatePhaseEdit {
   phase: BinaryCreatePhase;
   projectFilePath: string;
 }
 
-/**
- * `doctor`'s `hook` row where the native build runs the build step: the Xcode phase and the Gradle line `init` wires,
- * the line applying the Gradle file the SDK package ships.
- */
 export function checkBinaryCreateStep(
   projectDirectoryPath: string,
   nativeProjectPaths: NativeProjectPaths,
@@ -47,9 +40,6 @@ export function checkBinaryCreateStep(
   );
 }
 
-/**
- * A row over edits: ok when every one is in its file, failed naming the files that lack theirs, skipped without a native project.
- */
 export function checkEdits(
   check: string,
   wiredMessage: string,
@@ -78,11 +68,7 @@ export function checkEdits(
   return { check, message: wiredMessage, status: 'ok' };
 }
 
-/**
- * The binary create phase where the Xcode project lacks it, then each edit: one a file has no place for does not hold
- * the others back, and once every one was tried the first one's manual step stops the step. Answers what was wired,
- * in the words `init` prints.
- */
+// A failed edit does not hold the others back. Once all were tried, the first failure stops the step.
 export async function applyNativeProjectEdits(
   phaseEdit: BinaryCreatePhaseEdit | undefined,
   edits: NativeProjectEdit[],
@@ -120,9 +106,7 @@ export async function applyNativeProjectEdits(
   return wired;
 }
 
-/**
- * An edit that found no place in its file is collected as the step's manual step; anything else is not the edit's to explain.
- */
+// Only an edit that found no place in its file becomes the manual step. Any other error is rethrown.
 function assertEditError(error: unknown): CliError {
   if (
     error instanceof NativeProjectError ||

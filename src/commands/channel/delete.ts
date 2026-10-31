@@ -72,9 +72,7 @@ async function deleteChannel(
   }
 }
 
-/**
- * A channel no name matches or the API does not know, the app's included: a gone app has no channels.
- */
+// A deleted app has no channels either.
 function isChannelGone(error: unknown): boolean {
   return (
     error instanceof UnknownNameError ||
@@ -82,9 +80,6 @@ function isChannelGone(error: unknown): boolean {
   );
 }
 
-/**
- * What did not go, as it was named: an id or a name, the other side null.
- */
 function resolveAbsentChannel(channel: string | undefined): {
   id: string | null;
   name: string | null;

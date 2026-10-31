@@ -68,7 +68,6 @@ export default defineCommand({
       signingKey.publicKey,
     );
     if (options.json) {
-      // every delete prints { id, name }, and a key's name is its fingerprint, as a bundle's is its label
       printJson({ id: signingKey.id, name: signingKey.fingerprint });
     } else {
       console.log(
@@ -78,9 +77,7 @@ export default defineCommand({
   },
 });
 
-/**
- * The key `hotcodepush.json` of the app still lists leaves its `publicKeys`, so the file and the app agree again.
- */
+// Removing the key from `publicKeys` makes the file and the app agree again.
 function removePublicKeyFromProjectConfig(
   { filePath, projectConfig }: ProjectConfigLocation,
   appId: string,

@@ -1,6 +1,3 @@
-/**
- * One line of a command that reports several outcomes — `init`'s steps, `doctor`'s checks — with the manual step under a failure.
- */
 export interface OutcomeRow {
   label: string;
   manualStep?: string;

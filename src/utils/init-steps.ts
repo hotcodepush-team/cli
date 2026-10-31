@@ -11,27 +11,18 @@ export interface InitStep {
   step: string;
 }
 
-/**
- * What a step hands back: its status, the sentence the row prints, and the value the next steps build on.
- */
 export interface StepOutcome<TValue> {
   message: string;
   status: 'done' | 'skipped';
   value: TValue;
 }
 
-/**
- * What a step needs from the ones before it: a step whose need stopped, or waits itself, is skipped and says so.
- */
 export interface RunStepOptions {
   dependsOn?: string[];
 }
 
-/**
- * The steps of one `init` run in order: a step runs unless one it depends on did not, and any error inside a step,
- * the API's and an unreachable network's included, stops it with the error's code and its fix, or the API's message
- * that carries the fix, as the manual step, so the run reports instead of throwing and the independent steps still run.
- */
+// Any error stops only its own step, so the run reports instead of throwing and independent steps still run.
+// An API message without a fix carries the fix itself, so it doubles as the manual step.
 export class InitRun {
   readonly steps: InitStep[] = [];
   private readonly unmetSteps = new Set<string>();
@@ -79,9 +70,6 @@ export class InitRun {
   }
 }
 
-/**
- * The rows the terminal prints: an API error's message is its manual step too, printed once.
- */
 export function resolveStepRows(steps: InitStep[]): OutcomeRow[] {
   return steps.map(({ manualStep, message, status, step }) => ({
     label: step,

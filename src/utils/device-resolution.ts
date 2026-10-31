@@ -21,9 +21,7 @@ export const deviceOptionShape = {
     ),
 };
 
-/**
- * The app and the device `--device` names; a device has no name to pick from, so a missing one is asked for as text.
- */
+// A device has no name to pick from, so a missing one is asked for as text.
 export async function resolveDeviceReference(
   hotCodePush: HotCodePush,
   options: DeviceOptions,

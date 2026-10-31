@@ -35,10 +35,6 @@ export const releaseOptionShape = {
     .describe('The release, by its number in the channel or by its id.'),
 };
 
-/**
- * The release `--release` names in the channel `--channel` names, with its bundle, channel and counters:
- * a number is looked up in the channel's log, and no `--release` is a picker over the log when interactive.
- */
 export async function fetchReleaseInChannel(
   hotCodePush: HotCodePush,
   options: ReleaseOptions,
@@ -58,9 +54,6 @@ export async function fetchReleaseInChannel(
   return { channel, release };
 }
 
-/**
- * The channel's release log, newest first and complete, each release with its bundle.
- */
 export function fetchReleaseLog(
   hotCodePush: HotCodePush,
   channel: Channel,
@@ -75,18 +68,12 @@ export function fetchReleaseLog(
   );
 }
 
-/**
- * The bundle a release carries as `#17 · 1.4.2` when the relation came along, else its id.
- */
 export function resolveReleaseBundleLabel(release: Release): string {
   return release.bundle === undefined
     ? release.bundleId
     : resolveBundleLabel(release.bundle);
 }
 
-/**
- * The release a flag names in a log, by its number in the channel or by its id.
- */
 export function resolveReleaseInLog(
   releases: Release[],
   reference: string,
@@ -106,10 +93,8 @@ export function resolveReleaseInLog(
   return release;
 }
 
-/**
- * Reads the release with the relations asked for until it is live — the materializer stamps `liveAt` once the index
- * is written — for a bounded time; the release as last read either way, so the caller says when it is still pending.
- */
+// The materializer stamps `liveAt` once the index is written.
+// Returns the last read release after the deadline, so the caller can say it is still pending.
 export async function waitUntilLive(
   hotCodePush: HotCodePush,
   appId: string,

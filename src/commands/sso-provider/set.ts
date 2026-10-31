@@ -28,7 +28,7 @@ interface SamlOptions extends InteractivityOptions {
   samlMetadataPath?: string;
 }
 
-// a missing protocol names the first flag each protocol asks for
+// A missing protocol names the first flag of each protocol.
 const PROVIDER_TYPE_FLAG = '--oidc-issuer or --saml-entry-point';
 
 export default defineCommand({
@@ -131,9 +131,6 @@ export default defineCommand({
   },
 });
 
-/**
- * The OIDC block from its flags, asking for each required one the command line left out; the secret is asked for unseen.
- */
 async function promptOidcBlock(
   options: OidcOptions,
 ): Promise<NonNullable<PutSsoProviderOptions['oidc']>> {
@@ -163,10 +160,7 @@ async function promptOidcBlock(
   };
 }
 
-/**
- * The SAML block from its flags, asking for each required one the command line left out, the metadata and the certificate
- * as their files' text, never parsed: the API reads them. Without a certificate or an entity id, the metadata file is required.
- */
+// The metadata and the certificate are sent as text and never parsed, since the API reads them.
 async function promptSamlBlock(
   options: SamlOptions,
 ): Promise<NonNullable<PutSsoProviderOptions['saml']>> {
@@ -222,10 +216,7 @@ function readDocumentFile(flag: string, filePath: string): string {
   }
 }
 
-/**
- * The protocol the flags name, OIDC by an --oidc- flag and SAML by a --saml- one, or none when neither appears;
- * a provider speaks one protocol, so both are refused.
- */
+// A provider speaks one protocol, so flags of both are refused.
 function resolveFlaggedProviderType(
   options: OidcOptions & SamlOptions,
 ): SsoProviderType | undefined {

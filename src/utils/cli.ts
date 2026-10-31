@@ -19,20 +19,11 @@ export interface CliMeta {
   version: string;
 }
 
-/**
- * A command line once run: the one command it named, none for an unknown one, and the error it ended with.
- */
 interface CommandLineRun {
   cliError: CliError | undefined;
   commandName: string | undefined;
 }
 
-/**
- * Runs one command line and returns its exit code.
- * The one place that maps a thrown error to its message and exit code; commands throw and never exit.
- * It reports the finished command to telemetry, after the notice the first run on a machine prints,
- * and checks for a newer version beside the command, its notice last; a shell start does neither.
- */
 export async function runCli(
   commandRegistry: CommandRegistry,
   argv: string[],
@@ -45,7 +36,7 @@ export async function runCli(
   }
   const startedAt = performance.now();
   printTelemetryNotice();
-  // the daily check runs beside the command, so the notice after it never waits on the registry for long
+  // The check runs beside the command, so the notice after it never waits long on the registry.
   const latestKnownVersionRefresh = refreshLatestKnownVersion();
   const { cliError, commandName } = await runCommandLine(
     commandRegistry,
@@ -65,16 +56,11 @@ export async function runCli(
   return cliError?.exitCode ?? ExitCode.Success;
 }
 
-/**
- * `completion` runs as a shell starts, from the line in its profile, so it must not wait on the network or print a notice.
- */
+// A shell profile runs `completion` at startup, so it must not wait on the network or print a notice.
 function isShellStartup(argv: string[]): boolean {
   return argv[0] === 'completion';
 }
 
-/**
- * The error's message, unless the command reported its failure itself.
- */
 function printCommandLineError(
   cliError: CliError | undefined,
   argv: string[],
@@ -95,7 +81,7 @@ async function runCommandLine(
   let commandName: string | undefined;
   try {
     const invocation = resolveInvocation(Object.keys(commandRegistry), argv);
-    // a line that names no command shows the help or the version, and zodline ends the process there
+    // A line without a command shows the help or the version, and zodline ends the process there.
     commandName =
       invocation.commandNames.length === 1
         ? invocation.commandNames[0]
@@ -115,9 +101,7 @@ async function runCommandLine(
   }
 }
 
-/**
- * zodline colours its help unconditionally, so its output loses the colour codes while zodline processes the command line.
- */
+// zodline always colours its help, so the colour codes are stripped while it runs.
 function processConfigWithoutColor(config: DefineConfig, argv: string[]) {
   const log = console.log;
   console.log = (...values: unknown[]) =>

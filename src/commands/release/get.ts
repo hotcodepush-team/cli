@@ -86,9 +86,6 @@ function resolveCounterDetails({
   ];
 }
 
-/**
- * The schedule and, while one runs, the step it reached with the gate the next widening waits on.
- */
 function resolveProgressionDetails(
   release: Release,
 ): [label: string, value: string][] {

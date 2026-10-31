@@ -34,7 +34,7 @@ const BUNDLE_PATH = `/v1/apps/${DEMO_APP.id}/bundles/${READY_BUNDLE.id}`;
 
 const PART_COUNT = Math.ceil((SINGLE_UPLOAD_LIMIT_BYTES + 1) / PART_SIZE_BYTES);
 
-// every kind the CLI uploads, each through its one call of the client, which picks one request or parts by size
+// Every kind of upload, each through its one client call, which picks one request or parts by size.
 const UPLOADS = [
   {
     kind: 'file',

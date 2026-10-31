@@ -26,7 +26,7 @@ export default defineConfig(
     },
   },
   {
-    // a build script imports dist/, which exists only once tsc has run; lint runs without it
+    // A build script imports dist/, which exists only after tsc has run. Lint runs without it.
     files: ['scripts/**'],
     rules: {
       'import-x/no-unresolved': ['error', { ignore: ['^\\.\\./dist/'] }],

@@ -27,7 +27,7 @@ interface DevicePublicKeysCase {
   publicKeys: string[];
 }
 
-// The protocol's cases list each key as the project file holds it and as each platform reads it
+// The protocol cases list each key as the project file holds it and as each platform reads it.
 const [DEVICE_PUBLIC_KEYS_CASE] = (
   JSON.parse(
     readFileSync(

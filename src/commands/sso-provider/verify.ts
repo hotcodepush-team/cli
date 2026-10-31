@@ -29,9 +29,6 @@ export default defineCommand({
   },
 });
 
-/**
- * The lookup's outcome; one that could not run is the API's `dns_lookup_failed`, passed through as every API error is.
- */
 function resolveVerificationText({
   domain,
   domainVerified,

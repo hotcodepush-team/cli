@@ -44,7 +44,6 @@ describe('signing-key create', () => {
     rmSync(workingDirectoryPath, { force: true, recursive: true });
   });
 
-  // The API as it answers a registration: the key it was sent, with its fingerprint
   function respondWithRegistration(): void {
     harness.routes[`POST ${SIGNING_KEYS_PATH}`] = async request => {
       const { publicKey } = (await request.json()) as { publicKey: string };
@@ -65,7 +64,7 @@ describe('signing-key create', () => {
     return JSON.parse(readFileSync(configPath, 'utf8')) as ProjectConfig;
   }
 
-  // The key file's private key as the protocol signs with it, and the PEM body no output may repeat
+  // The PEM body is returned so the test can check that no output repeats it.
   async function readKeyFile(
     filePath: string,
   ): Promise<{ pemBody: string; publicKey: string }> {

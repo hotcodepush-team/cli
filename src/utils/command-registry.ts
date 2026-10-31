@@ -1,21 +1,14 @@
 import type { CommandDefinition } from 'zodline';
 import { UnknownCommandError } from './errors.js';
 
-// zodline types every command it accepts as CommandDefinition<any, any>; a narrower type rejects commands with options or args
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- A narrower type rejects zodline commands with options or args.
 export type Command = CommandDefinition<any, any>;
 
-/**
- * Space-separated command names, `channel create`, each mapped to a lazy import of its module.
- */
 export type CommandRegistry = Record<
   string,
   () => Promise<{ default: Command }>
 >;
 
-/**
- * The commands to load for a command line and the arguments to hand to zodline.
- */
 export interface Invocation {
   argv: string[];
   commandNames: string[];
@@ -44,9 +37,6 @@ export async function loadCommands(
   return Object.fromEntries(loadedEntries);
 }
 
-/**
- * Picks the registered name closest to what was typed, for the did-you-mean answer to an unknown command.
- */
 export function resolveClosestCommandName(
   commandNames: string[],
   words: string[],
@@ -66,9 +56,6 @@ export function resolveClosestCommandName(
   return closestCommandName;
 }
 
-/**
- * The longest registered name the leading words spell, so `fingerprint diff a b` runs `fingerprint diff`.
- */
 export function resolveCommandName(
   commandNames: string[],
   words: string[],
@@ -82,10 +69,7 @@ export function resolveCommandName(
   return undefined;
 }
 
-/**
- * Decides which commands a command line needs: the one it names, a noun's verbs, or every command for the help.
- * A command line without a command, or with a noun alone, shows the help instead of failing, and one with --version the version.
- */
+// A line without a command, or with a noun alone, shows the help instead of failing.
 export function resolveInvocation(
   commandNames: string[],
   argv: string[],
@@ -114,17 +98,12 @@ export function resolveInvocation(
   );
 }
 
-/**
- * The words before the first flag: a command comes first, its flags after it.
- */
 function resolveCommandWords(argv: string[]): string[] {
   const firstFlagIndex = argv.findIndex(arg => arg.startsWith('-'));
   return firstFlagIndex === -1 ? argv : argv.slice(0, firstFlagIndex);
 }
 
-/**
- * The Levenshtein distance: the fewest single-character insertions, deletions and substitutions from one text to the other.
- */
+// Levenshtein distance.
 function resolveEditDistance(source: string, target: string): number {
   let previousRow = Array.from(
     { length: target.length + 1 },
@@ -148,9 +127,7 @@ function resolveEditDistance(source: string, target: string): number {
   return previousRow[target.length] ?? 0;
 }
 
-/**
- * zodline reads a repeated flag as an array, so `--help` is added only when it is absent.
- */
+// zodline reads a repeated flag as an array, so `--help` is added only when it is absent.
 function withHelpFlag(argv: string[]): string[] {
   return argv.includes('--help') ? argv : [...argv, '--help'];
 }

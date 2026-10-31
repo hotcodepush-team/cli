@@ -16,11 +16,12 @@ import {
   UnexpectedResponseError,
 } from './errors.js';
 import type { Framework } from './framework.js';
-import { readUserConfig, writeUserConfig } from './user-config.js';
+import {
+  ignoreUserConfigErrors,
+  readUserConfig,
+  writeUserConfig,
+} from './user-config.js';
 
-/**
- * A command line that ran one command: its registered name, the error it ended with, none when it succeeded, and how long it took.
- */
 export interface FinishedCommand {
   cliError: CliError | undefined;
   commandName: string;
@@ -29,19 +30,16 @@ export interface FinishedCommand {
 
 const COMMAND_FINISHED_EVENT = 'cli.command_finished';
 
-// a stack line with a location: `at <function> (<file>:<line>:<column>)`, or without the function and its parentheses
+// Matches `at <function> (<file>:<line>:<column>)`, or the same without the function and parentheses.
 const STACK_FRAME_PATTERN = /^\s*at (?:(.+?) \()?(.+?):(\d+):(\d+)\)?$/;
 
 const TELEMETRY_NOTICE =
   'HotCodePush collects anonymous usage and error data to improve the CLI; set HOTCODEPUSH_TELEMETRY_DISABLED=1 to opt out.';
 
-// the longest telemetry holds up the exit, its requests included
+// The longest telemetry may delay the exit, requests included.
 const TELEMETRY_TIMEOUT_MS = 1500;
 
-/**
- * Whether this build reports anything: a key the release build wrote, and neither switch set,
- * `HOTCODEPUSH_TELEMETRY_DISABLED=1` or the cross-tool `DO_NOT_TRACK=1`, each turning off usage and errors alike.
- */
+// Only the release build has keys, so every other build reports nothing.
 export function isTelemetryEnabled(): boolean {
   return (
     (POSTHOG_PROJECT_KEY !== '' || SENTRY_DSN !== '') &&
@@ -50,14 +48,11 @@ export function isTelemetryEnabled(): boolean {
   );
 }
 
-/**
- * The one line of the first run on a machine, on stderr so `--json` stays data, remembered in config.json.
- */
 export function printTelemetryNotice(): void {
   if (!isTelemetryEnabled()) {
     return;
   }
-  try {
+  ignoreUserConfigErrors(() => {
     const userConfig = readUserConfig();
     if (userConfig.telemetryNoticeShownAt !== undefined) {
       return;
@@ -67,15 +62,10 @@ export function printTelemetryNotice(): void {
       ...userConfig,
       telemetryNoticeShownAt: new Date().toISOString(),
     });
-  } catch {
-    // a config.json the CLI cannot read or write is the command's to report, never the notice's
-  }
+  });
 }
 
-/**
- * The command's usage event to PostHog and its unexpected error to Sentry, waited for at most `TELEMETRY_TIMEOUT_MS`
- * and silent when they fail, so telemetry never fails a command or holds up its exit for long.
- */
+// Telemetry must never fail a command or hold up its exit for long.
 export async function reportFinishedCommand(
   finishedCommand: FinishedCommand,
 ): Promise<void> {
@@ -91,9 +81,7 @@ export async function reportFinishedCommand(
   );
 }
 
-/**
- * The stack's frames without the message above them, each file cut to the part below `node_modules` or to its name.
- */
+// Drops the message above the frames, since it can hold user data.
 export function resolveScrubbedStack(stack: string): string {
   return stack
     .split('\n')
@@ -112,9 +100,7 @@ export function resolveScrubbedStack(stack: string): string {
     .join('\n');
 }
 
-/**
- * A stack frame's file: a Node internal as it is, a package's from its last `node_modules` on, any other by its name alone.
- */
+// A local path never leaves the machine: a package file keeps the part from `node_modules` on, any other only its name.
 function resolveFramePath(filePath: string): string {
   const normalizedPath = filePath
     .replace(/^file:\/\//, '')
@@ -128,17 +114,12 @@ function resolveFramePath(filePath: string): string {
     : normalizedPath.slice(nodeModulesIndex);
 }
 
-/**
- * The anonymous id a machine's events share: its host name hashed, never sent as it is.
- */
+// The host name is hashed, so it is never sent as it is.
 function resolveMachineId(): string {
   return createHash('sha256').update(hostname()).digest('hex');
 }
 
-/**
- * The framework of the project the command ran in, none outside one. Imported here, since the framework modules
- * load the native-project parsers, which a build without telemetry never needs.
- */
+// Imported lazily, since the framework modules load native-project parsers that a build without telemetry never needs.
 async function resolveProjectFramework(): Promise<Framework | null> {
   try {
     const [{ detectFramework }, { locateProjectConfigFile }] =
@@ -152,10 +133,7 @@ async function resolveProjectFramework(): Promise<Framework | null> {
   }
 }
 
-/**
- * `cli.command_finished` to PostHog's capture endpoint, its properties and nothing else: no argument, no path, no name
- * from the project.
- */
+// The event carries only these properties: no argument, no path and no project name.
 async function sendCommandFinishedEvent({
   cliError,
   commandName,
@@ -170,7 +148,7 @@ async function sendCommandFinishedEvent({
       distinct_id: resolveMachineId(),
       event: COMMAND_FINISHED_EVENT,
       properties: {
-        // anonymous: no location from the address, and no person profile behind the machine's id
+        // Keeps the event anonymous: no location from the IP address and no person profile.
         $geoip_disable: true,
         $process_person_profile: false,
         cli_version: PACKAGE_JSON.version,
@@ -195,11 +173,7 @@ async function sendCommandFinishedEvent({
   });
 }
 
-/**
- * An error that is our bug, `unexpected` or an API answer outside its shape, to Sentry's envelope endpoint: its
- * type, its scrubbed stack, which Sentry groups by, and its code; every other error is the user's input or the API's
- * answer and never reaches Sentry.
- */
+// Only our own bugs reach Sentry. Every other error comes from user input or an API answer.
 async function sendUnexpectedErrorEvent({
   cliError,
   commandName,
@@ -246,9 +220,6 @@ async function sendUnexpectedErrorEvent({
   });
 }
 
-/**
- * Waits for the promise at most the given time and never for its failure; the timer keeps no process alive.
- */
 async function waitAtMost(
   promise: Promise<unknown>,
   timeoutMs: number,

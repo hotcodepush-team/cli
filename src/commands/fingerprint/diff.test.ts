@@ -11,7 +11,7 @@ import fingerprintDiffCommand from './diff.js';
 
 const FINGERPRINT_FIXTURES = readFingerprintFixtures();
 
-/** How the workspace fixtures' names end, one per lockfile format, yarn's two included. */
+// One per lockfile format, two for yarn.
 const MONOREPO_NAME_ENDINGS = [
   'in an npm monorepo',
   'in a pnpm monorepo',
@@ -41,9 +41,6 @@ describe('fingerprint diff', () => {
     return fixture;
   }
 
-  /**
-   * The file `fingerprint --json` writes for the contributors; its path.
-   */
   function writeFingerprintFile(
     fileName: string,
     contributors: FingerprintContributors,
@@ -59,9 +56,6 @@ describe('fingerprint diff', () => {
     return filePath;
   }
 
-  /**
-   * The two fixtures' files, the earlier first, as the command's arguments.
-   */
   function writeFixtureFiles(
     beforeFixture: FingerprintFixture,
     afterFixture: FingerprintFixture,

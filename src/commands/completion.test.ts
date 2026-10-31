@@ -20,7 +20,7 @@ import completionCommand from './completion.js';
 
 vi.mock('@clack/prompts');
 
-// the scripts the build writes into dist/completion go to a folder of the test's own, so it needs no build
+// The scripts go to a folder of the test, so it needs no build.
 vi.mock('../config/consts.js', async importOriginal => ({
   ...(await importOriginal<typeof constsModule>()),
   COMPLETION_DIRECTORY_PATH: mkdtempSync(join(tmpdir(), 'hotcodepush-')),

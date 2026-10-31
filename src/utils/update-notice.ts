@@ -1,6 +1,10 @@
 import { PACKAGE_JSON } from '../config/consts.js';
 import { isCi } from './environment.js';
-import { readUserConfig, writeUserConfig } from './user-config.js';
+import {
+  ignoreUserConfigErrors,
+  readUserConfig,
+  writeUserConfig,
+} from './user-config.js';
 
 const LATEST_VERSION_URL = `https://registry.npmjs.org/${PACKAGE_JSON.name}/latest`;
 
@@ -8,12 +12,9 @@ const UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 const UPDATE_CHECK_TIMEOUT_MS = 1000;
 
-// major, minor and patch; a prerelease suffix is not compared
+// Matches major, minor and patch. A prerelease suffix is not compared.
 const VERSION_CORE_PATTERN = /^\d+\.\d+\.\d+/;
 
-/**
- * Whether one version is above another by major, minor and patch.
- */
 export function isNewerVersion(
   candidateVersion: string,
   currentVersion: string,
@@ -26,54 +27,47 @@ export function isNewerVersion(
   return candidateCore.localeCompare(currentCore, 'en', { numeric: true }) > 0;
 }
 
-/**
- * The one line after a command once the cache knows a newer version, on stderr so `--json` stays data.
- */
 export function printUpdateNotice(): void {
   if (!isUpdateNoticeEnabled()) {
     return;
   }
-  try {
-    const { latestKnownVersion } = readUserConfig();
-    if (
-      latestKnownVersion !== undefined &&
-      isNewerVersion(latestKnownVersion, PACKAGE_JSON.version)
-    ) {
-      process.stderr.write(
-        `HotCodePush CLI ${latestKnownVersion} is available; you run ${PACKAGE_JSON.version}.\n`,
-      );
-    }
-  } catch {
-    // a config.json the CLI cannot read is the command's to report, never the notice's
+  const latestKnownVersion = ignoreUserConfigErrors(
+    () => readUserConfig().latestKnownVersion,
+  );
+  if (
+    latestKnownVersion !== undefined &&
+    isNewerVersion(latestKnownVersion, PACKAGE_JSON.version)
+  ) {
+    process.stderr.write(
+      `HotCodePush CLI ${latestKnownVersion} is available; you run ${PACKAGE_JSON.version}.\n`,
+    );
   }
 }
 
-/**
- * Asks the npm registry for the newest version at most once a day and keeps the answer in config.json. A failed check
- * waits a day too, so a machine offline is not asked on every command, and nothing here ever fails one.
- */
+// A failed check also waits a day, so an offline machine is not asked on every command.
 export async function refreshLatestKnownVersion(): Promise<void> {
   if (!isUpdateNoticeEnabled()) {
     return;
   }
-  try {
+  const isCheckedRecently = ignoreUserConfigErrors(() => {
     const { lastUpdateCheckAt } = readUserConfig();
-    if (
+    return (
       lastUpdateCheckAt !== undefined &&
       Date.now() - Date.parse(lastUpdateCheckAt) < UPDATE_CHECK_INTERVAL_MS
-    ) {
-      return;
-    }
-    const latestVersion = await fetchLatestVersion();
-    // read again: the command may have written config.json while the request ran
+    );
+  });
+  if (isCheckedRecently !== false) {
+    return;
+  }
+  const latestVersion = await fetchLatestVersion();
+  ignoreUserConfigErrors(() => {
+    // Read again, since the command may have written config.json during the request.
     writeUserConfig({
       ...readUserConfig(),
       lastUpdateCheckAt: new Date().toISOString(),
       ...(latestVersion !== undefined && { latestKnownVersion: latestVersion }),
     });
-  } catch {
-    // a config.json the CLI cannot read or write is the command's to report, never the notice's
-  }
+  });
 }
 
 async function fetchLatestVersion(): Promise<string | undefined> {
@@ -88,9 +82,7 @@ async function fetchLatestVersion(): Promise<string | undefined> {
   }
 }
 
-/**
- * Never in CI, where nobody updates from a log line, and never under `HOTCODEPUSH_NO_UPDATE_NOTIFIER=1`.
- */
+// Nobody updates from a CI log line.
 function isUpdateNoticeEnabled(): boolean {
   return !isCi() && process.env.HOTCODEPUSH_NO_UPDATE_NOTIFIER !== '1';
 }

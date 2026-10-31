@@ -68,9 +68,6 @@ export default defineCommand({
   },
 });
 
-/**
- * The schedule's percentages with the step reached and its gate, `10,50,100% · 1 of 3, waiting on sample: 12 of 50 applied`.
- */
 function resolveProgressionCell(release: Release): string {
   const { progression } = release;
   return progression === null

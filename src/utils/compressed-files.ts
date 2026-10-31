@@ -6,18 +6,12 @@ import { pipeline } from 'node:stream/promises';
 import { createGzip } from 'node:zlib';
 import type { BundleFile } from './bundle-files.js';
 
-/**
- * A file's stored form: its gzip bytes in a temporary file, the size the upload declares as `Content-Length`.
- */
 export interface CompressedFile {
   compressedFilePath: string;
   sha256: string;
   sizeBytes: number;
 }
 
-/**
- * The gzip bytes of every file, written under one temporary directory and never held in memory, keyed by the content hash.
- */
 export async function compressFiles(
   files: BundleFile[],
   temporaryDirectoryPath: string,
@@ -45,9 +39,6 @@ export async function compressFiles(
   return compressedFiles;
 }
 
-/**
- * Runs a task with a temporary directory of its own, gone when the task ends however it ends.
- */
 export async function withTemporaryDirectory<TResult>(
   task: (temporaryDirectoryPath: string) => Promise<TResult>,
 ): Promise<TResult> {

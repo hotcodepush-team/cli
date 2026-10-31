@@ -33,7 +33,7 @@ export default defineCommand({
   }),
   action: async options => {
     const hotCodePush = createApiClient();
-    // --organization names the target here, so an app's name is looked up in every organization of the user's
+    // Here `--organization` names the target, so the app name is looked up in every organization of the user.
     const appId = await fetchAppId(
       hotCodePush,
       { ...options, organization: undefined },
@@ -77,9 +77,6 @@ export default defineCommand({
   },
 });
 
-/**
- * `--organization` by id or name, otherwise a picker of the user's other organizations when interactive.
- */
 function pickTargetOrganizationId(
   app: App,
   organizations: Organization[],
@@ -99,9 +96,7 @@ function pickTargetOrganizationId(
   );
 }
 
-/**
- * The organization's name for the consequence, its id where the user's organizations lack it.
- */
+// Falls back to the id when the organizations of the user do not include it.
 function resolveOrganizationName(
   organizations: Organization[],
   organizationId: string,

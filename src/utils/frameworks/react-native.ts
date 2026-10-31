@@ -16,6 +16,7 @@ import {
 import type { Platform } from '../upload.js';
 import type { BinaryCreatePhase } from '../xcode-project.js';
 import {
+  buildPbxprojShellScript,
   hasBinaryCreatePhase,
   resolveXcodeProjectFilePath,
 } from '../xcode-project.js';
@@ -46,15 +47,11 @@ import type {
   WiringOptions,
 } from './index.js';
 
-/**
- * The phase runs the SDK package's script through React Native's `with-environment.sh`, which finds Node, right after
- * the bundling whose output the build step hashes.
- */
+// React Native's `with-environment.sh` finds Node for the script.
 const BINARY_CREATE_PHASE: BinaryCreatePhase = {
   anchorPhaseName: 'Bundle React Native code and images',
   fix: `Add a Run Script phase after "Bundle React Native code and images" that runs node_modules/${REACT_NATIVE_PACKAGE_NAME}/scripts/binary-create-xcode.sh through React Native's with-environment.sh.`,
-  // the lines of the phase as a pbxproj string carries them, the line breaks escaped
-  shellScript: [
+  shellScript: buildPbxprojShellScript([
     'set -e',
     '',
     '# hotcodepush: writes hotcodepush.json into the app and, in a store build, creates the binary',
@@ -63,17 +60,12 @@ const BINARY_CREATE_PHASE: BinaryCreatePhase = {
     '',
     '/bin/sh -c "$WITH_ENVIRONMENT $HOTCODEPUSH_BINARY_CREATE"',
     '',
-  ].join('\\n'),
+  ]),
 };
 
 const POD_NAME = 'HotcodepushReactNativeCodePush';
 
-/**
- * React Native: no build output in the project, since each platform's JavaScript is bundled when it is needed — by the
- * native build, whose Xcode phase and Gradle task run the build step on what it bundled, and by the upload, one bundle
- * per platform. The app hands React Native the bundle the SDK serves, one line in the Swift file that overrides `bundleURL()`
- * and one in `MainApplication.kt`.
- */
+// The project has no build output: the native build and the upload each bundle the JavaScript when needed.
 export const reactNativeFramework: FrameworkModule = {
   packageName: REACT_NATIVE_PACKAGE_NAME,
   versionedPackageNames: ['react-native', REACT_NATIVE_PACKAGE_NAME],
@@ -93,9 +85,6 @@ export const reactNativeFramework: FrameworkModule = {
   resolveWiring,
 };
 
-/**
- * `doctor`'s `host` row: both native apps ask the SDK for the bundle React Native runs.
- */
 function checkBundleWiring({
   directoryPath,
 }: FrameworkProject): FrameworkCheck {
@@ -107,9 +96,6 @@ function checkBundleWiring({
   );
 }
 
-/**
- * Whether the SDK's pod is among the installed ones; without a Podfile there is nothing to install.
- */
 function isPodInstalled(iosProjectPath: string): boolean {
   if (!existsSync(join(iosProjectPath, 'Podfile'))) {
     return true;
@@ -121,9 +107,6 @@ function isPodInstalled(iosProjectPath: string): boolean {
   );
 }
 
-/**
- * The edits that make both native apps ask the SDK for their bundle, for the native projects that exist.
- */
 function resolveBundleWiringEdits(
   nativeProjectPaths: NativeProjectPaths,
 ): NativeProjectEdit[] {
@@ -133,10 +116,7 @@ function resolveBundleWiringEdits(
   ].filter(edit => edit !== undefined);
 }
 
-/**
- * `react-native bundle` from `index.<platform>.js` where the project has one, `index.js` otherwise, the rule of React
- * Native's own builds.
- */
+// React Native's own builds prefer `index.<platform>.js` over `index.js`.
 function resolveBundlerArgs(
   projectDirectoryPath: string,
   platform: Platform,
@@ -152,9 +132,6 @@ function resolveBundlerArgs(
   ];
 }
 
-/**
- * Every line `init` adds to the native projects besides the Xcode phase, in the order it adds them.
- */
 function resolveEdits(
   nativeProjectPaths: NativeProjectPaths,
 ): NativeProjectEdit[] {
@@ -207,11 +184,6 @@ async function resolveWiring(
   };
 }
 
-/**
- * The Xcode phase, the Gradle line and the bundle wiring of both apps, each left alone when present, then
- * `pod install` where the SDK's pod is not installed yet. An edit a file has no place for does not hold the others back:
- * they are made, and the step stops with the first one's manual step.
- */
 async function wireBinaryCreateStep(
   nativeProjects: NativeProjects,
   xcodeProjectFilePath: string | undefined,

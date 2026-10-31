@@ -9,10 +9,7 @@ import type { SigningKeyPair } from '@hotcodepush/protocol';
 import { PROJECT_CONFIG_FILE_NAME } from '../config/consts.js';
 import { InvalidParameterError, SigningKeyUnavailableError } from './errors.js';
 
-/**
- * A private key given to an upload, with the flag or variable it came through, which every message about the key names;
- * the key itself never reaches a message.
- */
+// Every message about the key names its source, but never the key itself.
 interface GivenPrivateKey {
   source: '--private-key-path' | 'HOTCODEPUSH_SIGNING_KEY';
   text: string;
@@ -20,21 +17,16 @@ interface GivenPrivateKey {
 
 type PrivateKeyEncoding = 'pkcs1' | 'pkcs8';
 
-// PKCS #8's encrypted PEM and PKCS #1's, whose header names its cipher
+// Matches an encrypted PKCS #8 PEM, or a PKCS #1 PEM whose header names its cipher.
 const ENCRYPTED_KEY_PATTERN = /ENCRYPTED PRIVATE KEY|Proc-Type:/;
 
-// The PEM's first and last line, of PKCS #8 or of PKCS #1 as Expo's tool writes it, dropped with all whitespace so the key
-// pasted on one line reads as the file does
+// Matches the first and last PEM line of PKCS #8, or of PKCS #1 as the Expo tool writes it.
+// They are dropped with all whitespace, so a key pasted on one line reads like the file.
 const PEM_BOUNDARY_PATTERN = /-----(BEGIN|END) (RSA )?PRIVATE KEY-----/g;
 
 const WHITESPACE_PATTERN = /\s/g;
 
-/**
- * The key pair an upload signs with, null where signing is off: the private key of the file `--private-key-path` names,
- * otherwise the one `HOTCODEPUSH_SIGNING_KEY` holds, belonging to a public key `hotcodepush.json` lists.
- * Listed keys and no private key stop the upload, since the app would refuse the unsigned bundle;
- * a private key and no listed key stop it too, rather than the key being ignored.
- */
+// A private key without a listed public key stops the upload, rather than being ignored.
 export async function readSigningKeyPair(
   publicKeys: readonly string[],
   privateKeyPath: string | undefined,
@@ -62,10 +54,7 @@ export async function readSigningKeyPair(
   return signingKeyPair;
 }
 
-/**
- * The key pair of the private key file a person already has, its public half derived from the private one so the two
- * cannot mismatch; read here, before any request, and refused when it is no RSA key of the minimum size.
- */
+// The public half is derived from the private key, so the two cannot mismatch.
 export function readSigningKeyPairFile(
   privateKeyPath: string,
 ): Promise<SigningKeyPair> {
@@ -75,10 +64,6 @@ export function readSigningKeyPairFile(
   });
 }
 
-/**
- * Writes the private key as a PEM file of PKCS #8 through Node's own export, readable by its owner alone on macOS and
- * Linux; an existing file is never overwritten.
- */
 export function writeSigningPrivateKeyFile(
   filePath: string,
   privateKey: string,
@@ -91,9 +76,6 @@ export function writeSigningPrivateKeyFile(
   writeFileSync(filePath, pem, { flag: 'wx', mode: 0o600 });
 }
 
-/**
- * The key through Node's own import, in each encoding its PEM lines name, or without them PKCS #8 and then PKCS #1.
- */
 function importPrivateKey(text: string): KeyObject {
   const key = Buffer.from(
     text.replace(PEM_BOUNDARY_PATTERN, '').replace(WHITESPACE_PATTERN, ''),
@@ -119,7 +101,7 @@ function readGivenPrivateKey(
       text: readPrivateKeyFile(privateKeyPath),
     };
   }
-  // an empty variable is unset, as a CI renders a secret it does not hold
+  // An empty variable counts as unset, since a CI renders a secret it does not hold as empty.
   const variableText = process.env.HOTCODEPUSH_SIGNING_KEY;
   return variableText
     ? { source: 'HOTCODEPUSH_SIGNING_KEY', text: variableText }
@@ -148,9 +130,7 @@ function resolvePrivateKeyEncodings(text: string): PrivateKeyEncoding[] {
   return ['pkcs8', 'pkcs1'];
 }
 
-/**
- * The private key in the form the protocol signs with, the base64 of its PKCS #8 DER, and its public half.
- */
+// The protocol signs with the base64 of the PKCS #8 DER.
 async function resolveSigningKeyPair({
   source,
   text,

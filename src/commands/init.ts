@@ -80,11 +80,7 @@ interface InitOptions extends InteractivityOptions {
   xcodeTarget?: string;
 }
 
-/**
- * What the run knows about the project once the app is settled: the files the remaining steps edit and what its framework wires.
- */
 interface ProjectFiles {
-  /** The configuration file `--config` named or the one found, else `hotcodepush.json` in the project root. */
   configFilePath: string;
   directoryPath: string;
   framework: FrameworkModule;
@@ -93,9 +89,6 @@ interface ProjectFiles {
   wiring: FrameworkWiring;
 }
 
-/**
- * What the organization step settles: the organization, and the app when `hotcodepush.json` names one that exists and `--app` is not given.
- */
 interface Scope {
   app: App | undefined;
   organization: Organization;
@@ -209,9 +202,7 @@ export default defineCommand({
   },
 });
 
-/**
- * The credential in place — a session or `HOTCODEPUSH_TOKEN` — or the `login` flow: non-interactively it leaves the device code for the next run.
- */
+// A non-interactive login leaves the device code for the next run.
 async function signIn(options: InitOptions): Promise<StepOutcome<HotCodePush>> {
   if (readToken() !== undefined) {
     try {
@@ -240,11 +231,7 @@ async function signIn(options: InitOptions): Promise<StepOutcome<HotCodePush>> {
   };
 }
 
-/**
- * The organization of the app `hotcodepush.json` names, when it names one that exists and `--app` names no other;
- * otherwise `--organization`, used when it exists and created when not; without the flag a picker with
- * "create a new one", or non-interactively the only one.
- */
+// Without `--organization`, a person picks or creates one. Non-interactively the only one is used.
 async function resolveOrganization(
   hotCodePush: HotCodePush,
   projectConfig: ProjectConfig | undefined,
@@ -300,10 +287,7 @@ async function resolveOrganization(
   return resolveCreatedScope(await hotCodePush.organizations.create({ name }));
 }
 
-/**
- * The app `hotcodepush.json` names, as the organization step read it; otherwise `--app`'s rule as for the organization,
- * the creation carrying the framework. A file's app the API lacks is refused non-interactively, and a person picks or creates another.
- */
+// An app in the file that the API lacks is refused non-interactively. A person picks or creates another.
 async function resolveApp(
   hotCodePush: HotCodePush,
   { app, organization }: Scope,
@@ -383,10 +367,7 @@ async function resolveProjectFiles(
   };
 }
 
-/**
- * The files the remaining steps would change, shown and confirmed once; nothing to change asks nothing.
- * Declined, or with nobody to ask, the reason is what each editing step stops with.
- */
+// Declined, or with nobody to ask, each editing step stops with that reason.
 async function resolveEditBlocker(
   projectFiles: ProjectFiles,
   app: App | undefined,
@@ -410,9 +391,7 @@ async function resolveEditBlocker(
   }
 }
 
-/**
- * Without an app the configuration step waits, so `hotcodepush.json` is not among the files.
- */
+// Without an app the configuration step waits, so `hotcodepush.json` is not among the files.
 function resolveFilesToChange(
   { configFilePath, projectConfig, wiring }: ProjectFiles,
   app: App | undefined,
@@ -447,9 +426,6 @@ function installPackage(
   });
 }
 
-/**
- * `hotcodepush.json` with the app and its default channel by name; a file present keeps its other keys.
- */
 async function writeConfiguration(
   hotCodePush: HotCodePush,
   { configFilePath, projectConfig }: ProjectFiles,
@@ -507,9 +483,6 @@ function resolveConfigurationMessage(
   return `Completed ${fileName}.`;
 }
 
-/**
- * The name of the app's default channel, the one a new project follows; the schema's default for an app without one.
- */
 async function fetchDefaultChannelName(
   hotCodePush: HotCodePush,
   app: App,
@@ -524,10 +497,7 @@ async function fetchDefaultChannelName(
   return defaultChannel.name;
 }
 
-/**
- * The signing key pair, for a person only: `signing-key create` in place, which writes the private key to a new file.
- * Nobody to ask points at the command instead, since a key file written on a runner is lost with it.
- */
+// Nobody to ask points at the command instead, since a key file written on a runner is lost with it.
 async function createSigningKey(
   app: App | undefined,
   { configFilePath }: ProjectFiles,
@@ -569,9 +539,6 @@ async function createSigningKey(
   };
 }
 
-/**
- * The project's `build` script, run visibly when a release follows; skipped with the reason otherwise.
- */
 function buildProject(
   { directoryPath, framework, packageJson }: ProjectFiles,
   isReleaseWanted: boolean,
@@ -608,9 +575,6 @@ function buildProject(
   });
 }
 
-/**
- * The first release through `release create`, interactively only; the web build must exist by then.
- */
 async function releaseFirst(
   { configFilePath, directoryPath, framework, packageJson }: ProjectFiles,
   isReleaseWanted: boolean,
@@ -687,9 +651,7 @@ async function confirmCreation(
   }
 }
 
-/**
- * The app, or none when the API no longer has it: a copied project, a cloned demo, a reset environment.
- */
+// Such as a copied project, a cloned demo or a reset environment.
 async function fetchExistingApp(
   hotCodePush: HotCodePush,
   appId: string,
@@ -715,9 +677,6 @@ function findNamed<TResource extends { id: string; name: string }>(
       );
 }
 
-/**
- * The file names the app and the channel, all `init` writes.
- */
 function isConfigurationComplete(
   projectConfig: ProjectConfig | undefined,
   app: App,
@@ -752,9 +711,7 @@ function requireById<TResource extends { id: string }>(
   return resource;
 }
 
-/**
- * A value an earlier step produced; the run never reaches here without it, since a stopped step skips the rest.
- */
+// A stopped step skips the rest, so the run never gets here without the value.
 function requireValue<TValue>(value: TValue | undefined): TValue {
   if (value === undefined) {
     throw new UnexpectedError(new Error('An earlier step did not run.'));

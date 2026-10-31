@@ -13,14 +13,10 @@ import {
 } from '@hotcodepush/protocol/fingerprint';
 import { FingerprintUnavailableError } from './errors.js';
 
-/** What the file system answers for a path that holds nothing of the kind asked for. */
+// Errors for a path that holds nothing of the kind asked for.
 const ABSENT_ERROR_CODES = new Set(['EISDIR', 'ENOENT', 'ENOTDIR']);
 
-/**
- * The project's `fp1` fingerprint, the native contract's hash, from its committed lockfile, its installed packages
- * and the files under the extra fingerprint paths hotcodepush.json lists, relative to the project root, a sibling
- * workspace's through `..`.
- */
+// The extra fingerprint paths are relative to the project root and may reach a sibling workspace through `..`.
 export async function readFingerprint(
   projectDirectoryPath: string,
   extraFingerprintPaths: readonly string[],
@@ -33,19 +29,12 @@ export async function readFingerprint(
   );
 }
 
-/**
- * Whether a lockfile lies in the project root or a directory above it, the one the fingerprint is computed from.
- */
 export function hasLockfile(projectDirectoryPath: string): boolean {
   return findLockfileDirectoryPath(projectDirectoryPath) !== undefined;
 }
 
-/**
- * What the project's fingerprint hashes: the native packages with their versions and the files under the extra
- * fingerprint paths. The recipe reads from the nearest directory with a lockfile walking up from the project root,
- * a monorepo's root where the workspace installs, and is given the project's path relative to that directory and the
- * extra fingerprint paths as listed, which it resolves against the project and refuses outside that directory.
- */
+// The recipe reads from the nearest lockfile directory, which is the monorepo root where the workspace installs.
+// It resolves the extra paths against the project and refuses any outside that directory.
 export async function readProjectFingerprintContributors(
   projectDirectoryPath: string,
   extraFingerprintPaths: readonly string[],
@@ -69,9 +58,6 @@ export async function readProjectFingerprintContributors(
   }
 }
 
-/**
- * The nearest directory holding a lockfile walking up from the given one, the way `hotcodepush.json` is found.
- */
 function findLockfileDirectoryPath(directoryPath: string): string | undefined {
   if (
     LOCKFILE_NAMES.some(fileName => existsSync(join(directoryPath, fileName)))
@@ -105,7 +91,7 @@ function createProjectReader(rootDirectoryPath: string): ProjectReader {
           realpath(rootDirectoryPath),
           realpath(join(rootDirectoryPath, path)),
         ]);
-        // `..`-led when the link leads out of the root, which the recipe refuses
+        // A link out of the root yields a path starting with `..`, which the recipe refuses.
         return relative(rootRealPath, targetRealPath).split(sep).join('/');
       }),
   };

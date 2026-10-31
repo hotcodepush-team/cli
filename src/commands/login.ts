@@ -30,12 +30,12 @@ interface DeviceAuthorization {
   verificationUrl: string;
 }
 
-// RFC 8628, section 3.2: without an interval from the server a client polls every five seconds, as for a kept code
+// RFC 8628, section 3.2: without an interval from the server, a client polls every five seconds.
 const DEFAULT_INTERVAL_SECONDS = 5;
 
 const DEVICE_CODE_GRANT_TYPE = 'urn:ietf:params:oauth:grant-type:device_code';
 
-// RFC 8628, section 3.5: every slow_down adds five seconds to the interval of this and every later request
+// RFC 8628, section 3.5: each slow_down adds five seconds to this and every later interval.
 const SLOW_DOWN_INCREMENT_SECONDS = 5;
 
 export interface LoggedInUser {
@@ -76,10 +76,7 @@ export default defineCommand({
   },
 });
 
-/**
- * The login flow as a command runs it in place: the session stored, the pending code cleared and the user returned;
- * the page and the code a person must act on go to stderr, so the caller's stdout stays its own.
- */
+// The page and the code go to stderr, so the stdout of the calling command stays its own.
 export async function logIn(
   options: InteractivityOptions,
 ): Promise<LoggedInUser> {
@@ -97,11 +94,7 @@ export async function logIn(
   return { email: user.email, id: user.id, name: user.name };
 }
 
-/**
- * Polls at the interval until the person approves or denies the code, or the code expires by the server's word or its own
- * `expires_in`. A request that got no answer or a transient status is polled again like a pending code, since the person
- * may be approving in the browser meanwhile.
- */
+// A request without an answer or with a transient status is polled again, since the person may be approving meanwhile.
 async function fetchApprovedSessionToken(
   authClient: AuthClient,
   deviceAuthorization: DeviceAuthorization,
@@ -170,10 +163,8 @@ function fetchDeviceToken(authClient: AuthClient, deviceCode: string) {
   });
 }
 
-/**
- * The code a non-interactive login kept comes first, with one token request: approved, it yields the session;
- * still pending, it is shown again. A code denied, expired, unknown to the server or never kept gives way to a new one.
- */
+// A code that a non-interactive login kept is redeemed first, with one token request.
+// While pending it is shown again. Denied, expired or unknown, it gives way to a new one.
 async function fetchSessionToken(
   authClient: AuthClient,
   isLoginInteractive: boolean,
@@ -214,10 +205,7 @@ async function fetchSessionToken(
   );
 }
 
-/**
- * The code is kept for the next login, so one that ends before the approval — killed, or unable to wait — is redeemed by it.
- * A login that cannot wait exits with the page and the code; an interactive one shows them, opens the page and polls.
- */
+// The code is kept, so the next login redeems one that ended before the approval.
 async function fetchSessionTokenOnApproval(
   authClient: AuthClient,
   deviceAuthorization: DeviceAuthorization,
@@ -252,9 +240,7 @@ function isDeviceAuthorizationExpired({
   return new Date(expiresAt) <= new Date();
 }
 
-/**
- * A status the request may not meet on the next poll, as the Node client retries: a timeout, the rate limit or a server error.
- */
+// The statuses the Node client also retries: a timeout, the rate limit or a server error.
 function isTransientStatus(status: number): boolean {
   return status === 408 || status === 429 || status >= 500;
 }

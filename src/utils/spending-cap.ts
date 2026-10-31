@@ -2,9 +2,7 @@ import { z } from 'zod';
 
 const CENTS_PER_DOLLAR = 100;
 
-/**
- * The flag `organization update` takes, in whole dollars where the API counts cents; the API checks the range.
- */
+// The flag takes whole dollars, while the API counts cents and checks the range.
 export const spendingCapShape = {
   spendingCap: z.coerce
     .number()
@@ -15,16 +13,10 @@ export const spendingCapShape = {
     ),
 };
 
-/**
- * Whole dollars in the cents the API counts.
- */
 export function resolveCents(dollars: number): number {
   return dollars * CENTS_PER_DOLLAR;
 }
 
-/**
- * Cents as the dollars a person chose, `$1,000`.
- */
 export function resolveDollarText(cents: number): string {
   return `$${(cents / CENTS_PER_DOLLAR).toLocaleString('en-US')}`;
 }

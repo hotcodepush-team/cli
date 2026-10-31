@@ -5,9 +5,7 @@ const MILLISECONDS_PER_DURATION_UNIT = {
   h: 60 * 60 * 1000,
 } as const;
 
-/**
- * A duration such as 14d or 12h in milliseconds; the caller checked it against `DURATION_PATTERN`.
- */
+// The caller has checked the duration against `DURATION_PATTERN`.
 export function resolveDurationMilliseconds(duration: string): number {
   const unit = duration.slice(
     -1,
@@ -15,9 +13,7 @@ export function resolveDurationMilliseconds(duration: string): number {
   return Number(duration.slice(0, -1)) * MILLISECONDS_PER_DURATION_UNIT[unit];
 }
 
-/**
- * A time bound as the API takes it: a duration such as 2h is that long ago, anything else a timestamp passed on as typed.
- */
+// A duration such as 2h means that long ago. Anything else is passed on as a timestamp.
 export function resolveTimeBound(
   bound: string | undefined,
 ): string | undefined {

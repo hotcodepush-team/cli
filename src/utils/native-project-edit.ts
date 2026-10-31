@@ -2,16 +2,11 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { NativeProjectError } from './errors.js';
 
-/**
- * One line of a native project `init` wires: whether it is there, and how it gets there.
- * Every edit is recognised afterwards by the marker it writes, and one the file has no place for is the manual step.
- */
 export interface NativeProjectEdit {
-  /** What the edit wires, in the words `init` prints. */
   description: string;
   filePath: string;
   isApplied: () => boolean;
-  /** A file `init` cannot edit, so its confirmation never names it: applying the edit stops with the manual step. */
+  // `init` cannot edit the file, so its confirmation never names it.
   isRefused?: boolean;
   apply: () => void;
 }
@@ -22,11 +17,7 @@ const GRADLE_FILE_MARKER = 'hotcodepush.gradle';
 
 const GRADLE_FILE_NAMES = ['build.gradle', 'build.gradle.kts'];
 
-/**
- * The app's Gradle file applies the Gradle file the SDK package ships, which holds the task that runs the build step: one line,
- * resolved through Node so it finds the package wherever `node_modules` lies, in the syntax of the file it joins.
- * An Android project without the app's Gradle file gets the manual step; without an Android project there is no edit.
- */
+// The line resolves the SDK package through Node, so it finds the package wherever `node_modules` lies.
 export function resolveGradleEdit(
   androidProjectPath: string,
   packageName: string,
@@ -66,11 +57,7 @@ export function resolveGradleEdit(
   };
 }
 
-/**
- * The edit of a file `init` cannot edit, missing or not the one the framework's template has: applying it stops with
- * the manual step, and it counts as applied once the file holds the marker that step writes, so `doctor` passes a file
- * wired by hand and `init` leaves it alone. A missing file has no marker and is never applied.
- */
+// A file wired by hand holds the marker, so `doctor` passes it and `init` leaves it alone.
 export function resolveRefusedEdit(
   description: string,
   filePath: string,

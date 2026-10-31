@@ -29,12 +29,8 @@ const REACT_NATIVE_REACT_HOST_IMPORT =
 
 const SWIFT_MODULE_IMPORT = 'import HotcodepushReactNativeCodePush';
 
-/**
- * The file that overrides `bundleURL()` hands React Native the bundle the SDK serves: `SceneDelegate.swift` from React
- * Native 0.88's template on, `AppDelegate.swift` before it. The template's `Bundle.main.url(…)` line becomes
- * `HotCodePush.bundleURL()`, the debug build's Metro line beside it staying as it is. An iOS project without a Swift
- * app delegate gets the manual step; without an iOS project there is no edit.
- */
+// React Native 0.88's template overrides `bundleURL()` in `SceneDelegate.swift`, older ones in `AppDelegate.swift`.
+// The debug build's Metro line stays as it is.
 export function resolveBundleUrlEdit(
   iosProjectPath: string,
 ): NativeProjectEdit | undefined {
@@ -90,11 +86,8 @@ export function resolveBundleUrlEdit(
   };
 }
 
-/**
- * `MainApplication.kt` builds its React host with the SDK's `getDefaultReactHost`, which asks for the served bundle at
- * every start and reload: the import changes, the call and its parameters stay. An Android project without
- * `MainApplication.kt` gets the manual step; without an Android project there is no edit.
- */
+// The SDK's `getDefaultReactHost` asks for the served bundle at every start and reload.
+// Only the import changes, so the call and its parameters stay.
 export function resolveReactHostEdit(
   androidProjectPath: string,
 ): NativeProjectEdit | undefined {
@@ -135,10 +128,7 @@ export function resolveReactHostEdit(
   };
 }
 
-/**
- * The app delegate in the app's own directory under the iOS project, never a pod's or a build's: the Swift one React
- * Native's template has, otherwise the Objective-C one of the templates before 0.77.
- */
+// Templates before React Native 0.77 have an Objective-C app delegate.
 function findAppDelegateFilePath(iosProjectPath: string): string | undefined {
   const appDirectoryPaths = readdirSync(iosProjectPath, { withFileTypes: true })
     .filter(entry => entry.isDirectory() && entry.name !== 'Pods')
@@ -181,10 +171,6 @@ function resolveReactHostFix(location: string): string {
   return `Build the React host in ${location} with ${REACT_HOST_CLASS}.getDefaultReactHost, which takes DefaultReactHost.getDefaultReactHost's parameters.`;
 }
 
-/**
- * An iOS project without a Swift app delegate: the manual step names the Objective-C one where there is one, which is
- * wired once it calls `[HotCodePush bundleURL]`.
- */
 function resolveRefusedBundleUrlEdit(
   iosProjectPath: string,
   objectiveCFilePath: string | undefined,
@@ -210,10 +196,6 @@ function resolveRefusedBundleUrlEdit(
   );
 }
 
-/**
- * An Android project without `MainApplication.kt`: the manual step names the Java one where there is one, which is
- * wired once it names the SDK's `HotCodePushReactHost`, however it imports or calls it.
- */
 function resolveRefusedReactHostEdit(
   androidProjectPath: string,
   javaFilePath: string | undefined,

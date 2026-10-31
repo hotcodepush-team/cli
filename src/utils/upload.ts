@@ -25,11 +25,10 @@ export interface UploadBundleOptions {
   directoryPath: string;
   fingerprint: string;
   gitProvenance: GitProvenance;
-  /** The native glue the files leave out, as the framework names it; none without the framework's member. */
   nativeGluePaths?: readonly string[];
   platforms: Platform[];
   reporter: Reporter;
-  /** The private key the manifest is signed with, the base64 of its PKCS #8 DER; null where signing is off. */
+  // Base64 of the PKCS #8 DER, or null when signing is off.
   signingPrivateKey: string | null;
 }
 
@@ -38,22 +37,14 @@ export interface UploadedBundle {
   upload: UploadedFiles;
 }
 
-/**
- * What an upload moved: the files the app lacked and the size of their gzip copies.
- */
 export interface UploadedFiles {
   fileCount: number;
   sizeBytes: number;
 }
 
-/**
- * The page a bundle's files are read in, the most that list takes, beyond every other list's.
- */
+// The most the bundle files list takes, more than any other list.
 const BUNDLE_FILE_PAGE_LIMIT = 1000;
 
-/**
- * A file or the whole build above the limit is refused before a byte is sent.
- */
 export function assertWithinBundleBytesLimit(files: BundleFile[]): void {
   const largeFile = files.find(file => file.sizeBytes > BUNDLE_BYTES_LIMIT);
   if (largeFile !== undefined) {
@@ -68,10 +59,6 @@ export function assertWithinBundleBytesLimit(files: BundleFile[]): void {
   }
 }
 
-/**
- * The files of a build an upload packages: every shipped file but the native glue the binary carries, left out with one
- * line saying so.
- */
 export async function collectUploadFiles({
   directoryPath,
   nativeGluePaths = [],
@@ -91,10 +78,6 @@ export async function collectUploadFiles({
   return files;
 }
 
-/**
- * The whole upload of a web build: hash every file, sign the manifest where a key is configured, post it, read the
- * bundle's files the app's store lacks, upload those and the full pack, then complete.
- */
 export async function uploadBundle(
   hotCodePush: HotCodePush,
   {
@@ -171,10 +154,8 @@ export async function uploadBundle(
   });
 }
 
-/**
- * The manifest as the API rebuilds it from the bundle's rows before it checks the signature: the files by path and the
- * platforms sorted, each by UTF-16 code units, the order canonical JSON leaves to the writer.
- */
+// The API rebuilds this manifest before it checks the signature, so the order must match.
+// Canonical JSON leaves array order to the writer: files sort by path and platforms by UTF-16 code units.
 export function buildManifestToSign({
   appId,
   bundleVersion,
@@ -198,9 +179,6 @@ export function buildManifestToSign({
   };
 }
 
-/**
- * The files of the hashes given, as their gzip bytes from disk; the client puts each in one request or in parts by size.
- */
 export async function uploadMissingFiles(
   hotCodePush: HotCodePush,
   appId: string,
@@ -223,9 +201,6 @@ export async function uploadMissingFiles(
   return { fileCount: missingSha256s.length, sizeBytes };
 }
 
-/**
- * The full pack from disk; the client puts it in one request or in parts by size.
- */
 export async function uploadPack(
   hotCodePush: HotCodePush,
   pathParameters: { appId: string; bundleId: string },
@@ -237,9 +212,7 @@ export async function uploadPack(
   });
 }
 
-/**
- * The hashes the app lacks per its refusal to create the bundle or the binary: `upload_incomplete` names them in its details.
- */
+// `upload_incomplete` names the missing hashes in its details.
 export function resolveMissingSha256s(error: unknown): string[] | undefined {
   if (
     !(error instanceof HotCodePushError) ||
@@ -263,9 +236,7 @@ function compareCodeUnits(left: string, right: string): number {
   return left < right ? -1 : 1;
 }
 
-/**
- * The hashes of the bundle's files not yet stored, each once, though several paths may carry one.
- */
+// Several paths can share a hash, so each is listed once.
 async function fetchMissingSha256s(
   hotCodePush: HotCodePush,
   pathParameters: { appId: string; bundleId: string },

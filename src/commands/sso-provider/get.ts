@@ -32,10 +32,6 @@ export default defineCommand({
   },
 });
 
-/**
- * The provider as `get` prints it: what it is, whether its domain is verified, the URLs the identity provider is given,
- * and the TXT record to set while the domain is not.
- */
 export function printProviderDetails(provider: SsoProvider): void {
   const apiUrl = readApiUrl();
   printDetails([
@@ -52,9 +48,7 @@ export function printProviderDetails(provider: SsoProvider): void {
   ]);
 }
 
-/**
- * The URLs of ours the identity provider is configured with, on the API's own origin.
- */
+// The identity provider calls these URLs on the API origin.
 function resolveServiceProviderDetails(
   { providerId, type }: SsoProvider,
   apiUrl: string,
@@ -71,9 +65,7 @@ function resolveServiceProviderDetails(
       ];
 }
 
-/**
- * The TXT record the domain is verified by: the provider's name under the domain, holding its verification token.
- */
+// The record name is the provider name under the domain.
 function resolveVerificationDetails({
   domain,
   domainVerificationToken,

@@ -3,9 +3,7 @@ import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
 
-/**
- * What a bundle records about the commit it was built from, control-plane only; every field null where there is no repository.
- */
+// Stored on the control plane only. Every field is null without a repository.
 export interface GitProvenance {
   gitMessage: string | null;
   gitRef: string | null;
@@ -29,10 +27,7 @@ const EMPTY_PROVENANCE: GitProvenance = {
   isGitDirty: null,
 };
 
-/**
- * The provenance detected from the repository the input lies in, each field overridden by its flag;
- * `--no-git` suppresses the detection while the typed flags still apply, for a pipeline without a checkout.
- */
+// `--no-git` skips the detection for a pipeline without a checkout, while the typed flags still apply.
 export async function resolveGitProvenance(
   directoryPath: string,
   options: GitProvenanceOptions,
@@ -49,9 +44,7 @@ export async function resolveGitProvenance(
   };
 }
 
-/**
- * A remote's slug without its credentials, `github.com/acme/shop`, from an HTTPS or an SSH URL.
- */
+// Drops the credentials, so `github.com/acme/shop` comes from an HTTPS or an SSH URL alike.
 export function resolveRemoteSlug(remoteUrl: string): string {
   const sshMatch = /^[^@]+@([^:]+):(.+)$/.exec(remoteUrl);
   if (sshMatch?.[1] !== undefined && sshMatch[2] !== undefined) {
@@ -87,9 +80,7 @@ async function detectGitProvenance(
   };
 }
 
-/**
- * One git command's trimmed output, or null where git is absent, the directory is no repository or the command fails.
- */
+// Null when git is missing, the directory is no repository or the command fails.
 async function readGit(
   directoryPath: string,
   args: string[],

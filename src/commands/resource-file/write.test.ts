@@ -37,7 +37,6 @@ import {
 import { MissingParameterError } from '../../utils/errors.js';
 import resourceFileWriteCommand from './write.js';
 
-// the not-logged-in case must not find a token in the machine's keyring
 vi.mock('@napi-rs/keyring', () => ({
   Entry: vi.fn(function () {
     return { getPassword: () => null };
@@ -246,9 +245,6 @@ describe('resource-file write', () => {
     ]);
   });
 
-  /**
-   * The project as a React Native one with the lockfile and the installed package the fingerprint reads.
-   */
   function rewriteAsReactNativeProject(): void {
     const dependencies = { 'react-native': '0.82.1' };
     writeFileSync(
@@ -275,9 +271,6 @@ describe('resource-file write', () => {
   }
 });
 
-/**
- * No token anywhere: none in the environment, and a config home of the test's own.
- */
 function stubNoToken(): void {
   const configHomePath = mkdtempSync(join(tmpdir(), 'hotcodepush-nohome-'));
   onTestFinished(() => {

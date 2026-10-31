@@ -168,6 +168,14 @@ A project with an app config that is code, or with a JSON one that does not pars
 - HotCodePush ships over-the-air (OTA) updates: a surface, the root `--help`, a command's `--help`, a message or the README, writes "over-the-air (OTA) update" on its first mention and "OTA update" after it. "Live update" names the Capacitor offering alone, `capacitor-live-updates`, or sits in a list of alternative names for search, never as the product's own term.
 - The supported frameworks are listed as React Native, Expo, Capacitor and Cordova wherever a reader sees them listed, a description, a message, an enum's choices, a prompt or the README, the larger communities first and React Native beside Expo; identifiers and the detection order are logic, not lists.
 
+## Comments
+
+- Comment only what the code cannot say: the why behind a choice, an outside quirk or limit, what a regex matches, a TODO with its issue link. Never what the code does.
+- Before adding a comment, try a clearer name or a small extracted function first.
+- One or two short plain sentences. Capital letter, full stop, own line above the code. No run-on sentences, no chains of possessives.
+- Doc comments (JSDoc, KDoc, `///`, docstrings) only on a package's public API: one line that says what it does, then only what a caller must know.
+- Never: section banners, commented-out code, change history, the same comment in two places.
+
 ## Agent workspace
 
 - `.mcp.json` is absent on purpose: the one server for this repo's stack, HotCodePush's own at `https://mcp.hotcodepush.com/mcp`, is not live yet; the file arrives with it.

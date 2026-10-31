@@ -1,8 +1,6 @@
 import type { InteractivityOptions } from './environment.js';
 
-/**
- * Says what a long command is doing, on stderr and only on a terminal: never under `--json`, never in a log.
- */
+// Progress goes to stderr and only to a terminal, never under `--json` or into a log.
 export interface Reporter {
   report(line: string): void;
 }
@@ -18,9 +16,7 @@ export function createReporter({ json }: InteractivityOptions): Reporter {
   };
 }
 
-/**
- * A byte count for a person, 12.3 kB or 4.0 MB, in decimal units as the limits are.
- */
+// Decimal units, as the limits use.
 export function resolveByteText(bytes: number): string {
   if (bytes < 1000) {
     return `${bytes} B`;

@@ -79,10 +79,8 @@ const INDEX: ChannelIndex = {
   sequence: Date.parse(INDEX_PUBLISHED_AT),
 };
 
-/**
- * The evaluation cases a device's record and a store build's binary carry every fact of: a device on its embedded
- * bundle that never failed a bundle, under no spending cap.
- */
+// The cases whose every fact a device record and a store binary carry.
+// The device runs its embedded bundle, never failed a bundle and has no spending cap.
 const DEVICE_FIXTURES = [
   'conditions-attribute',
   'conditions-binary',
