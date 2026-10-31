@@ -15,9 +15,6 @@ import type { DeviceHosts } from './hosts.js';
 import type { ProjectConfig } from './project-config.js';
 import type { Platform } from './upload.js';
 
-/**
- * The bundle a build embeds: its files, the version its manifest carries, and its id, null while no binary was created with it.
- */
 export interface EmbeddedBundle {
   bundleVersion: string;
   files: BundleFile[];
@@ -26,9 +23,9 @@ export interface EmbeddedBundle {
 
 interface ResourceFileInput {
   builtAt: string;
-  /** Null for a build whose channel name was not resolved, made offline or bundling nothing. */
+  // Null when the channel name was not resolved, the build is offline or it bundled nothing.
   channelId: string | null;
-  /** Null for a build that bundled no JavaScript, which takes no OTA updates. */
+  // Null for a build that bundled no JavaScript, which takes no OTA updates.
   embeddedBundle: EmbeddedBundle | null;
   fingerprint: string;
   hosts: DeviceHosts;
@@ -36,13 +33,8 @@ interface ResourceFileInput {
   projectConfig: ProjectConfig;
 }
 
-/**
- * The resource file: the project's configuration with the channel as the id the build step resolved, null offline, and
- * without the CLI's own key, `extraFingerprintPaths`, plus what only a build step can know — the floor, the fingerprint,
- * the embedded bundle's manifest and id, both null without an embedded bundle, and the device hosts outside production.
- * The manifest is the bundle manifest without patches, unsigned, the same whether a binary was created with the bundle or not.
- * The public keys leave their project form for the one the platform's own API imports.
- */
+// The manifest is the unsigned bundle manifest without patches, whether or not a binary was created.
+// The public keys take the form that the platform API imports.
 export function buildResourceFile({
   builtAt,
   channelId,
@@ -93,11 +85,8 @@ export function writeResourceFile(
   writeFileSync(filePath, `${JSON.stringify(configuration, null, 2)}\n`);
 }
 
-/**
- * A public key of the project as the device reads it: the DER its platform's own API imports with no ASN.1 handled on the
- * device — PKCS #1 for iOS's `SecKeyCreateWithData`, SPKI for Android's `X509EncodedKeySpec` — beside the key id a signature
- * names. Node's key export does the conversion; a key that is no RSA key of the minimum size stops the build step.
- */
+// The device imports the DER with its platform API and handles no ASN.1 itself.
+// iOS `SecKeyCreateWithData` takes PKCS #1 and Android `X509EncodedKeySpec` takes SPKI.
 function resolveDevicePublicKey(
   publicKey: string,
   platform: Platform,
@@ -141,10 +130,7 @@ function buildUnusablePublicKeyError(
   );
 }
 
-/**
- * The project's configuration without its channel, which the resolved id replaces, and without the paths the
- * fingerprint hashes, which the CLI alone reads.
- */
+// The resolved id replaces the channel, and only the CLI reads the fingerprint paths.
 function omitProjectOnlyKeys(projectConfig: ProjectConfig): ProjectConfig {
   const configuration = { ...projectConfig };
   delete configuration.channel;

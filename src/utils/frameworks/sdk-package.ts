@@ -10,9 +10,6 @@ import {
 } from '../package-manager.js';
 import type { FrameworkCheck, FrameworkProject } from './index.js';
 
-/**
- * The SDK package as `doctor` reports it: declared in `package.json` and present in `node_modules`.
- */
 export function checkSdkPackage(
   { directoryPath, packageJson }: FrameworkProject,
   packageName: string,
@@ -44,9 +41,6 @@ export function checkSdkPackage(
   };
 }
 
-/**
- * Installs the SDK package from its pinned build with the project's package manager, visibly, and answers the sentence the step prints.
- */
 export function installSdkPackage(
   projectDirectoryPath: string,
   packageName: string,
@@ -72,9 +66,6 @@ export function isSdkPackageDeclared(
   );
 }
 
-/**
- * The version of a package as `node_modules` holds it, none when it is not installed.
- */
 export function readInstalledPackageVersion(
   projectDirectoryPath: string,
   packageName: string,
@@ -96,10 +87,7 @@ function readPackageJsonVersion(packageJsonPath: string): string | undefined {
     .version;
 }
 
-/**
- * The version of a package the SDK package depends on, resolved from the SDK package as Node resolves it, since an
- * isolated install such as pnpm's keeps it out of the project's `node_modules`; none when either is not installed.
- */
+// Resolved from the SDK package, since an isolated install such as pnpm's keeps it out of the project's `node_modules`.
 export function readSdkDependencyVersion(
   projectDirectoryPath: string,
   sdkPackageName: string,

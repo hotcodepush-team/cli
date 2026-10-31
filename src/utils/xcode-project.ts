@@ -21,19 +21,13 @@ interface AppTarget {
   name: string;
 }
 
-/**
- * The run-script phase that runs the build step in a framework's app target: the script, the phase it follows where
- * the build step reads that phase's output, none to follow the target's last phase, and the manual step that adds it by hand.
- */
+// Without an anchor phase, the phase follows the target's last phase.
 export interface BinaryCreatePhase {
   anchorPhaseName: string | undefined;
   fix: string;
   shellScript: string;
 }
 
-/**
- * A project parsed for an edit, with the numbers kept out of the package's hands that it writes back.
- */
 interface EditableProject {
   keptNumbers: string[];
   project: XcodeProject;
@@ -51,23 +45,21 @@ const BINARY_CREATE_PHASE_NAME = 'Create HotCodePush binary';
 
 const KEPT_NUMBER_PLACEHOLDER_PATTERN = /hotcodepushKeptNumber(\d+)_/g;
 
-// a value of digits alone, which the package's grammar reads as a number: after `=`, `(` or `,`, before `;`, `,` or a line break
+// Matches a value of digits alone, after `=`, `(` or `,` and before `;`, `,` or a line break.
 const NUMBER_VALUE_PATTERN = /(?<=[=(,]\s*)\d+(?=[;,\n])/g;
 
-// the package parses the text through its own grammar module; the project it creates parses only a file, never a text
+// The `xcode` package's project parses only a file, so its grammar module parses the text.
 const pbxprojParser = createRequire(import.meta.url)(
   'xcode/lib/parser/pbxproj.js',
 ) as { parse: (text: string) => PbxprojHash };
 
-// the script reads the version and build from the built app's processed Info.plist: declared as the phase's input,
-// Xcode processes the plist before it runs the phase
+// The script reads the version and build from the processed Info.plist.
+// As the phase's input, Xcode processes the plist before the phase runs.
 const INFO_PLIST_INPUT_PATH = '"$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)"';
 
 const RESOURCE_FILE_NAME = 'hotcodepush.json';
 
-/**
- * The `project.pbxproj` of the Capacitor iOS project: `App/App.xcodeproj` as `cap add ios` lays it out, else the first project found.
- */
+// `cap add ios` lays out `App/App.xcodeproj`. Any other layout takes the first project found.
 export function resolveXcodeProjectFilePath(
   iosProjectPath: string,
 ): string | undefined {
@@ -80,19 +72,18 @@ export function resolveXcodeProjectFilePath(
     : join(projectPath, 'project.pbxproj');
 }
 
-/**
- * Whether the project already runs the build step: the phase is recognised by the script it runs, the same file name in every SDK.
- */
+// Every SDK names its script file the same, so the file name recognises the phase.
 export function hasBinaryCreatePhase(projectFilePath: string): boolean {
   return readFileSync(projectFilePath, 'utf8').includes(
     BINARY_CREATE_PHASE_MARKER,
   );
 }
 
-/**
- * Adds the run-script phase that runs the build step to the app target, right after the phase whose output it reads, or
- * after the target's last phase; the phase already there is left alone, and a project without that phase is the manual step.
- */
+// A pbxproj string carries its line breaks escaped.
+export function buildPbxprojShellScript(lines: string[]): string {
+  return lines.join('\\n');
+}
+
 export async function addBinaryCreatePhase(
   projectFilePath: string,
   phase: BinaryCreatePhase,
@@ -132,11 +123,11 @@ export async function addBinaryCreatePhase(
       shellScript: phase.shellScript,
     },
   );
-  // the build step writes hotcodepush.json, which carries the build's time, on every build; a phase without outputs
-  // that is not marked so makes Xcode warn
+  // The phase writes hotcodepush.json with the build time on every build.
+  // Xcode warns about a phase without outputs that is not marked so.
   buildPhase.alwaysOutOfDate = 1;
   if (anchorPhaseIndex !== undefined) {
-    // the package appends the phase to the target; the build step belongs right after the phase it reads
+    // The package appends the phase, but it must run right after the phase whose output it reads.
     const binaryCreatePhase = buildPhases.pop();
     if (binaryCreatePhase !== undefined) {
       buildPhases.splice(anchorPhaseIndex + 1, 0, binaryCreatePhase);
@@ -146,10 +137,8 @@ export async function addBinaryCreatePhase(
   return 'added';
 }
 
-/**
- * Whether the project copies a `hotcodepush.json` of its own into the app, the reference an earlier `init` added to
- * Capacitor's app target; a project the CLI cannot parse counts as one without it, and the phase's edit says why.
- */
+// An earlier `init` added this reference to Capacitor's app target.
+// A project that cannot be parsed counts as without it, and the phase's edit reports the parse error.
 export function hasReadableResourceReference(projectFilePath: string): boolean {
   try {
     return (
@@ -161,11 +150,7 @@ export function hasReadableResourceReference(projectFilePath: string): boolean {
   }
 }
 
-/**
- * Removes that reference: the build step writes the file into the app it builds, and a reference to a file the project
- * no longer holds fails the build. The file reference goes with its build files, their entries in the resources phases
- * and its place in the groups.
- */
+// The build step now writes the file into the app, and a reference to a missing file fails the build.
 export function removeResourceReference(projectFilePath: string): void {
   const editableProject = parseProject(projectFilePath);
   const { project } = editableProject;
@@ -219,9 +204,6 @@ async function resolveAppTarget(
   return selectedTarget;
 }
 
-/**
- * The objects and their comments under the given keys, gone from the section.
- */
 function deleteObjects(section: PbxprojSection, keys: string[]): void {
   for (const key of keys) {
     delete section[key];
@@ -239,9 +221,6 @@ function findResourceReferenceKeys(project: XcodeProject): string[] {
     .map(([key]) => key);
 }
 
-/**
- * The entries naming the given keys, gone from the list each object of the section keeps under the field.
- */
 function removeChildren(
   section: PbxprojSection,
   field: 'children' | 'files',
@@ -273,12 +252,8 @@ function findXcodeProjectPath(iosProjectPath: string): string | undefined {
   return undefined;
 }
 
-/**
- * The project as the `xcode` package parses it, except for the numbers it would write differently: it reads a value of
- * digits as a JavaScript number, so `LastUpgradeCheck = 0920` would come back as `920` and a value of more than fifteen
- * digits would lose its last ones. Those values reach the package as placeholders it keeps as text, and `writeProject`
- * puts them back, so an edit leaves every other byte of the project as it was.
- */
+// The `xcode` package reads digits as a JavaScript number, so `0920` would come back as `920` and long values lose digits.
+// Such values pass through as text placeholders, and `writeProject` puts them back.
 function parseProject(projectFilePath: string, fix?: string): EditableProject {
   try {
     const keptNumbers: string[] = [];

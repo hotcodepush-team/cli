@@ -31,9 +31,6 @@ export default defineCommand({
   },
 });
 
-/**
- * The page's URL: the app's from the id at hand, otherwise as `fetchAppId` resolves or asks for it; the channel's through the API.
- */
 async function resolveConsolePageUrl(options: {
   app?: string;
   channel?: string;

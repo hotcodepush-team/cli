@@ -14,10 +14,6 @@ export const memberOptionShape = {
   member: z.string().optional().describe('The member, by id or email.'),
 };
 
-/**
- * The member `--member` names, otherwise the one picked from the organization's members when interactive,
- * with their user and the user's sign-in identities embedded.
- */
 export async function fetchMember(
   hotCodePush: HotCodePush,
   organizationId: string,
@@ -30,16 +26,12 @@ export async function fetchMember(
   });
 }
 
-/**
- * A member's email, unique in the organization, so it names the member in `--member` as a name does an app.
- */
+// The email is unique in the organization, so it names a member the way a name does an app.
 export function resolveMemberEmail({ user }: Member): string {
   return user?.email ?? '';
 }
 
-/**
- * The caller's role in an organization, read from the member rows `users.get` embeds for them; null without a row.
- */
+// `users.get` embeds the member rows of the caller.
 export function resolveMemberRole(
   members: Pick<Member, 'organizationId' | 'role'>[],
   organizationId: string,
@@ -50,9 +42,7 @@ export function resolveMemberRole(
   );
 }
 
-/**
- * `--member` told apart by shape: a UUID is the id, anything else an email looked up among the members whose email contains it.
- */
+// A UUID is the id. Anything else is an email, matched among the members whose email contains it.
 async function fetchMemberId(
   hotCodePush: HotCodePush,
   organizationId: string,

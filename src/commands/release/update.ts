@@ -93,9 +93,7 @@ export default defineCommand({
   },
 });
 
-/**
- * What the confirmation says changes, in the order `release get` prints the fields, a field sent as null as cleared.
- */
+// Uses the field order of `release get`.
 function resolveChangeTexts({
   failureAction,
   failureMinimumUpdateCount,
@@ -128,9 +126,6 @@ function resolveChangeTexts({
   return changeTexts;
 }
 
-/**
- * The API's body from the flags; a `--clear-` flag sends null, and a flag left out is a field left out.
- */
 function resolveReleaseChanges(options: ReleaseUpdateOptions): ReleaseChanges {
   return {
     ...resolveFailurePolicy(options),

@@ -19,26 +19,19 @@ import type {
   PackagingRequest,
 } from './index.js';
 
-/**
- * The bundler's command and the arguments of its own for one platform, before the options every React Native bundler takes.
- */
 export type BundlerArgsResolver = (
   projectDirectoryPath: string,
   platform: Platform,
 ) => string[];
 
-/**
- * The JavaScript of a platform as React Native's own builds name it, in the app and in an uploaded bundle alike.
- */
+// The names React Native's own builds give the JavaScript, in the app and in an uploaded bundle alike.
 const BUNDLE_FILE_NAMES: Record<Platform, string> = {
   android: 'index.android.bundle',
   ios: 'main.jsbundle',
 };
 
-/**
- * Hermes' flags in React Native's release build by default: the Gradle plugin's `hermesFlags`, whose source map takes the
- * debug information out of the bytecode, and react-native-xcode.sh's without `SOURCEMAP_FILE`, which keeps it inline.
- */
+// React Native's release build defaults: the Gradle plugin's `hermesFlags`, and react-native-xcode.sh without `SOURCEMAP_FILE`.
+// On Android the source map takes the debug information out of the bytecode, on iOS it stays inline.
 const HERMES_FLAGS: Record<Platform, string[]> = {
   android: ['-O', '-output-source-map'],
   ios: ['-O'],
@@ -52,11 +45,8 @@ const HERMESC_DIRECTORY_NAMES: Partial<Record<NodeJS.Platform, string>> = {
 
 const PLATFORMS: Platform[] = ['android', 'ios'];
 
-/**
- * The embedded bundle among the files under the build step's `--embedded-bundle-path`: the staged bundle directory on Android,
- * and in the iOS app the JavaScript with React Native's `assets/` beside it, since the app holds far more.
- * A build that bundled nothing — a debug build Metro serves — gives the build step nothing to hash.
- */
+// The iOS app holds far more than the bundle, so only the JavaScript and `assets/` are taken.
+// A debug build that Metro serves has no bundle and gives the build step nothing to hash.
 export async function collectEmbeddedFiles(
   platform: Platform,
   inputDirectoryPath: string,
@@ -84,10 +74,6 @@ export async function collectEmbeddedFiles(
   ];
 }
 
-/**
- * One bundle per platform, since each has its own JavaScript: bundled into the packaging directory, or `--path` as the
- * prepared bundle directory of the one platform `--platform` names, which holds the JavaScript under the name the app loads.
- */
 export function packageReactNativeBundles(
   {
     packagingDirectoryPath,
@@ -129,9 +115,6 @@ export function packageReactNativeBundles(
   );
 }
 
-/**
- * No build output in the project: an upload bundles the JavaScript itself, and the build step is named the app's bundle.
- */
 export function readBuildDirectory(): BuildDirectory {
   return {
     missingReason: 'the embedded bundle lies in the app the native build makes',
@@ -147,10 +130,6 @@ export function resolveNativeProjectPaths(
   };
 }
 
-/**
- * Hermes compiles the JavaScript to bytecode in React Native's own builds, so an uploaded bundle is compiled the same;
- * a project that switched Hermes off in `gradle.properties` or the Podfile ships the JavaScript as it is.
- */
 function isHermesEnabled(
   platform: Platform,
   nativeProjectPaths: NativeProjectPaths,
@@ -171,11 +150,7 @@ function isHermesEnabled(
   );
 }
 
-/**
- * One platform's bundle as the platform's release build makes it: the bundler for the JavaScript and its assets, then
- * Hermes' compiler over the JavaScript where the app runs Hermes. The JavaScript, the source maps and the bytecode are
- * written beside the bundle's directory, never into it, and the bytecode then moves in as the bundle.
- */
+// Mirrors the release build. Intermediate files go beside the bundle's directory, never into it.
 function packageBundle(
   projectDirectoryPath: string,
   platform: Platform,
@@ -218,7 +193,7 @@ function packageBundle(
               '--sourcemap-output',
               join(intermediateDirectoryPath, sourceMapFileName),
             ]),
-        // Hermes compiles the JavaScript itself and needs no minification before it
+        // Hermes compiles the JavaScript itself and needs no minification before it.
         ...(hermescFilePath === undefined ? [] : ['--minify', 'false']),
       ],
       command: 'npx',
@@ -245,10 +220,6 @@ function packageBundle(
   }
 }
 
-/**
- * Hermes' compiler as the project's React Native ships it for this machine, none where the app does not run Hermes;
- * an app on Hermes without the compiler cannot be bundled the way its native build bundles it.
- */
 function resolveHermescFilePath(
   projectDirectoryPath: string,
   platform: Platform,
@@ -282,9 +253,6 @@ function resolveHermescFilePath(
   return hermescFilePath;
 }
 
-/**
- * A directory inside a package as the project resolves the package, wherever `node_modules` lies.
- */
 function resolvePackageDirectoryPath(
   projectDirectoryPath: string,
   packageName: string,
@@ -300,10 +268,8 @@ function resolvePackageDirectoryPath(
   }
 }
 
-/**
- * The source map React Native's release build has the bundler write, by name, since the JavaScript ends with a comment
- * naming it: Gradle always writes one, the packager's beside Hermes and the bundle's own without it; Xcode none by default.
- */
+// The JavaScript ends with a comment naming its source map, so the name must match React Native's release build.
+// Gradle always writes one, and Xcode none by default.
 function resolvePackagerSourceMapFileName(
   platform: Platform,
   isHermesEnabledForPlatform: boolean,

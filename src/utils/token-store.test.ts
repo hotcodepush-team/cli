@@ -25,7 +25,7 @@ function failKeyring(): void {
   keyring.setPassword.mockImplementation(throwPlatformFailure);
 }
 
-// A fresh module per test, since the latch lives for the rest of the process
+// A fresh module per test, since the keyring failure latch lives for the rest of the process.
 async function importTokenStore() {
   vi.resetModules();
   return import('./token-store.js');

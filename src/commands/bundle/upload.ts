@@ -48,15 +48,12 @@ const FINGERPRINT_UNKNOWN_TEXT =
 
 const PLATFORMS: Platform[] = ['android', 'ios'];
 
-// `ios,android` as typed, validated in the schema so a wrong platform is answered under the flag's name
+// Validated in the schema, so a wrong platform is reported under the flag name.
 const platformListSchema = z
   .string()
   .transform(value => value.split(',').map(platform => platform.trim()))
   .pipe(z.array(z.enum(PLATFORMS)).min(1));
 
-/**
- * The flags `bundle upload` takes, shared with `release create --path`, which uploads first.
- */
 export const bundleUploadOptionShape = {
   bundleVersion: z
     .string()
@@ -118,7 +115,7 @@ export default defineCommand({
         for (const uploadBundleOptions of bundleUploads) {
           bundles.push(await uploadBundle(hotCodePush, uploadBundleOptions));
         }
-        // every platform's bundle carries the project's one fingerprint, so one check answers for all of them
+        // All platform bundles share the project fingerprint, so one check covers them.
         const [sharedOptions] = bundleUploads;
         if (
           sharedOptions !== undefined &&
@@ -133,10 +130,7 @@ export default defineCommand({
   },
 });
 
-/**
- * Whether no binary of the app carries the bundle's fingerprint, so no store build in the field can take it; an app
- * without a binary yet stays silent, its first store build still to come.
- */
+// An app without any binary stays silent, since its first store build is still to come.
 async function fetchIsFingerprintUnknown(
   hotCodePush: HotCodePush,
   { appId, fingerprint }: Pick<UploadBundleOptions, 'appId' | 'fingerprint'>,
@@ -152,9 +146,7 @@ async function fetchIsFingerprintUnknown(
   return binaryCount > 0;
 }
 
-/**
- * A line per bundle, or under `--json` always an array, one bundle or one per platform, as `release create` prints its releases.
- */
+// `--json` always prints an array, as `release create` prints its releases.
 function printUploadedBundles(
   uploadedBundles: UploadedBundle[],
   isJson: boolean | undefined,
@@ -176,13 +168,8 @@ function printUploadedBundle({ bundle, upload }: UploadedBundle): void {
   );
 }
 
-/**
- * What each upload of the command needs, from the project's configuration and the flags, asked for where missing: one
- * bundle for a build the project holds, one per platform where the framework packages inside the upload, which it does
- * here, into the packaging directory; with the app they go to, which `release create` resolves its channels in.
- * Nothing moves yet, so `release create` resolves them before it confirms and uploads only once confirmed, and its dry
- * run, which uploads nothing, resolves them without the private key.
- */
+// Nothing is uploaded here, so `release create` can resolve before it confirms.
+// Its dry run resolves without the private key.
 export async function resolveUploadBundleOptions(
   hotCodePush: HotCodePush,
   options: BundleUploadOptions,
@@ -237,11 +224,8 @@ export async function resolveUploadBundleOptions(
   };
 }
 
-/**
- * The private key the manifest is signed with, null where signing is off: `hotcodepush.json` lists no public key,
- * or it names another app than the one `--app` meant, whose keys it does not hold. A dry run signs nothing, so a key
- * given is checked against the listed ones and none is required.
- */
+// Signing is off when `hotcodepush.json` lists no public key or names another app than `--app` meant.
+// A dry run signs nothing, so a given key is checked but none is required.
 async function readSigningPrivateKey(
   appId: string,
   projectConfig: ProjectConfig | undefined,
@@ -262,9 +246,7 @@ async function readSigningPrivateKey(
   }
 }
 
-/**
- * `--bundle-version`, otherwise the project's package.json version, the label a team already keeps; neither is asked for.
- */
+// The package.json version is the label a team already keeps.
 async function resolveBundleVersion(
   options: BundleUploadOptions,
   directoryPath: string,

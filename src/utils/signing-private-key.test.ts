@@ -22,7 +22,7 @@ import {
 
 const OTHER_PRIVATE_KEY = resolveProtocolSigningKey('rsa-4096-b').privateKey;
 
-// The signing key as PKCS #1, the PEM Expo's tool writes, and its DER on one line
+// The signing key as the PKCS #1 PEM that the Expo tool writes, and its DER on one line.
 const SIGNING_KEY_OBJECT = createPrivateKey({
   format: 'der',
   key: Buffer.from(SIGNING_PRIVATE_KEY, 'base64'),
@@ -77,7 +77,7 @@ describe('signing private key', () => {
     ).toBe(SIGNING_PRIVATE_KEY);
   });
 
-  // Windows has no POSIX file mode: the user profile's access list protects the file there
+  // Windows has no POSIX file mode. The access list of the project folder protects the key file there.
   it.skipIf(process.platform === 'win32')(
     'should write the private key file readable by its owner alone',
     () => {

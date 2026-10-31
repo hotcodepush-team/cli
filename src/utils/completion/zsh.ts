@@ -1,10 +1,7 @@
 import type { CompletionCommand, CompletionOption } from './command-tree.js';
+import { buildPosixCaseArms } from './posix-case-arms.js';
 import { quotePosixWord } from './posix-quote.js';
 
-/**
- * The zsh completion script: the top-level names and the noun's verbs with their descriptions, then the command's
- * flags through `_arguments`, an enum's choices after its flag and the file names for a free value.
- */
 export function buildZshScript(commands: CompletionCommand[]): string {
   return [
     '#compdef hotcodepush',
@@ -26,7 +23,9 @@ export function buildZshScript(commands: CompletionCommand[]): string {
     '    esac',
     '  fi',
     '  case "${words[2]} ${words[3]}" in',
-    ...buildCommandArms(commands),
+    ...buildPosixCaseArms(commands, (pattern, command, commandWordCount) =>
+      buildArgumentsArm(pattern, commandWordCount, command),
+    ),
     '  esac',
     '}',
     '',
@@ -48,9 +47,6 @@ export function buildZshScript(commands: CompletionCommand[]): string {
   ].join('\n');
 }
 
-/**
- * The arm that hands a command's flags to `_arguments`, and the file names for its arguments where it takes any.
- */
 function buildArgumentsArm(
   pattern: string,
   commandWordCount: number,
@@ -68,26 +64,6 @@ function buildArgumentsArm(
   ];
 }
 
-/**
- * One case arm per runnable command, matched on its first two words: the verbs first, so `fingerprint diff` wins over `fingerprint`.
- */
-function buildCommandArms(commands: CompletionCommand[]): string[] {
-  const verbArms = commands.flatMap(noun =>
-    noun.verbs.map(verb =>
-      buildArgumentsArm(quotePosixWord(`${noun.name} ${verb.name}`), 2, verb),
-    ),
-  );
-  const standaloneArms = commands
-    .filter(({ options }) => options.length > 0)
-    .map(command =>
-      buildArgumentsArm(`${quotePosixWord(`${command.name} `)}*`, 1, command),
-    );
-  return [...verbArms, ...standaloneArms].flat();
-}
-
-/**
- * The words as `_describe` offers them, each `name:description`, ending the completion.
- */
 function buildDescribeLines(
   indentation: string,
   tag: string,
@@ -105,10 +81,6 @@ function buildDescribeLines(
   ];
 }
 
-/**
- * An `_arguments` spec: the flag with its description in brackets, starred when it may be given again,
- * then for a value the flag's name as the message and an enum's choices or the file names.
- */
 function buildOptionSpec({
   choices,
   description,

@@ -67,9 +67,7 @@ export default defineCommand({
   },
 });
 
-/**
- * Asks before the cap changes; the cap in force asks nothing, since the API answers it with `no_change`.
- */
+// An unchanged cap needs no confirmation, since the API answers it with `no_change`.
 async function confirmSpendingCapChange(
   organization: Organization,
   spendingCapCents: number,
@@ -84,9 +82,6 @@ async function confirmSpendingCapChange(
   );
 }
 
-/**
- * What a changed cap does against the one in force; either applies now, and a lower one keeps the devices this month counted.
- */
 function resolveSpendingCapConsequence(
   organization: Organization,
   spendingCapCents: number,

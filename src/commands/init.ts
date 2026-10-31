@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import type { App, HotCodePush, Organization } from '@hotcodepush/node';
+import { HotCodePushError } from '@hotcodepush/node';
 import { z } from 'zod';
 import { defineCommand } from 'zodline';
 import {
@@ -47,7 +48,10 @@ import {
   resolveRunScriptCommandLine,
   runCommandLineVisibly,
 } from '../utils/package-manager.js';
-import type { ProjectConfig } from '../utils/project-config.js';
+import type {
+  ProjectConfig,
+  ProjectConfigLocation,
+} from '../utils/project-config.js';
 import {
   ID_SCHEMA,
   locateProjectConfig,
@@ -80,10 +84,8 @@ interface InitOptions extends InteractivityOptions {
   xcodeTarget?: string;
 }
 
-/**
- * What the run knows about the project once the app is settled: the files the remaining steps edit and what its framework wires.
- */
 interface ProjectFiles {
+  configFilePath: string;
   directoryPath: string;
   framework: FrameworkModule;
   packageJson: PackageJson;
@@ -91,9 +93,6 @@ interface ProjectFiles {
   wiring: FrameworkWiring;
 }
 
-/**
- * What the organization step settles: the organization, and the app when `hotcodepush.json` named it.
- */
 interface Scope {
   app: App | undefined;
   organization: Organization;
@@ -132,9 +131,8 @@ export default defineCommand({
       ),
   }),
   action: async options => {
-    const { directoryPath, projectConfig } = locateProjectConfig(
-      options.config,
-    );
+    const projectConfigLocation = locateProjectConfig(options.config);
+    const { directoryPath, projectConfig } = projectConfigLocation;
     const framework = options.framework ?? detectFramework(directoryPath);
     const frameworkModule = resolveFrameworkModule(framework);
     const run = new InitRun();
@@ -151,18 +149,18 @@ export default defineCommand({
         resolveApp(
           requireValue(hotCodePush),
           requireValue(scope),
+          projectConfigLocation,
           framework,
           options,
         ),
       { dependsOn: ['organization'] },
     );
     const projectFiles = await resolveProjectFiles(
-      directoryPath,
-      projectConfig,
+      projectConfigLocation,
       frameworkModule,
       options,
     );
-    const editBlocker = await resolveEditBlocker(projectFiles, options);
+    const editBlocker = await resolveEditBlocker(projectFiles, app, options);
     await run.run('package', () => installPackage(projectFiles, editBlocker));
     await run.run(
       'configuration',
@@ -203,7 +201,7 @@ export default defineCommand({
     if (options.json) {
       printJson({ status, steps: run.steps });
     } else {
-      // a blank line parts the rows from the package manager's and the build's output above them
+      // A blank line separates the rows from the package manager and build output above them.
       console.log('');
       printOutcomeRows(resolveStepRows(run.steps));
       if (app !== undefined && status === 'complete') {
@@ -216,9 +214,7 @@ export default defineCommand({
   },
 });
 
-/**
- * The credential in place — a session or `HOTCODEPUSH_TOKEN` — or the `login` flow: non-interactively it leaves the device code for the next run.
- */
+// A non-interactive login leaves the device code for the next run.
 async function signIn(options: InitOptions): Promise<StepOutcome<HotCodePush>> {
   if (readToken() !== undefined) {
     try {
@@ -247,17 +243,17 @@ async function signIn(options: InitOptions): Promise<StepOutcome<HotCodePush>> {
   };
 }
 
-/**
- * The organization of the app `hotcodepush.json` names, when it names one; otherwise `--organization`, used when it
- * exists and created when not; without the flag a picker with "create a new one", or non-interactively the only one.
- */
+// Without `--organization`, a person picks or creates one. Non-interactively the only one is used.
 async function resolveOrganization(
   hotCodePush: HotCodePush,
   projectConfig: ProjectConfig | undefined,
   options: InitOptions,
 ): Promise<StepOutcome<Scope>> {
-  if (projectConfig?.appId !== undefined) {
-    const app = await hotCodePush.apps.get({ appId: projectConfig.appId });
+  const app =
+    options.app === undefined && projectConfig?.appId !== undefined
+      ? await fetchExistingApp(hotCodePush, projectConfig.appId)
+      : undefined;
+  if (app !== undefined) {
     const organization = await hotCodePush.organizations.get({
       organizationId: app.organizationId,
     });
@@ -303,13 +299,11 @@ async function resolveOrganization(
   return resolveCreatedScope(await hotCodePush.organizations.create({ name }));
 }
 
-/**
- * The app `hotcodepush.json` names, as the organization step read it; otherwise `--app`'s rule as for the organization,
- * the creation carrying the framework.
- */
+// An app in the file that the API lacks is refused non-interactively. A person picks or creates another.
 async function resolveApp(
   hotCodePush: HotCodePush,
   { app, organization }: Scope,
+  { filePath, projectConfig }: ProjectConfigLocation,
   framework: Framework,
   options: InitOptions,
 ): Promise<StepOutcome<App>> {
@@ -319,6 +313,16 @@ async function resolveApp(
       status: 'done',
       value: app,
     };
+  }
+  if (
+    options.app === undefined &&
+    projectConfig?.appId !== undefined &&
+    !isInteractive(options)
+  ) {
+    throw new InvalidParameterError(
+      `The app ${projectConfig.appId} in ${filePath ?? PROJECT_CONFIG_FILE_NAME} does not exist.`,
+      `Pass --app with the app's id or name, or delete ${PROJECT_CONFIG_FILE_NAME} to create a new app.`,
+    );
   }
   const apps = await fetchApps(hotCodePush, organization.id);
   if (options.app !== undefined) {
@@ -357,13 +361,13 @@ async function resolveApp(
 }
 
 async function resolveProjectFiles(
-  directoryPath: string,
-  projectConfig: ProjectConfig | undefined,
+  { directoryPath, filePath, projectConfig }: ProjectConfigLocation,
   framework: FrameworkModule,
   options: InitOptions,
 ): Promise<ProjectFiles> {
   const packageJson = readPackageJson(directoryPath);
   return {
+    configFilePath: filePath ?? join(directoryPath, PROJECT_CONFIG_FILE_NAME),
     directoryPath,
     framework,
     packageJson,
@@ -375,15 +379,13 @@ async function resolveProjectFiles(
   };
 }
 
-/**
- * The files the remaining steps would change, shown and confirmed once; nothing to change asks nothing.
- * Declined, or with nobody to ask, the reason is what each editing step stops with.
- */
+// Declined, or with nobody to ask, each editing step stops with that reason.
 async function resolveEditBlocker(
   projectFiles: ProjectFiles,
+  app: App | undefined,
   options: InitOptions,
 ): Promise<ConfirmationRequiredError | undefined> {
-  const filePaths = resolveFilesToChange(projectFiles);
+  const filePaths = resolveFilesToChange(projectFiles, app);
   if (filePaths.length === 0) {
     return undefined;
   }
@@ -401,15 +403,16 @@ async function resolveEditBlocker(
   }
 }
 
-function resolveFilesToChange({
-  projectConfig,
-  wiring,
-}: ProjectFiles): string[] {
+// Without an app the configuration step waits, so `hotcodepush.json` is not among the files.
+function resolveFilesToChange(
+  { configFilePath, projectConfig, wiring }: ProjectFiles,
+  app: App | undefined,
+): string[] {
   return [
     ...wiring.packageFilePaths,
-    ...(isConfigurationComplete(projectConfig)
+    ...(app === undefined || isConfigurationComplete(projectConfig, app)
       ? []
-      : [PROJECT_CONFIG_FILE_NAME]),
+      : [basename(configFilePath)]),
     ...wiring.nativeFilePaths,
   ];
 }
@@ -435,18 +438,15 @@ function installPackage(
   });
 }
 
-/**
- * `hotcodepush.json` with the app and its default channel by name; a file present keeps what it has.
- */
 async function writeConfiguration(
   hotCodePush: HotCodePush,
-  { directoryPath, projectConfig }: ProjectFiles,
+  { configFilePath, projectConfig }: ProjectFiles,
   app: App,
   editBlocker: ConfirmationRequiredError | undefined,
 ): Promise<StepOutcome<undefined>> {
-  if (isConfigurationComplete(projectConfig)) {
+  if (isConfigurationComplete(projectConfig, app)) {
     return {
-      message: `The file ${PROJECT_CONFIG_FILE_NAME} is already present.`,
+      message: `The file ${basename(configFilePath)} is already present.`,
       status: 'skipped',
       value: undefined,
     };
@@ -454,14 +454,15 @@ async function writeConfiguration(
   if (editBlocker !== undefined) {
     throw editBlocker;
   }
-  const filePath = join(directoryPath, PROJECT_CONFIG_FILE_NAME);
-  const sourceText = existsSync(filePath) ? readFileSync(filePath, 'utf8') : '';
+  const sourceText = existsSync(configFilePath)
+    ? readFileSync(configFilePath, 'utf8')
+    : '';
   writeFileSync(
-    filePath,
+    configFilePath,
     stringifyLikeSource(
       {
         ...projectConfig,
-        appId: projectConfig?.appId ?? app.id,
+        appId: app.id,
         ...(projectConfig?.channel !== undefined
           ? {}
           : { channel: await fetchDefaultChannelName(hotCodePush, app) }),
@@ -470,15 +471,30 @@ async function writeConfiguration(
     ),
   );
   return {
-    message: `${projectConfig === undefined ? 'Wrote' : 'Completed'} ${PROJECT_CONFIG_FILE_NAME}.`,
+    message: resolveConfigurationMessage(
+      basename(configFilePath),
+      projectConfig,
+      app,
+    ),
     status: 'done',
     value: undefined,
   };
 }
 
-/**
- * The name of the app's default channel, the one a new project follows; the schema's default for an app without one.
- */
+function resolveConfigurationMessage(
+  fileName: string,
+  projectConfig: ProjectConfig | undefined,
+  app: App,
+): string {
+  if (projectConfig === undefined) {
+    return `Wrote ${fileName}.`;
+  }
+  if (projectConfig.appId !== undefined && projectConfig.appId !== app.id) {
+    return `Set the app in ${fileName} to ${app.name}.`;
+  }
+  return `Completed ${fileName}.`;
+}
+
 async function fetchDefaultChannelName(
   hotCodePush: HotCodePush,
   app: App,
@@ -493,14 +509,10 @@ async function fetchDefaultChannelName(
   return defaultChannel.name;
 }
 
-/**
- * The signing key pair, for a person only: `signing-key create` in place, which writes the private key to a new file,
- * whose path, against the working directory, the first release signs with. Nobody to ask points at the command instead,
- * since a key file written on a runner is lost with it.
- */
+// Nobody to ask points at the command instead, since a key file written on a runner is lost with it.
 async function createSigningKey(
   app: App | undefined,
-  { directoryPath }: ProjectFiles,
+  { configFilePath }: ProjectFiles,
   options: InitOptions,
 ): Promise<StepOutcome<string | undefined>> {
   if (
@@ -523,12 +535,11 @@ async function createSigningKey(
       value: undefined,
     };
   }
-  const configPath = join(directoryPath, PROJECT_CONFIG_FILE_NAME);
   const privateKeyPath = SIGNING_PRIVATE_KEY_FILE_NAME;
   await signingKeyCreateCommand.action(
     {
       app: app.id,
-      config: existsSync(configPath) ? configPath : undefined,
+      config: existsSync(configFilePath) ? configFilePath : undefined,
       json: options.json,
       privateKeyPath,
     },
@@ -542,9 +553,6 @@ async function createSigningKey(
   };
 }
 
-/**
- * The project's `build` script, run visibly when a release follows; skipped with the reason otherwise.
- */
 function buildProject(
   { directoryPath, framework, packageJson }: ProjectFiles,
   isReleaseWanted: boolean,
@@ -580,12 +588,8 @@ function buildProject(
   });
 }
 
-/**
- * The first release through `release create`, interactively only, signed with the key this run generated;
- * the web build must exist by then. Skipped, it names the commands that publish it, the build's first where one is needed.
- */
 async function releaseFirst(
-  { directoryPath, framework, packageJson }: ProjectFiles,
+  { configFilePath, directoryPath, framework, packageJson }: ProjectFiles,
   isReleaseWanted: boolean,
   isBuilt: boolean,
   privateKeyPath: string | undefined,
@@ -625,7 +629,7 @@ async function releaseFirst(
   }
   await releaseCreateCommand.action(
     {
-      config: join(directoryPath, PROJECT_CONFIG_FILE_NAME),
+      config: configFilePath,
       json: options.json,
       privateKeyPath,
       yes: true,
@@ -639,9 +643,7 @@ async function releaseFirst(
   };
 }
 
-/**
- * What comes after a complete run; the release command only once a release went out, since a skipped release row names it.
- */
+// A skipped release row already names the release command, so it is repeated only after a release.
 function printFinish(
   app: App,
   isReleased: boolean,
@@ -679,6 +681,21 @@ async function confirmCreation(
   }
 }
 
+// Such as a copied project, a cloned demo or a reset environment.
+async function fetchExistingApp(
+  hotCodePush: HotCodePush,
+  appId: string,
+): Promise<App | undefined> {
+  try {
+    return await hotCodePush.apps.get({ appId });
+  } catch (error) {
+    if (error instanceof HotCodePushError && error.code === 'not_found') {
+      return undefined;
+    }
+    throw error;
+  }
+}
+
 function findNamed<TResource extends { id: string; name: string }>(
   resources: TResource[],
   reference: string,
@@ -690,15 +707,11 @@ function findNamed<TResource extends { id: string; name: string }>(
       );
 }
 
-/**
- * The file names the app and the channel, all `init` writes.
- */
 function isConfigurationComplete(
   projectConfig: ProjectConfig | undefined,
+  app: App,
 ): boolean {
-  return (
-    projectConfig?.appId !== undefined && projectConfig.channel !== undefined
-  );
+  return projectConfig?.appId === app.id && projectConfig.channel !== undefined;
 }
 
 function promptCreateOrPick(
@@ -728,9 +741,7 @@ function requireById<TResource extends { id: string }>(
   return resource;
 }
 
-/**
- * A value an earlier step produced; the run never reaches here without it, since a stopped step skips the rest.
- */
+// A stopped step skips the rest, so the run never gets here without the value.
 function requireValue<TValue>(value: TValue | undefined): TValue {
   if (value === undefined) {
     throw new UnexpectedError(new Error('An earlier step did not run.'));
@@ -750,9 +761,6 @@ function resolveBuildCommandLine(
       );
 }
 
-/**
- * The release command as a person types it, with the private key this run generated; the one place it is phrased.
- */
 function resolveReleaseCommandText(privateKeyPath: string | undefined): string {
   return privateKeyPath === undefined
     ? 'hotcodepush release create'

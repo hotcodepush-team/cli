@@ -18,18 +18,11 @@ interface CliErrorOptions {
   message: string;
 }
 
-/**
- * Where a person approves a login: the page with the code filled in, and the code to compare it with.
- */
 export interface DeviceAuthorizationPrompt {
   userCode: string;
   verificationUrl: string;
 }
 
-/**
- * An error of the CLI's own catalog: the one thing a command throws when it cannot go on.
- * The message says what happened and the fix what to do; the entry point prints both and exits with the exit code.
- */
 export class CliError extends Error {
   readonly code: string;
   readonly exitCode: ExitCode;
@@ -44,9 +37,7 @@ export class CliError extends Error {
   }
 }
 
-/**
- * A name several resources carry: organizations can share one, and apps of different organizations can.
- */
+// Organizations can share a name, and so can apps of different organizations.
 export class AmbiguousNameError extends CliError {
   constructor(noun: string, name: string, source = `--${noun}`) {
     super({
@@ -58,10 +49,8 @@ export class AmbiguousNameError extends CliError {
   }
 }
 
-/**
- * An error the API answered with, its code and message passed through as received and never re-mapped.
- * The API's message carries its own fix, so it has none; a 401 means the token no longer counts, exit code 3.
- */
+// The message from the API carries its own fix.
+// A 401 means the token is no longer valid, so the exit code is 3.
 export class ApiError extends CliError {
   constructor(code: string, message: string, status: number) {
     super({
@@ -73,9 +62,7 @@ export class ApiError extends CliError {
   }
 }
 
-/**
- * The one public size limit, checked before a byte is sent so the API's own refusal is never reached with a wasted upload.
- */
+// Checked before any upload, so no upload is wasted on a refusal from the API.
 export class BundleTooLargeError extends CliError {
   constructor(what: string, bundleBytesLimit: number) {
     super({
@@ -87,9 +74,6 @@ export class BundleTooLargeError extends CliError {
   }
 }
 
-/**
- * A command the CLI ran for the project — the package install, the build script — that exited with a failure.
- */
 export class CommandFailedError extends CliError {
   constructor(commandLine: string, exitCode: number | null) {
     super({
@@ -112,12 +96,8 @@ export class ConfirmationRequiredError extends CliError {
   }
 }
 
-/**
- * The native contract's hash cannot be computed from the project: no lockfile, two, one the recipe cannot read,
- * no `package.json` it can read, or a package the lockfile installs that `node_modules` does not hold.
- * A build without it would match binaries it does not describe, so nothing goes on without it.
- * The fix is the protocol's own message as it stands: the cause and, where one helps, the step.
- */
+// A build without a fingerprint would match binaries it does not describe.
+// The fix is the message of the protocol package as it stands.
 export class FingerprintUnavailableError extends CliError {
   constructor(cause: Error) {
     super({
@@ -130,10 +110,7 @@ export class FingerprintUnavailableError extends CliError {
   }
 }
 
-/**
- * A JSON file the CLI reads and a person edits that does not parse: the message names the file and where the parse stopped,
- * never the file's text, since `config.json` can hold the token.
- */
+// Never names the file content, since `config.json` can hold the token.
 export class InvalidJsonError extends CliError {
   constructor(filePath: string, problem: string) {
     super({
@@ -197,9 +174,6 @@ export class MissingParameterError extends CliError {
   }
 }
 
-/**
- * A native project file the CLI cannot edit: the line its edit replaces or follows is not there, so the fix is the edit by hand.
- */
 export class NativeProjectError extends CliError {
   constructor(message: string, fix: string) {
     super({
@@ -211,10 +185,7 @@ export class NativeProjectError extends CliError {
   }
 }
 
-/**
- * Without a prompt the fix names `login`; with one, from a login that cannot wait for the approval,
- * it carries the page and the code for an agent to relay.
- */
+// From a login that cannot wait for the approval, the fix carries the page and the code for an agent to relay.
 export class NotLoggedInError extends CliError {
   constructor(deviceAuthorizationPrompt?: DeviceAuthorizationPrompt) {
     super({
@@ -228,9 +199,7 @@ export class NotLoggedInError extends CliError {
   }
 }
 
-/**
- * A pipeline building a binary without a token: a shipped build must name its channel, so CI fails where a local build goes on offline.
- */
+// A shipped build must name its channel, so CI fails where a local build goes on offline.
 export class PipelineNotLoggedInError extends CliError {
   constructor() {
     super({
@@ -243,11 +212,8 @@ export class PipelineNotLoggedInError extends CliError {
   }
 }
 
-/**
- * The outcome a command printed itself — `init`'s steps, `doctor`'s checks — ended in a failure:
- * only the exit code is left to set, and the entry point prints nothing more for it.
- * `init` names the step it stopped at, which its telemetry event carries.
- */
+// The command printed its outcome itself, so the entry point prints nothing more.
+// The stopped step of `init` goes into its telemetry event.
 export class ReportedFailureError extends CliError {
   readonly stoppedStep: string | undefined;
 
@@ -262,10 +228,7 @@ export class ReportedFailureError extends CliError {
   }
 }
 
-/**
- * `hotcodepush.json` lists public keys and neither `--private-key-path` nor `HOTCODEPUSH_SIGNING_KEY` gives the private key:
- * the app releases only signed bundles, so the upload stops before a byte moves.
- */
+// The app accepts only signed bundles, so the upload stops before any byte moves.
 export class SigningKeyUnavailableError extends CliError {
   constructor() {
     super({
@@ -289,11 +252,8 @@ export class UnexpectedError extends CliError {
   }
 }
 
-/**
- * An answer outside the API's shape, a proxy's error page or a body without the catalog's code, from either client:
- * the typed client reports it as `unexpected_response`, its error kept as the cause, Better Auth's client as an error
- * without a code.
- */
+// A proxy error page or a body without a catalog code.
+// The typed client keeps its error as the cause; the Better Auth client gives an error without a code.
 export class UnexpectedResponseError extends CliError {
   constructor(status: number, cause?: unknown) {
     super({
@@ -306,10 +266,6 @@ export class UnexpectedResponseError extends CliError {
   }
 }
 
-/**
- * An Xcode project the CLI cannot edit: unparseable, or without the phase its edit attaches to.
- * The fix is the edit by hand, the build phase unless the edit names its own.
- */
 export class XcodeProjectError extends CliError {
   constructor(
     message: string,
@@ -351,10 +307,7 @@ export class UnknownCommandError extends CliError {
   }
 }
 
-/**
- * A name no resource carries, named with where it came from, its flag by default;
- * an id the API does not know is the API's own `not_found` instead.
- */
+// An unknown id is the API's own `not_found` instead.
 export class UnknownNameError extends CliError {
   constructor(noun: string, name: string, source = `--${noun}`) {
     super({

@@ -81,10 +81,7 @@ export default defineCommand({
   },
 });
 
-/**
- * The fingerprint a release of the project's build carries as a condition, where the project has a lockfile to compute
- * it from, so the preview counts what `release create` reaches; none outside a project.
- */
+// Uses the fingerprint that `release create` would set, so the preview counts the same devices.
 async function readProjectFingerprint(
   configPath: string | undefined,
 ): Promise<string | null> {

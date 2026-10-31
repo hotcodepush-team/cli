@@ -8,9 +8,6 @@ import { printJson } from '../utils/output.js';
 import { deleteToken, readStoredToken } from '../utils/token-store.js';
 import { readUserConfig, writeUserConfig } from '../utils/user-config.js';
 
-/**
- * What went: the session's id and its user's name, as far as the API still knew them.
- */
 interface EndedSession {
   id: string | null;
   name: string | null;
@@ -37,7 +34,7 @@ export default defineCommand({
     const { error } = await authClient.revokeSession({
       token: resolveUnsignedToken(storedToken),
     });
-    // A 401 means the session already ended, so only the stored copies are left to clear
+    // A 401 means the session already ended, so only the stored copies are left to clear.
     if (error !== null && error.status !== UNAUTHORIZED_STATUS) {
       throw resolveApiError(error);
     }
@@ -64,9 +61,6 @@ function deleteSessionId(): string | undefined {
   return sessionId;
 }
 
-/**
- * The session the stored token still stands for, null once the API no longer knows it.
- */
 async function fetchKnownSession(authClient: AuthClient) {
   const { data, error } = await authClient.getSession();
   if (error !== null) {
@@ -78,9 +72,6 @@ async function fetchKnownSession(authClient: AuthClient) {
   return data;
 }
 
-/**
- * The line and the document say the same: who was logged out, and that the variable, when set, still authenticates.
- */
 function printEnded(
   endedSession: EndedSession,
   isJson: boolean | undefined,
@@ -100,9 +91,7 @@ function printEnded(
   console.log(`Logged out${nameText}.${variableText}`);
 }
 
-/**
- * A bearer can be the signed form, `<token>.<signature>`, while revoke-session looks the session up by the token alone.
- */
+// A bearer can be signed, `<token>.<signature>`, but revoke-session looks up the token alone.
 function resolveUnsignedToken(token: string): string {
   const [unsignedToken = token] = token.split('.');
   return unsignedToken;

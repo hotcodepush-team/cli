@@ -18,6 +18,7 @@ import {
   writeResourceReference,
 } from '../../test/capacitor-project.js';
 import {
+  respondWithApiError,
   stubInteractiveTerminal,
   useCommandHarness,
   useStoredSession,
@@ -56,7 +57,7 @@ import {
 import initCommand from './init.js';
 import releaseCreateCommand from './release/create.js';
 
-// the in-place login must not touch the machine's keyring: a fake one keeps the token the flow stores
+// A fake keyring keeps the token that the in-place login stores.
 const keyring = vi.hoisted(() => {
   let storedToken: string | null = null;
   return {
@@ -82,6 +83,8 @@ vi.mock('../utils/package-manager.js', async importOriginal => ({
 }));
 
 const APPS_PATH = `/v1/organizations/${ACME_ORGANIZATION.id}/apps`;
+
+const UNKNOWN_APP_ID = '5c8e2a71-4b3d-4f9a-9e6c-0d1f2a3b4c5d';
 
 interface InitResult {
   status: string;
@@ -133,7 +136,7 @@ describe('init', () => {
   }
 
   beforeEach(() => {
-    // the configuration step names the app's default channel by its name
+    // The configuration step names the default channel of the app by its name.
     harness.routes[
       `GET /v1/apps/${DEMO_APP.id}/channels/${PRODUCTION_CHANNEL.id}`
     ] = () => Response.json(PRODUCTION_CHANNEL);
@@ -572,42 +575,212 @@ describe('init', () => {
     expect(result.steps[8]?.message).toBe('Waits on the configuration step.');
   });
 
-  it("should stop at the organization with the API's error when the API does not know the app hotcodepush.json names, and still run the independent steps", async () => {
-    const directoryPath = writeProject({
-      projectConfig: {
+  describe('when hotcodepush.json names an app the API does not have', () => {
+    const projectConfig = {
+      appId: UNKNOWN_APP_ID,
+      channel: PRODUCTION_CHANNEL.name,
+    };
+
+    beforeEach(() => {
+      harness.routes[`GET /v1/apps/${UNKNOWN_APP_ID}`] = () =>
+        respondWithApiError(404, 'not_found', 'The app does not exist.');
+    });
+
+    it('should stop at the app with `invalid_parameter` naming the file, and still run the independent steps', async () => {
+      const directoryPath = writeProject({ projectConfig });
+      respondWithSession([ACME_ORGANIZATION]);
+      harness.routes[`GET ${APPS_PATH}`] = () => Response.json([DEMO_APP]);
+
+      await expect(
+        initCommand.action(
+          { json: true, yes: true, ...withCwd(directoryPath) },
+          undefined,
+        ),
+      ).rejects.toMatchObject({
+        code: 'invalid_parameter',
+        stoppedStep: 'app',
+      });
+
+      const result = harness.readJson() as InitResult;
+      expect(result.status).toBe('incomplete');
+      expect(result.steps[2]).toEqual({
+        code: 'invalid_parameter',
+        manualStep:
+          "Pass --app with the app's id or name, or delete hotcodepush.json to create a new app.",
+        message: `The app ${UNKNOWN_APP_ID} in ${join(directoryPath, 'hotcodepush.json')} does not exist.`,
+        status: 'stopped',
+        step: 'app',
+      });
+      expect(readStepStatuses(result)).toEqual({
+        app: 'stopped',
+        build: 'skipped',
+        configuration: 'skipped',
+        hook: 'done',
+        organization: 'done',
+        package: 'done',
+        release: 'skipped',
+        sign_in: 'skipped',
+        signing_key: 'skipped',
+      });
+      expect(readJsonFile(join(directoryPath, 'hotcodepush.json'))).toEqual(
+        projectConfig,
+      );
+    });
+
+    it('should create the app --app names and set it in hotcodepush.json, keeping the channel', async () => {
+      const directoryPath = writeProject({
+        isPackageInstalled: true,
+        projectConfig,
+      });
+      respondWithSession([ACME_ORGANIZATION]);
+      harness.routes[`GET ${APPS_PATH}`] = () => Response.json([]);
+      harness.routes[`POST ${APPS_PATH}`] = () =>
+        Response.json(DEMO_APP, { status: 201 });
+
+      await initCommand.action(
+        { app: 'Demo', json: true, yes: true, ...withCwd(directoryPath) },
+        undefined,
+      );
+
+      expect(
+        harness.requests.some(({ url }) => url.includes(UNKNOWN_APP_ID)),
+      ).toBe(false);
+      expect(readJsonFile(join(directoryPath, 'hotcodepush.json'))).toEqual({
         appId: DEMO_APP.id,
         channel: PRODUCTION_CHANNEL.name,
-      },
+      });
+      const result = harness.readJson() as InitResult;
+      expect(result.steps.slice(1, 3)).toEqual([
+        {
+          message: 'Used organization Acme.',
+          status: 'done',
+          step: 'organization',
+        },
+        { message: 'Created app Demo.', status: 'done', step: 'app' },
+      ]);
+      expect(result.steps.find(({ step }) => step === 'configuration')).toEqual(
+        {
+          message: 'Set the app in hotcodepush.json to Demo.',
+          status: 'done',
+          step: 'configuration',
+        },
+      );
     });
+
+    it('should use the app --app names by id and set it in hotcodepush.json', async () => {
+      const directoryPath = writeProject({
+        isPackageInstalled: true,
+        projectConfig,
+      });
+      respondWithSession([ACME_ORGANIZATION]);
+      harness.routes[`GET ${APPS_PATH}`] = () => Response.json([DEMO_APP]);
+
+      await initCommand.action(
+        {
+          app: DEMO_APP.id,
+          json: true,
+          yes: true,
+          ...withCwd(directoryPath),
+        },
+        undefined,
+      );
+
+      expect(harness.requests.some(({ method }) => method === 'POST')).toBe(
+        false,
+      );
+      expect(readJsonFile(join(directoryPath, 'hotcodepush.json'))).toEqual({
+        appId: DEMO_APP.id,
+        channel: PRODUCTION_CHANNEL.name,
+      });
+      const result = harness.readJson() as InitResult;
+      expect(result.status).toBe('complete');
+      expect(result.steps[2]).toEqual({
+        message: 'Used app Demo.',
+        status: 'done',
+        step: 'app',
+      });
+    });
+
+    it('should set the app in the file --config names and leave hotcodepush.json alone', async () => {
+      const directoryPath = writeProject({
+        isPackageInstalled: true,
+        projectConfig,
+      });
+      const configPath = join(directoryPath, 'demo.json');
+      writeFileSync(configPath, `${JSON.stringify(projectConfig, null, 2)}\n`);
+      respondWithSession([ACME_ORGANIZATION]);
+      harness.routes[`GET ${APPS_PATH}`] = () => Response.json([DEMO_APP]);
+
+      await initCommand.action(
+        {
+          app: DEMO_APP.id,
+          config: configPath,
+          json: true,
+          yes: true,
+          ...withCwd(directoryPath),
+        },
+        undefined,
+      );
+
+      expect(readJsonFile(configPath)).toEqual({
+        appId: DEMO_APP.id,
+        channel: PRODUCTION_CHANNEL.name,
+      });
+      expect(readJsonFile(join(directoryPath, 'hotcodepush.json'))).toEqual(
+        projectConfig,
+      );
+      const result = harness.readJson() as InitResult;
+      expect(result.steps[4]).toEqual({
+        message: 'Set the app in demo.json to Demo.',
+        status: 'done',
+        step: 'configuration',
+      });
+    });
+
+    it('should offer the app picker interactively and set the picked app in hotcodepush.json', async () => {
+      stubInteractiveTerminal();
+      vi.mocked(select)
+        .mockResolvedValueOnce(ACME_ORGANIZATION.id)
+        .mockResolvedValueOnce(DEMO_APP.id);
+      answerConfirmations({
+        changeFiles: true,
+        createSigningKey: false,
+        publishFirstRelease: false,
+      });
+      const directoryPath = writeProject({
+        isPackageInstalled: true,
+        projectConfig,
+      });
+      respondWithSession([ACME_ORGANIZATION]);
+      harness.routes[`GET ${APPS_PATH}`] = () => Response.json([DEMO_APP]);
+
+      await initCommand.action({ ...withCwd(directoryPath) }, undefined);
+
+      expect(harness.readLines().slice(2, 4)).toEqual([
+        '✓ Organization   Used organization Acme.',
+        '✓ App            Used app Demo.',
+      ]);
+      expect(readJsonFile(join(directoryPath, 'hotcodepush.json'))).toEqual({
+        appId: DEMO_APP.id,
+        channel: PRODUCTION_CHANNEL.name,
+      });
+    });
+  });
+
+  it("should print an API error's message once when it is the stopped step's manual step too", async () => {
+    const directoryPath = writeProject({ isPackageInstalled: true });
     respondWithSession([ACME_ORGANIZATION]);
+    harness.routes['GET /v1/organizations'] = () =>
+      respondWithApiError(503, 'unavailable', 'The API is unavailable.');
 
     await expect(
-      initCommand.action(
-        { json: true, yes: true, ...withCwd(directoryPath) },
-        undefined,
-      ),
+      initCommand.action({ yes: true, ...withCwd(directoryPath) }, undefined),
     ).rejects.toBeInstanceOf(ReportedFailureError);
 
-    const result = harness.readJson() as InitResult;
-    expect(result.status).toBe('incomplete');
-    expect(result.steps[1]).toEqual({
-      code: 'not_found',
-      manualStep: 'The resource does not exist.',
-      message: 'The resource does not exist.',
-      status: 'stopped',
-      step: 'organization',
-    });
-    expect(readStepStatuses(result)).toEqual({
-      app: 'skipped',
-      build: 'skipped',
-      configuration: 'skipped',
-      hook: 'done',
-      organization: 'stopped',
-      package: 'done',
-      release: 'skipped',
-      sign_in: 'skipped',
-      signing_key: 'skipped',
-    });
+    expect(harness.readLines().slice(2, 4)).toEqual([
+      '✗ Organization   The API is unavailable.',
+      '– App            Waits on the organization step.',
+    ]);
   });
 
   it('should offer the picker with a create choice interactively, even with one organization and one app', async () => {
@@ -615,11 +788,11 @@ describe('init', () => {
     vi.mocked(select)
       .mockResolvedValueOnce(ACME_ORGANIZATION.id)
       .mockResolvedValueOnce(DEMO_APP.id);
-    // the files to change, then the signing key, then the first release
-    vi.mocked(confirm)
-      .mockResolvedValueOnce(true)
-      .mockResolvedValueOnce(false)
-      .mockResolvedValueOnce(false);
+    answerConfirmations({
+      changeFiles: true,
+      createSigningKey: false,
+      publishFirstRelease: false,
+    });
     const directoryPath = writeProject({ isPackageInstalled: true });
     respondWithSession([ACME_ORGANIZATION]);
     harness.routes[`GET ${APPS_PATH}`] = () => Response.json([DEMO_APP]);
@@ -651,11 +824,11 @@ describe('init', () => {
     vi.mocked(select)
       .mockResolvedValueOnce(ACME_ORGANIZATION.id)
       .mockResolvedValueOnce(DEMO_APP.id);
-    // the files to change, then the signing key, then the first release
-    vi.mocked(confirm)
-      .mockResolvedValueOnce(true)
-      .mockResolvedValueOnce(true)
-      .mockResolvedValueOnce(false);
+    answerConfirmations({
+      changeFiles: true,
+      createSigningKey: true,
+      publishFirstRelease: false,
+    });
     const directoryPath = writeProject({ isPackageInstalled: true });
     respondWithSession([ACME_ORGANIZATION]);
     harness.routes[`GET ${APPS_PATH}`] = () => Response.json([DEMO_APP]);
@@ -696,7 +869,7 @@ describe('init', () => {
     vi.mocked(select)
       .mockResolvedValueOnce(ACME_ORGANIZATION.id)
       .mockResolvedValueOnce(DEMO_APP.id);
-    // the files to change, then the signing key, then the first release
+    // Answers the files to change, then the signing key, then the first release.
     vi.mocked(confirm)
       .mockResolvedValueOnce(true)
       .mockResolvedValueOnce(true)
@@ -894,9 +1067,7 @@ describe('init', () => {
     expect(harness.requests).toEqual([]);
   });
 
-  /**
-   * A project without hotcodepush.json is found from the working directory; the test points the process there.
-   */
+  // A project without hotcodepush.json is found from the working directory, so the test points the process there.
   function withCwd(directoryPath: string): Record<string, never> {
     vi.spyOn(process, 'cwd').mockReturnValue(directoryPath);
     return {};
@@ -1027,3 +1198,14 @@ describe('init', () => {
     });
   });
 });
+
+function answerConfirmations(answers: {
+  changeFiles: boolean;
+  createSigningKey: boolean;
+  publishFirstRelease: boolean;
+}): void {
+  vi.mocked(confirm)
+    .mockResolvedValueOnce(answers.changeFiles)
+    .mockResolvedValueOnce(answers.createSigningKey)
+    .mockResolvedValueOnce(answers.publishFirstRelease);
+}

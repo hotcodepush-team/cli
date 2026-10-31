@@ -5,8 +5,8 @@ import {
 } from '../config/consts.js';
 import { readUserConfig, writeUserConfig } from './user-config.js';
 
-// Set by the first keyring failure, e.g. a headless CI with an unusable Secret Service: from then on `config.json`
-// is the one source for the rest of the process, so a read never returns a stale keyring token after a failed write
+// Set by the first keyring failure, such as a headless CI without a usable Secret Service.
+// From then on only `config.json` is used, so a read never returns a stale keyring token after a failed write.
 let hasKeyringFailed = false;
 
 export function deleteToken(): void {
@@ -20,23 +20,15 @@ export function deleteToken(): void {
   deleteUserConfigToken();
 }
 
-/**
- * Whether `HOTCODEPUSH_TOKEN` is the token `readToken` answers, rather than the session `login` stored.
- */
 export function isEnvironmentToken(): boolean {
   return Boolean(process.env.HOTCODEPUSH_TOKEN);
 }
 
-/**
- * The token: `HOTCODEPUSH_TOKEN` when set, otherwise the stored one.
- */
 export function readToken(): string | undefined {
   return process.env.HOTCODEPUSH_TOKEN || readStoredToken();
 }
 
-/**
- * The session token `login` stored, the keyring's or the fallback in `config.json`, whatever the environment carries.
- */
+// Ignores `HOTCODEPUSH_TOKEN`.
 export function readStoredToken(): string | undefined {
   return readKeyringToken() || readUserConfig().token;
 }

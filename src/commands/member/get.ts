@@ -42,9 +42,7 @@ export default defineCommand({
   },
 });
 
-/**
- * Whether the member signs in with a password: Better Auth keeps it as an account of the provider `credential`.
- */
+// Better Auth stores a password as an account of the provider `credential`.
 function hasPasswordAccount({ user }: Member): boolean {
   return (
     user?.accounts?.some(({ providerId }) => providerId === 'credential') ??

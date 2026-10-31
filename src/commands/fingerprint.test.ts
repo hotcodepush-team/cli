@@ -14,9 +14,6 @@ const FINGERPRINT_FIXTURES = readFingerprintFixtures();
 describe('fingerprint', () => {
   const harness = useCommandHarness();
 
-  /**
-   * The fixture's files with a hotcodepush.json listing its extra fingerprint paths in the project's directory; the path of that file.
-   */
   function writeFixtureProject(
     fixture: FingerprintFixture | RefusedFingerprintFixture,
   ): string {

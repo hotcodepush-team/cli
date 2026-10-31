@@ -111,9 +111,6 @@ export default defineCommand({
   },
 });
 
-/**
- * The store build a device runs as a person names it, `2.4.1 (57)`.
- */
 export function resolveBinaryText({
   binaryBuild,
   binaryVersion,

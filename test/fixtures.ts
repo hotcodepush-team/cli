@@ -60,9 +60,7 @@ export const ACME_ORGANIZATION: Organization = {
   updatedAt: '2026-09-01T08:00:00.000Z',
 };
 
-/**
- * Globex on pay-as-you-go: a $50 cap, under its ceiling, its subscription active.
- */
+// Pay-as-you-go with a $50 cap, under its ceiling, with an active subscription.
 export const GLOBEX_ORGANIZATION: Organization = {
   ...ACME_ORGANIZATION,
   createdAt: '2026-09-02T08:00:00.000Z',
@@ -76,9 +74,7 @@ export const GLOBEX_ORGANIZATION: Organization = {
   updatedAt: '2026-09-02T08:00:00.000Z',
 };
 
-/**
- * Two of Globex's limits, one raised for it.
- */
+// One of the two limits is raised for Globex.
 export const GLOBEX_LIMITS: Limits = {
   appCountLimit: { default: 10, isOverridden: true, value: 25 },
   memberCountLimit: { default: 20, isOverridden: false, value: 20 },
@@ -173,8 +169,8 @@ export const BINARY: Binary = {
   version: '1.0',
 };
 
-/** The ready bundle's delta packs with their bases embedded: one built against the previous bundle, one requested against the binary's. */
-export const READY_BUNDLE_DELTA_PACKS: BundleDelta[] = [
+// One delta is built against the previous bundle, one is requested against the binary.
+export const READY_BUNDLE_DELTAS: BundleDelta[] = [
   {
     baseBundle: PREVIOUS_BUNDLE,
     baseBundleId: PREVIOUS_BUNDLE.id,
@@ -246,10 +242,8 @@ export const PREVIOUS_RELEASE: Release = {
   updatedAt: '2026-09-06T08:00:06.000Z',
 };
 
-/**
- * The registry's snapshot of the demo app's 120 devices: 80 on release #43, 20 on #42 and 20 on the embedded bundle,
- * 12 of them on the binary; served for the app and for the staging channel alike.
- */
+// 120 devices: 80 on release #43, 20 on #42 and 20 on the embedded bundle, 12 of them on the binary.
+// Served for the app and the staging channel alike.
 export const FLEET: FleetStatistics = {
   binary: [
     {
@@ -292,9 +286,7 @@ export const FLEET: FleetStatistics = {
   sdkVersion: [{ deviceCount: 120, value: '0.1.0' }],
 };
 
-/**
- * Release #43 at the first step of the default schedule, which started at 88 applied updates on its counters.
- */
+// At the first step of the default schedule, which started at 88 applied updates.
 export const PROGRESSING_RELEASE: Release = {
   ...LIVE_RELEASE,
   progression: {
@@ -327,9 +319,7 @@ export const RUNNER_USER: User = {
   updatedAt: '2026-09-01T08:00:00.000Z',
 };
 
-/**
- * The runner as `users.get` answers them with their member rows: the owner of Acme and an admin of Globex.
- */
+// The owner of Acme and an admin of Globex.
 export const RUNNER_USER_WITH_MEMBERS: User = {
   ...RUNNER_USER,
   members: [
@@ -361,10 +351,7 @@ interface ProtocolSigningKey {
   publicKey: string;
 }
 
-/**
- * A test key pair of the protocol's signature fixtures by its name: `rsa-4096-a`, `rsa-4096-b`, `rsa-2048`,
- * and `rsa-1024`, the one under the minimum size.
- */
+// The protocol signature fixtures name `rsa-4096-a`, `rsa-4096-b`, `rsa-2048` and `rsa-1024`, which is below the minimum size.
 export function resolveProtocolSigningKey(keyName: string): ProtocolSigningKey {
   const { keys } = JSON.parse(
     readFileSync(
@@ -434,9 +421,7 @@ export const AUDIT_LOG: AuditLog = {
   userId: RUNNER_USER.id,
 };
 
-/**
- * An OIDC provider whose domain still waits for its TXT record.
- */
+// The domain still waits for its TXT record.
 export const SSO_PROVIDER: SsoProvider = {
   createdAt: '2026-09-11T08:00:00.000Z',
   domain: 'example.com',
@@ -451,9 +436,6 @@ export const SSO_PROVIDER: SsoProvider = {
   userId: RUNNER_USER.id,
 };
 
-/**
- * A SAML provider whose domain is verified.
- */
 export const VERIFIED_SAML_SSO_PROVIDER: SsoProvider = {
   ...SSO_PROVIDER,
   domainVerified: true,
@@ -537,10 +519,7 @@ const JSON_COMPLETION_OPTION: CompletionOption = {
   name: 'json',
 };
 
-/**
- * A tiny command tree with every kind of option: a free value, an enum, a boolean flag, a repeatable value and the global --json on every command,
- * a noun that runs nothing, a standalone command that is a noun too and a verb that takes arguments.
- */
+// Covers every kind of option and command shape that the completion scripts handle.
 export const COMPLETION_COMMANDS: CompletionCommand[] = [
   {
     description: 'create',

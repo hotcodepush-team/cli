@@ -5,17 +5,11 @@ import { MissingParameterError } from '../errors.js';
 import { promptText } from '../prompts.js';
 import type { NativeProjectPaths, WiringOptions } from './index.js';
 
-/**
- * The native projects the hook step wires and the reason it cannot when neither was found or named.
- */
 export interface NativeProjects extends NativeProjectPaths {
   missingError: MissingParameterError | undefined;
 }
 
-/**
- * `--ios-path` and `--android-path`, typed against the working directory, over the framework's own paths;
- * neither found is asked for, and non-interactively the hook step's stop, whose fix starts with how the framework adds them.
- */
+// Non-interactively, missing projects stop the hook step later instead of failing here.
 export async function resolveNativeProjects(
   projectDirectoryPath: string,
   defaultPaths: NativeProjectPaths,

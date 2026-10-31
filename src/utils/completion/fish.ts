@@ -1,9 +1,5 @@
 import type { CompletionCommand, CompletionOption } from './command-tree.js';
 
-/**
- * The fish completion script: the top-level names and the noun's verbs with their descriptions, then the command's
- * flags, an enum's choices after its flag and the file names for a free value.
- */
 export function buildFishScript(commands: CompletionCommand[]): string {
   return [
     'function __hotcodepush_needs_command',
@@ -52,9 +48,6 @@ function buildOptionLines(
   );
 }
 
-/**
- * What follows a flag: an enum's choices alone, any value with the file names offered, or nothing for a boolean flag.
- */
 function buildValueArguments({ choices, hasValue }: CompletionOption): string {
   if (choices.length > 0) {
     return ` -x -a ${quoteFishWord(choices.join(' '))}`;
@@ -62,16 +55,12 @@ function buildValueArguments({ choices, hasValue }: CompletionOption): string {
   return hasValue ? ' -r' : '';
 }
 
-/**
- * The text as one single-quoted fish word, where a backslash and a single quote are the two escapes.
- */
+// In fish, a backslash and a single quote are the only escapes inside single quotes.
 function quoteFishWord(text: string): string {
   return `'${text.replace(/[\\']/g, '\\$&')}'`;
 }
 
-/**
- * The command a word runs alone, never while one of its verbs follows it, as `fingerprint diff` follows `fingerprint`.
- */
+// Excludes the verbs, so `fingerprint` does not also match `fingerprint diff`.
 function resolveStandaloneCondition({
   name,
   verbs,

@@ -28,7 +28,6 @@ export default defineCommand({
     }
     await hotCodePush.organizations.ssoProvider.delete({ organizationId });
     if (options.json) {
-      // every delete prints { id, name }, and a provider's name is its domain
       printJson({ id: fetchedProvider.id, name: fetchedProvider.domain });
     } else {
       console.log(

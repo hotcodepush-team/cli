@@ -51,10 +51,7 @@ export const channelOptionShape = {
     ),
 };
 
-/**
- * The app a command acts on: `--app`, otherwise `hotcodepush.json`'s, otherwise a picker when interactive.
- * A name is looked up among the apps of `--organization` when it is given, otherwise of every organization of the user's.
- */
+// A name is looked up in `--organization` when given, otherwise in every organization of the user.
 export async function fetchAppId(
   hotCodePush: HotCodePush,
   options: AppOptions,
@@ -89,9 +86,6 @@ export function fetchApps(
   );
 }
 
-/**
- * The channel a command acts on, from `--app`, `--channel` and `hotcodepush.json`.
- */
 export async function fetchChannel(
   hotCodePush: HotCodePush,
   options: ChannelOptions,
@@ -107,9 +101,7 @@ export async function fetchChannel(
   return hotCodePush.apps.channels.get({ appId, channelId });
 }
 
-/**
- * The channel of `--channel`, otherwise `hotcodepush.json`'s when the app is the file's too, otherwise a picker when interactive.
- */
+// The channel of hotcodepush.json counts only when the app is the one of the file too.
 export async function fetchChannelId(
   hotCodePush: HotCodePush,
   appId: string,
@@ -148,9 +140,6 @@ export function fetchChannels(
   );
 }
 
-/**
- * The organization a command runs in: `--organization`, otherwise the user's only one, otherwise a picker when interactive.
- */
 export async function fetchOrganizationId(
   hotCodePush: HotCodePush,
   options: OrganizationOptions,
@@ -174,9 +163,7 @@ export function fetchOrganizations(
   return fetchAllPages(page => hotCodePush.organizations.list(page));
 }
 
-/**
- * A resource named in its flag, or in the source given, told apart by shape: a UUID is its id, anything else a name looked up in the list.
- */
+// A UUID is an id, and anything else is a name looked up in the list.
 export async function fetchResourceId(
   noun: string,
   reference: string,
@@ -190,9 +177,7 @@ export async function fetchResourceId(
     .id;
 }
 
-/**
- * Whether the app holds a signing key, so that it releases only signed bundles: its keys' count.
- */
+// An app with a signing key releases only signed bundles.
 export async function fetchHasSigningKey(
   hotCodePush: HotCodePush,
   appId: string,
@@ -223,10 +208,7 @@ export function promptResourceId(
   );
 }
 
-/**
- * The resource carrying the name, compared case-insensitively as the API keeps app and channel names unique;
- * an error names the source of the name, its flag by default.
- */
+// Case-insensitive, as the API keeps app and channel names unique that way.
 export function resolveNamedResource<TResource extends NamedResource>(
   noun: string,
   name: string,

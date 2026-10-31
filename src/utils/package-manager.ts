@@ -17,9 +17,6 @@ const LOCKFILES: [fileName: string, packageManager: PackageManager][] = [
   ['yarn.lock', 'yarn'],
 ];
 
-/**
- * The package manager the project uses, from its lockfile; npm without one.
- */
 export function resolvePackageManager(
   projectDirectoryPath: string,
 ): PackageManager {
@@ -29,9 +26,6 @@ export function resolvePackageManager(
   return detected === undefined ? 'npm' : detected[1];
 }
 
-/**
- * The install of one package at an exact version or URL, in the manager's own words.
- */
 export function resolveInstallCommandLine(
   packageManager: PackageManager,
   packageSpec: string,
@@ -64,9 +58,7 @@ export function resolveCommandLineText({ args, command }: CommandLine): string {
   return [command, ...args].join(' ');
 }
 
-/**
- * Runs a command in the project with its output on stderr, so `--json` stdout stays data; a failure is the CLI's error.
- */
+// Output goes to stderr, so `--json` keeps stdout for data.
 export function runCommandLineVisibly(
   commandLine: CommandLine,
   projectDirectoryPath: string,

@@ -31,13 +31,12 @@ import type * as packageManagerModule from '../utils/package-manager.js';
 import { resolveConfigDirectoryPath } from '../utils/user-config.js';
 import doctorCommand from './doctor.js';
 
-// wiring a React Native project ends with pod install, which a test never runs
+// Wiring a React Native project ends with pod install, which a test never runs.
 vi.mock('../utils/package-manager.js', async importOriginal => ({
   ...(await importOriginal<typeof packageManagerModule>()),
   runCommandLineVisibly: vi.fn(),
 }));
 
-// the no-session case must not find a token in the machine's keyring
 vi.mock('@napi-rs/keyring', () => ({
   Entry: vi.fn(function () {
     return { getPassword: () => null };
@@ -362,7 +361,7 @@ describe('doctor', () => {
         undefined,
       );
     } catch (error) {
-      // a failed check ends the command through the reported failure, after its JSON
+      // A failed check ends the command with the reported failure, after its JSON.
       if (!(error instanceof ReportedFailureError)) {
         throw error;
       }

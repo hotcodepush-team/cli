@@ -64,19 +64,11 @@ import {
   resolveUploadBundleOptions,
 } from '../bundle/upload.js';
 
-/**
- * What a release is made of: the bundle `--bundle` names, what the channel `--from-channel` names serves,
- * or the builds to upload once the release is confirmed — the web build, or one bundle per platform where the
- * framework has one each, every one of them released.
- */
 export type BundleSource =
   | { bundle: Bundle }
   | { bundle: Bundle; sourceChannel: Channel; sourceRelease: Release }
   | { appId: string; bundleUploads: UploadBundleOptions[] };
 
-/**
- * A channel the release goes to with the audience its conditions reach there.
- */
 export interface ChannelAudience {
   audience: Audience;
   channel: Channel;
@@ -102,9 +94,6 @@ interface ReleaseCreateOptions
   rolloutPercentage?: number;
 }
 
-/**
- * How the release reaches its channels: the starting percentage, the schedule widening it and whether devices must apply it.
- */
 export interface ReleaseRollout {
   isMandatory: boolean;
   progression: Progression | null;
@@ -170,9 +159,7 @@ export default defineCommand({
     ),
 });
 
-/**
- * The command, with the directory a framework that packages inside the upload bundles into; it is gone when the command ends.
- */
+// The packaging directory is removed when the command ends.
 async function createReleases(
   options: ReleaseCreateOptions,
   packagingDirectoryPath: string,
@@ -253,10 +240,6 @@ async function createReleases(
   }
 }
 
-/**
- * What the release does, with the audience its conditions reach in every channel, from the audience preview.
- * A web build still to upload has no number yet, so it is named by the version label it will carry.
- */
 export function resolveReleaseConsequence(
   bundleSource: BundleSource,
   channelAudiences: ChannelAudience[],
@@ -274,10 +257,7 @@ export function resolveReleaseConsequence(
   return `${resolveReleaseText(bundleSource)} at ${rolloutPercentage} percent${progressionText}${isMandatory ? ', mandatory' : ''}: ${audienceText}`;
 }
 
-/**
- * Every channel `--channel` names, or the project's one when none is named, each with the audience the release's
- * conditions reach there; the preview checks the conditions before anything is uploaded.
- */
+// The audience preview checks the conditions before anything is uploaded.
 async function fetchChannelAudiences(
   hotCodePush: HotCodePush,
   appId: string,
@@ -316,9 +296,7 @@ async function fetchChannelAudiences(
   );
 }
 
-/**
- * The newest active release of the channel `--from-channel` names, with its bundle: what the API releases from there.
- */
+// Mirrors the API, which releases the newest active release of that channel.
 async function fetchSourceRelease(
   hotCodePush: HotCodePush,
   appId: string,
@@ -350,10 +328,7 @@ async function fetchSourceRelease(
   return { bundle, sourceChannel, sourceRelease };
 }
 
-/**
- * The dry run's answer: the consequence as the confirmation would state it and the warnings of the preview;
- * a web build is hashed and checked against the size limit, and nothing is uploaded or published.
- */
+// A dry run still hashes a web build and checks the size limit, but uploads nothing.
 async function printDryRun(
   bundleSource: BundleSource,
   channelAudiences: ChannelAudience[],
@@ -378,19 +353,14 @@ async function printDryRun(
   console.log(`Dry run, nothing published: this ${consequence}.`);
 }
 
-/**
- * The audience preview's warnings, each channel's once, however many platform bundles the release carries.
- */
+// Each channel warns once, however many platform bundles the release carries.
 function printAudienceWarnings(channelAudiences: ChannelAudience[]): void {
   for (const { audience } of channelAudiences) {
     printWarnings(audience.warnings);
   }
 }
 
-/**
- * `--bundle` names an uploaded bundle and `--from-channel` what a channel serves; otherwise the web build under `--path`
- * is resolved for `bundle upload`'s upload, which runs only once the release is confirmed.
- */
+// The upload runs only once the release is confirmed.
 async function resolveBundleSource(
   hotCodePush: HotCodePush,
   options: ReleaseCreateOptions,
@@ -425,9 +395,6 @@ async function resolveBundleSource(
     : fetchSourceRelease(hotCodePush, appId, options.fromChannel);
 }
 
-/**
- * The bundles the release carries: the one named, or each build uploaded first when that is the source.
- */
 async function resolveReleasedBundles(
   hotCodePush: HotCodePush,
   bundleSource: BundleSource,
@@ -452,10 +419,8 @@ function resolveReleaseText(bundleSource: BundleSource): string {
     : bundleText;
 }
 
-/**
- * A build still to upload has no number yet, so it is named by the version label it will carry: one bundle for both
- * platforms is the web build, the bundles of a framework that has one per platform are named by their platforms.
- */
+// A build still to upload has no number yet, so it is named by its version label.
+// One bundle for both platforms is the web build. Per-platform bundles are named by their platform.
 function resolveUploadText(bundleUploads: UploadBundleOptions[]): string {
   const bundleVersion = bundleUploads[0]?.bundleVersion ?? '';
   const platformTexts = bundleUploads.map(({ platforms }) =>
@@ -469,10 +434,7 @@ function resolveUploadText(bundleUploads: UploadBundleOptions[]): string {
     : `uploads the ${platformTexts.join(' and ')} bundles as ${bundleVersion} and releases each`;
 }
 
-/**
- * The fingerprint the release's condition carries: the bundle's own, or the one the builds will be uploaded with,
- * the project's one native contract whatever the platform.
- */
+// A project has one native contract, whatever the platform.
 function resolveSourceFingerprint(bundleSource: BundleSource): string | null {
   return 'bundle' in bundleSource
     ? bundleSource.bundle.fingerprint

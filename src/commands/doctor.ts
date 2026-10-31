@@ -57,9 +57,6 @@ import { readSigningKeyPair } from '../utils/signing-private-key.js';
 import { isEnvironmentToken, readToken } from '../utils/token-store.js';
 import { readApiUrl } from '../utils/user-config.js';
 
-/**
- * The `app` check with the app it fetched, which the `signing_key` check reads.
- */
 interface AppCheck {
   app: App | undefined;
   check: DoctorCheck;
@@ -67,11 +64,7 @@ interface AppCheck {
 
 type DoctorCheck = FrameworkCheck;
 
-/**
- * What every check reads: the project, its configuration, its `package.json` and its framework, located once;
- * a framework the CLI cannot name, from a `package.json` that names none or does not parse, and a configuration
- * that does not parse are carried as the errors that say so, which their own checks report.
- */
+// Parse errors are kept and reported by their own checks.
 interface Project {
   directoryPath: string;
   framework: FrameworkModule | CliError;
@@ -127,9 +120,6 @@ export default defineCommand({
   },
 });
 
-/**
- * The project the checks read; a configuration that does not parse leaves the configuration out and is kept for its check.
- */
 function readProject(configPath: string | undefined): Project {
   const { directoryPath, filePath } = locateProjectConfigFile(configPath);
   const framework = resolveProjectFramework(directoryPath);
@@ -187,9 +177,7 @@ function checkConfiguration({
   };
 }
 
-/**
- * What keeps the file from naming a valid app and channel; a file without `channel` follows the schema's default.
- */
+// A file without `channel` follows the schema default.
 function resolveConfigurationProblems(projectConfig: ProjectConfig): string[] {
   const problems: string[] = [];
   if (projectConfig.appId === undefined) {
@@ -206,10 +194,7 @@ function resolveConfigurationProblems(projectConfig: ProjectConfig): string[] {
   return problems;
 }
 
-/**
- * The credential — a session or `HOTCODEPUSH_TOKEN` — and with one the app and channel the configuration names as the API knows them;
- * a credential the API refuses, or an API that cannot be asked, fails the session and leaves the app out.
- */
+// A refused credential, or an API that cannot be asked, fails the session check and leaves the app out.
 async function checkSessionAndApp({
   projectConfig,
 }: Project): Promise<SessionAndAppChecks> {
@@ -308,12 +293,8 @@ async function checkApp(
   }
 }
 
-/**
- * Whether signing works for the project: the public keys `hotcodepush.json` lists are registered with the app, where a session
- * lets the API be asked, and the private key `HOTCODEPUSH_SIGNING_KEY` holds, when set, belongs to one of them; no file is
- * looked for, since an upload is told where its key is. A key the app has and the file does not list fails, since a build
- * from that file would verify nothing and an upload would go unsigned; so does a key that cannot be read or an API that cannot be asked.
- */
+// No key file is looked for, since an upload is told where its key is.
+// A key the app has but the file does not list fails, since an upload from that project would go unsigned.
 async function checkSigningKey(
   { projectConfig }: Project,
   app: App | undefined,
@@ -352,10 +333,7 @@ async function checkSigningKey(
   }
 }
 
-/**
- * The private key `HOTCODEPUSH_SIGNING_KEY` holds against the listed public keys: none set while keys are listed is fine,
- * the upload being told where its key is.
- */
+// No variable while keys are listed is fine, since an upload is told where its key is.
 async function checkSigningPrivateKey(
   publicKeys: string[],
 ): Promise<DoctorCheck> {
@@ -386,9 +364,7 @@ async function checkSigningPrivateKey(
   }
 }
 
-/**
- * How many of the listed public keys the app has not registered: an upload signed with one is refused.
- */
+// An upload signed with an unregistered key is refused.
 async function fetchUnregisteredPublicKeyCount(
   appId: string,
   publicKeys: string[],
@@ -402,10 +378,7 @@ async function fetchUnregisteredPublicKeyCount(
     .length;
 }
 
-/**
- * The framework's SDK package and build step; a project without a framework the CLI knows gets the one row that says so.
- * The resource file is not checked: every build writes it into the app it builds, never into the project.
- */
+// The resource file is not checked, since every build writes it into the app, never into the project.
 function checkFramework(project: Project): DoctorCheck[] {
   const { framework } = project;
   if (framework instanceof CliError) {
@@ -414,10 +387,7 @@ function checkFramework(project: Project): DoctorCheck[] {
   return framework.checkWiring(project);
 }
 
-/**
- * The API, the files host and the updates host answer; any HTTP answer counts, a network error does not, and a config.json
- * that does not parse names no host to ask.
- */
+// Any HTTP answer counts and a network error does not.
 async function checkHosts(): Promise<DoctorCheck> {
   let apiUrl: string;
   try {
@@ -481,9 +451,6 @@ function checkVersions({
   };
 }
 
-/**
- * A check that could not be made, failed with what the error says happened and its fix as the manual step.
- */
 function resolveFailedCheck(check: string, error: unknown): DoctorCheck {
   const { fix, message } = resolveCliError(error);
   return {
@@ -503,9 +470,6 @@ async function isReachable(url: string): Promise<boolean> {
   }
 }
 
-/**
- * The module of the project's framework, or the error naming why the CLI has none for it.
- */
 function resolveProjectFramework(
   directoryPath: string,
 ): FrameworkModule | CliError {

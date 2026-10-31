@@ -56,9 +56,6 @@ const APP_JS = 'console.log(1)';
 const INDEX_SHA256 = computeSha256(INDEX_HTML);
 const APP_JS_SHA256 = computeSha256(APP_JS);
 
-/**
- * A pack's entries as their names, `{hash}` or `patches/{from}/{to}`, with their bodies.
- */
 async function readPackEntries(
   packBytes: ArrayBuffer,
 ): Promise<Map<string, Buffer>> {
@@ -123,9 +120,6 @@ describe('bundle upload', () => {
     return configPath;
   }
 
-  /**
-   * The bundle's file the app's store lacks, `assets/app.js`, as the files list answers it under every path given.
-   */
   function respondWithMissingFiles(paths = ['assets/app.js']): void {
     harness.routes[`GET ${BUNDLE_FILES_PATH}`] = () =>
       Response.json(
@@ -141,9 +135,6 @@ describe('bundle upload', () => {
       );
   }
 
-  /**
-   * The app's binaries counted, all of them and those carrying the project's fingerprint.
-   */
   function respondWithBinaryCounts(
     binaryCount: number,
     fingerprintBinaryCount: number,
@@ -162,7 +153,7 @@ describe('bundle upload', () => {
     respondWithBinaryCounts(1, 1);
     harness.routes[`PUT /v1/apps/${DEMO_APP.id}/files/${APP_JS_SHA256}`] =
       request => {
-        // The gzip bytes come from a temporary file the upload removes when it ends, so they are read as the request arrives
+        // The upload removes its temporary files when it ends, so the bytes are read as each request arrives.
         uploadedFileBytes = request.arrayBuffer();
         return Response.json(
           {
@@ -175,7 +166,6 @@ describe('bundle upload', () => {
         );
       };
     harness.routes[`PUT ${BUNDLES_PATH}/${READY_BUNDLE.id}/pack`] = request => {
-      // The pack comes from a temporary file the upload removes when it ends, so it is read as the request arrives
       uploadedPackBytes = request.arrayBuffer();
       return Response.json({ sizeBytes: 1536 });
     };
@@ -343,7 +333,7 @@ describe('bundle upload', () => {
     });
   });
 
-  it('should read no base and upload no delta pack, printing only the files moved and their bytes under --json', async () => {
+  it('should read no base and upload no delta, printing only the files moved and their bytes under --json', async () => {
     respondWithUploadRoutes();
 
     await bundleUploadCommand.action(
@@ -566,7 +556,7 @@ describe('bundle upload', () => {
         join(projectDirectoryPath, 'hotcodepush.json'),
         JSON.stringify({ appId: DEMO_APP.id }),
       );
-      // without Hermes the bundler's output is the bundle, so the test needs no compiler
+      // Without Hermes the bundler output is the bundle, so the test needs no compiler.
       mkdirSync(join(projectDirectoryPath, 'android'));
       writeFileSync(
         join(projectDirectoryPath, 'android', 'gradle.properties'),
@@ -639,7 +629,6 @@ describe('bundle upload', () => {
     });
 
     it('should check the fingerprint once for both platforms, warning once', async () => {
-      // two binaries, none of them carrying the project's fingerprint
       harness.routes[`GET ${BINARY_COUNT_PATH}`] = request =>
         Response.json({
           count: new URL(request.url).searchParams.has('fingerprint') ? 0 : 2,

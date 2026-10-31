@@ -78,9 +78,6 @@ export default defineCommand({
   },
 });
 
-/**
- * The percentage asked for when the flag is missing and someone can answer, checked as the flag would be.
- */
 async function promptRolloutPercentage(
   options: InteractivityOptions,
 ): Promise<number> {
@@ -94,9 +91,6 @@ async function promptRolloutPercentage(
     .parse({ rolloutPercentage: answer }).rolloutPercentage;
 }
 
-/**
- * What the rollout does: the schedule it starts from the percentage, or the percentage set by hand, which ends a schedule the release had.
- */
 function resolveRolloutConsequence(
   release: Release,
   channelName: string,

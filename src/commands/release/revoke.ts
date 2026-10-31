@@ -27,15 +27,9 @@ import {
   fetchChannel,
 } from '../../utils/resource-resolution.js';
 
-/**
- * The most ids the bulk route takes in one request.
- */
+// The limit of the bulk route.
 const MAX_RELEASE_IDS_PER_REVOCATION = 100;
 
-/**
- * What one channel loses: the releases revoked, newest first, beside the channel's whole log they move devices along,
- * and the request that revokes them.
- */
 interface ChannelRevocation {
   channel: Channel;
   releaseLog: Release[];
@@ -43,9 +37,6 @@ interface ChannelRevocation {
   revokedReleases: Release[];
 }
 
-/**
- * Where a revoked release's devices go: the newest active older release left, or the embedded bundle when none is.
- */
 interface DeviceMove {
   deviceCount: number;
   targetRelease: Release | undefined;
@@ -57,10 +48,7 @@ interface ReleaseRevokeOptions extends ReleaseOptions {
   releaseFrom?: number;
 }
 
-/**
- * The single route for `--release`, the bulk route for every other form with the ids of the releases confirmed,
- * newest first, so a release published after the confirmation is never revoked unseen.
- */
+// The bulk route gets the confirmed ids, so a release published after the confirmation is never revoked unseen.
 type RevocationRequest = { releaseId: string } | { releaseIds: string[] };
 
 export default defineCommand({
@@ -137,10 +125,6 @@ export default defineCommand({
   },
 });
 
-/**
- * Sends one channel's revocation: the single route answers the release, the bulk route the releases it names,
- * newest first.
- */
 async function fetchRevocation(
   hotCodePush: HotCodePush,
   channel: Channel,
@@ -167,9 +151,6 @@ async function fetchRevocation(
   return revokedReleases.sort((left, right) => right.number - left.number);
 }
 
-/**
- * What the flags revoke, one channel's releases or, for `--bundle`, the bundle's releases in every channel serving it.
- */
 async function fetchRevocations(
   hotCodePush: HotCodePush,
   options: ReleaseRevokeOptions,
@@ -225,9 +206,6 @@ async function fetchRevocations(
   ];
 }
 
-/**
- * Every release of the bundle `--bundle` names that is not revoked yet, grouped by the channel serving it.
- */
 async function fetchBundleRevocations(
   hotCodePush: HotCodePush,
   options: ReleaseRevokeOptions,
@@ -277,11 +255,7 @@ function printNothingToRevoke(isJson: boolean | undefined): void {
   console.log('Nothing to revoke: no release named is active or paused.');
 }
 
-/**
- * Where each revoked release's devices go, as the API moves them: the newest active release older than it that is not
- * revoked with it, or the embedded bundle; the devices the fleet counts on each summed per destination, the releases
- * with none left out.
- */
+// Mirrors the API: devices move to the newest active older release not revoked with it, or to the embedded bundle.
 function resolveDeviceMoves(
   revocation: ChannelRevocation,
   fleet: FleetStatistics,
@@ -323,9 +297,6 @@ function resolveMovesText(
     .join(' and ');
 }
 
-/**
- * The releases older than the revoked one that stay, newest first: where its devices may land.
- */
 function resolveOlderReleases(
   revocation: ChannelRevocation,
   revokedRelease: Release,
@@ -343,10 +314,7 @@ function resolveOlderReleases(
     .sort((left, right) => right.number - left.number);
 }
 
-/**
- * The release a revoked release's devices would land on when it is paused: a paused release takes no device,
- * so they land one further back.
- */
+// A paused release takes no device, so its devices land one release further back.
 function resolvePausedLandingTexts(
   revocations: ChannelRevocation[],
   fleet: FleetStatistics,
@@ -368,9 +336,6 @@ function resolvePausedLandingTexts(
   return [...texts];
 }
 
-/**
- * How many releases go where and how many devices move where, that revoked is final, and how a bundle comes back.
- */
 function resolveRevocationConsequence(
   revocations: ChannelRevocation[],
   fleet: FleetStatistics,
@@ -400,10 +365,7 @@ function resolveRevocationConsequence(
   return `revokes ${releasesText} for good: ${movesText}. Revoked is final, and ${reReleaseText}`;
 }
 
-/**
- * The ids of releases listed newest first, in the pages the bulk route takes, the oldest page sent first:
- * a page's devices then land past every older release, never on a newer one the next page revokes.
- */
+// The oldest page goes first, so devices never land on a newer release that a later page revokes.
 function resolveReleaseIdPages(newestFirstReleaseIds: string[]): string[][] {
   const oldestFirstReleaseIds = newestFirstReleaseIds.toReversed();
   const pages: string[][] = [];
@@ -422,9 +384,6 @@ function resolveReleaseIdPages(newestFirstReleaseIds: string[]): string[][] {
   return pages;
 }
 
-/**
- * The releases by number when they are few, `release #43`, `releases #45, #44 and #43`, else counted, `14 releases`.
- */
 function resolveReleasesText(releases: Release[]): string {
   const numberTexts = releases.map(({ number }) => `#${number}`);
   if (numberTexts.length === 1) {

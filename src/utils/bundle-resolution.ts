@@ -16,10 +16,6 @@ export const bundleOptionShape = {
   bundle: z.string().optional().describe('The bundle, by its number or id.'),
 };
 
-/**
- * The bundle `--bundle` names, by number or id, otherwise a picker over the app's bundles when interactive, read by its id
- * whichever way it was named.
- */
 export async function fetchBundle(
   hotCodePush: HotCodePush,
   appId: string,
@@ -29,9 +25,7 @@ export async function fetchBundle(
   return hotCodePush.apps.bundles.get({ appId, bundleId });
 }
 
-/**
- * The app's uploaded bundles, the ones a release or a delete names; a bundle a binary ships is never one of them.
- */
+// A bundle that a binary ships is never in this list.
 export function fetchUploadedBundles(
   hotCodePush: HotCodePush,
   appId: string,
@@ -41,10 +35,7 @@ export function fetchUploadedBundles(
   );
 }
 
-/**
- * The bundle as a person names it: the number with its prefix and the version label, `#42 · 1.4.2`;
- * a bundle a binary ships has no number, `embedded · 1.4.2`.
- */
+// A bundle that a binary ships has no number, so it reads `embedded · 1.4.2`.
 export function resolveBundleLabel({
   number,
   version,
@@ -80,9 +71,7 @@ async function fetchBundleId(
   return fetchBundleIdByNumber(hotCodePush, appId, Number(options.bundle));
 }
 
-/**
- * The id of the bundle carrying the number, found among the bundles the list's search answers, whose numbers contain it.
- */
+// The list search matches numbers that contain the given one, so the exact match is picked here.
 async function fetchBundleIdByNumber(
   hotCodePush: HotCodePush,
   appId: string,

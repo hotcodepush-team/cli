@@ -28,7 +28,7 @@ const APP_JSON = `{
 }
 `;
 
-// the comment and the trailing commas Expo's JSON5 reading allows
+// Expo reads JSON5, which allows comments and trailing commas.
 const APP_JSON5 = `{
   // the name on the home screen
   "expo": {
@@ -71,6 +71,13 @@ describe('expoFramework', () => {
     return directoryPath;
   }
 
+  function disableAndroidHermes(directoryPath: string): void {
+    writeFile(
+      join(directoryPath, 'android', 'gradle.properties'),
+      'hermesEnabled=false\n',
+    );
+  }
+
   function readProject(directoryPath: string) {
     return {
       directoryPath,
@@ -93,11 +100,7 @@ describe('expoFramework', () => {
   describe('packageBundles', () => {
     it('should bundle with Expo export:embed, the bundler its release builds run', async () => {
       const directoryPath = writeProject();
-      // without Hermes the bundler is the one command an Android bundle runs
-      writeFile(
-        join(directoryPath, 'android', 'gradle.properties'),
-        'hermesEnabled=false\n',
-      );
+      disableAndroidHermes(directoryPath);
 
       await expoFramework.packageBundles?.({
         packagingDirectoryPath: join(directoryPath, 'packaging'),

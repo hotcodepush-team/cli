@@ -11,31 +11,19 @@ import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson, printTable } from '../../utils/output.js';
 import { promptText } from '../../utils/prompts.js';
 
-/**
- * A file under the extra fingerprint paths as each side hashed it, null on the side without it.
- */
 interface ExtraFingerprintPathChange {
   after: string | null;
   before: string | null;
   path: string;
 }
 
-/**
- * What moved between two fingerprints: each package version and extra fingerprint path one side has and the other lacks.
- */
 interface FingerprintDiff {
   extraFingerprintPaths: ExtraFingerprintPathChange[];
   packages: PackageChange[];
 }
 
-/**
- * A package's version and integrity as one side installs it.
- */
 type InstalledVersion = Omit<LockedPackage, 'name'>;
 
-/**
- * A package version one side installs, paired with one the other side installs instead, null where it installs none.
- */
 interface PackageChange {
   after: InstalledVersion | null;
   before: InstalledVersion | null;
@@ -45,9 +33,6 @@ interface PackageChange {
 const FINGERPRINT_FILE_FIX =
   'Write each file with "hotcodepush fingerprint --json > <file>", the earlier one at the commit of the store build.';
 
-/**
- * What `hotcodepush fingerprint --json` writes: the hash and the contributors behind it.
- */
 const FingerprintFileSchema = z.object({
   fingerprint: z.string(),
   extraFingerprintPaths: z.array(
@@ -174,9 +159,7 @@ function resolveFingerprintDiff(
   };
 }
 
-/**
- * Per package name, the versions only one side installs, paired in their order: a pair moved, the rest was added or removed.
- */
+// Pairs the versions in order: a pair moved, the rest was added or removed.
 function resolvePackageChanges(
   before: LockedPackage[],
   after: LockedPackage[],
@@ -234,9 +217,7 @@ function resolveExtraFingerprintPathChanges(
     .filter(({ after, before }) => after !== before);
 }
 
-/**
- * A side's version as the table prints it: the integrity where the version did not move, so a rebuild under it shows.
- */
+// Shows the integrity where the version did not move, so a rebuild under the same version shows.
 function resolveInstalledVersionText(
   installedVersion: InstalledVersion | null,
   otherInstalledVersion: InstalledVersion | null,

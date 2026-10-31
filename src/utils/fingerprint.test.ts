@@ -28,9 +28,7 @@ describe('fingerprint', () => {
     rmSync(projectDirectoryPath, { force: true, recursive: true });
   });
 
-  /**
-   * A workspace at `apps/mobile` under the lockfile's directory, declaring the native package the root installs; its path.
-   */
+  // The workspace declares the native package that the root installs.
   function writeWorkspaceProject(): string {
     const appDirectoryPath = join(projectDirectoryPath, 'apps', 'mobile');
     mkdirSync(appDirectoryPath, { recursive: true });

@@ -1,7 +1,3 @@
-/**
- * One line of a command that reports several outcomes — `init`'s steps, `doctor`'s checks — by the step's or the check's
- * name, `--json`'s snake_case, with the manual step under a failure.
- */
 export interface OutcomeRow {
   manualStep?: string;
   message: string;
@@ -33,9 +29,6 @@ export function printOutcomeRows(rows: OutcomeRow[]): void {
   }
 }
 
-/**
- * The name in plain words, `sign_in` as `Sign in`.
- */
 function resolveOutcomeLabel(name: string): string {
   const words = name.replaceAll('_', ' ');
   return words.charAt(0).toUpperCase() + words.slice(1);

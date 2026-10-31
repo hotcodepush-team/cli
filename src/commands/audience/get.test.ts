@@ -27,7 +27,7 @@ describe('audience get', () => {
       .spyOn(process.stderr, 'write')
       .mockImplementation(() => true);
     respondWithStagingReleases(harness);
-    // outside a project: no lockfile, so no fingerprint, unless a test writes one
+    // Outside a project there is no lockfile, so no fingerprint unless a test writes one.
     workingDirectoryPath = mkdtempSync(join(tmpdir(), 'hotcodepush-cwd-'));
     vi.spyOn(process, 'cwd').mockReturnValue(workingDirectoryPath);
   });

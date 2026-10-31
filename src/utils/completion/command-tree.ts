@@ -2,9 +2,6 @@ import { z } from 'zod';
 import type { Command } from '../command-registry.js';
 import { resolveFlagName } from '../flag-name.js';
 
-/**
- * A word that follows `hotcodepush` or a noun: a command, a noun with its verbs, or both, as `fingerprint` is.
- */
 export interface CompletionCommand {
   description: string;
   hasArguments: boolean;
@@ -13,9 +10,6 @@ export interface CompletionCommand {
   verbs: CompletionCommand[];
 }
 
-/**
- * An option as the command line takes it: its kebab-case flag name, whether a value follows it, whether it may be given again, and an enum's choices.
- */
 export interface CompletionOption {
   choices: string[];
   description: string;
@@ -24,10 +18,7 @@ export interface CompletionOption {
   name: string;
 }
 
-/**
- * The registered commands as the two-level tree the command line spells: the nouns and the standalone commands, each noun's verbs below it.
- * A noun that runs nothing itself is described by its verbs.
- */
+// A noun that runs nothing itself is described by its verbs.
 export function resolveCommandTree(
   commands: Record<string, Command>,
 ): CompletionCommand[] {
@@ -57,9 +48,7 @@ export function resolveCommandTree(
   });
 }
 
-/**
- * A boolean, or a union with one, as `--protected` also reads `true` or `false` as text: zodline reads the flag alone as true.
- */
+// A union counts too, since `--protected` also takes `true` or `false` as text.
 function isBooleanFlag(schema: z.core.$ZodType): boolean {
   if (schema instanceof z.ZodOptional || schema instanceof z.ZodDefault) {
     return isBooleanFlag(schema.unwrap());
@@ -70,9 +59,7 @@ function isBooleanFlag(schema: z.core.$ZodType): boolean {
   return schema instanceof z.ZodBoolean;
 }
 
-/**
- * An array as the flag's own schema, which zodline fills from the flag given again; a comma list is text piped into an array, given once.
- */
+// zodline fills an array from a repeated flag. A comma list is text piped into an array and given once.
 function isRepeatableFlag(schema: z.core.$ZodType): boolean {
   if (schema instanceof z.ZodOptional || schema instanceof z.ZodDefault) {
     return isRepeatableFlag(schema.unwrap());
@@ -80,9 +67,7 @@ function isRepeatableFlag(schema: z.core.$ZodType): boolean {
   return schema instanceof z.ZodArray;
 }
 
-/**
- * The choices of an enum, also inside an optional, a repeatable flag or a comma list, whose pipe splits the text before it checks each choice.
- */
+// The pipe of a comma list splits the text before it checks each choice.
 function resolveChoices(schema: z.core.$ZodType): string[] {
   if (schema instanceof z.ZodOptional || schema instanceof z.ZodDefault) {
     return resolveChoices(schema.unwrap());

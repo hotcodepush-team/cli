@@ -21,10 +21,7 @@ const FRAMEWORK_PACKAGES: [packageName: string, framework: Framework][] = [
   ['react-native', 'react_native'],
 ];
 
-/**
- * The framework of the project, from `package.json`'s dependencies, the framework's config file breaking a tie
- * when several are named, an Expo app's `react-native` among them.
- */
+// An Expo app also depends on `react-native`, so the framework's config file breaks a tie.
 export function detectFramework(projectDirectoryPath: string): Framework {
   if (!existsSync(join(projectDirectoryPath, 'package.json'))) {
     throw new UnknownFrameworkError();
@@ -47,11 +44,6 @@ export function detectFramework(projectDirectoryPath: string): Framework {
   return framework;
 }
 
-/**
- * The build to package: the path the flag names as typed, against the working directory; otherwise the framework's own
- * build output, relative to the project root; otherwise asked for when interactive, the flag required with the reason
- * the framework names none when not.
- */
 export async function resolveInputDirectoryPath(
   options: InputDirectoryOptions,
   pathFlag: string,
@@ -86,10 +78,6 @@ export function assertMissingParameter(
   return value;
 }
 
-/**
- * The config file the framework keeps beside `package.json`: `capacitor.config`, `app.json` with its `expo` key,
- * Cordova's `config.xml`; React Native has none of its own.
- */
 function hasFrameworkConfigFile(
   framework: Framework,
   projectDirectoryPath: string,

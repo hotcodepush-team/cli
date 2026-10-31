@@ -30,19 +30,12 @@ import {
   uploadMissingFiles,
 } from '../../utils/upload.js';
 
-/**
- * The store build's version and build number as the build's own variables give them: `CFBundleShortVersionString` and
- * `CFBundleVersion` on iOS, `versionName` and `versionCode` on Android, the identity the binary is created under.
- */
+// `CFBundleShortVersionString` and `CFBundleVersion` on iOS, `versionName` and `versionCode` on Android.
 interface BinaryIdentity {
   binaryBuild: string;
   binaryVersion: string;
 }
 
-/**
- * What the API answered for the build: the channel's id, null when the build names none, and the binary created,
- * or why none was: the one warning of a local build, or the error a pipeline fails with once the resource file is written.
- */
 interface BinaryCreation {
   binary: Binary | null;
   channelId: string | null;
@@ -51,9 +44,6 @@ interface BinaryCreation {
   upload: UploadedFiles;
 }
 
-/**
- * What creates the store build beside its files: the app, the platform, the version and build, and the native contract it was built on.
- */
 interface BinaryCreationRequest extends BinaryIdentity {
   appId: string;
   fingerprint: string;
@@ -91,7 +81,6 @@ export default defineCommand({
     const buildStep = await readBuildStep(options);
     const { embeddedFiles, platform, resourceFilePath } = buildStep;
     if (embeddedFiles === undefined) {
-      // a build that bundled nothing runs the development server's JavaScript: its resource file turns OTA updates off, and the API is asked nothing
       writeBuildResourceFile(
         buildStep,
         resolveChannelIdByShape(buildStep.channelReference),
@@ -147,13 +136,6 @@ export default defineCommand({
   },
 });
 
-/**
- * Creates the binary with the API: the channel's name resolved to its id, then the binary created on its identity,
- * the files the API names as missing uploaded first. A local build never breaks: offline, without a token, or with an API
- * that cannot be reached or refuses, it goes on with one warning, without a binary and with the channel only when given by id.
- * A pipeline fails instead, the resource file written first, since what it ships must name its channel; a channel name the
- * app lacks fails everywhere, before anything is written.
- */
 async function createBuildBinary(
   request: BinaryCreationRequest,
   buildStep: BuildStep,
@@ -202,7 +184,7 @@ async function createBuildBinary(
       skippedReason: null,
     };
   } catch (error) {
-    // a build never breaks locally: a refused, conflicting or unreachable creation is one warning; CI fails with it
+    // A local build never breaks: a failed creation is one warning. CI fails with it, since what it ships must name its channel.
     if (isCi()) {
       return resolveFailedCreation(channelId, error);
     }
@@ -259,9 +241,7 @@ async function createBinaryWithUploads(
   }
 }
 
-/**
- * The identity the native build passes in from its own variables; the CLI reads no project file for it.
- */
+// The CLI reads no project file for the identity.
 function resolveBinaryIdentity(options: {
   binaryBuild?: string;
   binaryVersion?: string;
@@ -289,9 +269,6 @@ function resolveFailedCreation(
   };
 }
 
-/**
- * The one warning of a build made offline: why, what it lacks, and for a missing token how to get one.
- */
 function resolveOfflineText(
   offlineCause: OfflineCause,
   channelId: string | null,

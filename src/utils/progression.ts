@@ -2,14 +2,9 @@ import type { Release } from '@hotcodepush/node';
 import { z } from 'zod';
 import { InvalidParameterError } from './errors.js';
 
-/**
- * The schedule `--progression` gives a release: the percentages it widens through and the minimum time and sample of each step.
- */
 export type Progression = NonNullable<Release['progression']>;
 
-/**
- * What the next widening waits on: the step's applied updates against the sample, then the moment its minimum time is up.
- */
+// The next step waits for enough applied updates first, then for its minimum time.
 type ProgressionGate =
   | {
       appliedUpdateCount: number;
@@ -25,9 +20,6 @@ export interface ProgressionOptions {
   progressionPercentages?: number[];
 }
 
-/**
- * Where a release stands in its schedule: the steps its rollout reached and the gate before the next.
- */
 interface ProgressionStep {
   gate: ProgressionGate;
   number: number;
@@ -39,15 +31,13 @@ const DEFAULT_PROGRESSION: Progression = {
   stepMinimumUpdateCount: 50,
 };
 
-// `10,50,100` as typed, each percentage checked in the schema so a wrong one is answered under the flag's name
+// Parses `10,50,100` in the schema, so a wrong percentage is reported under the flag name.
 const percentageListSchema = z
   .string()
   .transform(value => value.split(',').map(percentage => percentage.trim()))
   .pipe(z.array(z.coerce.number<string>().int()));
 
-/**
- * The flags of the schedule `release create` and `release rollout` give a release; the API checks the schedule itself.
- */
+// The API validates the schedule itself.
 export const progressionShape = {
   progression: z
     .boolean()
@@ -76,10 +66,7 @@ export const progressionShape = {
     ),
 };
 
-/**
- * The schedule from its flags, the defaults filling what is left out, or null without `--progression`;
- * a schedule's flag without the switch is refused rather than taken as one.
- */
+// A schedule flag without `--progression` is refused rather than taken as one.
 export function resolveProgression(
   options: ProgressionOptions,
 ): Progression | null {
@@ -99,13 +86,8 @@ export function resolveProgression(
   };
 }
 
-/**
- * Where the release stands in its schedule, as the API's progression job reads it: the steps its rollout reached among the
- * percentages, and the gate before the next — the step's applied updates since its start, counted from the release's
- * counters, until they reach the sample, then the moment its minimum time is up. Null without a schedule, once it is
- * complete, and while the release is paused or revoked, since nothing widens it then; a step not yet started, the
- * release not live, has no applied updates, nor has a release read without its counters.
- */
+// Mirrors how the progression job of the API reads the release.
+// Nothing widens a paused or revoked release, so it has no step.
 export function resolveProgressionStep(
   release: Release,
 ): ProgressionStep | null {
@@ -149,10 +131,6 @@ export function resolveProgressionStep(
   };
 }
 
-/**
- * Where a release stands in its schedule: the step reached of all of them and the gate the next widening waits on,
- * `1 of 3, waiting on sample: 12 of 50 applied`; nothing widens a complete, paused or revoked one, so it has no step.
- */
 export function resolveProgressionStepText(
   release: Release,
   progression: Progression,
@@ -171,9 +149,6 @@ export function resolveProgressionStepText(
   }
 }
 
-/**
- * The schedule as a confirmation states it: `10, 50, 100 percent, each step at least 3600 seconds and 50 applied updates`.
- */
 export function resolveProgressionText({
   percentages,
   stepMinimumSeconds,

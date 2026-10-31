@@ -34,24 +34,19 @@ import {
 import type { Platform } from '../../utils/upload.js';
 import { readApiUrl } from '../../utils/user-config.js';
 
-/**
- * The index as a device fetches it: its status, and the index when one is served.
- */
 interface ServedIndex {
   index: ChannelIndex | null;
   status: number;
   url: string;
 }
 
-/**
- * The facts a device without `--device` cannot supply: its rollout bucket and OS version always,
- * its fingerprint when no binary was created with its identity.
- */
+// Without `--device`, the rollout bucket and OS version are unknown.
+// The fingerprint is unknown when no binary was created with that identity.
 type UnknownFact = 'fingerprint' | 'os' | 'rollout';
 
 const INDEX_FETCH_TIMEOUT_MS = 30_000;
 
-/** The floor a device without a created binary evaluates from: no release is older than its binary. */
+// No release is older than the binary, so a device without a created binary has no floor.
 const NO_FLOOR = new Date(0).toISOString();
 
 export default defineCommand({
@@ -226,10 +221,7 @@ export default defineCommand({
   },
 });
 
-/**
- * The release the device's record says it runs, with its number from the index or, when the index no longer
- * carries it, from the API.
- */
+// The index may no longer carry the release, so its number then comes from the API.
 async function fetchCurrentRelease(
   hotCodePush: HotCodePush,
   fetchedDevice: Device,
@@ -253,9 +245,7 @@ async function fetchCurrentRelease(
   return { id: releaseId, number };
 }
 
-/**
- * The channel's index, the request a device makes.
- */
+// The same request a device makes.
 async function fetchServedIndex(
   appId: string,
   channelId: string,
@@ -276,10 +266,7 @@ async function fetchServedIndex(
   };
 }
 
-/**
- * The evaluator's answer over the facts the probe knows: a release's rollout counts as reached and its conditions
- * of an unknown fact as passing, so only what is known decides; the verdicts carry the releases as served.
- */
+// Rollouts count as reached and conditions on unknown facts as passing, so only known facts decide.
 function evaluateKnownFacts(
   index: ChannelIndex,
   device: DeviceInfo,
@@ -315,9 +302,6 @@ function evaluateKnownFacts(
   };
 }
 
-/**
- * Every condition of the release, marked pass or fail by the evaluator, or unknown when the probe lacks the fact.
- */
 function resolveConditionsText(
   verdict: ReleaseVerdict,
   unknownFacts: UnknownFact[],
@@ -333,9 +317,6 @@ function resolveConditionsText(
   return conditionTexts.join(', ') || 'none';
 }
 
-/**
- * The bundles the device failed before, from its failed events of the releases the index carries.
- */
 function resolveFailedBundleIds(
   events: readonly ReleaseDeviceEvent[],
   index: ChannelIndex | null,
@@ -365,9 +346,7 @@ function resolveOutcomeText({ outcome }: ChannelIndexEvaluation): string {
   }
 }
 
-/**
- * The index's sequence is the moment it was published, in milliseconds.
- */
+// The index sequence is the publish time in milliseconds.
 function resolveServedIndexText({ index, status, url }: ServedIndex): string {
   return index === null
     ? `none: HTTP ${status} at ${url}; a device gets no release`

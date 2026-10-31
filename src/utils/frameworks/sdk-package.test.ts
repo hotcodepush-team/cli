@@ -57,7 +57,7 @@ describe('sdk-package', () => {
     }
 
     it("should read the version where the sdk package resolves it when an isolated install keeps it out of the project's node_modules", () => {
-      // pnpm's layout: the project's node_modules links the SDK package into the store, beside its dependencies
+      // In pnpm's layout, the project's node_modules links the SDK package into the store, beside its dependencies.
       const storePath = join(
         directoryPath,
         'node_modules',
