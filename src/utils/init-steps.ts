@@ -72,9 +72,9 @@ export class InitRun {
 
 export function resolveStepRows(steps: InitStep[]): OutcomeRow[] {
   return steps.map(({ manualStep, message, status, step }) => ({
-    label: step,
     manualStep: manualStep === message ? undefined : manualStep,
     message,
+    name: step,
     status,
   }));
 }

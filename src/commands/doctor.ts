@@ -107,9 +107,9 @@ export default defineCommand({
     } else {
       printOutcomeRows(
         checks.map(({ check, manualStep, message, status }) => ({
-          label: check,
           manualStep,
           message,
+          name: check,
           status,
         })),
       );

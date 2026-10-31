@@ -1,7 +1,7 @@
 export interface OutcomeRow {
-  label: string;
   manualStep?: string;
   message: string;
+  name: string;
   status: 'done' | 'failed' | 'ok' | 'skipped' | 'stopped';
 }
 
@@ -14,13 +14,22 @@ const STATUS_MARKS: Record<OutcomeRow['status'], string> = {
 };
 
 export function printOutcomeRows(rows: OutcomeRow[]): void {
-  const labelWidth = Math.max(...rows.map(({ label }) => label.length));
-  for (const row of rows) {
+  const labeledRows = rows.map(row => ({
+    ...row,
+    label: resolveOutcomeLabel(row.name),
+  }));
+  const labelWidth = Math.max(...labeledRows.map(({ label }) => label.length));
+  for (const { label, manualStep, message, status } of labeledRows) {
     console.log(
-      `${STATUS_MARKS[row.status]} ${row.label.padEnd(labelWidth)}  ${row.message}`,
+      `${STATUS_MARKS[status]} ${label.padEnd(labelWidth)}  ${message}`,
     );
-    if (row.manualStep !== undefined) {
-      console.log(`${' '.repeat(labelWidth + 4)}${row.manualStep}`);
+    if (manualStep !== undefined) {
+      console.log(`${' '.repeat(labelWidth + 4)}${manualStep}`);
     }
   }
+}
+
+function resolveOutcomeLabel(name: string): string {
+  const words = name.replaceAll('_', ' ');
+  return words.charAt(0).toUpperCase() + words.slice(1);
 }
