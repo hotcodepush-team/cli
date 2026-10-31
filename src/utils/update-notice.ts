@@ -31,17 +31,17 @@ export function printUpdateNotice(): void {
   if (!isUpdateNoticeEnabled()) {
     return;
   }
-  const latestKnownVersion = ignoreUserConfigErrors(
-    () => readUserConfig().latestKnownVersion,
-  );
-  if (
-    latestKnownVersion !== undefined &&
-    isNewerVersion(latestKnownVersion, PACKAGE_JSON.version)
-  ) {
-    process.stderr.write(
-      `HotCodePush CLI ${latestKnownVersion} is available; you run ${PACKAGE_JSON.version}.\n`,
-    );
-  }
+  ignoreUserConfigErrors(() => {
+    const { latestKnownVersion } = readUserConfig();
+    if (
+      latestKnownVersion !== undefined &&
+      isNewerVersion(latestKnownVersion, PACKAGE_JSON.version)
+    ) {
+      process.stderr.write(
+        `HotCodePush CLI ${latestKnownVersion} is available; you run ${PACKAGE_JSON.version}.\n`,
+      );
+    }
+  });
 }
 
 // A failed check also waits a day, so an offline machine is not asked on every command.
