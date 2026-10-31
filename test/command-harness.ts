@@ -5,10 +5,8 @@ import { afterEach, beforeEach, vi } from 'vitest';
 import type { ProjectConfig } from '../src/utils/project-config.js';
 import { readUserConfig, writeUserConfig } from '../src/utils/user-config.js';
 
-/**
- * What the fake API answers per route, keyed by method and path, `GET /v1/organizations`,
- * or with the query where it matters, `GET /v1/organizations?limit=2`; any other request is the API's 404.
- */
+// Keyed by method and path, with the query where it matters, such as `GET /v1/organizations?limit=2`.
+// Any other request gets a 404.
 export type Routes = Record<
   string,
   (request: Request) => Promise<Response> | Response
@@ -37,9 +35,7 @@ export function respondWithApiError(
   return Response.json({ code, details: null, message }, { status });
 }
 
-/**
- * The token as `login` stores it, a session in `config.json`, in place of the environment's: the case the CLI words as logged in.
- */
+// A session stored in `config.json` instead of the environment token, which the CLI calls logged in.
 export function useStoredSession(): void {
   vi.stubEnv('HOTCODEPUSH_TOKEN', '');
   writeUserConfig({ ...readUserConfig(), token: TOKEN });
@@ -50,10 +46,6 @@ export function stubInteractiveTerminal(): void {
   process.stdout.isTTY = true;
 }
 
-/**
- * What every command test runs on, fresh per test: the API faked behind the global fetch, a token in the environment,
- * a terminal that is not interactive until a test says so, and the output captured.
- */
 export function useCommandHarness(): CommandHarness {
   let temporaryDirectoryPath = '';
   const harness: CommandHarness = {
@@ -71,7 +63,7 @@ export function useCommandHarness(): CommandHarness {
     temporaryDirectoryPath = mkdtempSync(join(tmpdir(), 'hotcodepush-'));
     vi.stubEnv('APPDATA', temporaryDirectoryPath);
     vi.stubEnv('CI', undefined);
-    // runCli's update check asks the npm registry, never the faked API a command test runs on
+    // The update check would ask the real npm registry, not the faked API.
     vi.stubEnv('HOTCODEPUSH_NO_UPDATE_NOTIFIER', '1');
     vi.stubEnv('HOTCODEPUSH_SIGNING_KEY', undefined);
     vi.stubEnv('HOTCODEPUSH_TOKEN', TOKEN);

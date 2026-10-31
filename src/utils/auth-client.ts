@@ -24,11 +24,8 @@ type AuthResponseData<TResponse> = TResponse extends {
   ? TData
   : never;
 
-/**
- * Better Auth's client over the API's `/v1/auth` slice, the bearer only when a token is given:
- * a stale stored token would fail the requests of a login that is about to replace it.
- * The User-Agent names the CLI too: the session row keeps that header, not the client header.
- */
+// The bearer is sent only when given, since a stale stored token would fail the login that replaces it.
+// The User-Agent names the CLI because the session row keeps that header, not the client header.
 export function createApiAuthClient(token?: string) {
   return createAuthClient({
     baseURL: `${readApiUrl()}/v1/auth`,
@@ -43,9 +40,7 @@ export function createApiAuthClient(token?: string) {
   });
 }
 
-/**
- * The session the client's bearer belongs to; none, an API token for one, counts as not logged in.
- */
+// An API token has no session, so it counts as not logged in.
 export async function fetchSession(authClient: AuthClient) {
   const session = resolveResponseData(await authClient.getSession());
   if (session === null) {
@@ -54,9 +49,6 @@ export async function fetchSession(authClient: AuthClient) {
   return session;
 }
 
-/**
- * The data of a response, or its error thrown as the API answered it.
- */
 export function resolveResponseData<TResponse extends AuthResponse>(
   response: TResponse,
 ): AuthResponseData<TResponse> {

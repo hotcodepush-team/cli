@@ -11,9 +11,6 @@ import {
 import { z } from 'zod';
 import { InvalidParameterError } from './errors.js';
 
-/**
- * The condition flags as typed: `release create` and `audience get` take the same ones.
- */
 export interface ConditionOptions {
   attribute?: string[];
   binary?: string;
@@ -48,9 +45,7 @@ export const conditionOptionShape = {
     .describe('The OS versions served, a range such as ">=17".'),
 };
 
-/**
- * The audience preview's query for the flags: each condition as typed, the fingerprint a release of a bundle carries beside them.
- */
+// A release of a bundle carries its fingerprint beside the conditions.
 export function buildAudienceQuery(
   options: ConditionOptions,
   fingerprint: string | null,
@@ -68,10 +63,7 @@ export function buildAudienceQuery(
   };
 }
 
-/**
- * The conditions a release carries for the flags, as the index holds them: the attribute values and device ids hashed,
- * every device id in one condition, and the bundle's fingerprint, always, when the bundle has one.
- */
+// Matches the index: attribute values and device ids are hashed, and all device ids share one condition.
 export function buildReleaseConditions(
   options: ConditionOptions,
   fingerprint: string | null,
@@ -110,9 +102,7 @@ export function buildReleaseConditions(
   ];
 }
 
-/**
- * Every `--attribute` split at its first `=`, the key an identifier and the value printable, as the API checks them.
- */
+// The API requires the key to be an identifier and the value to be printable.
 export function resolveAttributePairs(
   attributes: string[] | undefined,
 ): { key: string; value: string }[] {

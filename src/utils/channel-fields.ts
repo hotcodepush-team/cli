@@ -39,9 +39,6 @@ type FailurePolicyFields = Pick<
   'failureAction' | 'failureMinimumUpdateCount' | 'failureThresholdPercent'
 >;
 
-/**
- * Where an effective auto-pause value comes from: the channel's or the release's own field, the release's channel, or the default.
- */
 type FailurePolicyLevel = 'channel' | 'default' | 'own';
 
 export interface FailurePolicyOptions {
@@ -57,16 +54,13 @@ type FailurePolicyValues = {
   [Field in keyof FailurePolicyFields]: NonNullable<FailurePolicyFields[Field]>;
 };
 
-// The plan pins these defaults; the API and the console carry the same constant
+// The plan pins these defaults. The API and the console carry the same constant.
 export const FAILURE_POLICY_DEFAULTS: FailurePolicyValues = {
   failureAction: 'pause',
   failureMinimumUpdateCount: 50,
   failureThresholdPercent: 5,
 };
 
-/**
- * The auto-pause policy's flags, set on a channel by `channel create` and `channel update` and overridden per release by `release create` and `release update`.
- */
 export const failurePolicyShape = {
   failureAction: z
     .enum(['none', 'notify', 'pause', 'revoke'])
@@ -88,9 +82,6 @@ export const failurePolicyShape = {
     .describe('The failure percentage at which auto-pause acts.'),
 };
 
-/**
- * The writable fields `channel create` and `channel update` share, named after the API's fields.
- */
 export const channelFieldsShape = {
   discoverable: booleanFlagSchema
     .optional()
@@ -119,9 +110,6 @@ export const channelFieldsShape = {
     ),
 };
 
-/**
- * The flags `channel update` sets the channel's nullable fields back to null with.
- */
 export const channelFieldsClearShape = {
   clearExpiresAt: z
     .boolean()
@@ -130,16 +118,10 @@ export const channelFieldsClearShape = {
   ...resolveFailurePolicyClearShape('the default policy applies'),
 };
 
-/**
- * The flags `release update` sets the release's auto-pause overrides back to null with.
- */
 export const releaseFailurePolicyClearShape = resolveFailurePolicyClearShape(
   "the channel's value applies",
 );
 
-/**
- * The API's body from the flags: `--expires-in` becomes the timestamp it ends at, `--failure-threshold` the percent field.
- */
 export function resolveChannelFields(
   options: ChannelFieldOptions,
 ): ChannelFields {
@@ -151,10 +133,7 @@ export function resolveChannelFields(
   };
 }
 
-/**
- * The auto-pause policy that applies to a channel, or to a release with its channel: per field the own value,
- * else the channel's, else the default, each with the level it comes from.
- */
+// Each field falls back from its own value to the channel, then to the default.
 export function resolveEffectiveFailurePolicy(
   ownFields: FailurePolicyFields,
   channelFields?: FailurePolicyFields,
@@ -178,10 +157,6 @@ export function resolveEffectiveFailurePolicy(
   };
 }
 
-/**
- * The auto-pause fields from their flags, `--failure-threshold` the percent field; a `--clear-` flag sends null,
- * and a flag left out is a field left out.
- */
 export function resolveFailurePolicy(
   options: FailurePolicyOptions,
 ): FailurePolicy {
@@ -204,10 +179,7 @@ export function resolveFailurePolicy(
   };
 }
 
-/**
- * The effective auto-pause policy as `channel get` and `release get` print it: an own value plain,
- * an inherited one with its level, `5% (channel)`, `pause (default)`.
- */
+// An inherited value names its level, such as `5% (channel)` or `pause (default)`.
 export function resolveFailurePolicyDetails({
   failureAction,
   failureMinimumUpdateCount,

@@ -60,9 +60,6 @@ export default defineCommand({
   },
 });
 
-/**
- * The store build picked from the app's binaries when interactive; otherwise the flag is missing.
- */
 async function promptBinaryId(
   hotCodePush: HotCodePush,
   appId: string,

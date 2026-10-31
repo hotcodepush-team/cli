@@ -51,9 +51,6 @@ export default defineCommand({
   },
 });
 
-/**
- * One of the caller's pending invitations picked when interactive; otherwise the flag is missing.
- */
 async function promptInvitationId(
   hotCodePush: HotCodePush,
   options: InteractivityOptions,

@@ -39,7 +39,6 @@ export default defineCommand({
       organizationId,
     });
     if (options.json) {
-      // every delete prints { id, name }, and a member's name is their email, as the flag takes it
       printJson({ id: fetchedMember.id, name: email });
     } else {
       console.log(`Removed member ${email} (${fetchedMember.id}).`);

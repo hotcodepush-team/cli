@@ -12,10 +12,7 @@ const SCHEDULE = {
 
 const STEP_STARTED_AT = '2026-10-10T14:00:00.000Z';
 
-/**
- * A release on the schedule at its first step, which started with 120 applied updates on the counters, and the
- * counters at the given applied updates.
- */
+// The first step started at 120 applied updates on the counters.
 function buildProgressingRelease(
   appliedUpdateCount: number,
   fields: Partial<Release> = {},

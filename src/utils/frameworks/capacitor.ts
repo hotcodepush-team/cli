@@ -10,6 +10,7 @@ import type { NativeProjectEdit } from '../native-project-edit.js';
 import { resolveGradleEdit } from '../native-project-edit.js';
 import type { BinaryCreatePhase } from '../xcode-project.js';
 import {
+  buildPbxprojShellScript,
   hasBinaryCreatePhase,
   hasReadableResourceReference,
   removeResourceReference,
@@ -36,9 +37,7 @@ import type {
   WiringOptions,
 } from './index.js';
 
-/**
- * `capacitor.config.json` or `.ts` as text, since the TypeScript form is code: the values are matched, never evaluated.
- */
+// The TypeScript config is code, so its values are matched as text, never evaluated.
 interface CapacitorConfig {
   fileName: string;
   text: string;
@@ -51,10 +50,6 @@ export const CAPACITOR_CONFIG_FILE_NAMES = [
   'capacitor.config.ts',
 ];
 
-/**
- * Capacitor: the web build at `webDir`, the native projects at `ios/` and `android/`, and the build step inside the
- * native build, an Xcode phase and the Gradle file the SDK ships, which write the resource file into the app they build.
- */
 export const capacitorFramework: FrameworkModule = {
   nativeGluePaths: NATIVE_GLUE_PATHS,
   packageName: CAPACITOR_PACKAGE_NAME,
@@ -92,10 +87,6 @@ function readConfigValue(
     : pattern.exec(capacitorConfig.text)?.[1];
 }
 
-/**
- * Capacitor's `webDir` as `capacitor.config` sets it when the upload runs, the web build an upload packages by default;
- * a config the CLI cannot read it from is the reason `--path` must name the build.
- */
 function readWebDir(projectDirectoryPath: string): BuildDirectory {
   const capacitorConfig = readCapacitorConfig(projectDirectoryPath);
   if (capacitorConfig === undefined) {
@@ -114,9 +105,6 @@ function readWebDir(projectDirectoryPath: string): BuildDirectory {
     : { path: webDir };
 }
 
-/**
- * `ios.path` and `android.path` of `capacitor.config`, or `ios/` and `android/` beside `package.json`.
- */
 function resolveNativeProjectPaths(
   projectDirectoryPath: string,
 ): NativeProjectPaths {
@@ -139,10 +127,7 @@ function resolveNativeProjectPaths(
   };
 }
 
-/**
- * The phase runs the SDK package's script, which finds Node itself, after the app target's last phase, once the web
- * build is copied into the app; `PROJECT_ROOT` is the project's directory as seen from the Xcode project's.
- */
+// The phase runs last, once the web build is copied into the app. The script finds Node itself.
 function resolveBinaryCreatePhase(
   projectDirectoryPath: string,
   xcodeProjectFilePath: string,
@@ -156,8 +141,7 @@ function resolveBinaryCreatePhase(
   return {
     anchorPhaseName: undefined,
     fix: `Add a Run Script phase after the app target's last phase that runs ${BINARY_CREATE_SCRIPT_PATH}.`,
-    // the lines of the phase as a pbxproj string carries them, the line breaks escaped
-    shellScript: [
+    shellScript: buildPbxprojShellScript([
       'set -e',
       '',
       '# hotcodepush: writes hotcodepush.json into the app and, in a store build, creates the binary',
@@ -165,7 +149,7 @@ function resolveBinaryCreatePhase(
       'export PROJECT_ROOT',
       `/bin/sh "$PROJECT_ROOT/${BINARY_CREATE_SCRIPT_PATH}"`,
       '',
-    ].join('\\n'),
+    ]),
   };
 }
 
@@ -215,10 +199,6 @@ async function resolveWiring(
   };
 }
 
-/**
- * The edits besides the phase not made yet: the `hotcodepush.json` reference an earlier `init` added to the Xcode project
- * removed, since the build writes the file into the app now, and the Gradle line.
- */
 function resolvePendingEdits(
   nativeProjectPaths: NativeProjectPaths,
   xcodeProjectFilePath: string | undefined,
@@ -246,10 +226,6 @@ function resolveResourceReferenceEdit(
   };
 }
 
-/**
- * The Xcode phase, the old reference's removal and the Gradle line, each left alone when done. An edit a file has no place
- * for does not hold the others back: they are made, and the step stops with the first one's manual step.
- */
 async function wireBinaryCreateStep(
   projectDirectoryPath: string,
   nativeProjects: NativeProjects,

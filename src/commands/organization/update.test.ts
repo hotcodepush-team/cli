@@ -26,9 +26,6 @@ describe('organization update', () => {
     return harness.requests.filter(({ method }) => method === 'PATCH');
   }
 
-  /**
-   * Globex at its $50 cap; the update answers the organization with the fields it is sent.
-   */
   function respondWithGlobex(): void {
     harness.routes[`GET ${GLOBEX_PATH}`] = () =>
       Response.json(GLOBEX_ORGANIZATION);

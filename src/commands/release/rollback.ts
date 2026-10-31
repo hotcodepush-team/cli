@@ -80,9 +80,7 @@ export default defineCommand({
   },
 });
 
-/**
- * The API's own rule for a rollback without a target: the newest active release below the current one whose bundle differs.
- */
+// Mirrors the API rule for a rollback without a target.
 function resolvePreviousRelease(releases: Release[]): Release {
   const activeReleases = releases
     .filter(({ status }) => status === 'active')

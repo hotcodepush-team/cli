@@ -29,7 +29,7 @@ interface StatisticsQuery {
 
 const STATISTICS_TYPES: StatisticsType[] = ['fleet', 'updates', 'usage'];
 
-// the dimensions whose buckets are a value and its devices alone; the release and binary buckets carry more
+// Buckets of these dimensions hold only a value and its devices. Release and binary buckets carry more.
 const FLEET_DIMENSIONS = [
   ['BINARY VERSION', 'binaryVersion'],
   ['SDK VERSION', 'sdkVersion'],
@@ -125,9 +125,8 @@ export default defineCommand({
   },
 });
 
-/**
- * The fleet is a snapshot without a time axis and the usage is the app's whole bill, so each refuses the flag it has no field for.
- */
+// The fleet is a snapshot without a time axis, and the usage is the whole bill.
+// So each refuses the flag it has no field for.
 function assertFlagsOfType(
   type: StatisticsType,
   options: { channel?: string; periodSince?: string; periodUntil?: string },

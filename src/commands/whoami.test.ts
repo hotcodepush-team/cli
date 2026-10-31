@@ -26,9 +26,6 @@ vi.mock('@napi-rs/keyring', () => ({
 
 const USER_PATH = '/v1/users/me?relations=members%2Cmembers.organization';
 
-/**
- * The runner as `users.get` answers them with their member rows and each row's organization: an admin of Globex, the owner of Acme.
- */
 const RUNNER_USER_WITH_ORGANIZATIONS = {
   ...RUNNER_USER_WITH_MEMBERS,
   members: (RUNNER_USER_WITH_MEMBERS.members ?? []).map(member => ({

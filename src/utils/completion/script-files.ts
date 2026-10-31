@@ -28,9 +28,7 @@ export async function readCompletionScript(
   return readFile(resolveCompletionScriptPath(shell), 'utf8');
 }
 
-/**
- * Writes each shell's script from every registered command; the build runs it once, so a shell start loads no command.
- */
+// The build runs this once, so a shell start loads no command.
 export async function writeCompletionScripts(
   commandRegistry: CommandRegistry,
 ): Promise<void> {

@@ -8,10 +8,6 @@ export interface Choice<TValue extends string> {
   value: TValue;
 }
 
-/**
- * Asks once before a command changes what devices receive or cannot be undone, stating the consequence.
- * `--yes` answers for the person; without a person to ask, the command stops with `confirmation_required`.
- */
 export async function confirmConsequence(
   consequence: string,
   options: InteractivityOptions,
@@ -29,9 +25,6 @@ export async function confirmConsequence(
   return answer === true;
 }
 
-/**
- * A yes-or-no question only a person answers — "publish a first release now?" — that is no when nobody is there.
- */
 export async function promptYesNo(
   message: string,
   options: InteractivityOptions,
@@ -43,10 +36,6 @@ export async function promptYesNo(
   return answer === true;
 }
 
-/**
- * A required parameter the command line left out, picked from its choices;
- * without a person to ask or anything to pick, `missing_parameter` naming the flag.
- */
 export async function promptSelect<TValue extends string>(
   flag: string,
   message: string,
@@ -56,7 +45,7 @@ export async function promptSelect<TValue extends string>(
   if (choices.length === 0 || !isInteractive(options)) {
     throw new MissingParameterError(flag);
   }
-  // clack types an option through a conditional type a generic value cannot satisfy, so the pick is typed back from the choices
+  // clack types an option through a conditional type that a generic value cannot satisfy.
   const answer = await select<string>({ message, options: choices });
   if (isCancel(answer)) {
     throw new MissingParameterError(flag);
@@ -64,10 +53,6 @@ export async function promptSelect<TValue extends string>(
   return answer as TValue;
 }
 
-/**
- * A required secret the command line left out, asked for without showing what is typed;
- * without a person to ask, `missing_parameter` naming the flag.
- */
 export function promptSecret(
   flag: string,
   message: string,
@@ -76,9 +61,6 @@ export function promptSecret(
   return promptInput(password, flag, message, options);
 }
 
-/**
- * A required text parameter the command line left out, asked for; without a person to ask, `missing_parameter` naming the flag.
- */
 export function promptText(
   flag: string,
   message: string,

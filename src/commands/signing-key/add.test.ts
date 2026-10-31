@@ -40,7 +40,6 @@ describe('signing-key add', () => {
     rmSync(workingDirectoryPath, { force: true, recursive: true });
   });
 
-  // The API as it answers a registration: the key it was sent, with its fingerprint
   function respondWithRegistration(): void {
     harness.routes[`POST ${SIGNING_KEYS_PATH}`] = async request => {
       const { publicKey } = (await request.json()) as { publicKey: string };
@@ -57,9 +56,6 @@ describe('signing-key add', () => {
     };
   }
 
-  /**
-   * The private key of a pair as a PEM file the person already has, in the encoding named; its path.
-   */
   function writeKeyFile(
     privateKey: string,
     type: 'pkcs1' | 'pkcs8' = 'pkcs8',

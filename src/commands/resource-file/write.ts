@@ -14,15 +14,12 @@ import { CliError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
 
-/**
- * The channel the resource file names: its id, null when the name could not be resolved, and the one warning that says why.
- */
 interface ChannelResolution {
   channelId: string | null;
   skippedReason: string | null;
 }
 
-// a build that creates no binary embeds a bundle no version names; the store build's binary create gives its bundle the binary's version
+// Only `binary create` gives an embedded bundle a version, the version of the binary.
 const UNVERSIONED_BUNDLE_VERSION = '';
 
 export default defineCommand({
@@ -37,7 +34,6 @@ export default defineCommand({
     const buildStep = await readBuildStep(options);
     const { embeddedFiles, platform, resourceFilePath } = buildStep;
     if (embeddedFiles === undefined) {
-      // a build that bundled nothing runs the development server's JavaScript: its resource file turns OTA updates off, and the API is asked nothing
       writeBuildResourceFile(
         buildStep,
         resolveChannelIdByShape(buildStep.channelReference),
@@ -68,10 +64,7 @@ export default defineCommand({
   },
 });
 
-/**
- * The channel by id as given, or its name resolved through the API; offline, without a token, or with an API that cannot
- * be reached or refuses, the name stays unresolved with one warning, in a pipeline too. A name the app lacks fails everywhere.
- */
+// Unlike `binary create`, this never fails offline or without a token, in a pipeline too.
 async function resolveChannel(
   buildStep: BuildStep,
 ): Promise<ChannelResolution> {
@@ -102,9 +95,6 @@ async function resolveChannel(
   }
 }
 
-/**
- * The one warning of a channel name left unresolved offline: why, what the build lacks, and for a missing token how to get one.
- */
 function resolveOfflineText(offlineCause: OfflineCause): string {
   return offlineCause === 'offline-switch'
     ? 'HOTCODEPUSH_OFFLINE is set, so the channel name was not resolved: the build names no channel and takes no OTA updates.'

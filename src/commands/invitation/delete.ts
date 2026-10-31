@@ -25,7 +25,7 @@ export default defineCommand({
   action: async options => {
     const hotCodePush = createApiClient();
     const organizationId = await fetchOrganizationId(hotCodePush, options);
-    // the organization's invitations have no read by id, and only a pending one is unique by its email
+    // Invitations have no read by id, and only a pending one is unique by its email.
     const pendingInvitations = await fetchAllPages(page =>
       hotCodePush.organizations.invitations.list({
         organizationId,
@@ -58,7 +58,6 @@ export default defineCommand({
       organizationId,
     });
     if (options.json) {
-      // every delete prints { id, name }, and an invitation's name is its email, as the flag takes it
       printJson({ id: invitation.id, name: invitation.email });
     } else {
       console.log(
@@ -68,9 +67,7 @@ export default defineCommand({
   },
 });
 
-/**
- * The pending invitation of the id or the email given, the email compared case-insensitively as the API stores it lowercased.
- */
+// The API stores emails lowercased.
 function resolveInvitation(
   invitations: Invitation[],
   reference: string,

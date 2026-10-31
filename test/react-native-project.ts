@@ -8,9 +8,6 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
-/**
- * What a React Native project starts with in a test: the SDK when installed, and the project's configuration.
- */
 export interface ReactNativeProjectOptions {
   isPackageInstalled?: boolean;
   projectConfig?: object;
@@ -214,11 +211,6 @@ class SceneDelegate: RCTDefaultReactNativeFactoryDelegate, UIWindowSceneDelegate
 }
 `;
 
-/**
- * A React Native project in a temporary directory as the template lays it out: `package.json`, the entry file,
- * the iOS project with its `AppDelegate.swift` and Podfile, the Android project with its Gradle file and
- * `MainApplication.kt`, nothing of the SDK wired; the caller removes it.
- */
 export function writeReactNativeProject({
   isPackageInstalled = false,
   projectConfig,
@@ -250,9 +242,6 @@ export function writeReactNativeProject({
   return directoryPath;
 }
 
-/**
- * The SDK as `node_modules` holds it after the install.
- */
 export function writeInstalledSdk(directoryPath: string): void {
   writeJson(
     join(
@@ -269,18 +258,13 @@ export function writeInstalledSdk(directoryPath: string): void {
   );
 }
 
-/**
- * The iOS app as React Native 0.88's template lays it out: `bundleURL()` in `SceneDelegate.swift`, `AppDelegate.swift` a stub.
- */
+// React Native 0.88's template overrides `bundleURL()` in `SceneDelegate.swift`.
 export function writeSceneDelegateLayout(directoryPath: string): void {
   writeFile(join(directoryPath, APP_DELEGATE_FILE_PATH), APP_DELEGATE_STUB);
   writeFile(join(directoryPath, SCENE_DELEGATE_FILE_PATH), SCENE_DELEGATE);
 }
 
-/**
- * The apps as React Native's templates before 0.77 and 0.73 laid them out: `AppDelegate.mm` in place of
- * `AppDelegate.swift`, `MainApplication.java` in place of `MainApplication.kt`.
- */
+// Templates before React Native 0.77 and 0.73 had these files.
 export function writeObjectiveCAndJavaLayout(directoryPath: string): void {
   rmSync(join(directoryPath, APP_DELEGATE_FILE_PATH));
   rmSync(join(directoryPath, MAIN_APPLICATION_FILE_PATH));
@@ -294,10 +278,7 @@ export function writeObjectiveCAndJavaLayout(directoryPath: string): void {
   );
 }
 
-/**
- * The Objective-C and Java apps wired by hand, as the manual steps of `init`'s refusal say: the app delegate returns
- * `[HotCodePush bundleURL]`, the application builds its host with `HotCodePushReactHost`.
- */
+// Follows the manual steps `init` prints for these files.
 export function wireObjectiveCAndJavaByHand(directoryPath: string): void {
   const appDelegatePath = join(
     directoryPath,

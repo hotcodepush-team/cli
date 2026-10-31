@@ -1,8 +1,5 @@
 import type { Release } from '@hotcodepush/node';
 
-/**
- * The line a release ends on: `Released bundle #17 · 1.4.2 to staging as release #43 at 100 percent, live since …`.
- */
 export function printReleasedLine(
   release: Release,
   channelName: string,
@@ -13,9 +10,6 @@ export function printReleasedLine(
   );
 }
 
-/**
- * The schedule a release widens through, for the line a command ends on: `, progressing through 10, 50, 100 percent`.
- */
 export function resolveProgressingText({ progression }: Release): string {
   return progression === null
     ? ''

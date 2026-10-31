@@ -1,10 +1,7 @@
 import type { CompletionCommand } from './command-tree.js';
+import { buildPosixCaseArms } from './posix-case-arms.js';
 import { quotePosixWord } from './posix-quote.js';
 
-/**
- * The bash completion script: the first word from the top-level names, the second from the noun's verbs,
- * then the command's flags and an enum's choices after its flag; a free value falls back to the file names.
- */
 export function buildBashScript(commands: CompletionCommand[]): string {
   return [
     '_hotcodepush() {',
@@ -24,7 +21,7 @@ export function buildBashScript(commands: CompletionCommand[]): string {
     '    esac',
     '  fi',
     '  case "${COMP_WORDS[1]} ${COMP_WORDS[2]}" in',
-    ...buildCommandArms(commands),
+    ...buildPosixCaseArms(commands, buildOptionsArm),
     '  esac',
     '}',
     '',
@@ -32,27 +29,8 @@ export function buildBashScript(commands: CompletionCommand[]): string {
   ].join('\n');
 }
 
-/**
- * One case arm per runnable command, matched on its first two words: the verbs first, so `fingerprint diff` wins over `fingerprint`.
- */
-function buildCommandArms(commands: CompletionCommand[]): string[] {
-  const verbArms = commands.flatMap(noun =>
-    noun.verbs.map(verb =>
-      buildOptionsArm(quotePosixWord(`${noun.name} ${verb.name}`), verb),
-    ),
-  );
-  const standaloneArms = commands
-    .filter(({ options }) => options.length > 0)
-    .map(command =>
-      buildOptionsArm(`${quotePosixWord(`${command.name} `)}*`, command),
-    );
-  return [...verbArms, ...standaloneArms].flat();
-}
-
-/**
- * The arm that completes a command's options: an enum's choices after its flag, nothing after a free value, otherwise the flags,
- * which a command that takes arguments offers only for a word starting with `-`, leaving its arguments to the file names.
- */
+// A command that takes arguments offers its flags only for a word starting with `-`.
+// Its arguments fall back to the file names.
 function buildOptionsArm(
   pattern: string,
   { hasArguments, options }: CompletionCommand,

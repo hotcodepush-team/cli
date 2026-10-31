@@ -38,7 +38,7 @@ export default defineCommand({
           options,
         )),
     );
-    // read before any request: a file that holds no RSA key of the minimum size is refused here
+    // Read before any request, so a key that is too small or not RSA is refused first.
     const { publicKey } = await readSigningKeyPairFile(privateKeyPath);
     const hotCodePush = createApiClient();
     const projectConfigLocation = locateProjectConfig(options.config);

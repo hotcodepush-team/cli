@@ -52,13 +52,10 @@ describe('react-native-build', () => {
       process.platform === 'win32' ? 'hermesc.exe' : 'hermesc',
     );
     writeFile(hermescFilePath, '');
-    // the project resolves the package through Node, which answers the real path
+    // Node resolves the package to its real path.
     return realpathSync(hermescFilePath);
   }
 
-  /**
-   * The arguments a framework module contributes to the bundler's command line.
-   */
   function resolveBundlerArgs(): string[] {
     return ['bundler'];
   }
@@ -124,7 +121,7 @@ describe('react-native-build', () => {
     it("should bundle and compile each platform as its release build does, the source maps beside the bundle's directory", async () => {
       const hermescFilePath = writeHermesc();
       const packagingDirectoryPath = join(directoryPath, 'packaging');
-      // Hermes writes the bytecode and, with -output-source-map, its map beside it
+      // With -output-source-map, Hermes writes the map beside the bytecode.
       vi.mocked(runCommandLineVisibly).mockImplementation(({ args }) => {
         const outFilePath = args[args.indexOf('-out') + 1];
         if (args.includes('-out') && outFilePath !== undefined) {

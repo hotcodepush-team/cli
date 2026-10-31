@@ -85,9 +85,6 @@ const PRODUCTION_RELEASE = {
   number: 7,
 };
 
-/**
- * The release as the wait until it is live reads it, with its bundle and its channel.
- */
 function buildReleaseWithRelations(
   release: Release,
   channel: Channel,

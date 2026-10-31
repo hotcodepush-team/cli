@@ -5,9 +5,6 @@ import { buildPack } from '@hotcodepush/protocol';
 import type { PackEntry } from '@hotcodepush/protocol';
 import type { CompressedFile } from './compressed-files.js';
 
-/**
- * A pack written to disk through the protocol's writer: the files' gzip bytes named by their hashes, in the order given.
- */
 export async function writePack(
   files: CompressedFile[],
   outputFilePath: string,

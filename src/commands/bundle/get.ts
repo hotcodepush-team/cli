@@ -63,10 +63,6 @@ export default defineCommand({
   },
 });
 
-/**
- * The deltas on one line, each by its base's number, `embedded` for a binary's bundle: `#16: 48.2 kB, 2 patches, built`,
- * a pack without a build, requested or failed, by its status alone.
- */
 function resolveDeltasText(deltas: BundleDelta[]): string {
   if (deltas.length === 0) {
     return 'none';

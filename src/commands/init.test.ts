@@ -56,7 +56,7 @@ import {
 } from '../utils/xcode-project.js';
 import initCommand from './init.js';
 
-// the in-place login must not touch the machine's keyring: a fake one keeps the token the flow stores
+// A fake keyring keeps the token that the in-place login stores.
 const keyring = vi.hoisted(() => {
   let storedToken: string | null = null;
   return {
@@ -135,7 +135,7 @@ describe('init', () => {
   }
 
   beforeEach(() => {
-    // the configuration step names the app's default channel by its name
+    // The configuration step names the default channel of the app by its name.
     harness.routes[
       `GET /v1/apps/${DEMO_APP.id}/channels/${PRODUCTION_CHANNEL.id}`
     ] = () => Response.json(PRODUCTION_CHANNEL);
@@ -717,11 +717,11 @@ describe('init', () => {
       vi.mocked(select)
         .mockResolvedValueOnce(ACME_ORGANIZATION.id)
         .mockResolvedValueOnce(DEMO_APP.id);
-      // the files to change, then the signing key, then the first release
-      vi.mocked(confirm)
-        .mockResolvedValueOnce(true)
-        .mockResolvedValueOnce(false)
-        .mockResolvedValueOnce(false);
+      answerConfirmations({
+        changeFiles: true,
+        createSigningKey: false,
+        publishFirstRelease: false,
+      });
       const directoryPath = writeProject({
         isPackageInstalled: true,
         projectConfig,
@@ -763,11 +763,11 @@ describe('init', () => {
     vi.mocked(select)
       .mockResolvedValueOnce(ACME_ORGANIZATION.id)
       .mockResolvedValueOnce(DEMO_APP.id);
-    // the files to change, then the signing key, then the first release
-    vi.mocked(confirm)
-      .mockResolvedValueOnce(true)
-      .mockResolvedValueOnce(false)
-      .mockResolvedValueOnce(false);
+    answerConfirmations({
+      changeFiles: true,
+      createSigningKey: false,
+      publishFirstRelease: false,
+    });
     const directoryPath = writeProject({ isPackageInstalled: true });
     respondWithSession([ACME_ORGANIZATION]);
     harness.routes[`GET ${APPS_PATH}`] = () => Response.json([DEMO_APP]);
@@ -799,11 +799,11 @@ describe('init', () => {
     vi.mocked(select)
       .mockResolvedValueOnce(ACME_ORGANIZATION.id)
       .mockResolvedValueOnce(DEMO_APP.id);
-    // the files to change, then the signing key, then the first release
-    vi.mocked(confirm)
-      .mockResolvedValueOnce(true)
-      .mockResolvedValueOnce(true)
-      .mockResolvedValueOnce(false);
+    answerConfirmations({
+      changeFiles: true,
+      createSigningKey: true,
+      publishFirstRelease: false,
+    });
     const directoryPath = writeProject({ isPackageInstalled: true });
     respondWithSession([ACME_ORGANIZATION]);
     harness.routes[`GET ${APPS_PATH}`] = () => Response.json([DEMO_APP]);
@@ -984,9 +984,7 @@ describe('init', () => {
     expect(harness.requests).toEqual([]);
   });
 
-  /**
-   * A project without hotcodepush.json is found from the working directory; the test points the process there.
-   */
+  // A project without hotcodepush.json is found from the working directory, so the test points the process there.
   function withCwd(directoryPath: string): Record<string, never> {
     vi.spyOn(process, 'cwd').mockReturnValue(directoryPath);
     return {};
@@ -1117,3 +1115,14 @@ describe('init', () => {
     });
   });
 });
+
+function answerConfirmations(answers: {
+  changeFiles: boolean;
+  createSigningKey: boolean;
+  publishFirstRelease: boolean;
+}): void {
+  vi.mocked(confirm)
+    .mockResolvedValueOnce(answers.changeFiles)
+    .mockResolvedValueOnce(answers.createSigningKey)
+    .mockResolvedValueOnce(answers.publishFirstRelease);
+}

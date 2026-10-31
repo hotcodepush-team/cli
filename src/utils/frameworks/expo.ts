@@ -27,39 +27,27 @@ import type {
   FrameworkWiring,
 } from './index.js';
 
-/**
- * The part of an app config `init` edits: its plugins, each a name or a name with its options.
- */
+// Each plugin is a name or a name with its options.
 interface AppConfig {
   plugins?: unknown[];
 }
 
-/**
- * The app configs of a project by file name: the JSON one, `app.json` where the project has none yet, and the one that
- * is code where the project has one, which Expo hands the JSON one's config.
- */
 interface AppConfigFileNames {
   codeFileName: string | undefined;
   jsonFileName: string;
 }
 
-/**
- * A JSON app config, whose config Expo reads under the `expo` key, or the whole file where it has none.
- */
+// Expo reads the config under the `expo` key, or the whole file when that key is missing.
 interface AppJson extends AppConfig {
   expo?: AppConfig;
 }
 
 const APP_JSON_FILE_NAME = 'app.json';
 
-/**
- * Expo's export for embedding, the bundler its native release builds run, which resolves the entry file as they do.
- */
+// Expo's native release builds run this bundler, and it resolves the entry file itself.
 const BUNDLER_ARGS = ['expo', 'export:embed'];
 
-/**
- * The app configs that are code, in the order Expo prefers them.
- */
+// Both lists are in the order Expo prefers.
 const CODE_APP_CONFIG_FILE_NAMES = [
   'app.config.ts',
   'app.config.mts',
@@ -69,15 +57,9 @@ const CODE_APP_CONFIG_FILE_NAMES = [
   'app.config.js',
 ];
 
-/**
- * The app configs that are JSON, in the order Expo prefers them.
- */
 const JSON_APP_CONFIG_FILE_NAMES = ['app.config.json', APP_JSON_FILE_NAME];
 
-/**
- * Expo: React Native's SDK and release build, wired by the config plugin at prebuild, so `init` adds one entry to the
- * app config and the native projects stay prebuild's. An upload bundles each platform with Expo's own bundler.
- */
+// The config plugin wires the native projects at prebuild, so `init` only adds one entry to the app config.
 export const expoFramework: FrameworkModule = {
   packageName: EXPO_PACKAGE_NAME,
   versionedPackageNames: ['expo', 'react-native', EXPO_PACKAGE_NAME],
@@ -94,7 +76,7 @@ export const expoFramework: FrameworkModule = {
 };
 
 function addPluginEntry(filePath: string): void {
-  // a project without an app config gets one, as Expo's own install writes it
+  // A project without an app config gets one, as Expo's own install writes it.
   const appJsonText = existsSync(filePath)
     ? readFileSync(filePath, 'utf8')
     : '{}';
@@ -104,9 +86,6 @@ function addPluginEntry(filePath: string): void {
   writeFileSync(filePath, stringifyLikeSource(appJson, appJsonText));
 }
 
-/**
- * `doctor`'s `hook` row: the app config lists the plugin, which wires the build step into the native builds at prebuild.
- */
 function checkPluginEntry({ directoryPath }: FrameworkProject): FrameworkCheck {
   const appConfigFileNames = findAppConfigFileNames(directoryPath);
   const pluginEntryFileName = findPluginEntryFileName(
@@ -144,10 +123,7 @@ function findAppConfigFileNames(
   };
 }
 
-/**
- * The app config that lists the plugin, the one that is code first; an entry in the JSON one counts beside code too,
- * since Expo hands its config to the code.
- */
+// An entry in the JSON config counts beside a code config too, since Expo hands its config to the code.
 function findPluginEntryFileName(
   projectDirectoryPath: string,
   { codeFileName, jsonFileName }: AppConfigFileNames,
@@ -158,10 +134,7 @@ function findPluginEntryFileName(
   );
 }
 
-/**
- * Whether an app config lists the plugin: by name or with its options in the plugins of a JSON config the CLI parses,
- * and otherwise — a config that is code, a JSON5 one — by the package's name in its text, matched and never evaluated.
- */
+// A code or JSON5 config is never evaluated, so the package name is matched in its text.
 function hasPluginEntry(
   projectDirectoryPath: string,
   appConfigFileName: string,
@@ -183,10 +156,7 @@ function hasPluginEntry(
   );
 }
 
-/**
- * Whether `init` adds the entry itself, to the JSON app config it creates or parses; beside a config that is code, and
- * in a JSON one that does not parse, such as the JSON5 Expo reads too, the entry is the person's to add.
- */
+// Expo also reads JSON5, which does not parse as JSON. The person adds the entry there and beside a code config.
 function isPluginEntryEditable(
   projectDirectoryPath: string,
   { codeFileName, jsonFileName }: AppConfigFileNames,
@@ -237,10 +207,6 @@ function resolveWiring({
   };
 }
 
-/**
- * The plugin entry in the JSON app config, left alone when either app config lists it; a config that is code and a
- * JSON one that does not parse are the person's to edit, so their entry is the manual step.
- */
 async function wirePluginEntry(
   projectDirectoryPath: string,
   appConfigFileNames: AppConfigFileNames,

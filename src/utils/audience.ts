@@ -1,8 +1,5 @@
 import type { Audience } from '@hotcodepush/node';
 
-/**
- * The audience in one clause: `reaches 9,995 of 10,000 active devices in production; about 500 at a 5 percent rollout`.
- */
 export function resolveAudienceText(
   audience: Audience,
   channelName: string,

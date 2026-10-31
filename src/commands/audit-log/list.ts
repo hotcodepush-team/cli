@@ -56,7 +56,7 @@ export default defineCommand({
   action: async options => {
     const hotCodePush = createApiClient();
     const organizationId = await fetchOrganizationId(hotCodePush, options);
-    // the log is the organization's: --app filters it, and hotcodepush.json's app never does
+    // The log belongs to the organization, so only `--app` filters it, never the app in hotcodepush.json.
     const listedAuditLogs = await hotCodePush.organizations.auditLogs.list({
       actorType: options.actorType,
       appId:
@@ -93,10 +93,7 @@ export default defineCommand({
   },
 });
 
-/**
- * Who acted, as the console names them: the system on a system row, otherwise the user's email while the user is live
- * and their id after.
- */
+// Matches the console: the email while the user exists, the id after.
 function resolveActorText({ actorType, user, userId }: AuditLog): string {
   if (actorType === 'system') {
     return 'System';

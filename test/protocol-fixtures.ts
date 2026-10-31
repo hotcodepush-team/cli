@@ -4,10 +4,7 @@ import { dirname, join } from 'node:path';
 import type { ChannelIndex, DeviceInfo } from '@hotcodepush/protocol';
 import type { FingerprintContributors } from '@hotcodepush/protocol/fingerprint';
 
-/**
- * A sample project of the protocol's `fingerprints.json`: its files from the lockfile's directory, the extra fingerprint paths it lists,
- * the project's directory relative to the lockfile's, empty when they are one, and the contributors and fingerprint the recipe yields.
- */
+// The project directory is relative to the lockfile directory, and empty when they are the same.
 export interface FingerprintFixture {
   contributors: FingerprintContributors;
   extraFingerprintPaths: string[];
@@ -17,9 +14,6 @@ export interface FingerprintFixture {
   projectPath: string;
 }
 
-/**
- * A case of the protocol's `evaluation/*.json`: an index, what the device knows, and the outcome the evaluator yields.
- */
 export interface EvaluationFixture {
   device: DeviceInfo;
   expected: {
@@ -33,9 +27,6 @@ export interface EvaluationFixture {
   name: string;
 }
 
-/**
- * A project of `fingerprints.json` whose fingerprint the recipe refuses.
- */
 export interface RefusedFingerprintFixture {
   extraFingerprintPaths: string[];
   files: Record<string, string>;
@@ -48,9 +39,7 @@ interface FingerprintFixtures {
   refusedProjects: RefusedFingerprintFixture[];
 }
 
-/**
- * The fixtures `@hotcodepush/protocol` ships beside its build, the shapes every implementation is tested against.
- */
+// Every implementation is tested against these shared fixtures.
 const PROTOCOL_FIXTURES_PATH = join(
   dirname(createRequire(import.meta.url).resolve('@hotcodepush/protocol')),
   '..',
@@ -63,9 +52,6 @@ export function readFingerprintFixtures(): FingerprintFixtures {
   ) as FingerprintFixtures;
 }
 
-/**
- * The cases of one rule's file under `evaluation/`, such as `conditions-binary`.
- */
 export function readEvaluationFixtures(rule: string): EvaluationFixture[] {
   return (
     JSON.parse(

@@ -6,33 +6,22 @@ import { PROJECT_CONFIG_FILE_NAME } from '../config/consts.js';
 import { InvalidParameterError } from './errors.js';
 import { readJsonFile, stringifyLikeSource } from './json-file.js';
 
-/**
- * `hotcodepush.json`, the project's configuration, as written: `init` writes it and completes a partial one, so every key is optional.
- */
+// `init` completes a partial file, so every key is optional.
 export type ProjectConfig = Partial<z.input<typeof ProjectConfigurationSchema>>;
 
-/**
- * The project's configuration file with the directory it lies in, the project root every path is relative to.
- */
+// The directory is the project root that every path is relative to.
 export interface ProjectConfigFileLocation {
   directoryPath: string;
-  /** The file the configuration is read from; none without a file. */
   filePath: string | undefined;
 }
 
-/**
- * The project's configuration as read from its file.
- */
 export interface ProjectConfigLocation extends ProjectConfigFileLocation {
   projectConfig: ProjectConfig | undefined;
 }
 
 export const ID_SCHEMA = z.guid();
 
-/**
- * The app id of the file, checked before a command uses it without asking the API:
- * the file comes with the repository, and the id reaches console URLs, the browser and the resource file devices read.
- */
+// The file comes with the repository, and the id reaches console URLs, the browser and the resource file.
 export function assertProjectConfigAppId(appId: string): void {
   if (!ID_SCHEMA.safeParse(appId).success) {
     throw new InvalidParameterError(
@@ -42,9 +31,6 @@ export function assertProjectConfigAppId(appId: string): void {
   }
 }
 
-/**
- * The channel the project follows, by name or by id: `channel`, or `production`, the schema's default, when the file names none.
- */
 export function resolveProjectChannel(projectConfig: ProjectConfig): string {
   return (
     projectConfig.channel ??
@@ -52,19 +38,14 @@ export function resolveProjectChannel(projectConfig: ProjectConfig): string {
   );
 }
 
-/**
- * The file `--config` names, or the nearest `hotcodepush.json` walking up from the working directory, the way git finds its root;
- * none found is no configuration, a named file that is missing a wrong parameter.
- */
+// Walks up from the working directory to the nearest file, the way git finds its root.
 export function readProjectConfig(
   configPath: string | undefined,
 ): ProjectConfig | undefined {
   return locateProjectConfig(configPath).projectConfig;
 }
 
-/**
- * The configuration and its directory; without a file the working directory is the project root.
- */
+// Without a file, the working directory is the project root.
 export function locateProjectConfig(
   configPath: string | undefined,
 ): ProjectConfigLocation {
@@ -78,9 +59,7 @@ export function locateProjectConfig(
   };
 }
 
-/**
- * The configuration's file and its directory, the file not read yet, so `doctor` reports one that does not parse.
- */
+// The file is not read yet, so `doctor` can report one that does not parse.
 export function locateProjectConfigFile(
   configPath: string | undefined,
 ): ProjectConfigFileLocation {
@@ -103,9 +82,6 @@ export function readProjectConfigFile(filePath: string): ProjectConfig {
   return readJsonFile(filePath) as ProjectConfig;
 }
 
-/**
- * The configuration written back into its file with the indentation the file had, so an edit is the lines it means.
- */
 export function writeProjectConfig(
   filePath: string,
   projectConfig: ProjectConfig,

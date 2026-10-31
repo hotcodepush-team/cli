@@ -14,10 +14,8 @@ import {
 import { resolveFlagName } from './flag-name.js';
 import { printJson } from './output.js';
 
-/**
- * An error response as Better Auth's client hands it over: the API's catalog answers `{ code, message }`,
- * the device flow's endpoints RFC 8628's `{ error, error_description }`.
- */
+// The API catalog answers `{ code, message }`.
+// The device flow endpoints answer `{ error, error_description }` as RFC 8628 defines.
 export interface ApiErrorResponse {
   code?: string;
   error?: string;
@@ -27,9 +25,6 @@ export interface ApiErrorResponse {
   statusText: string;
 }
 
-/**
- * The `--json` shape of an error, printed on stdout with nothing else, so an agent parses one stream.
- */
 export interface ErrorJson {
   error: {
     code: string;
@@ -47,27 +42,20 @@ interface PrintErrorOptions {
   isVerbose: boolean;
 }
 
-// a sentence ends with one of these; a message from outside the catalog, zodline's or an unexpected error's, may lack it
+// Matches the end of a sentence. A message from zodline or an unexpected error may lack it.
 const SENTENCE_END_PATTERN = /[.!?]$/;
 
-/** The typed client's code for an answer outside the API's shape, which the CLI's catalog renders. */
 const UNEXPECTED_RESPONSE_CODE = 'unexpected_response';
 
 export function buildErrorJson({ code, fix, message }: CliError): ErrorJson {
   return { error: { code, message, fix } };
 }
 
-/**
- * The message with its full stop, which a message from outside the catalog may lack.
- */
 export function resolveSentence(message: string): string {
   return SENTENCE_END_PATTERN.test(message) ? message : `${message}.`;
 }
 
-/**
- * Two lines: what happened and what to do as sentences, then the code's page, the one place the code appears.
- * An API error's message says what to do itself, so its first line has no fix.
- */
+// An API error message says what to do itself, so it has no fix.
 export function buildErrorLines(
   { code, fix, message }: CliError,
   options: ErrorLinesOptions,
@@ -99,9 +87,7 @@ export function printError(
   }
 }
 
-/**
- * The API's error as received; a response without a code, a proxy's HTML page, is no error of the API's catalog.
- */
+// A response without a code, such as a proxy HTML page, is not an error from the API catalog.
 export function resolveApiError({
   code,
   error,
@@ -121,11 +107,6 @@ export function resolveApiError({
   );
 }
 
-/**
- * Maps anything a command line can throw to the CLI's catalog: its own errors as they are, the typed client's
- * as the API answered them unless the answer was outside the API's shape, zod and zodline's parameter errors to
- * `invalid_parameter`, everything else to `unexpected`.
- */
 export function resolveCliError(error: unknown): CliError {
   if (error instanceof CliError) {
     return error;

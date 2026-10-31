@@ -1,8 +1,6 @@
 import { DEFAULT_API_URL } from '../config/consts.js';
 
-/**
- * The hosts a device reads from and reports to, written into the resource file only outside production.
- */
+// Written into the resource file only outside production.
 export interface DeviceHosts {
   filesBaseUrl: string | undefined;
   updatesBaseUrl: string | undefined;
@@ -17,10 +15,7 @@ const STAGING_CONSOLE_BASE_URL = 'https://console.staging.hotcodepush.com';
 const STAGING_FILES_BASE_URL = 'https://files.staging.hotcodepush.com';
 const STAGING_UPDATES_BASE_URL = 'https://updates.staging.hotcodepush.com';
 
-/**
- * The device hosts derived from the CLI's API URL: production writes none, the staging API maps to the staging hosts,
- * any other API — the local stack — serves them itself under `/files` and `/updates`; the two environment variables override per build.
- */
+// Any API other than production and staging is the local stack, which serves the hosts itself.
 export function resolveDeviceHosts(apiUrl: string): DeviceHosts {
   const derived = resolveDerivedDeviceHosts(apiUrl);
   return {
@@ -31,9 +26,7 @@ export function resolveDeviceHosts(apiUrl: string): DeviceHosts {
   };
 }
 
-/**
- * The console the CLI opens pages of, derived from the API URL the same way; the local console is the monorepo's dev port.
- */
+// The local console runs on the dev port of the monorepo.
 export function resolveConsoleBaseUrl(apiUrl: string): string {
   if (process.env.HOTCODEPUSH_CONSOLE_BASE_URL) {
     return process.env.HOTCODEPUSH_CONSOLE_BASE_URL;
@@ -47,9 +40,7 @@ export function resolveConsoleBaseUrl(apiUrl: string): string {
     : LOCAL_CONSOLE_BASE_URL;
 }
 
-/**
- * The files host a bundle's manifest is read from, the production host where the resource file names none.
- */
+// The production host applies where the resource file names none.
 export function resolveFilesBaseUrl(apiUrl: string): string {
   return resolveDeviceHosts(apiUrl).filesBaseUrl ?? PRODUCTION_FILES_BASE_URL;
 }

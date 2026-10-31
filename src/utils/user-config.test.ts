@@ -18,6 +18,9 @@ import {
 
 const originalPlatform = process.platform;
 
+// Windows has no POSIX file mode. The access list of the user profile protects the file there.
+const hasPosixFileModes = originalPlatform !== 'win32';
+
 describe('user config', () => {
   let configHomePath: string;
 
@@ -93,8 +96,7 @@ describe('user config', () => {
     expect(JSON.parse(fileContent)).toEqual({ sessionId: 'session-1' });
   });
 
-  // Windows has no POSIX file mode: the user profile's access list protects the file there
-  it.skipIf(process.platform === 'win32')(
+  it.skipIf(!hasPosixFileModes)(
     'should write the file readable by its owner only',
     () => {
       writeUserConfig({ token: 'token-1' });
@@ -106,8 +108,7 @@ describe('user config', () => {
     },
   );
 
-  // Windows has no POSIX file mode: the user profile's access list protects the file there
-  it.skipIf(process.platform === 'win32')(
+  it.skipIf(!hasPosixFileModes)(
     'should make an existing file readable by its owner only',
     () => {
       const directoryPath = join(configHomePath, 'hotcodepush');

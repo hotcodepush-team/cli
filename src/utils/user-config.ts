@@ -8,10 +8,8 @@ import {
 } from '../config/consts.js';
 import { readJsonFile } from './json-file.js';
 
-/**
- * `config.json` in the user's config directory; the token is here only where no keyring backend works,
- * and the pending device authorization only between a non-interactive login and the next one.
- */
+// The token is stored here only when no keyring backend works.
+// The pending device authorization stays only until the next login.
 export interface UserConfig {
   apiUrl?: string;
   lastUpdateCheckAt?: string;
@@ -25,9 +23,16 @@ export interface UserConfig {
   token?: string;
 }
 
-/**
- * `HOTCODEPUSH_API_URL` when set, so a CI reaches the API its `HOTCODEPUSH_TOKEN` belongs to, then the URL `login --api-url` stored; an empty variable is unset.
- */
+// A config.json the CLI cannot read or write is for the command to report, never for a notice.
+export function ignoreUserConfigErrors<T>(readOrWrite: () => T): T | undefined {
+  try {
+    return readOrWrite();
+  } catch {
+    return undefined;
+  }
+}
+
+// The variable comes first, so a CI reaches the API its `HOTCODEPUSH_TOKEN` belongs to.
 export function readApiUrl(): string {
   return (
     process.env.HOTCODEPUSH_API_URL ||
@@ -44,9 +49,6 @@ export function readUserConfig(): UserConfig {
   return readJsonFile(filePath) as UserConfig;
 }
 
-/**
- * `~/.config/hotcodepush` on macOS and Linux, `$XDG_CONFIG_HOME` honoured; `%APPDATA%\hotcodepush` on Windows.
- */
 export function resolveConfigDirectoryPath(): string {
   const baseDirectoryPath =
     process.platform === 'win32'
@@ -58,7 +60,8 @@ export function resolveConfigDirectoryPath(): string {
 export function writeUserConfig(userConfig: UserConfig): void {
   const filePath = resolveConfigFilePath();
   mkdirSync(resolveConfigDirectoryPath(), { recursive: true });
-  // The file can hold the token, so only its owner may read it: the mode covers a new file, chmod an existing one
+  // The file can hold the token, so only its owner may read it.
+  // The mode covers a new file and chmod an existing one.
   writeFileSync(filePath, `${JSON.stringify(userConfig, null, 2)}\n`, {
     mode: 0o600,
   });
