@@ -206,17 +206,17 @@ describe('doctor', () => {
     ).rejects.toBeInstanceOf(ReportedFailureError);
 
     expect(harness.readLines()).toEqual([
-      `✓ configuration  The file hotcodepush.json names app ${DEMO_APP.id} and channel production.`,
-      '✓ session        Logged in as Anna Example (anna@example.com).',
-      '✓ app            The app Demo and the channel production exist.',
-      '✗ package        The package @hotcodepush/capacitor-live-updates is not in package.json.',
+      `✓ Configuration  The file hotcodepush.json names app ${DEMO_APP.id} and channel production.`,
+      '✓ Session        Logged in as Anna Example (anna@example.com).',
+      '✓ App            The app Demo and the channel production exist.',
+      '✗ Package        The package @hotcodepush/capacitor-live-updates is not in package.json.',
       '                 Run "hotcodepush init".',
-      `✗ hook           The wiring is missing from ${CAPACITOR_APP_GRADLE_FILE_PATH}.`,
+      `✗ Hook           The wiring is missing from ${CAPACITOR_APP_GRADLE_FILE_PATH}.`,
       '                 Run "hotcodepush init".',
-      '✗ hosts          The CLI cannot reach api (https://api.example.com/health).',
+      '✗ Hosts          The CLI cannot reach api (https://api.example.com/health).',
       '                 Check the network, the API URL in config.json and the HOTCODEPUSH_*_BASE_URL variables.',
-      '– signing_key    Code signing is off. Run "hotcodepush signing-key create" to turn it on.',
-      expect.stringMatching(/^✓ versions +The versions are hotcodepush /),
+      '– Signing key    Code signing is off. Run "hotcodepush signing-key create" to turn it on.',
+      expect.stringMatching(/^✓ Versions +The versions are hotcodepush /),
     ]);
   });
 

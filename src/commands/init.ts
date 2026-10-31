@@ -3,7 +3,11 @@ import { join } from 'node:path';
 import type { App, HotCodePush, Organization } from '@hotcodepush/node';
 import { z } from 'zod';
 import { defineCommand } from 'zodline';
-import { DOCS_URL, PROJECT_CONFIG_FILE_NAME } from '../config/consts.js';
+import {
+  DOCS_URL,
+  PROJECT_CONFIG_FILE_NAME,
+  SIGNING_PRIVATE_KEY_FILE_NAME,
+} from '../config/consts.js';
 import { createApiClient } from '../utils/api-client.js';
 import {
   fetchCurrentUser,
@@ -174,7 +178,7 @@ export default defineCommand({
     await run.run('hook', () =>
       projectFiles.wiring.wireBinaryCreateStep(editBlocker),
     );
-    await run.run('signing_key', () =>
+    const privateKeyPath = await run.run('signing_key', () =>
       createSigningKey(app, projectFiles, options),
     );
     const isReleaseWanted =
@@ -183,19 +187,27 @@ export default defineCommand({
     const isBuilt = await run.run('build', () =>
       buildProject(projectFiles, isReleaseWanted),
     );
-    await run.run(
+    const isReleased = await run.run(
       'release',
       () =>
-        releaseFirst(projectFiles, isReleaseWanted, isBuilt === true, options),
+        releaseFirst(
+          projectFiles,
+          isReleaseWanted,
+          isBuilt === true,
+          privateKeyPath,
+          options,
+        ),
       { dependsOn: ['configuration', 'build'] },
     );
     const status = run.stoppedCode === undefined ? 'complete' : 'incomplete';
     if (options.json) {
       printJson({ status, steps: run.steps });
     } else {
+      // a blank line parts the rows from the package manager's and the build's output above them
+      console.log('');
       printOutcomeRows(resolveStepRows(run.steps));
       if (app !== undefined && status === 'complete') {
-        printFinish(app);
+        printFinish(app, isReleased === true, privateKeyPath);
       }
     }
     if (run.stoppedCode !== undefined) {
@@ -482,14 +494,15 @@ async function fetchDefaultChannelName(
 }
 
 /**
- * The signing key pair, for a person only: `signing-key create` in place, which writes the private key to a new file.
- * Nobody to ask points at the command instead, since a key file written on a runner is lost with it.
+ * The signing key pair, for a person only: `signing-key create` in place, which writes the private key to a new file,
+ * whose path, against the working directory, the first release signs with. Nobody to ask points at the command instead,
+ * since a key file written on a runner is lost with it.
  */
 async function createSigningKey(
   app: App | undefined,
   { directoryPath }: ProjectFiles,
   options: InitOptions,
-): Promise<StepOutcome<undefined>> {
+): Promise<StepOutcome<string | undefined>> {
   if (
     app !== undefined &&
     (await fetchHasSigningKey(createApiClient(), app.id))
@@ -511,11 +524,13 @@ async function createSigningKey(
     };
   }
   const configPath = join(directoryPath, PROJECT_CONFIG_FILE_NAME);
+  const privateKeyPath = SIGNING_PRIVATE_KEY_FILE_NAME;
   await signingKeyCreateCommand.action(
     {
       app: app.id,
       config: existsSync(configPath) ? configPath : undefined,
       json: options.json,
+      privateKeyPath,
     },
     undefined,
   );
@@ -523,7 +538,7 @@ async function createSigningKey(
     message:
       'Generated a signing key pair, its private key in the file named above.',
     status: 'done',
-    value: undefined,
+    value: privateKeyPath,
   };
 }
 
@@ -550,36 +565,45 @@ function buildProject(
       value: false,
     });
   }
-  const buildText = resolveCommandLineText(buildCommandLine);
   if (!isReleaseWanted) {
     return Promise.resolve({
-      message: `No release follows. Run "${buildText}", then "hotcodepush release create".`,
+      message: 'No release follows.',
       status: 'skipped',
       value: false,
     });
   }
   runCommandLineVisibly(buildCommandLine, directoryPath);
   return Promise.resolve({
-    message: `Ran "${buildText}".`,
+    message: `Ran "${resolveCommandLineText(buildCommandLine)}".`,
     status: 'done',
     value: true,
   });
 }
 
 /**
- * The first release through `release create`, interactively only; the web build must exist by then.
+ * The first release through `release create`, interactively only, signed with the key this run generated;
+ * the web build must exist by then. Skipped, it names the commands that publish it, the build's first where one is needed.
  */
 async function releaseFirst(
   { directoryPath, framework, packageJson }: ProjectFiles,
   isReleaseWanted: boolean,
   isBuilt: boolean,
+  privateKeyPath: string | undefined,
   options: InitOptions,
-): Promise<StepOutcome<undefined>> {
+): Promise<StepOutcome<boolean>> {
+  const releaseCommandText = resolveReleaseCommandText(privateKeyPath);
   if (!isReleaseWanted) {
+    const buildCommandLine =
+      framework.packageBundles === undefined
+        ? resolveBuildCommandLine(directoryPath, packageJson)
+        : undefined;
     return {
-      message: 'Run "hotcodepush release create" to publish the first release.',
+      message:
+        buildCommandLine === undefined
+          ? `Run "${releaseCommandText}" to publish the first release.`
+          : `Run "${resolveCommandLineText(buildCommandLine)}", then "${releaseCommandText}" to publish the first release.`,
       status: 'skipped',
-      value: undefined,
+      value: false,
     };
   }
   const buildDirectory = framework.readBuildDirectory(directoryPath);
@@ -594,15 +618,16 @@ async function releaseFirst(
       packageJson,
     );
     return {
-      message: `There is ${buildCommandLine === undefined ? 'no build script and ' : ''}no output at ${buildDirectory.path}. Build, then run "hotcodepush release create".`,
+      message: `There is ${buildCommandLine === undefined ? 'no build script and ' : ''}no output at ${buildDirectory.path}. Build, then run "${releaseCommandText}".`,
       status: 'skipped',
-      value: undefined,
+      value: false,
     };
   }
   await releaseCreateCommand.action(
     {
       config: join(directoryPath, PROJECT_CONFIG_FILE_NAME),
       json: options.json,
+      privateKeyPath,
       yes: true,
     },
     undefined,
@@ -610,14 +635,23 @@ async function releaseFirst(
   return {
     message: 'Released to production.',
     status: 'done',
-    value: undefined,
+    value: true,
   };
 }
 
-function printFinish(app: App): void {
+/**
+ * What comes after a complete run; the release command only once a release went out, since a skipped release row names it.
+ */
+function printFinish(
+  app: App,
+  isReleased: boolean,
+  privateKeyPath: string | undefined,
+): void {
   console.log('');
   console.log(
-    'Build the app natively once and run it; change a line, run the build and "npx hotcodepush release create", then reopen the app.',
+    isReleased
+      ? `Build the app natively once and run it; change a line, run the build and "${resolveReleaseCommandText(privateKeyPath)}", then reopen the app.`
+      : 'Build the app natively once and run it, then publish the first release as shown above.',
   );
   console.log(`Console: ${resolveConsoleBaseUrl(readApiUrl())}/apps/${app.id}`);
   console.log(`Docs: ${DOCS_URL}`);
@@ -714,6 +748,15 @@ function resolveBuildCommandLine(
         resolvePackageManager(directoryPath),
         'build',
       );
+}
+
+/**
+ * The release command as a person types it, with the private key this run generated; the one place it is phrased.
+ */
+function resolveReleaseCommandText(privateKeyPath: string | undefined): string {
+  return privateKeyPath === undefined
+    ? 'hotcodepush release create'
+    : `hotcodepush release create --private-key-path ${privateKeyPath}`;
 }
 
 function resolveCreatedScope(organization: Organization): StepOutcome<Scope> {

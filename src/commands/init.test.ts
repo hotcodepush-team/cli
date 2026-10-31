@@ -54,6 +54,7 @@ import {
   hasReadableResourceReference,
 } from '../utils/xcode-project.js';
 import initCommand from './init.js';
+import releaseCreateCommand from './release/create.js';
 
 // the in-place login must not touch the machine's keyring: a fake one keeps the token the flow stores
 const keyring = vi.hoisted(() => {
@@ -209,8 +210,8 @@ describe('init', () => {
       'Wrote hotcodepush.json.',
       'Wired the Create HotCodePush binary phase in Xcode, the Gradle task that runs the build step.',
       'Run "hotcodepush signing-key create" to enable code signing.',
-      'No release follows. Run "npm run build", then "hotcodepush release create".',
-      'Run "hotcodepush release create" to publish the first release.',
+      'No release follows.',
+      'Run "npm run build", then "hotcodepush release create" to publish the first release.',
     ]);
   }, 15_000);
 
@@ -233,17 +234,18 @@ describe('init', () => {
 
     expect(runCommandLineVisibly).not.toHaveBeenCalled();
     expect(harness.readLines()).toEqual([
-      '– sign_in        Logged in as Anna Example (anna@example.com).',
-      "✓ organization   Used organization Acme, the one of hotcodepush.json's app.",
-      '✓ app            Used app Demo, as hotcodepush.json names it.',
-      '– package        The package @hotcodepush/capacitor-live-updates is already installed.',
-      '– configuration  The file hotcodepush.json is already present.',
-      '– hook           The Xcode phase and the Gradle task are already wired.',
-      '– signing_key    Run "hotcodepush signing-key create" to enable code signing.',
-      '– build          No release follows. Run "npm run build", then "hotcodepush release create".',
-      '– release        Run "hotcodepush release create" to publish the first release.',
       '',
-      'Build the app natively once and run it; change a line, run the build and "npx hotcodepush release create", then reopen the app.',
+      '– Sign in        Logged in as Anna Example (anna@example.com).',
+      "✓ Organization   Used organization Acme, the one of hotcodepush.json's app.",
+      '✓ App            Used app Demo, as hotcodepush.json names it.',
+      '– Package        The package @hotcodepush/capacitor-live-updates is already installed.',
+      '– Configuration  The file hotcodepush.json is already present.',
+      '– Hook           The Xcode phase and the Gradle task are already wired.',
+      '– Signing key    Run "hotcodepush signing-key create" to enable code signing.',
+      '– Build          No release follows.',
+      '– Release        Run "npm run build", then "hotcodepush release create" to publish the first release.',
+      '',
+      'Build the app natively once and run it, then publish the first release as shown above.',
       `Console: http://localhost:4300/apps/${DEMO_APP.id}`,
       'Docs: https://hotcodepush.com/docs',
     ]);
@@ -384,7 +386,7 @@ describe('init', () => {
     const filesText = `hotcodepush.json, ${CAPACITOR_XCODE_PROJECT_FILE_PATH}, ${CAPACITOR_APP_GRADLE_FILE_PATH}`;
     expect(harness.readLines()).toEqual(
       expect.arrayContaining([
-        `✗ configuration  A confirmation is required. This changes ${filesText}.`,
+        `✗ Configuration  A confirmation is required. This changes ${filesText}.`,
         `                 Run "hotcodepush init --yes" to change ${filesText}.`,
       ]),
     );
@@ -518,6 +520,29 @@ describe('init', () => {
     ).toContain('hotcodepush.gradle');
   });
 
+  it('should name the release command once when a step stopped, on the release row, with no finish block', async () => {
+    const directoryPath = writeProject({ isPackageInstalled: true });
+    writeFileSync(
+      join(directoryPath, CAPACITOR_XCODE_PROJECT_FILE_PATH),
+      'not a project',
+    );
+    respondWithSession([ACME_ORGANIZATION]);
+    harness.routes[`GET ${APPS_PATH}`] = () => Response.json([DEMO_APP]);
+
+    await expect(
+      initCommand.action({ yes: true, ...withCwd(directoryPath) }, undefined),
+    ).rejects.toBeInstanceOf(ReportedFailureError);
+
+    const lines = harness.readLines();
+    expect(lines.slice(-2)).toEqual([
+      '– Build          No release follows.',
+      '– Release        Run "npm run build", then "hotcodepush release create" to publish the first release.',
+    ]);
+    expect(
+      lines.filter(line => line.includes('hotcodepush release create')),
+    ).toHaveLength(1);
+  });
+
   it('should stop at the organization when the user belongs to several and none is named, and still run the independent steps', async () => {
     const directoryPath = writeProject();
     respondWithSession([ACME_ORGANIZATION, GLOBEX_ORGANIZATION]);
@@ -615,9 +640,9 @@ describe('init', () => {
         { label: 'Create a new app', value: 'create' },
       ],
     });
-    expect(harness.readLines().slice(1, 3)).toEqual([
-      '✓ organization   Used organization Acme.',
-      '✓ app            Used app Demo.',
+    expect(harness.readLines().slice(2, 4)).toEqual([
+      '✓ Organization   Used organization Acme.',
+      '✓ App            Used app Demo.',
     ]);
   });
 
@@ -655,12 +680,70 @@ describe('init', () => {
         join(directoryPath, 'hotcodepush.json'),
       ).publicKeys,
     ).toEqual([expect.stringMatching(/^rsa-v1_5-sha256:/)]);
-    expect(harness.readLines()).toContain(
-      '✓ signing_key    Generated a signing key pair, its private key in the file named above.',
+    expect(harness.readLines()).toEqual(
+      expect.arrayContaining([
+        '✓ Signing key    Generated a signing key pair, its private key in the file named above.',
+        '– Release        Run "npm run build", then "hotcodepush release create --private-key-path hotcodepush-private-key.pem" to publish the first release.',
+      ]),
     );
     expect(existsSync(join(directoryPath, 'hotcodepush-private-key.pem'))).toBe(
       true,
     );
+  });
+
+  it('should sign the first release with the signing key it generated when a person says yes to both', async () => {
+    stubInteractiveTerminal();
+    vi.mocked(select)
+      .mockResolvedValueOnce(ACME_ORGANIZATION.id)
+      .mockResolvedValueOnce(DEMO_APP.id);
+    // the files to change, then the signing key, then the first release
+    vi.mocked(confirm)
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(true);
+    const releaseCreate = vi
+      .spyOn(releaseCreateCommand, 'action')
+      .mockResolvedValue(undefined);
+    const directoryPath = writeProject({ isPackageInstalled: true });
+    respondWithSession([ACME_ORGANIZATION]);
+    harness.routes[`GET ${APPS_PATH}`] = () => Response.json([DEMO_APP]);
+    harness.routes[`POST /v1/apps/${DEMO_APP.id}/signing-keys`] =
+      async request =>
+        Response.json(
+          {
+            ...SIGNING_KEY,
+            ...((await request.json()) as { publicKey: string }),
+          },
+          { status: 201 },
+        );
+
+    await initCommand.action({ ...withCwd(directoryPath) }, undefined);
+
+    expect(releaseCreate).toHaveBeenCalledWith(
+      {
+        config: join(directoryPath, 'hotcodepush.json'),
+        json: undefined,
+        privateKeyPath: 'hotcodepush-private-key.pem',
+        yes: true,
+      },
+      undefined,
+    );
+    expect(harness.readLines().slice(5)).toEqual([
+      '',
+      '– Sign in        Logged in as Anna Example (anna@example.com).',
+      '✓ Organization   Used organization Acme.',
+      '✓ App            Used app Demo.',
+      '– Package        The package @hotcodepush/capacitor-live-updates is already installed.',
+      '✓ Configuration  Wrote hotcodepush.json.',
+      '✓ Hook           Wired the Create HotCodePush binary phase in Xcode, the Gradle task that runs the build step.',
+      '✓ Signing key    Generated a signing key pair, its private key in the file named above.',
+      '✓ Build          Ran "npm run build".',
+      '✓ Release        Released to production.',
+      '',
+      'Build the app natively once and run it; change a line, run the build and "hotcodepush release create --private-key-path hotcodepush-private-key.pem", then reopen the app.',
+      `Console: http://localhost:4300/apps/${DEMO_APP.id}`,
+      'Docs: https://hotcodepush.com/docs',
+    ]);
   });
 
   it('should skip the signing key for an app that has one', async () => {
