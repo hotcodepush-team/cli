@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { fetchAppId } from '../../resources/apps.js';
+import { fetchSigningKey } from '../../resources/signing-keys.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
@@ -9,10 +11,6 @@ import {
   writeProjectConfig,
 } from '../../utils/project-config.js';
 import { confirmConsequence } from '../../utils/prompts.js';
-import {
-  fetchAppId,
-  fetchSigningKey,
-} from '../../utils/resource-resolution.js';
 
 export default defineCommand({
   description:

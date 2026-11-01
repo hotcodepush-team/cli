@@ -7,62 +7,59 @@ import type {
   Release,
 } from '@hotcodepush/node';
 import { z } from 'zod';
-import { createApiClient } from '../../utils/api-client.js';
-import { resolveAudienceText } from '../../utils/audience.js';
-import { booleanFlagSchema } from '../../utils/boolean-flag.js';
+import { fetchAppId } from '../../resources/apps.js';
+import { resolveAudienceText } from '../../resources/audience.js';
+import { fetchBundle, resolveBundleLabel } from '../../resources/bundles.js';
 import {
-  fetchBundle,
-  resolveBundleLabel,
-} from '../../utils/bundle-resolution.js';
-import type { BundleUploadOptions } from '../../utils/bundle-upload.js';
-import {
-  bundleUploadOptionShape,
-  fetchUploadBundleOptions,
-} from '../../utils/bundle-upload.js';
-import type { FailurePolicyOptions } from '../../utils/channel-fields.js';
+  fetchChannelId,
+  fetchChannels,
+} from '../../resources/channels/fetch.js';
+import type { FailurePolicyOptions } from '../../resources/channels/fields.js';
 import {
   failurePolicyShape,
   resolveFailurePolicy,
-} from '../../utils/channel-fields.js';
-import { defineCommand } from '../../utils/command.js';
-import { withTemporaryDirectory } from '../../utils/compressed-files.js';
-import { InvalidParameterError } from '../../utils/errors.js';
-import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson, printWarnings } from '../../utils/output.js';
-import type {
-  Progression,
-  ProgressionOptions,
-} from '../../utils/progression.js';
-import {
-  progressionShape,
-  resolveProgression,
-  resolveProgressionText,
-} from '../../utils/progression.js';
-import { readProjectConfig } from '../../utils/project-config.js';
-import { confirmConsequence } from '../../utils/prompts.js';
-import type { ConditionOptions } from '../../utils/release-conditions.js';
+} from '../../resources/channels/fields.js';
+import type { ConditionOptions } from '../../resources/releases/conditions.js';
 import {
   buildAudienceQuery,
   buildReleaseConditions,
   conditionOptionShape,
-} from '../../utils/release-conditions.js';
-import { printReleasedLine } from '../../utils/release-output.js';
+} from '../../resources/releases/conditions.js';
 import {
   fetchReleaseLog,
   waitUntilLive,
-} from '../../utils/release-resolution.js';
+} from '../../resources/releases/fetch.js';
+import { printReleasedLine } from '../../resources/releases/output.js';
+import type {
+  Progression,
+  ProgressionOptions,
+} from '../../resources/releases/progression.js';
 import {
-  fetchAppId,
-  fetchChannelId,
-  fetchChannels,
-  fetchResourceId,
-} from '../../utils/resource-resolution.js';
-import type { UploadBundleOptions } from '../../utils/upload.js';
+  progressionShape,
+  resolveProgression,
+  resolveProgressionText,
+} from '../../resources/releases/progression.js';
+import type { BundleUploadOptions } from '../../upload/bundle-upload.js';
+import {
+  bundleUploadOptionShape,
+  fetchUploadBundleOptions,
+} from '../../upload/bundle-upload.js';
+import { withTemporaryDirectory } from '../../upload/compressed-files.js';
+import type { UploadBundleOptions } from '../../upload/upload.js';
 import {
   assertWithinBundleBytesLimit,
   collectUploadFiles,
   uploadBundle,
-} from '../../utils/upload.js';
+} from '../../upload/upload.js';
+import { createApiClient } from '../../utils/api-client.js';
+import { booleanFlagSchema } from '../../utils/boolean-flag.js';
+import { defineCommand } from '../../utils/command.js';
+import { InvalidParameterError } from '../../utils/errors.js';
+import { defineCommandOptions } from '../../utils/global-options.js';
+import { printJson, printWarnings } from '../../utils/output.js';
+import { readProjectConfig } from '../../utils/project-config.js';
+import { confirmConsequence } from '../../utils/prompts.js';
+import { fetchResourceId } from '../../utils/resources.js';
 
 type BundleSource =
   | { bundle: Bundle }

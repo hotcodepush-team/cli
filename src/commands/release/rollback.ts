@@ -1,5 +1,16 @@
 import type { Release } from '@hotcodepush/node';
 import { z } from 'zod';
+import {
+  channelOptionShape,
+  fetchChannel,
+} from '../../resources/channels/fetch.js';
+import {
+  fetchReleaseLog,
+  resolveReleaseBundleLabel,
+  resolveReleaseInLog,
+  waitUntilLive,
+} from '../../resources/releases/fetch.js';
+import { printReleasedLine } from '../../resources/releases/output.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { booleanFlagSchema } from '../../utils/boolean-flag.js';
 import { defineCommand } from '../../utils/command.js';
@@ -7,17 +18,6 @@ import { InvalidParameterError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
 import { confirmConsequence } from '../../utils/prompts.js';
-import { printReleasedLine } from '../../utils/release-output.js';
-import {
-  fetchReleaseLog,
-  resolveReleaseBundleLabel,
-  resolveReleaseInLog,
-  waitUntilLive,
-} from '../../utils/release-resolution.js';
-import {
-  channelOptionShape,
-  fetchChannel,
-} from '../../utils/resource-resolution.js';
 
 export default defineCommand({
   description:

@@ -8,6 +8,7 @@ import {
   POSTHOG_PROJECT_KEY,
   SENTRY_DSN,
 } from '../config/consts.js';
+import type { Framework } from '../frameworks/framework.js';
 import { printNotice } from './diagnostics.js';
 import { isCi } from './environment.js';
 import type { CliError } from './errors.js';
@@ -16,7 +17,6 @@ import {
   UnexpectedError,
   UnexpectedResponseError,
 } from './errors.js';
-import type { Framework } from './framework.js';
 import {
   ignoreUserConfigErrors,
   readUserConfig,
@@ -106,7 +106,7 @@ async function readProjectFramework(): Promise<Framework | null> {
   try {
     const [{ detectFramework }, { locateProjectConfigFile }] =
       await Promise.all([
-        import('./framework.js'),
+        import('../frameworks/framework.js'),
         import('./project-config.js'),
       ]);
     return detectFramework(locateProjectConfigFile(undefined).directoryPath);

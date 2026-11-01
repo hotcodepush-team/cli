@@ -1,18 +1,18 @@
 import type { Member } from '@hotcodepush/node';
-import { createApiClient } from '../../utils/api-client.js';
-import { defineCommand } from '../../utils/command.js';
-import { defineCommandOptions } from '../../utils/global-options.js';
 import {
   fetchMember,
   memberOptionShape,
   resolveMemberEmail,
-} from '../../utils/member-resolution.js';
+} from '../../resources/members.js';
+import { fetchOrganizationId } from '../../resources/organizations.js';
+import { createApiClient } from '../../utils/api-client.js';
+import { defineCommand } from '../../utils/command.js';
+import { defineCommandOptions } from '../../utils/global-options.js';
 import {
   printDetails,
   printJson,
   resolveYesNoText,
 } from '../../utils/output.js';
-import { fetchOrganizationId } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
   description:

@@ -1,6 +1,11 @@
 import type { Channel, HotCodePush } from '@hotcodepush/node';
 import { HotCodePushError } from '@hotcodepush/node';
 import { z } from 'zod';
+import type { ChannelOptions } from '../../resources/channels/fetch.js';
+import {
+  channelOptionShape,
+  fetchChannel,
+} from '../../resources/channels/fetch.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { UnknownNameError } from '../../utils/errors.js';
@@ -8,11 +13,6 @@ import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson, resolveQuantityText } from '../../utils/output.js';
 import { confirmConsequence } from '../../utils/prompts.js';
 import { isId } from '../../utils/reference.js';
-import type { ChannelOptions } from '../../utils/resource-resolution.js';
-import {
-  channelOptionShape,
-  fetchChannel,
-} from '../../utils/resource-resolution.js';
 
 export default defineCommand({
   description:

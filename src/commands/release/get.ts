@@ -1,27 +1,27 @@
 import type { Release } from '@hotcodepush/node';
-import { createApiClient } from '../../utils/api-client.js';
+import { channelOptionShape } from '../../resources/channels/fetch.js';
 import {
   resolveEffectiveFailurePolicy,
   resolveFailurePolicyDetails,
-} from '../../utils/channel-fields.js';
+} from '../../resources/channels/fields.js';
+import {
+  fetchReleaseInChannel,
+  releaseOptionShape,
+  resolveReleaseBundleLabel,
+} from '../../resources/releases/fetch.js';
+import {
+  resolveProgressionStepText,
+  resolveProgressionText,
+} from '../../resources/releases/progression.js';
+import { resolveReleaseDeviceCount } from '../../resources/statistics.js';
+import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
-import { resolveReleaseDeviceCount } from '../../utils/fleet.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import {
   printDetails,
   printJson,
   resolveYesNoText,
 } from '../../utils/output.js';
-import {
-  resolveProgressionStepText,
-  resolveProgressionText,
-} from '../../utils/progression.js';
-import {
-  fetchReleaseInChannel,
-  releaseOptionShape,
-  resolveReleaseBundleLabel,
-} from '../../utils/release-resolution.js';
-import { channelOptionShape } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
   description:

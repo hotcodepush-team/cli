@@ -1,15 +1,15 @@
-import { createApiClient } from '../../utils/api-client.js';
+import { fetchAppId } from '../../resources/apps.js';
 import {
   bundleOptionShape,
   fetchBundle,
   resolveBundleLabel,
-} from '../../utils/bundle-resolution.js';
+} from '../../resources/bundles.js';
+import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
 import { readProjectConfig } from '../../utils/project-config.js';
 import { confirmConsequence } from '../../utils/prompts.js';
-import { fetchAppId } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
   description:

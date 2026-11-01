@@ -1,17 +1,15 @@
 import { z } from 'zod';
+import { fetchAppId } from '../../resources/apps.js';
+import { fetchChannelFilterId } from '../../resources/channels/fetch.js';
+import { resolveBinaryText } from '../../resources/devices.js';
+import { PLATFORMS } from '../../upload/upload.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
-import { resolveBinaryText } from '../../utils/device-output.js';
 import { resolveTimeBound } from '../../utils/duration.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson, printTable, resolveDate } from '../../utils/output.js';
 import { paginationShape, resolveNextOffset } from '../../utils/pagination.js';
 import { readProjectConfig } from '../../utils/project-config.js';
-import {
-  fetchAppId,
-  fetchChannelFilterId,
-} from '../../utils/resource-resolution.js';
-import { PLATFORMS } from '../../utils/upload.js';
 
 export default defineCommand({
   description:

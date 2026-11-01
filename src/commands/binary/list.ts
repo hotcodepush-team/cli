@@ -1,14 +1,14 @@
+import { fetchAppId } from '../../resources/apps.js';
+import {
+  UNSEEN_IN_FLEET_WINDOW_TEXT,
+  resolveBinaryBucket,
+} from '../../resources/statistics.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
-import {
-  resolveBinaryBucket,
-  UNSEEN_IN_FLEET_WINDOW_TEXT,
-} from '../../utils/fleet.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson, printTable, resolveDate } from '../../utils/output.js';
 import { paginationShape, resolveNextOffset } from '../../utils/pagination.js';
 import { readProjectConfig } from '../../utils/project-config.js';
-import { fetchAppId } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
   description:

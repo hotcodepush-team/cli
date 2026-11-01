@@ -1,5 +1,7 @@
 import type { App, Organization } from '@hotcodepush/node';
 import { z } from 'zod';
+import { fetchAppId } from '../../resources/apps.js';
+import { fetchOrganizations } from '../../resources/organizations.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import type { InteractivityOptions } from '../../utils/environment.js';
@@ -7,12 +9,7 @@ import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
 import { readProjectConfig } from '../../utils/project-config.js';
 import { confirmConsequence } from '../../utils/prompts.js';
-import {
-  fetchAppId,
-  fetchOrganizations,
-  fetchResourceId,
-  promptResourceId,
-} from '../../utils/resource-resolution.js';
+import { fetchResourceId, promptResourceId } from '../../utils/resources.js';
 
 interface TargetOrganizationOptions extends InteractivityOptions {
   organization?: string;

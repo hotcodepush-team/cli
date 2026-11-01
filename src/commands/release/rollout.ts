@@ -1,23 +1,23 @@
 import type { Release } from '@hotcodepush/node';
 import { z } from 'zod';
+import { channelOptionShape } from '../../resources/channels/fetch.js';
+import {
+  fetchReleaseInChannel,
+  releaseOptionShape,
+} from '../../resources/releases/fetch.js';
+import { resolveProgressingText } from '../../resources/releases/output.js';
+import type { Progression } from '../../resources/releases/progression.js';
+import {
+  progressionShape,
+  resolveProgression,
+  resolveProgressionText,
+} from '../../resources/releases/progression.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import type { InteractivityOptions } from '../../utils/environment.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
-import type { Progression } from '../../utils/progression.js';
-import {
-  progressionShape,
-  resolveProgression,
-  resolveProgressionText,
-} from '../../utils/progression.js';
 import { confirmConsequence, promptText } from '../../utils/prompts.js';
-import { resolveProgressingText } from '../../utils/release-output.js';
-import {
-  fetchReleaseInChannel,
-  releaseOptionShape,
-} from '../../utils/release-resolution.js';
-import { channelOptionShape } from '../../utils/resource-resolution.js';
 
 const rolloutPercentSchema = z.coerce.number().int().min(0).max(100);
 

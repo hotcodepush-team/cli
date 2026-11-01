@@ -1,10 +1,10 @@
+import { fetchOrganizationId } from '../../resources/organizations.js';
+import { monthOptionShape } from '../../resources/usage.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson, printTable, resolveByteText } from '../../utils/output.js';
 import { paginationShape, resolveNextOffset } from '../../utils/pagination.js';
-import { fetchOrganizationId } from '../../utils/resource-resolution.js';
-import { monthOptionShape } from '../../utils/usage-month.js';
 
 export default defineCommand({
   description:

@@ -1,11 +1,11 @@
 import type { App } from '@hotcodepush/node';
 import { z } from 'zod';
+import { fetchOrganizationId } from '../../resources/organizations.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
 import { promptSelect, promptText } from '../../utils/prompts.js';
-import { fetchOrganizationId } from '../../utils/resource-resolution.js';
 
 const FRAMEWORKS = [
   'react_native',

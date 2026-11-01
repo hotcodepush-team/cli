@@ -1,18 +1,18 @@
 import { resolve } from 'node:path';
 import { z } from 'zod';
+import { fetchAppId } from '../../resources/apps.js';
+import {
+  UPLOAD_SIGNING_TEXT,
+  addPublicKeyToProjectConfig,
+  resolvePublicKeyListingText,
+} from '../../resources/signing-keys.js';
+import { readSigningKeyPairFile } from '../../upload/signing-private-key.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
 import { locateProjectConfig } from '../../utils/project-config.js';
 import { promptText } from '../../utils/prompts.js';
-import { fetchAppId } from '../../utils/resource-resolution.js';
-import {
-  addPublicKeyToProjectConfig,
-  resolvePublicKeyListingText,
-  UPLOAD_SIGNING_TEXT,
-} from '../../utils/signing-key.js';
-import { readSigningKeyPairFile } from '../../utils/signing-private-key.js';
 
 export default defineCommand({
   description:

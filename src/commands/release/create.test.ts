@@ -23,17 +23,17 @@ import {
   respondWithChannels,
   STAGING_AUDIENCE,
 } from '../../../test/release-routes.js';
-import { collectBundleFiles } from '../../utils/bundle-files.js';
-import type * as bundleUploadModule from '../../utils/bundle-upload.js';
-import { fetchUploadBundleOptions } from '../../utils/bundle-upload.js';
+import { collectBundleFiles } from '../../upload/bundle-files.js';
+import type * as bundleUploadModule from '../../upload/bundle-upload.js';
+import { fetchUploadBundleOptions } from '../../upload/bundle-upload.js';
+import type * as uploadModule from '../../upload/upload.js';
+import type { UploadBundleOptions } from '../../upload/upload.js';
+import { uploadBundle } from '../../upload/upload.js';
 import {
   ConfirmationRequiredError,
   InvalidParameterError,
 } from '../../utils/errors.js';
 import { createReporter } from '../../utils/progress.js';
-import type * as uploadModule from '../../utils/upload.js';
-import type { UploadBundleOptions } from '../../utils/upload.js';
-import { uploadBundle } from '../../utils/upload.js';
 import releaseCreateCommand from './create.js';
 
 // Keeps clack's `log` real, so the diagnostics reach stderr.
@@ -42,12 +42,12 @@ vi.mock('@clack/prompts', () =>
     ({ clackPromptsMock }) => clackPromptsMock,
   ),
 );
-vi.mock('../../utils/bundle-upload.js', async importOriginal => ({
+vi.mock('../../upload/bundle-upload.js', async importOriginal => ({
   ...(await importOriginal<typeof bundleUploadModule>()),
   fetchUploadBundleOptions: vi.fn(),
 }));
-vi.mock('../../utils/bundle-files.js');
-vi.mock('../../utils/upload.js', async importOriginal => ({
+vi.mock('../../upload/bundle-files.js');
+vi.mock('../../upload/upload.js', async importOriginal => ({
   ...(await importOriginal<typeof uploadModule>()),
   uploadBundle: vi.fn(),
 }));

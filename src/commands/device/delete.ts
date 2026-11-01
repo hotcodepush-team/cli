@@ -1,9 +1,9 @@
-import { createApiClient } from '../../utils/api-client.js';
-import { defineCommand } from '../../utils/command.js';
 import {
   deviceOptionShape,
   fetchDeviceReference,
-} from '../../utils/device-resolution.js';
+} from '../../resources/devices.js';
+import { createApiClient } from '../../utils/api-client.js';
+import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
 import { confirmConsequence } from '../../utils/prompts.js';

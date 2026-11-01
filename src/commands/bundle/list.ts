@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { fetchAppId } from '../../resources/apps.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
@@ -10,7 +11,6 @@ import {
 } from '../../utils/output.js';
 import { paginationShape, resolveNextOffset } from '../../utils/pagination.js';
 import { readProjectConfig } from '../../utils/project-config.js';
-import { fetchAppId } from '../../utils/resource-resolution.js';
 
 const BUNDLE_SOURCES = ['all', 'binary', 'upload'] as const;
 

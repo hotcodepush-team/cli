@@ -1,9 +1,7 @@
 import type { BundleDelta } from '@hotcodepush/node';
+import { fetchAppId } from '../../resources/apps.js';
+import { bundleOptionShape, fetchBundle } from '../../resources/bundles.js';
 import { createApiClient } from '../../utils/api-client.js';
-import {
-  bundleOptionShape,
-  fetchBundle,
-} from '../../utils/bundle-resolution.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import {
@@ -14,7 +12,6 @@ import {
 } from '../../utils/output.js';
 import { fetchAllPages } from '../../utils/pagination.js';
 import { readProjectConfig } from '../../utils/project-config.js';
-import { fetchAppId } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
   description: 'Print a bundle, by its number or id, with its deltas.',

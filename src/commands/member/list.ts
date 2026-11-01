@@ -1,10 +1,10 @@
+import { resolveMemberEmail } from '../../resources/members.js';
+import { fetchOrganizationId } from '../../resources/organizations.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { resolveMemberEmail } from '../../utils/member-resolution.js';
 import { printJson, printTable, resolveDate } from '../../utils/output.js';
 import { paginationShape, resolveNextOffset } from '../../utils/pagination.js';
-import { fetchOrganizationId } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
   description:

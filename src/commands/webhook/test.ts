@@ -1,13 +1,10 @@
+import { printSettledDelivery } from '../../resources/webhook-deliveries.js';
+import { fetchWebhook, webhookOptionShape } from '../../resources/webhooks.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
 import { confirmConsequence } from '../../utils/prompts.js';
-import { printSettledDelivery } from '../../utils/webhook-delivery-output.js';
-import {
-  fetchWebhook,
-  webhookOptionShape,
-} from '../../utils/webhook-resolution.js';
 
 export default defineCommand({
   description:

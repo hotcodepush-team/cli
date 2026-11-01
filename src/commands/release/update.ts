@@ -1,24 +1,24 @@
 import type { UpdateReleaseOptions } from '@hotcodepush/node';
 import { z } from 'zod';
-import { createApiClient } from '../../utils/api-client.js';
-import { booleanFlagSchema } from '../../utils/boolean-flag.js';
-import type { FailurePolicyOptions } from '../../utils/channel-fields.js';
+import { channelOptionShape } from '../../resources/channels/fetch.js';
+import type { FailurePolicyOptions } from '../../resources/channels/fields.js';
 import {
   failurePolicyShape,
   releaseFailurePolicyClearShape,
   resolveFailurePolicy,
-} from '../../utils/channel-fields.js';
+} from '../../resources/channels/fields.js';
+import {
+  fetchReleaseInChannel,
+  releaseOptionShape,
+} from '../../resources/releases/fetch.js';
+import { createApiClient } from '../../utils/api-client.js';
+import { booleanFlagSchema } from '../../utils/boolean-flag.js';
 import { defineCommand } from '../../utils/command.js';
 import { MissingParameterError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { resolveNullableField } from '../../utils/nullable-field.js';
 import { printJson } from '../../utils/output.js';
 import { confirmConsequence } from '../../utils/prompts.js';
-import {
-  fetchReleaseInChannel,
-  releaseOptionShape,
-} from '../../utils/release-resolution.js';
-import { channelOptionShape } from '../../utils/resource-resolution.js';
 
 type ReleaseChanges = Pick<
   UpdateReleaseOptions,

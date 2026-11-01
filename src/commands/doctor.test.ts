@@ -25,8 +25,8 @@ import {
   writeReactNativeProject,
 } from '../../test/react-native-project.js';
 import { respondWithChannels } from '../../test/release-routes.js';
+import { reactNativeFramework } from '../frameworks/react-native.js';
 import { ReportedFailureError } from '../utils/errors.js';
-import { reactNativeFramework } from '../utils/frameworks/react-native.js';
 import type * as packageManagerModule from '../utils/package-manager.js';
 import { resolveConfigDirectoryPath } from '../utils/user-config.js';
 import doctorCommand from './doctor.js';

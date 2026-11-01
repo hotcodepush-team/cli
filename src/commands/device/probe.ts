@@ -16,23 +16,23 @@ import {
   evaluateChannelIndex,
 } from '@hotcodepush/protocol';
 import { z } from 'zod';
+import { fetchAppId } from '../../resources/apps.js';
+import {
+  channelOptionShape,
+  fetchChannelId,
+} from '../../resources/channels/fetch.js';
+import { deviceOptionShape } from '../../resources/devices.js';
+import { resolveAttributePairs } from '../../resources/releases/conditions.js';
+import type { Platform } from '../../upload/upload.js';
+import { PLATFORMS } from '../../upload/upload.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
-import { deviceOptionShape } from '../../utils/device-resolution.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { resolveFilesBaseUrl } from '../../utils/hosts.js';
 import { printDetails, printJson, printTable } from '../../utils/output.js';
 import { fetchAllPages } from '../../utils/pagination.js';
 import { readProjectConfig } from '../../utils/project-config.js';
 import { promptSelect, promptText } from '../../utils/prompts.js';
-import { resolveAttributePairs } from '../../utils/release-conditions.js';
-import {
-  channelOptionShape,
-  fetchAppId,
-  fetchChannelId,
-} from '../../utils/resource-resolution.js';
-import type { Platform } from '../../utils/upload.js';
-import { PLATFORMS } from '../../utils/upload.js';
 import { readApiUrl } from '../../utils/user-config.js';
 
 interface ServedIndex {
