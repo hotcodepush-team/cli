@@ -15,7 +15,7 @@ import {
 
 export default defineCommand({
   description:
-    "List the app's devices, the newest report first, filtered by what they reported. For support and QA, never a pipeline.",
+    "List the app's devices, the newest report first, filtered by what they reported. It is for support and QA, never for a pipeline.",
   examples: [
     'hotcodepush device list --attribute userId=42',
     'hotcodepush device list --platform ios --binary-version 2.4.1 --last-seen-since 2026-09-01T00:00:00Z --json',
