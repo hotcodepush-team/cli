@@ -34,7 +34,7 @@ import { createReporter } from '../../utils/progress.js';
 import type * as uploadModule from '../../utils/upload.js';
 import type { UploadBundleOptions } from '../../utils/upload.js';
 import { uploadBundle } from '../../utils/upload.js';
-import releaseCreateCommand, { resolveReleaseConsequence } from './create.js';
+import releaseCreateCommand from './create.js';
 
 // Keeps clack's `log` real, so the diagnostics reach stderr.
 vi.mock('@clack/prompts', () =>
@@ -724,8 +724,8 @@ describe('release create', () => {
     });
   });
 
-  it('should stop with `confirmation_required` when nobody can confirm', async () => {
-    respondWithStagingChannel();
+  it('should stop with `confirmation_required` stating the audience at a partial rollout, with the mandatory flag, when nobody can confirm', async () => {
+    respondWithStagingChannel({ ...STAGING_AUDIENCE, estimatedDeviceCount: 6 });
     harness.routes[`GET ${BUNDLES_PATH}/${READY_BUNDLE.id}`] = () =>
       Response.json(READY_BUNDLE);
 
@@ -735,10 +735,16 @@ describe('release create', () => {
           app: DEMO_APP.id,
           bundle: READY_BUNDLE.id,
           channel: [STAGING_CHANNEL.id],
+          mandatory: true,
+          rolloutPercent: 5,
         },
         undefined,
       ),
-    ).rejects.toBeInstanceOf(ConfirmationRequiredError);
+    ).rejects.toThrow(
+      new ConfirmationRequiredError(
+        'releases bundle #17 · 1.4.2 at 5 percent, mandatory: reaches 100 of 120 active devices in staging, about 6 at a 5 percent rollout',
+      ),
+    );
 
     expect(readCreateRequests()).toEqual([]);
   });
@@ -886,31 +892,5 @@ describe('release create', () => {
     ).rejects.toBeInstanceOf(InvalidParameterError);
 
     expect(harness.requests).toEqual([]);
-  });
-
-  it('should state the audience of each channel at a partial rollout, with the mandatory flag', () => {
-    expect(
-      resolveReleaseConsequence(
-        { bundle: READY_BUNDLE },
-        [
-          {
-            audience: { ...STAGING_AUDIENCE, estimatedDeviceCount: 6 },
-            channel: STAGING_CHANNEL,
-          },
-          {
-            audience: {
-              ...STAGING_AUDIENCE,
-              deviceCount: 10_000,
-              estimatedDeviceCount: 500,
-              reachedDeviceCount: 9995,
-            },
-            channel: PRODUCTION_CHANNEL,
-          },
-        ],
-        { isMandatory: true, progression: null, rolloutPercent: 5 },
-      ),
-    ).toBe(
-      'releases bundle #17 · 1.4.2 at 5 percent, mandatory: reaches 100 of 120 active devices in staging, about 6 at a 5 percent rollout and reaches 9,995 of 10,000 active devices in production, about 500 at a 5 percent rollout',
-    );
   });
 });

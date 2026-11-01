@@ -64,12 +64,12 @@ import {
   uploadBundle,
 } from '../../utils/upload.js';
 
-export type BundleSource =
+type BundleSource =
   | { bundle: Bundle }
   | { bundle: Bundle; sourceChannel: Channel; sourceRelease: Release }
   | { appId: string; bundleUploads: UploadBundleOptions[] };
 
-export interface ChannelAudience {
+interface ChannelAudience {
   audience: Audience;
   channel: Channel;
 }
@@ -94,7 +94,7 @@ interface ReleaseCreateOptions
   rolloutPercent?: number;
 }
 
-export interface ReleaseRollout {
+interface ReleaseRollout {
   isMandatory: boolean;
   progression: Progression | null;
   rolloutPercent: number;
@@ -237,7 +237,7 @@ async function createReleases(
   }
 }
 
-export function resolveReleaseConsequence(
+function resolveReleaseConsequence(
   bundleSource: BundleSource,
   channelAudiences: ChannelAudience[],
   { isMandatory, progression, rolloutPercent }: ReleaseRollout,
