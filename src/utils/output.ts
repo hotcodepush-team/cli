@@ -54,6 +54,20 @@ export function printTable({
   }
 }
 
+// Decimal units, as the limits use.
+export function resolveByteText(bytes: number): string {
+  if (bytes < 1000) {
+    return `${bytes} B`;
+  }
+  if (bytes < 1_000_000) {
+    return `${(bytes / 1000).toFixed(1)} kB`;
+  }
+  if (bytes < 1_000_000_000) {
+    return `${(bytes / 1_000_000).toFixed(1)} MB`;
+  }
+  return `${(bytes / 1_000_000_000).toFixed(2)} GB`;
+}
+
 export function resolveDate(timestamp: string): string {
   return timestamp.slice(0, 10);
 }
@@ -64,4 +78,8 @@ export function resolveQuantityText(
   pluralNoun = `${noun}s`,
 ): string {
   return `${count} ${count === 1 ? noun : pluralNoun}`;
+}
+
+export function resolveYesNoText(value: boolean | undefined): string {
+  return value ? 'yes' : 'no';
 }

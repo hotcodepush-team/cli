@@ -1,6 +1,6 @@
 import type { SsoProvider } from '@hotcodepush/node';
 import { resolveConsoleBaseUrl } from './hosts.js';
-import { printDetails } from './output.js';
+import { printDetails, resolveYesNoText } from './output.js';
 import { readApiUrl } from './user-config.js';
 
 type Detail = [label: string, value: string];
@@ -13,7 +13,7 @@ export function printProviderDetails(provider: SsoProvider): void {
     ['ID', provider.id],
     ['Type', provider.type],
     ['Domain', provider.domain],
-    ['Verified', provider.domainVerified ? 'yes' : 'no'],
+    ['Verified', resolveYesNoText(provider.domainVerified)],
     [
       'Sign-in URL',
       `${resolveConsoleBaseUrl(apiUrl)}/login?sso=${provider.providerId}`,

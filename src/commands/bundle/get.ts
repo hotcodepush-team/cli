@@ -10,9 +10,9 @@ import {
   printDetails,
   printJson,
   resolveQuantityText,
+  resolveByteText,
 } from '../../utils/output.js';
 import { fetchAllPages } from '../../utils/pagination.js';
-import { resolveByteText } from '../../utils/progress.js';
 import { readProjectConfig } from '../../utils/project-config.js';
 import { fetchAppId } from '../../utils/resource-resolution.js';
 

@@ -15,17 +15,3 @@ export function createReporter({ json }: InteractivityOptions): Reporter {
     },
   };
 }
-
-// Decimal units, as the limits use.
-export function resolveByteText(bytes: number): string {
-  if (bytes < 1000) {
-    return `${bytes} B`;
-  }
-  if (bytes < 1_000_000) {
-    return `${(bytes / 1000).toFixed(1)} kB`;
-  }
-  if (bytes < 1_000_000_000) {
-    return `${(bytes / 1_000_000).toFixed(1)} MB`;
-  }
-  return `${(bytes / 1_000_000_000).toFixed(2)} GB`;
-}

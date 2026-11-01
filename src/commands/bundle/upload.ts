@@ -9,8 +9,7 @@ import { defineCommand } from '../../utils/command.js';
 import { withTemporaryDirectory } from '../../utils/compressed-files.js';
 import { printWarning } from '../../utils/diagnostics.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson } from '../../utils/output.js';
-import { resolveByteText } from '../../utils/progress.js';
+import { printJson, resolveByteText } from '../../utils/output.js';
 import type {
   UploadBundleOptions,
   UploadedBundle,

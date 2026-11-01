@@ -11,11 +11,10 @@ import { compressFiles, withTemporaryDirectory } from './compressed-files.js';
 import { BundleTooLargeError } from './errors.js';
 import { omitNativeGlue } from './frameworks/native-glue.js';
 import type { GitProvenance } from './git-provenance.js';
-import { resolveQuantityText } from './output.js';
+import { resolveQuantityText, resolveByteText } from './output.js';
 import { writePack } from './pack.js';
 import { fetchAllPages } from './pagination.js';
 import type { Reporter } from './progress.js';
-import { resolveByteText } from './progress.js';
 
 export type Platform = 'android' | 'ios';
 

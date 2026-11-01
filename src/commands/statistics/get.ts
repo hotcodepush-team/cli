@@ -8,8 +8,12 @@ import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { InvalidParameterError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printDetails, printJson, printTable } from '../../utils/output.js';
-import { resolveByteText } from '../../utils/progress.js';
+import {
+  printDetails,
+  printJson,
+  printTable,
+  resolveByteText,
+} from '../../utils/output.js';
 import { readProjectConfig } from '../../utils/project-config.js';
 import { promptSelect } from '../../utils/prompts.js';
 import {

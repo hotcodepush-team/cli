@@ -1,8 +1,11 @@
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printDetails, printJson } from '../../utils/output.js';
-import { resolveByteText } from '../../utils/progress.js';
+import {
+  printDetails,
+  printJson,
+  resolveByteText,
+} from '../../utils/output.js';
 import { fetchOrganizationId } from '../../utils/resource-resolution.js';
 import { monthOptionShape, resolveMonthText } from '../../utils/usage-month.js';
 
