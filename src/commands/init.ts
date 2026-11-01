@@ -54,7 +54,6 @@ import type {
   ProjectConfigLocation,
 } from '../utils/project-config.js';
 import {
-  ID_SCHEMA,
   locateProjectConfig,
   resolveProjectChannel,
 } from '../utils/project-config.js';
@@ -64,6 +63,7 @@ import {
   promptText,
   promptYesNo,
 } from '../utils/prompts.js';
+import { isId } from '../utils/reference.js';
 import {
   fetchApps,
   fetchHasSigningKey,
@@ -670,7 +670,7 @@ function printFinish(
 }
 
 function assertName(flag: string, reference: string): void {
-  if (ID_SCHEMA.safeParse(reference).success) {
+  if (isId(reference)) {
     throw new InvalidParameterError(
       `Nothing has the id ${reference} from ${flag}.`,
     );

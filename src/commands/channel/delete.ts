@@ -6,8 +6,8 @@ import { defineCommand } from '../../utils/command.js';
 import { UnknownNameError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson, resolveQuantityText } from '../../utils/output.js';
-import { ID_SCHEMA } from '../../utils/project-config.js';
 import { confirmConsequence } from '../../utils/prompts.js';
+import { isId } from '../../utils/reference.js';
 import type { ChannelOptions } from '../../utils/resource-resolution.js';
 import {
   channelOptionShape,
@@ -114,7 +114,7 @@ function resolveAbsentChannel(channel: string | undefined): {
   id: string | null;
   name: string | null;
 } {
-  return channel !== undefined && ID_SCHEMA.safeParse(channel).success
+  return channel !== undefined && isId(channel)
     ? { id: channel, name: null }
     : { id: null, name: channel ?? null };
 }

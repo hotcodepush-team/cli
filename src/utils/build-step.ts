@@ -20,11 +20,11 @@ import { resolveDeviceHosts } from './hosts.js';
 import type { ProjectConfig } from './project-config.js';
 import {
   assertProjectConfigAppId,
-  ID_SCHEMA,
   locateProjectConfig,
   resolveProjectChannel,
 } from './project-config.js';
 import { promptSelect } from './prompts.js';
+import { isId } from './reference.js';
 import type { EmbeddedBundle } from './resource-file.js';
 import { buildResourceFile, writeResourceFile } from './resource-file.js';
 import { fetchChannels, fetchResourceId } from './resource-resolution.js';
@@ -122,9 +122,7 @@ export async function readBuildStep(
 export function resolveChannelIdByShape(
   channelReference: ChannelReference,
 ): string | null {
-  return ID_SCHEMA.safeParse(channelReference.reference).success
-    ? channelReference.reference
-    : null;
+  return isId(channelReference.reference) ? channelReference.reference : null;
 }
 
 export function fetchBuildStepChannelId(

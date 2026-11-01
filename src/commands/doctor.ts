@@ -42,11 +42,11 @@ import type { PackageJson } from '../utils/package-json.js';
 import { readPackageJson } from '../utils/package-json.js';
 import type { ProjectConfig } from '../utils/project-config.js';
 import {
-  ID_SCHEMA,
   locateProjectConfigFile,
   readProjectConfigFile,
   resolveProjectChannel,
 } from '../utils/project-config.js';
+import { isId } from '../utils/reference.js';
 import {
   fetchChannels,
   fetchHasSigningKey,
@@ -185,7 +185,7 @@ function resolveConfigurationProblems(projectConfig: ProjectConfig): string[] {
   const problems: string[] = [];
   if (projectConfig.appId === undefined) {
     problems.push('lacks appId');
-  } else if (!ID_SCHEMA.safeParse(projectConfig.appId).success) {
+  } else if (!isId(projectConfig.appId)) {
     problems.push('has an appId that is not an id');
   }
   if (
@@ -252,10 +252,7 @@ function resolveFailedSessionCheck(error: unknown): DoctorCheck {
 async function checkApp(
   projectConfig: ProjectConfig | undefined,
 ): Promise<AppCheck> {
-  if (
-    projectConfig?.appId === undefined ||
-    !ID_SCHEMA.safeParse(projectConfig.appId).success
-  ) {
+  if (projectConfig?.appId === undefined || !isId(projectConfig.appId)) {
     return {
       app: undefined,
       check: {

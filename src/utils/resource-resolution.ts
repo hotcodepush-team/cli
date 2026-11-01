@@ -18,11 +18,11 @@ import { fetchAllPages } from './pagination.js';
 import type { ProjectConfig } from './project-config.js';
 import {
   assertProjectConfigAppId,
-  ID_SCHEMA,
   readProjectConfig,
   resolveProjectChannel,
 } from './project-config.js';
 import { promptSelect } from './prompts.js';
+import { isId } from './reference.js';
 
 interface AppOptions extends OrganizationOptions {
   app?: string;
@@ -187,7 +187,7 @@ export async function fetchResourceId(
   fetchResources: () => Promise<NamedResource[]>,
   source = `--${noun}`,
 ): Promise<string> {
-  if (ID_SCHEMA.safeParse(reference).success) {
+  if (isId(reference)) {
     return reference;
   }
   return resolveNamedResource(noun, reference, await fetchResources(), source)
@@ -246,7 +246,7 @@ export function findResource<TResource extends NamedResource>(
   reference: string,
   resources: TResource[],
 ): TResource | undefined {
-  return ID_SCHEMA.safeParse(reference).success
+  return isId(reference)
     ? resources.find(({ id }) => id === reference)
     : findNamedResource(noun, reference, resources, `--${noun}`);
 }

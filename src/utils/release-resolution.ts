@@ -8,8 +8,8 @@ import { z } from 'zod';
 import { resolveBundleLabel } from './bundle-resolution.js';
 import { InvalidParameterError } from './errors.js';
 import { fetchAllPages } from './pagination.js';
-import { ID_SCHEMA } from './project-config.js';
 import { promptSelect } from './prompts.js';
+import { isId, isNumber } from './reference.js';
 import type { ChannelOptions } from './resource-resolution.js';
 import { fetchChannel } from './resource-resolution.js';
 
@@ -25,8 +25,6 @@ export interface ReleaseOptions extends ChannelOptions {
 const LIVE_POLL_INTERVAL_MS = 1000;
 
 const LIVE_WAIT_MS = 60_000;
-
-const NUMBER_PATTERN = /^\d+$/;
 
 export const releaseOptionShape = {
   release: z
@@ -79,9 +77,9 @@ export function resolveReleaseInLog(
   reference: string,
   flag: string,
 ): Release {
-  const release = ID_SCHEMA.safeParse(reference).success
+  const release = isId(reference)
     ? releases.find(({ id }) => id === reference)
-    : NUMBER_PATTERN.test(reference)
+    : isNumber(reference)
       ? releases.find(({ number }) => number === Number(reference))
       : undefined;
   if (release === undefined) {
@@ -120,10 +118,7 @@ async function fetchReleaseId(
   channel: Channel,
   options: ReleaseOptions,
 ): Promise<string> {
-  if (
-    options.release !== undefined &&
-    ID_SCHEMA.safeParse(options.release).success
-  ) {
+  if (options.release !== undefined && isId(options.release)) {
     return options.release;
   }
   const releases = await fetchReleaseLog(hotCodePush, channel);

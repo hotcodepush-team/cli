@@ -17,7 +17,7 @@ src/
   commands/    a folder per noun and a file per verb, channel/create.ts, resource-file/write.ts; the standalone commands flat, login.ts, logout.ts, whoami.ts, doctor.ts, init.ts, open.ts, fingerprint.ts, completion.ts
   utils/       the runner, command resolution and did-you-mean, the CLI's `defineCommand` and the authentication gate, the error catalog and its one mapping, the diagnostics on stderr,
                the global options, environment detection, config.json, the token store,
-               the auth client, the login flow, the API client, hotcodepush.json and its directory, the JSON files a person edits read as `invalid_json` when they do not parse, a resource by id or name,
+               the auth client, the login flow, the API client, hotcodepush.json and its directory, the JSON files a person edits read as `invalid_json` when they do not parse, a reference told apart as an id or a number, a resource by id or name,
                the project's fingerprint through the protocol's recipe,
                a bundle by number or id, a release by number or id in its channel with the wait until it is live,
                the released line, the details of an organization, an SSO provider, a device binary and a settled webhook delivery that several commands print,
