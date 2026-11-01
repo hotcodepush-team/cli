@@ -43,5 +43,8 @@ jobs:
           node-version-file: .nvmrc
           registry-url: https://registry.npmjs.org
       - run: npm ci
-      - run: npm pkg set telemetry.posthogProjectKey="${{ vars.POSTHOG_PROJECT_KEY }}" telemetry.sentryDsn="${{ vars.SENTRY_DSN }}"
+      - run: npm pkg set telemetry.posthogProjectKey="$POSTHOG_PROJECT_KEY" telemetry.sentryDsn="$SENTRY_DSN"
+        env:
+          POSTHOG_PROJECT_KEY: ${{ vars.POSTHOG_PROJECT_KEY }}
+          SENTRY_DSN: ${{ vars.SENTRY_DSN }}
       - run: npm publish --provenance --access public
