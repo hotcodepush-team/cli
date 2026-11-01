@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.0](https://github.com/hotcodepush-team/cli/compare/v0.1.0...v0.2.0) (2026-11-01)
+
+
+### ⚠ BREAKING CHANGES
+
+* release create sends raw attribute values and device ids ([#100](https://github.com/hotcodepush-team/cli/issues/100))
+
+### Features
+
+* release create sends raw attribute values and device ids ([#100](https://github.com/hotcodepush-team/cli/issues/100)) ([1ba6a95](https://github.com/hotcodepush-team/cli/commit/1ba6a95352215bc0bca0bd0361b217d2bb0b6fa6))
+* the session is a precondition, and diagnostics share clack's gutter ([#102](https://github.com/hotcodepush-team/cli/issues/102)) ([fda6b95](https://github.com/hotcodepush-team/cli/commit/fda6b95079d7bbf429aafb9714058f630c0ef539))
+
 ## [0.1.0](https://github.com/hotcodepush-team/cli/compare/v0.0.1...v0.1.0) (2026-11-01)
 
 ### ⚠ BREAKING CHANGES
