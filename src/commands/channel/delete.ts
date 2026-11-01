@@ -1,11 +1,11 @@
-import type { HotCodePush } from '@hotcodepush/node';
+import type { Channel, HotCodePush } from '@hotcodepush/node';
 import { HotCodePushError } from '@hotcodepush/node';
 import { z } from 'zod';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { UnknownNameError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson } from '../../utils/output.js';
+import { printJson, resolveQuantityText } from '../../utils/output.js';
 import { ID_SCHEMA } from '../../utils/project-config.js';
 import { confirmConsequence } from '../../utils/prompts.js';
 import type { ChannelOptions } from '../../utils/resource-resolution.js';
@@ -59,6 +59,10 @@ async function deleteChannel(
   if (!isConfirmed) {
     return;
   }
+  // The count is a reader's figure, so `--json` neither asks for it nor prints it.
+  const deviceCount = options.json
+    ? null
+    : await fetchChannelDeviceCount(hotCodePush, fetchedChannel);
   await hotCodePush.apps.channels.delete({
     appId: fetchedChannel.appId,
     channelId: fetchedChannel.id,
@@ -66,10 +70,36 @@ async function deleteChannel(
   if (options.json) {
     printJson({ id: fetchedChannel.id, name: fetchedChannel.name });
   } else {
-    console.log(
-      `Deleted channel ${fetchedChannel.name} (${fetchedChannel.id}).`,
-    );
+    console.log(resolveDeletedChannelText(fetchedChannel, { deviceCount }));
   }
+}
+
+async function fetchChannelDeviceCount(
+  hotCodePush: HotCodePush,
+  channel: Channel,
+): Promise<number | null> {
+  try {
+    const { count } = await hotCodePush.apps.devices.count({
+      appId: channel.appId,
+      channelId: channel.id,
+    });
+    return count;
+  } catch {
+    // The count only informs the result line, so it never stops the delete.
+    return null;
+  }
+}
+
+function resolveDeletedChannelText(
+  channel: Channel,
+  { deviceCount }: { deviceCount: number | null },
+): string {
+  const deletedText = `Deleted channel ${channel.name} (${channel.id}).`;
+  if (deviceCount === null || deviceCount === 0) {
+    return deletedText;
+  }
+  const verb = deviceCount === 1 ? 'was' : 'were';
+  return `${deletedText} ${resolveQuantityText(deviceCount, 'device')} ${verb} on it.`;
 }
 
 // A deleted app has no channels either.
