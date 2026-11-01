@@ -116,6 +116,7 @@ A project with an app config that is code, or with a JSON one that does not pars
   `--yes` skips the question; non-interactive without `--yes` throws `ConfirmationRequiredError`; creates and reads never confirm.
 - **`--json` is data only**: the human output's content on stdout and nothing else, no prompt, no progress line, no notice.
   An error under `--json` is `{ "error": { "code", "message", "fix" } }` with its exit code; without `--json`, output goes to stdout and diagnostics to stderr.
+  `--json` prints the rows as the API serves them; what the CLI joins or computes for a reader, the fleet's counts per release, channel and binary, the progression step and gate, the caller's roles, the SSO URLs and TXT record name, is human output only.
 - **Colour** only where `isColorEnabled(stream)` holds: a TTY, no `NO_COLOR`, no `TERM=dumb`.
   zodline colours its help regardless, so `runCli` strips the codes from its output where colour is off.
 - **Commands call commands**: a command that needs what another does runs that command's action in place, never a copy of its logic.
@@ -176,7 +177,7 @@ A project with an app config that is code, or with a JSON one that does not pars
 - A new test names the behaviour or the bug it proves; if deleting the production code would not fail it, it does not get in.
 - Fixtures and examples carry invented data only.
 - HotCodePush ships over-the-air (OTA) updates: a surface, the root `--help`, a command's `--help`, a message or the README, writes "over-the-air (OTA) update" on its first mention and "OTA update" after it. "Live update" names the Capacitor offering alone, `capacitor-live-updates`, or sits in a list of alternative names for search, never as the product's own term.
-- The supported frameworks are listed as React Native, Expo, Capacitor and Cordova wherever a reader sees them listed, a description, a message, an enum's choices, a prompt or the README, the larger communities first and React Native beside Expo; identifiers and the detection order are logic, not lists.
+- Prose names the supported frameworks in the order React Native, Expo, Capacitor and Cordova, the larger communities first; a list a reader scans for their own item, such as an enum's choices, a prompt, a tab set or a table, sorts alphabetically. Identifiers and the detection order are logic, not lists.
 
 ## Comments
 
@@ -188,8 +189,7 @@ A project with an app config that is code, or with a JSON one that does not pars
 
 ## Agent workspace
 
-- `.mcp.json` is absent on purpose: the one server for this repo's stack, HotCodePush's own at `https://mcp.hotcodepush.com/mcp`, is not live yet; the file arrives with it.
+- No `.mcp.json`: no server covers this repo's stack yet; the HotCodePush server joins when it exists.
 - `.claude/skills/` holds the developer skills copied from `hotcodepush-team/.github` with the skills CLI and pinned in `skills-lock.json`; update them with `npx skills update`.
 - `.github/copilot-instructions.md` holds the review criteria, the only Copilot-specific file.
 - Commits are conventional commits; `main` is trunk, CI is the gate, and a commit that lands an issue says `Closes #<n>`.
-- `--json` prints the rows as the API serves them; what the CLI joins or computes for a reader, the fleet's counts per release, channel and binary, the progression step and gate, the caller's roles, the SSO URLs and TXT record name, is human output only.
