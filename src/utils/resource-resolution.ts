@@ -104,6 +104,18 @@ export async function fetchChannel(
   return hotCodePush.apps.channels.get({ appId, channelId });
 }
 
+// A list filtered by channel takes no default from hotcodepush.json, since no flag means every channel.
+export async function fetchChannelFilterId(
+  hotCodePush: HotCodePush,
+  { appId, channel }: { appId: string; channel: string | undefined },
+): Promise<string | undefined> {
+  return channel === undefined
+    ? undefined
+    : fetchResourceId('channel', channel, () =>
+        fetchChannels(hotCodePush, appId),
+      );
+}
+
 // The channel of hotcodepush.json counts only when the app is the one of the file too.
 export async function fetchChannelId(
   hotCodePush: HotCodePush,

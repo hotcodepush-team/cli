@@ -9,8 +9,7 @@ import { paginationShape, resolveNextOffset } from '../../utils/pagination.js';
 import { readProjectConfig } from '../../utils/project-config.js';
 import {
   fetchAppId,
-  fetchChannels,
-  fetchResourceId,
+  fetchChannelFilterId,
 } from '../../utils/resource-resolution.js';
 import { PLATFORMS } from '../../utils/upload.js';
 
@@ -76,12 +75,10 @@ export default defineCommand({
       attribute: options.attribute,
       binaryBuild: options.binaryBuild,
       binaryVersion: options.binaryVersion,
-      channelId:
-        options.channel === undefined
-          ? undefined
-          : await fetchResourceId('channel', options.channel, () =>
-              fetchChannels(hotCodePush, appId),
-            ),
+      channelId: await fetchChannelFilterId(hotCodePush, {
+        appId,
+        channel: options.channel,
+      }),
       fingerprint: options.fingerprint,
       lastSeenSince: resolveTimeBound(options.lastSeenSince),
       lastSeenUntil: resolveTimeBound(options.lastSeenUntil),
