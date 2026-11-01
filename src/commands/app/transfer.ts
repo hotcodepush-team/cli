@@ -1,7 +1,7 @@
 import type { App, Organization } from '@hotcodepush/node';
 import { z } from 'zod';
-import { fetchAppId } from '../../resources/app.js';
-import { fetchOrganizations } from '../../resources/organization.js';
+import { fetchAppId } from '../../resources/apps.js';
+import { fetchOrganizations } from '../../resources/organizations.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import type { InteractivityOptions } from '../../utils/environment.js';

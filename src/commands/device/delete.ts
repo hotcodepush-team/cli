@@ -1,7 +1,7 @@
 import {
   deviceOptionShape,
   fetchDeviceReference,
-} from '../../resources/device.js';
+} from '../../resources/devices.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';

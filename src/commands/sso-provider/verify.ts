@@ -1,6 +1,6 @@
 import type { SsoProvider } from '@hotcodepush/node';
-import { fetchOrganizationId } from '../../resources/organization.js';
-import { printProviderDetails } from '../../resources/sso-provider.js';
+import { fetchOrganizationId } from '../../resources/organizations.js';
+import { printProviderDetails } from '../../resources/sso-providers.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';

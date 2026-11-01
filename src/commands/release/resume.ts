@@ -1,8 +1,8 @@
-import { channelOptionShape } from '../../resources/channel/fetch.js';
+import { channelOptionShape } from '../../resources/channels/fetch.js';
 import {
   fetchReleaseInChannel,
   releaseOptionShape,
-} from '../../resources/release/fetch.js';
+} from '../../resources/releases/fetch.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';

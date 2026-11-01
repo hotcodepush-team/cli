@@ -15,11 +15,11 @@ import {
   readInstalledPackageVersion,
   readSdkDependencyVersion,
 } from '../frameworks/sdk-package.js';
-import { fetchChannels } from '../resources/channel/fetch.js';
+import { fetchChannels } from '../resources/channels/fetch.js';
 import {
   fetchHasSigningKey,
   fetchSigningKeys,
-} from '../resources/signing-key.js';
+} from '../resources/signing-keys.js';
 import { readSigningKeyPair } from '../upload/signing-private-key.js';
 import { createApiClient } from '../utils/api-client.js';
 import { defineCommand } from '../utils/command.js';

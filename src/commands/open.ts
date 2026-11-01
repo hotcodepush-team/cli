@@ -1,8 +1,8 @@
-import { fetchAppId } from '../resources/app.js';
+import { fetchAppId } from '../resources/apps.js';
 import {
   channelOptionShape,
   fetchChannel,
-} from '../resources/channel/fetch.js';
+} from '../resources/channels/fetch.js';
 import { createApiClient } from '../utils/api-client.js';
 import { openBrowser } from '../utils/browser.js';
 import { defineCommand } from '../utils/command.js';

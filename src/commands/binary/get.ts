@@ -1,6 +1,6 @@
 import type { HotCodePush } from '@hotcodepush/node';
 import { z } from 'zod';
-import { fetchAppId } from '../../resources/app.js';
+import { fetchAppId } from '../../resources/apps.js';
 import {
   UNSEEN_IN_FLEET_WINDOW_TEXT,
   resolveBinaryBucket,

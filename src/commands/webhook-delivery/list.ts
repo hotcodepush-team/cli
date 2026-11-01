@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { resolveResponseText } from '../../resources/webhook-delivery.js';
-import { fetchWebhook, webhookOptionShape } from '../../resources/webhook.js';
+import { resolveResponseText } from '../../resources/webhook-deliveries.js';
+import { fetchWebhook, webhookOptionShape } from '../../resources/webhooks.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { resolveTimeBound } from '../../utils/duration.js';

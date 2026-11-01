@@ -1,4 +1,4 @@
-import { fetchOrganizationId } from '../../resources/organization.js';
+import { fetchOrganizationId } from '../../resources/organizations.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';

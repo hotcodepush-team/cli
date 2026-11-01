@@ -3,11 +3,11 @@ import { resolveAudienceText } from '../../resources/audience.js';
 import {
   channelOptionShape,
   fetchChannel,
-} from '../../resources/channel/fetch.js';
+} from '../../resources/channels/fetch.js';
 import {
   buildAudienceQuery,
   conditionOptionShape,
-} from '../../resources/release/conditions.js';
+} from '../../resources/releases/conditions.js';
 import { hasLockfile, readFingerprint } from '../../upload/fingerprint.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';

@@ -1,11 +1,11 @@
 import {
   channelOptionShape,
   fetchChannel,
-} from '../../resources/channel/fetch.js';
+} from '../../resources/channels/fetch.js';
 import {
   resolveEffectiveFailurePolicy,
   resolveFailurePolicyDetails,
-} from '../../resources/channel/fields.js';
+} from '../../resources/channels/fields.js';
 import { resolveReleaseDeviceCount } from '../../resources/statistics.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';

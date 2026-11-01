@@ -1,9 +1,9 @@
 import { readFileSync } from 'node:fs';
 import type { SetSsoProviderOptions } from '@hotcodepush/node';
 import { z } from 'zod';
-import { fetchOrganizationId } from '../../resources/organization.js';
-import { printProviderDetails } from '../../resources/sso-provider.js';
-import type { SsoProviderType } from '../../resources/sso-provider.js';
+import { fetchOrganizationId } from '../../resources/organizations.js';
+import { printProviderDetails } from '../../resources/sso-providers.js';
+import type { SsoProviderType } from '../../resources/sso-providers.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import type { InteractivityOptions } from '../../utils/environment.js';

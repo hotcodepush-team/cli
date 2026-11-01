@@ -1,11 +1,11 @@
 import { resolve } from 'node:path';
 import { z } from 'zod';
-import { fetchAppId } from '../../resources/app.js';
+import { fetchAppId } from '../../resources/apps.js';
 import {
   UPLOAD_SIGNING_TEXT,
   addPublicKeyToProjectConfig,
   resolvePublicKeyListingText,
-} from '../../resources/signing-key.js';
+} from '../../resources/signing-keys.js';
 import { readSigningKeyPairFile } from '../../upload/signing-private-key.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';

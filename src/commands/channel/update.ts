@@ -2,12 +2,12 @@ import { z } from 'zod';
 import {
   channelOptionShape,
   fetchChannel,
-} from '../../resources/channel/fetch.js';
+} from '../../resources/channels/fetch.js';
 import {
   channelFieldsClearShape,
   channelFieldsShape,
   resolveChannelFields,
-} from '../../resources/channel/fields.js';
+} from '../../resources/channels/fields.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';

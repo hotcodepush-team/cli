@@ -10,8 +10,8 @@ import {
   fetchOrPromptResourceId,
   fetchResourceId,
 } from '../utils/resources.js';
-import { fetchApps } from './app.js';
-import { fetchOrganizationId } from './organization.js';
+import { fetchApps } from './apps.js';
+import { fetchOrganizationId } from './organizations.js';
 
 type WebhookEventType = CreateWebhookOptions['events'][number];
 

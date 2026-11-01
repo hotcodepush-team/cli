@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { fetchPendingInvitation } from '../../resources/invitation.js';
-import { fetchOrganizationId } from '../../resources/organization.js';
+import { fetchPendingInvitation } from '../../resources/invitations.js';
+import { fetchOrganizationId } from '../../resources/organizations.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';

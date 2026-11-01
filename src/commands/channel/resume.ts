@@ -1,7 +1,7 @@
 import {
   channelOptionShape,
   fetchChannel,
-} from '../../resources/channel/fetch.js';
+} from '../../resources/channels/fetch.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';

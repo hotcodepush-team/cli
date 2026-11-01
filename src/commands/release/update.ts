@@ -1,16 +1,16 @@
 import type { UpdateReleaseOptions } from '@hotcodepush/node';
 import { z } from 'zod';
-import { channelOptionShape } from '../../resources/channel/fetch.js';
-import type { FailurePolicyOptions } from '../../resources/channel/fields.js';
+import { channelOptionShape } from '../../resources/channels/fetch.js';
+import type { FailurePolicyOptions } from '../../resources/channels/fields.js';
 import {
   failurePolicyShape,
   releaseFailurePolicyClearShape,
   resolveFailurePolicy,
-} from '../../resources/channel/fields.js';
+} from '../../resources/channels/fields.js';
 import {
   fetchReleaseInChannel,
   releaseOptionShape,
-} from '../../resources/release/fetch.js';
+} from '../../resources/releases/fetch.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { booleanFlagSchema } from '../../utils/boolean-flag.js';
 import { defineCommand } from '../../utils/command.js';

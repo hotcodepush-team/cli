@@ -5,18 +5,18 @@ import type {
   Release,
 } from '@hotcodepush/node';
 import { z } from 'zod';
-import { fetchAppId } from '../../resources/app.js';
-import { fetchBundle } from '../../resources/bundle.js';
+import { fetchAppId } from '../../resources/apps.js';
+import { fetchBundle } from '../../resources/bundles.js';
 import {
   channelOptionShape,
   fetchChannel,
-} from '../../resources/channel/fetch.js';
-import type { ReleaseOptions } from '../../resources/release/fetch.js';
+} from '../../resources/channels/fetch.js';
+import type { ReleaseOptions } from '../../resources/releases/fetch.js';
 import {
   fetchReleaseInChannel,
   fetchReleaseLog,
   releaseOptionShape,
-} from '../../resources/release/fetch.js';
+} from '../../resources/releases/fetch.js';
 import { resolveReleaseDeviceCount } from '../../resources/statistics.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';

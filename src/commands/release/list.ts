@@ -2,9 +2,9 @@ import type { Release } from '@hotcodepush/node';
 import {
   channelOptionShape,
   fetchChannel,
-} from '../../resources/channel/fetch.js';
-import { resolveReleaseBundleLabel } from '../../resources/release/fetch.js';
-import { resolveProgressionStepText } from '../../resources/release/progression.js';
+} from '../../resources/channels/fetch.js';
+import { resolveReleaseBundleLabel } from '../../resources/releases/fetch.js';
+import { resolveProgressionStepText } from '../../resources/releases/progression.js';
 import { resolveReleaseDeviceCount } from '../../resources/statistics.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';

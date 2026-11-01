@@ -1,5 +1,5 @@
 import type { Webhook } from '@hotcodepush/node';
-import { fetchWebhook, webhookOptionShape } from '../../resources/webhook.js';
+import { fetchWebhook, webhookOptionShape } from '../../resources/webhooks.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';

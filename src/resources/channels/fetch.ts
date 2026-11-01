@@ -11,8 +11,8 @@ import {
   fetchOrPromptResourceId,
   fetchResourceId,
 } from '../../utils/resources.js';
-import type { AppOptions } from '../app.js';
-import { fetchAppId } from '../app.js';
+import type { AppOptions } from '../apps.js';
+import { fetchAppId } from '../apps.js';
 
 export interface ChannelOptions extends AppOptions {
   channel?: string;

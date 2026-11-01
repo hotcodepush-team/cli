@@ -16,13 +16,13 @@ import {
   evaluateChannelIndex,
 } from '@hotcodepush/protocol';
 import { z } from 'zod';
-import { fetchAppId } from '../../resources/app.js';
+import { fetchAppId } from '../../resources/apps.js';
 import {
   channelOptionShape,
   fetchChannelId,
-} from '../../resources/channel/fetch.js';
-import { deviceOptionShape } from '../../resources/device.js';
-import { resolveAttributePairs } from '../../resources/release/conditions.js';
+} from '../../resources/channels/fetch.js';
+import { deviceOptionShape } from '../../resources/devices.js';
+import { resolveAttributePairs } from '../../resources/releases/conditions.js';
 import type { Platform } from '../../upload/upload.js';
 import { PLATFORMS } from '../../upload/upload.js';
 import { createApiClient } from '../../utils/api-client.js';

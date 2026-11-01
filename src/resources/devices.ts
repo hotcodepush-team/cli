@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { InteractivityOptions } from '../utils/environment.js';
 import { readProjectConfig } from '../utils/project-config.js';
 import { promptText } from '../utils/prompts.js';
-import { fetchAppId } from './app.js';
+import { fetchAppId } from './apps.js';
 
 export interface DeviceOptions extends InteractivityOptions {
   app?: string;

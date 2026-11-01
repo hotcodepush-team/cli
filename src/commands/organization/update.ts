@@ -6,7 +6,7 @@ import {
   resolveCents,
   resolveDollarText,
   spendingCapShape,
-} from '../../resources/organization.js';
+} from '../../resources/organizations.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import type { InteractivityOptions } from '../../utils/environment.js';

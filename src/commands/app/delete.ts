@@ -1,5 +1,5 @@
-import { fetchAppId } from '../../resources/app.js';
-import { fetchChannels } from '../../resources/channel/fetch.js';
+import { fetchAppId } from '../../resources/apps.js';
+import { fetchChannels } from '../../resources/channels/fetch.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';

@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { fetchAppId } from '../../resources/app.js';
-import { fetchSigningKey } from '../../resources/signing-key.js';
+import { fetchAppId } from '../../resources/apps.js';
+import { fetchSigningKey } from '../../resources/signing-keys.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';

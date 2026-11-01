@@ -5,7 +5,7 @@ import { CAPACITOR_FINGERPRINT } from '../../test/capacitor-project.js';
 import { resolveProtocolSigningKey, SIGNING_KEY } from '../../test/fixtures.js';
 import type { Platform } from '../upload/upload.js';
 import { InvalidParameterError } from '../utils/errors.js';
-import { buildResourceFile } from './resource-file.js';
+import { buildResourceFile } from './resource-files.js';
 
 const CHANNEL_ID = '83ae07ef-2539-4c88-8380-17a56e24a82f';
 

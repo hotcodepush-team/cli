@@ -1,11 +1,11 @@
 import type { Channel, HotCodePush } from '@hotcodepush/node';
 import { HotCodePushError } from '@hotcodepush/node';
 import { z } from 'zod';
-import type { ChannelOptions } from '../../resources/channel/fetch.js';
+import type { ChannelOptions } from '../../resources/channels/fetch.js';
 import {
   channelOptionShape,
   fetchChannel,
-} from '../../resources/channel/fetch.js';
+} from '../../resources/channels/fetch.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { UnknownNameError } from '../../utils/errors.js';

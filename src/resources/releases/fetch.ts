@@ -9,9 +9,9 @@ import { InvalidParameterError } from '../../utils/errors.js';
 import { fetchAllPages } from '../../utils/pagination.js';
 import { promptSelect } from '../../utils/prompts.js';
 import { isId, isNumber } from '../../utils/reference.js';
-import { resolveBundleLabel } from '../bundle.js';
-import type { ChannelOptions } from '../channel/fetch.js';
-import { fetchChannel } from '../channel/fetch.js';
+import { resolveBundleLabel } from '../bundles.js';
+import type { ChannelOptions } from '../channels/fetch.js';
+import { fetchChannel } from '../channels/fetch.js';
 
 export interface ReleaseInChannel {
   channel: Channel;

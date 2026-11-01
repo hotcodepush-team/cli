@@ -1,4 +1,4 @@
-import { resolveMemberRole } from '../../resources/member.js';
+import { resolveMemberRole } from '../../resources/members.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';

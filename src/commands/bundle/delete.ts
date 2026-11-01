@@ -1,9 +1,9 @@
-import { fetchAppId } from '../../resources/app.js';
+import { fetchAppId } from '../../resources/apps.js';
 import {
   bundleOptionShape,
   fetchBundle,
   resolveBundleLabel,
-} from '../../resources/bundle.js';
+} from '../../resources/bundles.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';

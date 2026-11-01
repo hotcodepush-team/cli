@@ -1,12 +1,12 @@
 import type { Channel } from '@hotcodepush/node';
 import { HotCodePushError } from '@hotcodepush/node';
 import { z } from 'zod';
-import { fetchAppId } from '../../resources/app.js';
-import { fetchChannels } from '../../resources/channel/fetch.js';
+import { fetchAppId } from '../../resources/apps.js';
+import { fetchChannels } from '../../resources/channels/fetch.js';
 import {
   channelFieldsShape,
   resolveChannelFields,
-} from '../../resources/channel/fields.js';
+} from '../../resources/channels/fields.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';

@@ -3,14 +3,14 @@ import { z } from 'zod';
 import {
   channelOptionShape,
   fetchChannel,
-} from '../../resources/channel/fetch.js';
+} from '../../resources/channels/fetch.js';
 import {
   fetchReleaseLog,
   resolveReleaseBundleLabel,
   resolveReleaseInLog,
   waitUntilLive,
-} from '../../resources/release/fetch.js';
-import { printReleasedLine } from '../../resources/release/output.js';
+} from '../../resources/releases/fetch.js';
+import { printReleasedLine } from '../../resources/releases/output.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { booleanFlagSchema } from '../../utils/boolean-flag.js';
 import { defineCommand } from '../../utils/command.js';

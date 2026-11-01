@@ -7,7 +7,7 @@ import {
   readInputDirectoryPath,
 } from '../frameworks/framework.js';
 import { resolveFrameworkModule } from '../frameworks/index.js';
-import { fetchAppId } from '../resources/app.js';
+import { fetchAppId } from '../resources/apps.js';
 import type { InteractivityOptions } from '../utils/environment.js';
 import { SigningKeyUnavailableError } from '../utils/errors.js';
 import { readPackageJson } from '../utils/package-json.js';

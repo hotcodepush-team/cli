@@ -7,38 +7,38 @@ import type {
   Release,
 } from '@hotcodepush/node';
 import { z } from 'zod';
-import { fetchAppId } from '../../resources/app.js';
+import { fetchAppId } from '../../resources/apps.js';
 import { resolveAudienceText } from '../../resources/audience.js';
-import { fetchBundle, resolveBundleLabel } from '../../resources/bundle.js';
+import { fetchBundle, resolveBundleLabel } from '../../resources/bundles.js';
 import {
   fetchChannelId,
   fetchChannels,
-} from '../../resources/channel/fetch.js';
-import type { FailurePolicyOptions } from '../../resources/channel/fields.js';
+} from '../../resources/channels/fetch.js';
+import type { FailurePolicyOptions } from '../../resources/channels/fields.js';
 import {
   failurePolicyShape,
   resolveFailurePolicy,
-} from '../../resources/channel/fields.js';
-import type { ConditionOptions } from '../../resources/release/conditions.js';
+} from '../../resources/channels/fields.js';
+import type { ConditionOptions } from '../../resources/releases/conditions.js';
 import {
   buildAudienceQuery,
   buildReleaseConditions,
   conditionOptionShape,
-} from '../../resources/release/conditions.js';
+} from '../../resources/releases/conditions.js';
 import {
   fetchReleaseLog,
   waitUntilLive,
-} from '../../resources/release/fetch.js';
-import { printReleasedLine } from '../../resources/release/output.js';
+} from '../../resources/releases/fetch.js';
+import { printReleasedLine } from '../../resources/releases/output.js';
 import type {
   Progression,
   ProgressionOptions,
-} from '../../resources/release/progression.js';
+} from '../../resources/releases/progression.js';
 import {
   progressionShape,
   resolveProgression,
   resolveProgressionText,
-} from '../../resources/release/progression.js';
+} from '../../resources/releases/progression.js';
 import type { BundleUploadOptions } from '../../upload/bundle-upload.js';
 import {
   bundleUploadOptionShape,

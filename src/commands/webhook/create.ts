@@ -1,12 +1,12 @@
 import type { CreatedWebhook, CreateWebhookOptions } from '@hotcodepush/node';
 import { z } from 'zod';
-import { fetchOrganizationId } from '../../resources/organization.js';
+import { fetchOrganizationId } from '../../resources/organizations.js';
 import {
   fetchWebhookAppId,
   resolveWebhookEventTypes,
   webhookAppOptionShape,
   webhookEventOptionShape,
-} from '../../resources/webhook.js';
+} from '../../resources/webhooks.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import type { InteractivityOptions } from '../../utils/environment.js';

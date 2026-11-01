@@ -6,8 +6,8 @@ import {
   fetchOrPromptResourceId,
   fetchResourceId,
 } from '../utils/resources.js';
-import type { OrganizationOptions } from './organization.js';
-import { fetchOrganizationId, fetchOrganizations } from './organization.js';
+import type { OrganizationOptions } from './organizations.js';
+import { fetchOrganizationId, fetchOrganizations } from './organizations.js';
 
 export interface AppOptions extends OrganizationOptions {
   app?: string;

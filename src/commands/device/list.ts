@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { fetchAppId } from '../../resources/app.js';
-import { fetchChannelFilterId } from '../../resources/channel/fetch.js';
-import { resolveBinaryText } from '../../resources/device.js';
+import { fetchAppId } from '../../resources/apps.js';
+import { fetchChannelFilterId } from '../../resources/channels/fetch.js';
+import { resolveBinaryText } from '../../resources/devices.js';
 import { PLATFORMS } from '../../upload/upload.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';

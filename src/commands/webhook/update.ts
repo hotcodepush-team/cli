@@ -6,7 +6,7 @@ import {
   webhookAppOptionShape,
   webhookEventOptionShape,
   webhookOptionShape,
-} from '../../resources/webhook.js';
+} from '../../resources/webhooks.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { booleanFlagSchema } from '../../utils/boolean-flag.js';
 import { defineCommand } from '../../utils/command.js';

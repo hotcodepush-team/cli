@@ -12,9 +12,9 @@ import type { Framework } from '../frameworks/framework.js';
 import { detectFramework } from '../frameworks/framework.js';
 import type { FrameworkModule, FrameworkWiring } from '../frameworks/index.js';
 import { resolveFrameworkModule } from '../frameworks/index.js';
-import { fetchApps } from '../resources/app.js';
-import { fetchOrganizations } from '../resources/organization.js';
-import { fetchHasSigningKey } from '../resources/signing-key.js';
+import { fetchApps } from '../resources/apps.js';
+import { fetchOrganizations } from '../resources/organizations.js';
+import { fetchHasSigningKey } from '../resources/signing-keys.js';
 import { createApiClient } from '../utils/api-client.js';
 import { defineCommand } from '../utils/command.js';
 import {

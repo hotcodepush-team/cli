@@ -4,8 +4,8 @@ import type {
   UsageStatistics,
 } from '@hotcodepush/node';
 import { z } from 'zod';
-import { fetchAppId } from '../../resources/app.js';
-import { fetchChannelFilterId } from '../../resources/channel/fetch.js';
+import { fetchAppId } from '../../resources/apps.js';
+import { fetchChannelFilterId } from '../../resources/channels/fetch.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { InvalidParameterError } from '../../utils/errors.js';

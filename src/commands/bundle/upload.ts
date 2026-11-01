@@ -1,5 +1,5 @@
 import type { HotCodePush } from '@hotcodepush/node';
-import { resolveBundleLabel } from '../../resources/bundle.js';
+import { resolveBundleLabel } from '../../resources/bundles.js';
 import {
   bundleUploadOptionShape,
   fetchUploadBundleOptions,

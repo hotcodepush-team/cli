@@ -1,17 +1,17 @@
 import type { Release } from '@hotcodepush/node';
 import { z } from 'zod';
-import { channelOptionShape } from '../../resources/channel/fetch.js';
+import { channelOptionShape } from '../../resources/channels/fetch.js';
 import {
   fetchReleaseInChannel,
   releaseOptionShape,
-} from '../../resources/release/fetch.js';
-import { resolveProgressingText } from '../../resources/release/output.js';
-import type { Progression } from '../../resources/release/progression.js';
+} from '../../resources/releases/fetch.js';
+import { resolveProgressingText } from '../../resources/releases/output.js';
+import type { Progression } from '../../resources/releases/progression.js';
 import {
   progressionShape,
   resolveProgression,
   resolveProgressionText,
-} from '../../resources/release/progression.js';
+} from '../../resources/releases/progression.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import type { InteractivityOptions } from '../../utils/environment.js';

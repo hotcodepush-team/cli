@@ -3,12 +3,12 @@ import type { HotCodePush } from '@hotcodepush/node';
 import { HotCodePushError } from '@hotcodepush/node';
 import { z } from 'zod';
 import { PROJECT_CONFIG_FILE_NAME } from '../config/consts.js';
-import { fetchChannels } from '../resources/channel/fetch.js';
+import { fetchChannels } from '../resources/channels/fetch.js';
 import {
   buildResourceFile,
   writeResourceFile,
-} from '../resources/resource-file.js';
-import type { EmbeddedBundle } from '../resources/resource-file.js';
+} from '../resources/resource-files.js';
+import type { EmbeddedBundle } from '../resources/resource-files.js';
 import type { BundleFile } from '../upload/bundle-files.js';
 import { collectBundleFiles } from '../upload/bundle-files.js';
 import { readFingerprint } from '../upload/fingerprint.js';

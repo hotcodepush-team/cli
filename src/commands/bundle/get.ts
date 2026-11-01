@@ -1,6 +1,6 @@
 import type { BundleDelta } from '@hotcodepush/node';
-import { fetchAppId } from '../../resources/app.js';
-import { bundleOptionShape, fetchBundle } from '../../resources/bundle.js';
+import { fetchAppId } from '../../resources/apps.js';
+import { bundleOptionShape, fetchBundle } from '../../resources/bundles.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
