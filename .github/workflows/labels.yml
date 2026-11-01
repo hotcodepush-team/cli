@@ -20,5 +20,5 @@ jobs:
   sync:
     uses: hotcodepush-team/.github/.github/workflows/labels.yml@main
     with:
-      sets: common platform-desktop
+      sets: common release platform-desktop
       prune: ${{ inputs.prune == true }}
