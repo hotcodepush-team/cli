@@ -57,24 +57,23 @@ export async function fetchAppId(
   options: AppOptions,
   projectConfig: ProjectConfig | undefined,
 ): Promise<string> {
-  if (options.app !== undefined) {
-    return fetchResourceId('app', options.app, () =>
-      fetchAppsInScope(hotCodePush, options.organization),
-    );
-  }
-  if (projectConfig?.appId !== undefined) {
+  if (options.app === undefined && projectConfig?.appId !== undefined) {
     assertProjectConfigAppId(projectConfig.appId);
     return projectConfig.appId;
   }
-  if (!isInteractive(options)) {
-    throw new MissingParameterError('--app');
-  }
-  const organizationId = await fetchOrganizationId(hotCodePush, options);
-  return promptResourceId(
-    'app',
-    await fetchApps(hotCodePush, organizationId),
+  return fetchOrPromptResourceId({
+    fetchResources:
+      options.app === undefined
+        ? async () =>
+            fetchApps(
+              hotCodePush,
+              await fetchOrganizationId(hotCodePush, options),
+            )
+        : () => fetchAppsInScope(hotCodePush, options.organization),
+    noun: 'app',
     options,
-  );
+    reference: options.app,
+  });
 }
 
 export function fetchApps(
@@ -108,12 +107,7 @@ export async function fetchChannelId(
   options: ChannelOptions,
   projectConfig: ProjectConfig | undefined,
 ): Promise<string> {
-  if (options.channel !== undefined) {
-    return fetchResourceId('channel', options.channel, () =>
-      fetchChannels(hotCodePush, appId),
-    );
-  }
-  if (projectConfig !== undefined && projectConfig.appId === appId) {
+  if (options.channel === undefined && projectConfig?.appId === appId) {
     return fetchResourceId(
       'channel',
       resolveProjectChannel(projectConfig),
@@ -121,14 +115,12 @@ export async function fetchChannelId(
       PROJECT_CONFIG_FILE_NAME,
     );
   }
-  if (!isInteractive(options)) {
-    throw new MissingParameterError('--channel');
-  }
-  return promptResourceId(
-    'channel',
-    await fetchChannels(hotCodePush, appId),
+  return fetchOrPromptResourceId({
+    fetchResources: () => fetchChannels(hotCodePush, appId),
+    noun: 'channel',
     options,
-  );
+    reference: options.channel,
+  });
 }
 
 export function fetchChannels(
@@ -161,6 +153,27 @@ export function fetchOrganizations(
   hotCodePush: HotCodePush,
 ): Promise<Organization[]> {
   return fetchAllPages(page => hotCodePush.organizations.list(page));
+}
+
+// Without a reference, a person picks from the list, and a pipeline fails on the missing flag.
+export async function fetchOrPromptResourceId({
+  fetchResources,
+  noun,
+  options,
+  reference,
+}: {
+  fetchResources: () => Promise<NamedResource[]>;
+  noun: string;
+  options: InteractivityOptions;
+  reference: string | undefined;
+}): Promise<string> {
+  if (reference !== undefined) {
+    return fetchResourceId(noun, reference, fetchResources);
+  }
+  if (!isInteractive(options)) {
+    throw new MissingParameterError(`--${noun}`);
+  }
+  return promptResourceId(noun, await fetchResources(), options);
 }
 
 // A UUID is an id, and anything else is a name looked up in the list.

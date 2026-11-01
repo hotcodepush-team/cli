@@ -1,10 +1,8 @@
 import type { HotCodePush, Member } from '@hotcodepush/node';
 import { z } from 'zod';
 import type { InteractivityOptions } from './environment.js';
-import { isInteractive } from './environment.js';
-import { MissingParameterError } from './errors.js';
 import { fetchAllPages } from './pagination.js';
-import { fetchResourceId, promptResourceId } from './resource-resolution.js';
+import { fetchOrPromptResourceId } from './resource-resolution.js';
 
 interface MemberOptions extends InteractivityOptions {
   member?: string;
@@ -48,22 +46,15 @@ async function fetchMemberId(
   organizationId: string,
   options: MemberOptions,
 ): Promise<string> {
-  const { member } = options;
-  if (member !== undefined) {
-    return fetchResourceId('member', member, async () =>
+  return fetchOrPromptResourceId({
+    fetchResources: async () =>
       resolveNamedMembers(
-        await fetchMembers(hotCodePush, organizationId, member),
+        await fetchMembers(hotCodePush, organizationId, options.member),
       ),
-    );
-  }
-  if (!isInteractive(options)) {
-    throw new MissingParameterError('--member');
-  }
-  return promptResourceId(
-    'member',
-    resolveNamedMembers(await fetchMembers(hotCodePush, organizationId)),
+    noun: 'member',
     options,
-  );
+    reference: options.member,
+  });
 }
 
 function fetchMembers(

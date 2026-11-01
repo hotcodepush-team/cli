@@ -5,14 +5,12 @@ import type {
 } from '@hotcodepush/node';
 import { z } from 'zod';
 import type { InteractivityOptions } from './environment.js';
-import { isInteractive } from './environment.js';
-import { MissingParameterError } from './errors.js';
 import { fetchAllPages } from './pagination.js';
 import {
   fetchApps,
   fetchOrganizationId,
+  fetchOrPromptResourceId,
   fetchResourceId,
-  promptResourceId,
 } from './resource-resolution.js';
 
 type WebhookEventType = CreateWebhookOptions['events'][number];
@@ -76,19 +74,12 @@ async function fetchWebhookId(
   organizationId: string,
   options: WebhookOptions,
 ): Promise<string> {
-  if (options.webhook !== undefined) {
-    return fetchResourceId('webhook', options.webhook, () =>
-      fetchWebhooks(hotCodePush, organizationId),
-    );
-  }
-  if (!isInteractive(options)) {
-    throw new MissingParameterError('--webhook');
-  }
-  return promptResourceId(
-    'webhook',
-    await fetchWebhooks(hotCodePush, organizationId),
+  return fetchOrPromptResourceId({
+    fetchResources: () => fetchWebhooks(hotCodePush, organizationId),
+    noun: 'webhook',
     options,
-  );
+    reference: options.webhook,
+  });
 }
 
 function fetchWebhooks(
