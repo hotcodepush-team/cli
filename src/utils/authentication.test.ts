@@ -7,9 +7,9 @@ import {
   useCommandHarness,
   useStoredSession,
 } from '../../test/command-harness.js';
-import { logIn } from '../commands/login.js';
 import { ensureAuthentication, readSessionState } from './authentication.js';
 import { NotLoggedInError } from './errors.js';
+import { logIn } from './login.js';
 import { promptYesNo } from './prompts.js';
 import { readUserConfig, writeUserConfig } from './user-config.js';
 
@@ -24,7 +24,7 @@ vi.mock('@napi-rs/keyring', () => ({
     return keyring;
   }),
 }));
-vi.mock('../commands/login.js', () => ({ logIn: vi.fn() }));
+vi.mock('./login.js', () => ({ logIn: vi.fn() }));
 vi.mock('./prompts.js', () => ({ promptYesNo: vi.fn() }));
 
 const FUTURE_EXPIRY = '2099-01-01T00:00:00.000Z';

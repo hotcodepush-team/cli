@@ -3,6 +3,7 @@ import { printSuccess, printWarning } from './diagnostics.js';
 import type { InteractivityOptions } from './environment.js';
 import { isInteractive } from './environment.js';
 import { CliError, ExitCode, NotLoggedInError } from './errors.js';
+import { logIn } from './login.js';
 import { promptYesNo } from './prompts.js';
 import {
   isEnvironmentToken,
@@ -36,8 +37,6 @@ export async function ensureAuthentication(
   if (!(await promptYesNo('Log in now?', options))) {
     throw new NotLoggedInError();
   }
-  // Loaded here, so a command line that needs no login never loads the auth client.
-  const { logIn } = await import('../commands/login.js');
   const user = await logIn(options);
   printSuccess(`Logged in as ${user.name} (${user.email}).`);
 }

@@ -37,6 +37,7 @@ import { resolveConsoleBaseUrl } from '../utils/hosts.js';
 import type { StepOutcome } from '../utils/init-steps.js';
 import { InitRun, resolveStepRows } from '../utils/init-steps.js';
 import { stringifyLikeSource } from '../utils/json-file.js';
+import { logIn } from '../utils/login.js';
 import { printOutcomeRows } from '../utils/outcome.js';
 import { printJson } from '../utils/output.js';
 import type { PackageJson } from '../utils/package-json.js';
@@ -70,7 +71,6 @@ import {
 } from '../utils/resource-resolution.js';
 import { isEnvironmentToken, readToken } from '../utils/token-store.js';
 import { readApiUrl } from '../utils/user-config.js';
-import { logIn } from './login.js';
 import releaseCreateCommand from './release/create.js';
 import signingKeyCreateCommand from './signing-key/create.js';
 
