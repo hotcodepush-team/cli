@@ -23,16 +23,6 @@ export async function fetchBundle(
   return hotCodePush.apps.bundles.get({ appId, bundleId });
 }
 
-// A bundle that a binary ships is never in this list.
-export function fetchUploadedBundles(
-  hotCodePush: HotCodePush,
-  appId: string,
-): Promise<Bundle[]> {
-  return fetchAllPages(page =>
-    hotCodePush.apps.bundles.list({ appId, ...page, source: 'upload' }),
-  );
-}
-
 // A bundle that a binary ships has no number, so it reads `embedded · 1.4.2`.
 export function resolveBundleLabel({
   number,
@@ -87,4 +77,14 @@ async function fetchBundleIdByNumber(
     );
   }
   return numberedBundle.id;
+}
+
+// A bundle that a binary ships is never in this list.
+function fetchUploadedBundles(
+  hotCodePush: HotCodePush,
+  appId: string,
+): Promise<Bundle[]> {
+  return fetchAllPages(page =>
+    hotCodePush.apps.bundles.list({ appId, ...page, source: 'upload' }),
+  );
 }
