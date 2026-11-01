@@ -13,7 +13,7 @@ import { fetchAppId } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
   description:
-    'Delete a bundle now; one a release serves or a store build embeds is refused.',
+    'Delete a bundle now. One a release serves or a store build embeds is refused.',
   examples: [
     'hotcodepush bundle delete --bundle 17',
     'hotcodepush bundle delete --bundle 17 --yes --json',

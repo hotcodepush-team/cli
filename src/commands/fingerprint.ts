@@ -7,7 +7,7 @@ import { locateProjectConfig } from '../utils/project-config.js';
 
 export default defineCommand({
   description:
-    "Print the project's native fingerprint with the packages and the files under the extra fingerprint paths that contribute to it; local, no login.",
+    "Print the project's native fingerprint with the packages and the files under the extra fingerprint paths that contribute to it. Runs locally without a login.",
   authentication: 'optional',
   examples: [
     'hotcodepush fingerprint',

@@ -159,7 +159,7 @@ describe('resource-file write', () => {
       embeddedBundleId: null,
     });
     expect(harness.readDiagnostics()).toBe(
-      'HOTCODEPUSH_OFFLINE is set, so the channel name was not resolved: the build names no channel and takes no OTA updates.\n',
+      'HOTCODEPUSH_OFFLINE is set, so the channel name was not resolved. The build names no channel and takes no OTA updates.\n',
     );
   });
 
@@ -172,7 +172,7 @@ describe('resource-file write', () => {
     expect(harness.requests).toEqual([]);
     expect(readResourceFile().channelId).toBeNull();
     expect(harness.readDiagnostics()).toBe(
-      'not logged in, so the channel name was not resolved: the build names no channel and takes no OTA updates; run "hotcodepush login" or set HOTCODEPUSH_TOKEN.\n',
+      'Not logged in, so the channel name was not resolved. The build names no channel and takes no OTA updates. Run "hotcodepush login" or set HOTCODEPUSH_TOKEN.\n',
     );
   });
 
@@ -185,7 +185,7 @@ describe('resource-file write', () => {
 
     expect(readResourceFile().channelId).toBeNull();
     expect(harness.readDiagnostics()).toBe(
-      'the channel could not be resolved, so the build names none and takes no OTA updates: forbidden You are not a member.\n',
+      'The channel could not be resolved, so the build names none and takes no OTA updates: forbidden You are not a member.\n',
     );
   });
 

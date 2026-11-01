@@ -17,7 +17,7 @@ const UNAUTHORIZED_STATUS = 401;
 
 export default defineCommand({
   description:
-    'End the stored session and remove its token; HOTCODEPUSH_TOKEN, when set, stays what it is.',
+    'End the stored session and remove its token. HOTCODEPUSH_TOKEN, when set, stays what it is.',
   authentication: 'optional',
   examples: ['hotcodepush logout', 'hotcodepush logout --json'],
   options: defineCommandOptions({}),

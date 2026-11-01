@@ -63,7 +63,7 @@ describe('audience get', () => {
       rolloutPercent: '10',
     });
     expect(harness.readLines()).toEqual([
-      'Reaches 100 of 120 active devices in staging; about 10 at a 10 percent rollout.',
+      'Reaches 100 of 120 active devices in staging, about 10 at a 10 percent rollout.',
       'PLATFORM  DEVICES',
       'ios       60',
       'android   40',

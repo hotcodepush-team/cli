@@ -26,7 +26,7 @@ export default defineCommand({
       .string()
       .optional()
       .describe(
-        'The private key file of the pair, a PEM of PKCS #8 or PKCS #1, read on this machine; its public key is derived from it.',
+        'The private key file of the pair, a PEM of PKCS #8 or PKCS #1, read on this machine. Its public key is derived from it.',
       ),
   }),
   action: async options => {

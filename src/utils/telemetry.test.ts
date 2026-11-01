@@ -47,7 +47,7 @@ const SCRUBBED_STACK = [
 ].join('\n');
 
 const TELEMETRY_NOTICE =
-  'HotCodePush collects anonymous usage and error data to improve the CLI; set HOTCODEPUSH_TELEMETRY_DISABLED=1 to opt out.\n';
+  'HotCodePush collects anonymous usage and error data to improve the CLI. Set HOTCODEPUSH_TELEMETRY_DISABLED=1 to opt out.\n';
 
 describe('telemetry', () => {
   const fakeFetch = vi.fn<

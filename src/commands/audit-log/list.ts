@@ -32,7 +32,7 @@ export default defineCommand({
       .string()
       .optional()
       .describe(
-        "The app, by id or name, to narrow the log to; the whole organization by default, never hotcodepush.json's app.",
+        "The app, by id or name, to narrow the log to. Defaults to the whole organization, never to hotcodepush.json's app.",
       ),
     createdSince: z
       .string()

@@ -31,7 +31,8 @@ export default defineCommand({
       return;
     }
     printTable({
-      emptyText: 'No signing keys; signing-key create enables code signing.',
+      emptyText:
+        'No signing keys. Run signing-key create to enable code signing.',
       headers: ['ID', 'KEY ID', 'CREATED'],
       nextOffset,
       rows: listedSigningKeys.map(({ createdAt, id, keyId }) => [

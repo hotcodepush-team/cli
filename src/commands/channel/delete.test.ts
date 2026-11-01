@@ -97,7 +97,7 @@ describe('channel delete', () => {
 
     expect(readDeleteRequests()).toEqual([]);
     expect(harness.readLines()).toEqual([
-      'The channel does not exist; nothing to delete.',
+      'The channel does not exist. There is nothing to delete.',
     ]);
   });
 

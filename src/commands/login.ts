@@ -22,7 +22,7 @@ export default defineCommand({
       .transform(apiUrl => apiUrl.replace(/\/+$/, ''))
       .optional()
       .describe(
-        'The API to log in to, kept in config.json for every later command; the one kept there otherwise.',
+        'The API to log in to, kept in config.json for every later command. Defaults to the one kept there.',
       ),
   }),
   action: async options => {

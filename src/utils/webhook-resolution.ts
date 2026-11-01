@@ -27,7 +27,7 @@ export const webhookAppOptionShape = {
     .string()
     .optional()
     .describe(
-      "The app, by id or name, whose events alone the webhook receives; every app's and the organization's by default, never hotcodepush.json's app.",
+      "The app, by id or name, whose events alone the webhook receives. Defaults to every app's and the organization's events, never to hotcodepush.json's app.",
     ),
 };
 

@@ -653,7 +653,7 @@ function printFinish(
   console.log('');
   console.log(
     isReleased
-      ? `Build the app natively once and run it; change a line, run the build and "${resolveReleaseCommandText(privateKeyPath)}", then reopen the app.`
+      ? `Build the app natively once and run it. Change a line, run the build and "${resolveReleaseCommandText(privateKeyPath)}", then reopen the app.`
       : 'Build the app natively once and run it, then publish the first release as shown above.',
   );
   console.log(`Console: ${resolveConsoleBaseUrl(readApiUrl())}/apps/${app.id}`);

@@ -35,5 +35,5 @@ function resolveVerificationText({
 }: SsoProvider): string {
   return domainVerified
     ? `Verified ${domain}.`
-    : `No TXT record verifies ${domain} yet; a new record can take a while to appear.`;
+    : `No TXT record verifies ${domain} yet. A new record can take a while to appear.`;
 }

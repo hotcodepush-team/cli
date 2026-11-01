@@ -31,13 +31,13 @@ export default defineCommand({
     mandatory: booleanFlagSchema
       .optional()
       .describe(
-        'Devices apply the rollback at once and restart, the default for an incident fix; pass false to let them wait.',
+        'Devices apply the rollback at once and restart, the default for an incident fix. Pass false to let them wait.',
       ),
     toRelease: z
       .string()
       .optional()
       .describe(
-        "The release whose bundle comes back, by number or id; the channel's previous one by default.",
+        "The release whose bundle comes back, by number or id. Defaults to the channel's previous one.",
       ),
   }),
   action: async options => {

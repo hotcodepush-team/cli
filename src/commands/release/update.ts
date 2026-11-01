@@ -53,7 +53,7 @@ export default defineCommand({
     mandatory: booleanFlagSchema
       .optional()
       .describe(
-        'Whether devices apply the release at once and restart; pass false to turn it off.',
+        'Whether devices apply the release at once and restart. Pass false to turn it off.',
       ),
     notes: z.string().optional().describe('The new release notes.'),
   }),

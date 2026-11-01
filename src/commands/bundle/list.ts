@@ -27,7 +27,7 @@ export default defineCommand({
       .enum(BUNDLE_SOURCES)
       .optional()
       .describe(
-        'upload, the bundles a release can carry, by default; binary, the ones binaries ship, which have no number; or all.',
+        'upload is the bundles a release can carry, binary is the ones binaries ship, which have no number, and all is both. Defaults to upload.',
       ),
   }),
   action: async options => {

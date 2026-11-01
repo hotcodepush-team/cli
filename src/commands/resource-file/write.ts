@@ -92,13 +92,13 @@ async function resolveChannel(
     }
     return {
       channelId: null,
-      skippedReason: `the channel could not be resolved, so the build names none and takes no OTA updates: ${resolveFailureText(error)}`,
+      skippedReason: `The channel could not be resolved, so the build names none and takes no OTA updates: ${resolveFailureText(error)}`,
     };
   }
 }
 
 function resolveOfflineText(offlineCause: OfflineCause): string {
   return offlineCause === 'offline-switch'
-    ? 'HOTCODEPUSH_OFFLINE is set, so the channel name was not resolved: the build names no channel and takes no OTA updates.'
-    : 'not logged in, so the channel name was not resolved: the build names no channel and takes no OTA updates; run "hotcodepush login" or set HOTCODEPUSH_TOKEN.';
+    ? 'HOTCODEPUSH_OFFLINE is set, so the channel name was not resolved. The build names no channel and takes no OTA updates.'
+    : 'Not logged in, so the channel name was not resolved. The build names no channel and takes no OTA updates. Run "hotcodepush login" or set HOTCODEPUSH_TOKEN.';
 }

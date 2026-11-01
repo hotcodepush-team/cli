@@ -343,7 +343,7 @@ describe('binary create', () => {
 
   describe('when the build does not reach the API', () => {
     const NO_CHANNEL_TEXT =
-      'it names no channel and takes no OTA updates until it is built with a token, and no binary was created';
+      'It names no channel and takes no OTA updates until it is built with a token, and no binary was created';
 
     function writeChannelById(): string {
       const configPath = join(projectDirectoryPath, 'hotcodepush.json');
@@ -380,7 +380,7 @@ describe('binary create', () => {
         fingerprint: CAPACITOR_FINGERPRINT,
       });
       expect(harness.readDiagnostics()).toBe(
-        `HOTCODEPUSH_OFFLINE is set, so the build was made offline: ${NO_CHANNEL_TEXT}.\n`,
+        `HOTCODEPUSH_OFFLINE is set, so the build was made offline. ${NO_CHANNEL_TEXT}.\n`,
       );
     });
 
@@ -445,7 +445,7 @@ describe('binary create', () => {
         embeddedBundleId: null,
       });
       expect(harness.readDiagnostics()).toBe(
-        `not logged in, so the build was made offline: ${NO_CHANNEL_TEXT}; run "hotcodepush login" or set HOTCODEPUSH_TOKEN.\n`,
+        `Not logged in, so the build was made offline. ${NO_CHANNEL_TEXT}. Run "hotcodepush login" or set HOTCODEPUSH_TOKEN.\n`,
       );
     });
 
@@ -476,7 +476,7 @@ describe('binary create', () => {
         embeddedBundleId: null,
       });
       expect(harness.readDiagnostics()).toBe(
-        'the channel could not be resolved, so the build names none and takes no OTA updates, and no binary was created: forbidden You are not a member.\n',
+        'The channel could not be resolved, so the build names none and takes no OTA updates, and no binary was created: forbidden You are not a member.\n',
       );
       expect(
         harness.requests.filter(({ method }) => method === 'POST'),
@@ -529,7 +529,7 @@ describe('binary create', () => {
       embeddedBundleId: null,
     });
     expect(harness.readDiagnostics()).toBe(
-      'the binary was not created: fetch failed\n',
+      'The binary was not created: fetch failed\n',
     );
 
     rmSync(join(projectDirectoryPath, 'build'), { recursive: true });

@@ -62,7 +62,7 @@ export const buildStepShape = {
     .string()
     .optional()
     .describe(
-      "The directory of the embedded bundle, the files the build puts into the app; the framework's build output by default.",
+      "The directory of the embedded bundle, the files the build puts into the app. Defaults to the framework's build output.",
     ),
   platform: z
     .enum(PLATFORMS)

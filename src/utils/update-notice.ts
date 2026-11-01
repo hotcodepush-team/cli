@@ -39,7 +39,7 @@ export function printUpdateNotice(): void {
       isNewerVersion(latestKnownVersion, PACKAGE_JSON.version)
     ) {
       printNotice(
-        `HotCodePush CLI ${latestKnownVersion} is available; you run ${PACKAGE_JSON.version}.`,
+        `HotCodePush CLI ${latestKnownVersion} is available. You run ${PACKAGE_JSON.version}.`,
       );
     }
   });

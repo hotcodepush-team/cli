@@ -40,7 +40,7 @@ const FLEET_DIMENSIONS = [
 
 export default defineCommand({
   description:
-    "Print one of the app's statistics: the fleet, the devices seen in 30 days; the updates per day; or the usage the bill counts.",
+    "Print one of the app's statistics: the fleet of devices seen in 30 days, the updates per day, or the usage the bill counts.",
   examples: [
     'hotcodepush statistics get --type fleet --channel production',
     'hotcodepush statistics get --type updates --period-since 2026-09-01 --period-until 2026-09-30 --json',
@@ -50,7 +50,7 @@ export default defineCommand({
       .string()
       .optional()
       .describe(
-        'The channel, by id or name, to narrow the fleet or the updates to; the whole app by default.',
+        'The channel, by id or name, to narrow the fleet or the updates to. Defaults to the whole app.',
       ),
     periodSince: z
       .string()
@@ -62,13 +62,13 @@ export default defineCommand({
       .string()
       .optional()
       .describe(
-        'The last UTC day of the updates or the usage, YYYY-MM-DD, inclusive; today by default.',
+        'The last UTC day of the updates or the usage, YYYY-MM-DD, inclusive. Defaults to today.',
       ),
     type: z
       .enum(STATISTICS_TYPES)
       .optional()
       .describe(
-        'The statistics to print: fleet, the devices seen in 30 days; updates, per day; usage, the monthly active devices and the traffic.',
+        'The statistics to print. fleet is the devices seen in 30 days, updates is the updates per day, and usage is the monthly active devices and the traffic.',
       ),
   }),
   action: async options => {

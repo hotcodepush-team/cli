@@ -20,7 +20,7 @@ import { fetchAppId } from '../../utils/resource-resolution.js';
 import { writeSigningPrivateKeyFile } from '../../utils/signing-private-key.js';
 
 export const UPLOAD_SIGNING_TEXT =
-  "Uploads sign with it through --private-key-path; in CI, set HOTCODEPUSH_SIGNING_KEY to the file's content.";
+  "Uploads sign with it through --private-key-path. In CI, set HOTCODEPUSH_SIGNING_KEY to the file's content.";
 
 export default defineCommand({
   description:

@@ -105,7 +105,7 @@ describe('update notice', () => {
           stderrWrite.mock.calls.map(([chunk]) => String(chunk)).join(''),
         ),
       ).toBe(
-        `HotCodePush CLI 1.2.0 is available; you run ${PACKAGE_JSON.version}.\n`,
+        `HotCodePush CLI 1.2.0 is available. You run ${PACKAGE_JSON.version}.\n`,
       );
     });
 

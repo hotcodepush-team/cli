@@ -60,7 +60,7 @@ export const bundleUploadOptionShape = {
     .string()
     .optional()
     .describe(
-      "The bundle's version label; the project's package.json version by default.",
+      "The bundle's version label. Defaults to the project's package.json version.",
     ),
   gitMessage: z
     .string()
@@ -77,7 +77,7 @@ export const bundleUploadOptionShape = {
   noGit: z
     .boolean()
     .optional()
-    .describe('Detect no git provenance; the typed --git-* flags still apply.'),
+    .describe('Detect no git provenance. The typed --git-* flags still apply.'),
   path: z
     .string()
     .optional()
@@ -91,13 +91,13 @@ export const bundleUploadOptionShape = {
     .string()
     .optional()
     .describe(
-      'The private key file to sign with, as signing-key create wrote it; HOTCODEPUSH_SIGNING_KEY holds its content in CI.',
+      'The private key file to sign with, as signing-key create wrote it. In CI, HOTCODEPUSH_SIGNING_KEY holds its content.',
     ),
 };
 
 export default defineCommand({
   description:
-    'Upload a build as a bundle, signed where a key is configured: only the files the app lacks move, then the full pack; nothing is released.',
+    'Upload a build as a bundle, signed where a key is configured. Only the files the app lacks move, then the full pack. Nothing is released.',
   examples: [
     'hotcodepush bundle upload',
     'hotcodepush bundle upload --path dist --bundle-version 1.4.2 --platform ios --json',

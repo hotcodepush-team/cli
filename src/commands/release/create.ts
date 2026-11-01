@@ -116,19 +116,19 @@ export default defineCommand({
       .string()
       .optional()
       .describe(
-        'A bundle already uploaded, by number or id; without it the build is uploaded first.',
+        'A bundle already uploaded, by number or id. Without it the build is uploaded first.',
       ),
     channel: z
       .array(z.string())
       .optional()
       .describe(
-        "The channel, by id or name, repeatable; hotcodepush.json's channel by default.",
+        "The channel, by id or name, repeatable. Defaults to hotcodepush.json's channel.",
       ),
     dryRun: z
       .boolean()
       .optional()
       .describe(
-        'Validate and print the audience the release would reach; nothing is signed, uploaded or published, so no private key is needed.',
+        'Validate and print the audience the release would reach. Nothing is signed, uploaded or published, so no private key is needed.',
       ),
     fromChannel: z
       .string()
@@ -142,7 +142,7 @@ export default defineCommand({
     notes: z
       .string()
       .optional()
-      .describe('The release notes; they ride the public index.'),
+      .describe('The release notes. They ride the public index.'),
     rolloutPercent: z.coerce
       .number()
       .int()

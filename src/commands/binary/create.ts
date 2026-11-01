@@ -56,7 +56,7 @@ const NO_UPLOAD: UploadedFiles = { fileCount: 0, sizeBytes: 0 };
 
 export default defineCommand({
   description:
-    'The build step of a store build: creates the binary with the embedded bundle it ships and writes the resource file the SDK reads, naming that bundle; every other build runs resource-file write. HOTCODEPUSH_OFFLINE=1 builds without the API, naming no channel unless it is given by id and creating no binary.',
+    'The build step of a store build: creates the binary with the embedded bundle it ships and writes the resource file the SDK reads, naming that bundle. Every other build runs resource-file write. HOTCODEPUSH_OFFLINE=1 builds without the API, naming no channel unless it is given by id and creating no binary.',
   authentication: 'optional',
   examples: [
     'hotcodepush binary create --platform ios --embedded-bundle-path build/App.app/public --resource-file-path build/App.app/hotcodepush.json --binary-version 2.4.1 --binary-build 57',
@@ -175,7 +175,7 @@ async function createBuildBinary(
     return {
       binary: null,
       channelId: null,
-      skippedReason: `the channel could not be resolved, so the build names none and takes no OTA updates, and no binary was created: ${resolveFailureText(error)}`,
+      skippedReason: `The channel could not be resolved, so the build names none and takes no OTA updates, and no binary was created: ${resolveFailureText(error)}`,
       upload: NO_UPLOAD,
     };
   }
@@ -193,7 +193,7 @@ async function createBuildBinary(
     return {
       binary: null,
       channelId,
-      skippedReason: `the binary was not created: ${resolveFailureText(error)}`,
+      skippedReason: `The binary was not created: ${resolveFailureText(error)}`,
       upload: NO_UPLOAD,
     };
   }
@@ -278,14 +278,14 @@ function resolveOfflineText(
   const causeText =
     offlineCause === 'offline-switch'
       ? 'HOTCODEPUSH_OFFLINE is set'
-      : 'not logged in';
+      : 'Not logged in';
   const consequenceText =
     channelId === null
-      ? ': it names no channel and takes no OTA updates until it is built with a token, and no binary was created'
+      ? '. It names no channel and takes no OTA updates until it is built with a token, and no binary was created'
       : ' and no binary was created';
   const fixText =
     offlineCause === 'offline-switch'
       ? ''
-      : '; run "hotcodepush login" or set HOTCODEPUSH_TOKEN';
+      : '. Run "hotcodepush login" or set HOTCODEPUSH_TOKEN';
   return `${causeText}, so the build was made offline${consequenceText}${fixText}.`;
 }

@@ -37,7 +37,7 @@ export default defineCommand({
     }
     const fleet = await hotCodePush.apps.statistics.fleet.get({ appId });
     printTable({
-      emptyText: 'No binaries; a store build creates one.',
+      emptyText: 'No binaries. A store build creates one.',
       headers: [
         'ID',
         'VERSION',

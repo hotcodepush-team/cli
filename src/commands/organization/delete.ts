@@ -10,7 +10,7 @@ import {
 
 export default defineCommand({
   description:
-    'Delete an organization with everything in it; support can restore it for seven days.',
+    'Delete an organization with everything in it. Support can restore it for seven days.',
   examples: [
     'hotcodepush organization delete --organization Acme',
     'hotcodepush organization delete --organization Acme --yes --json',

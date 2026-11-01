@@ -18,6 +18,6 @@ export function resolveProgressingText({ progression }: Release): string {
 
 function resolveLiveText(release: Release): string {
   return release.liveAt === null
-    ? '; not live yet, and "release get" shows when it is'
+    ? '. Not live yet, and "release get" shows when it is'
     : `, live since ${release.liveAt}`;
 }

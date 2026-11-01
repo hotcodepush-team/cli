@@ -35,7 +35,7 @@ const COMMAND_FINISHED_EVENT = 'cli.command_finished';
 const STACK_FRAME_PATTERN = /^\s*at (?:(.+?) \()?(.+?):(\d+):(\d+)\)?$/;
 
 const TELEMETRY_NOTICE =
-  'HotCodePush collects anonymous usage and error data to improve the CLI; set HOTCODEPUSH_TELEMETRY_DISABLED=1 to opt out.';
+  'HotCodePush collects anonymous usage and error data to improve the CLI. Set HOTCODEPUSH_TELEMETRY_DISABLED=1 to opt out.';
 
 // The longest telemetry may delay the exit, requests included.
 const TELEMETRY_TIMEOUT_MS = 1500;

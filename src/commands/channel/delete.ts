@@ -16,7 +16,7 @@ import {
 
 export default defineCommand({
   description:
-    'Delete a channel and its releases; devices on it keep what they have.',
+    'Delete a channel and its releases. Devices on it keep what they have.',
   examples: [
     'hotcodepush channel delete --channel staging',
     'hotcodepush channel delete --channel pr-42 --ignore-not-found --yes --json',
@@ -41,7 +41,7 @@ export default defineCommand({
       if (options.json) {
         printJson(resolveAbsentChannel(options.channel));
       } else {
-        console.log('The channel does not exist; nothing to delete.');
+        console.log('The channel does not exist. There is nothing to delete.');
       }
     }
   },

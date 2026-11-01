@@ -11,7 +11,7 @@ import { fetchOrganizationId } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
   description:
-    'Withdraw a pending invitation; the link in its mail stops working at once.',
+    'Withdraw a pending invitation. The link in its mail stops working at once.',
   examples: [
     'hotcodepush invitation delete --invitation anna@example.com',
     'hotcodepush invitation delete --invitation 4c8e2a6f-1d3b-4e97-a5c0-8f2d6b4a1e93 --yes --json',

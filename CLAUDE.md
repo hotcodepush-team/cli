@@ -99,6 +99,7 @@ A project with an app config that is code, or with a JSON one that does not pars
   A new code joins that catalog as a class with its code, exit code, message and fix, and gets its section at `hotcodepush.com/docs/cli/errors#<code>`.
 - **An error is three lines**: what happened, what to do, then the docs URL, the one place the code appears; an API error has no fix, so two; `--json` carries the code.
   The message and the fix each start with a capital letter and end with a full stop, in plain English; a stack trace only with `--verbose`.
+  Every text a person reads, descriptions, warnings, notices and empty-list lines included, is whole sentences: no semicolon joins two clauses, and a default reads `Defaults to X.`
 - **Diagnostics go through `utils/diagnostics.ts`**, clack's log on stderr: `printError`, `printWarning`, `printNotice`, `printSuccess`; nothing else writes a symbol or a `Warning:` prefix, and nothing imports clack's log directly.
   stdout stays plain `console.log` and `printJson`, so a piped result carries no gutter.
 - **API errors pass through verbatim**, their code, message and fix as received and never re-mapped; the CLI's catalog covers only what happens before or without the API.

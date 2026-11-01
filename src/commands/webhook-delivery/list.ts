@@ -13,7 +13,7 @@ import { resolveResponseText } from './redeliver.js';
 
 export default defineCommand({
   description:
-    "List a webhook's deliveries, newest first, filtered by status and time, to find the ones worth redelivering; each is kept for 30 days.",
+    "List a webhook's deliveries, newest first, filtered by status and time, to find the ones worth redelivering. Each is kept for 30 days.",
   examples: [
     'hotcodepush webhook-delivery list --webhook releases --status failed --created-since 2h',
     'hotcodepush webhook-delivery list --webhook releases --json',

@@ -57,7 +57,7 @@ describe('webhook create', () => {
     expect(harness.readLines()).toEqual([
       `Created webhook releases (${WEBHOOK.id}).`,
       `Secret: ${SECRET}`,
-      'Store the secret now to verify the signature of every delivery; it is never shown again.',
+      'Store the secret now to verify the signature of every delivery. It is never shown again.',
     ]);
   });
 

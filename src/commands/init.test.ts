@@ -921,7 +921,7 @@ describe('init', () => {
       '✓ Build          Ran "npm run build".',
       '✓ Release        Released to production.',
       '',
-      'Build the app natively once and run it; change a line, run the build and "hotcodepush release create --private-key-path hotcodepush-private-key.pem", then reopen the app.',
+      'Build the app natively once and run it. Change a line, run the build and "hotcodepush release create --private-key-path hotcodepush-private-key.pem", then reopen the app.',
       `Console: http://localhost:4300/apps/${DEMO_APP.id}`,
       'Docs: https://hotcodepush.com/docs',
     ]);

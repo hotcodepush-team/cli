@@ -19,7 +19,7 @@ const INVITATION_ROLES = [
 
 export default defineCommand({
   description:
-    'Invite an address to the organization with a role; the invitation mail is valid for two days.',
+    'Invite an address to the organization with a role. The invitation mail is valid for two days.',
   examples: [
     'hotcodepush invitation create --email anna@example.com --role member',
     'hotcodepush invitation create --organization Acme --email anna@example.com --role admin --yes --json',

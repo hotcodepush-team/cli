@@ -41,7 +41,7 @@ export async function ensureAuthentication(
   printSuccess(`Logged in as ${user.name} (${user.email}).`);
 }
 
-// `HOTCODEPUSH_TOKEN` is taken as it is; its validity is the API's to judge.
+// `HOTCODEPUSH_TOKEN` is taken as it is. Its validity is the API's to judge.
 // A session slides while in use, so a stored expiry that has passed is a hint, checked with one request before anyone is asked.
 export async function readSessionState(): Promise<SessionState> {
   if (isEnvironmentToken()) {

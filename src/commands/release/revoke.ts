@@ -66,13 +66,13 @@ export default defineCommand({
       .boolean()
       .optional()
       .describe(
-        'Every release of the channel; its devices return to the embedded bundle.',
+        'Every release of the channel. Its devices return to the embedded bundle.',
       ),
     bundle: z
       .string()
       .optional()
       .describe(
-        "Every release of this bundle, by number or id, across the app's channels; without --channel.",
+        "Every release of this bundle, by number or id, across the app's channels. Takes no --channel.",
       ),
     releaseFrom: z.coerce
       .number()

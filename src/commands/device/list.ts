@@ -15,7 +15,7 @@ import {
 
 export default defineCommand({
   description:
-    "List the app's devices, the newest report first, filtered by what they reported; support and QA, never a pipeline.",
+    "List the app's devices, the newest report first, filtered by what they reported. For support and QA, never a pipeline.",
   examples: [
     'hotcodepush device list --attribute userId=42',
     'hotcodepush device list --platform ios --binary-version 2.4.1 --last-seen-since 2026-09-01T00:00:00Z --json',
@@ -96,7 +96,7 @@ export default defineCommand({
       return;
     }
     printTable({
-      emptyText: 'No devices match; a device appears with its first check.',
+      emptyText: 'No devices match. A device appears with its first check.',
       headers: ['ID', 'PLATFORM', 'BINARY', 'CHANNEL', 'SDK', 'LAST SEEN'],
       nextOffset,
       rows: listedDevices.map(device => [
