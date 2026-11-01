@@ -1,6 +1,6 @@
 import { computeFingerprint } from '@hotcodepush/protocol/fingerprint';
+import { readProjectFingerprintContributors } from '../upload/fingerprint.js';
 import { defineCommand } from '../utils/command.js';
-import { readProjectFingerprintContributors } from '../utils/fingerprint.js';
 import { defineCommandOptions } from '../utils/global-options.js';
 import { printJson, printTable } from '../utils/output.js';
 import { locateProjectConfig } from '../utils/project-config.js';

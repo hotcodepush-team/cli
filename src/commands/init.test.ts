@@ -44,16 +44,16 @@ import {
 } from '../../test/react-native-project.js';
 import { CAPACITOR_PACKAGE_SPEC } from '../config/consts.js';
 import {
+  hasBinaryCreatePhase,
+  hasReadableResourceReference,
+} from '../frameworks/xcode-project.js';
+import {
   ReportedFailureError,
   UnknownFrameworkError,
 } from '../utils/errors.js';
 import type * as packageManagerModule from '../utils/package-manager.js';
 import { runCommandLineVisibly } from '../utils/package-manager.js';
 import { readUserConfig, writeUserConfig } from '../utils/user-config.js';
-import {
-  hasBinaryCreatePhase,
-  hasReadableResourceReference,
-} from '../utils/xcode-project.js';
 import initCommand from './init.js';
 import releaseCreateCommand from './release/create.js';
 

@@ -8,6 +8,13 @@ import {
   PROJECT_CONFIG_FILE_NAME,
   SIGNING_PRIVATE_KEY_FILE_NAME,
 } from '../config/consts.js';
+import type { Framework } from '../frameworks/framework.js';
+import { detectFramework } from '../frameworks/framework.js';
+import type { FrameworkModule, FrameworkWiring } from '../frameworks/index.js';
+import { resolveFrameworkModule } from '../frameworks/index.js';
+import { fetchApps } from '../resources/app.js';
+import { fetchOrganizations } from '../resources/organization.js';
+import { fetchHasSigningKey } from '../resources/signing-key.js';
 import { createApiClient } from '../utils/api-client.js';
 import { defineCommand } from '../utils/command.js';
 import {
@@ -25,17 +32,8 @@ import {
   ReportedFailureError,
   UnexpectedError,
 } from '../utils/errors.js';
-import type { Framework } from '../utils/framework.js';
-import { detectFramework } from '../utils/framework.js';
-import type {
-  FrameworkModule,
-  FrameworkWiring,
-} from '../utils/frameworks/index.js';
-import { resolveFrameworkModule } from '../utils/frameworks/index.js';
 import { defineCommandOptions } from '../utils/global-options.js';
 import { resolveConsoleBaseUrl } from '../utils/hosts.js';
-import type { StepOutcome } from '../utils/init-steps.js';
-import { InitRun, resolveStepRows } from '../utils/init-steps.js';
 import { stringifyLikeSource } from '../utils/json-file.js';
 import { logIn } from '../utils/login.js';
 import { printOutcomeRows } from '../utils/outcome.js';
@@ -64,14 +62,11 @@ import {
   promptYesNo,
 } from '../utils/prompts.js';
 import { isId } from '../utils/reference.js';
-import {
-  fetchApps,
-  fetchHasSigningKey,
-  fetchOrganizations,
-  findResource,
-} from '../utils/resource-resolution.js';
+import { findResource } from '../utils/resources.js';
 import { isEnvironmentToken, readToken } from '../utils/token-store.js';
 import { readApiUrl } from '../utils/user-config.js';
+import { InitRun, resolveStepRows } from './init/steps.js';
+import type { StepOutcome } from './init/steps.js';
 import releaseCreateCommand from './release/create.js';
 import signingKeyCreateCommand from './signing-key/create.js';
 

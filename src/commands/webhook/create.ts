@@ -1,18 +1,18 @@
 import type { CreatedWebhook, CreateWebhookOptions } from '@hotcodepush/node';
 import { z } from 'zod';
+import { fetchOrganizationId } from '../../resources/organization.js';
+import {
+  fetchWebhookAppId,
+  resolveWebhookEventTypes,
+  webhookAppOptionShape,
+  webhookEventOptionShape,
+} from '../../resources/webhook.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import type { InteractivityOptions } from '../../utils/environment.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
 import { promptSelect, promptText } from '../../utils/prompts.js';
-import { fetchOrganizationId } from '../../utils/resource-resolution.js';
-import {
-  fetchWebhookAppId,
-  resolveWebhookEventTypes,
-  webhookAppOptionShape,
-  webhookEventOptionShape,
-} from '../../utils/webhook-resolution.js';
 
 type WebhookFormat = CreateWebhookOptions['format'];
 

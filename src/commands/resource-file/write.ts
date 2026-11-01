@@ -1,5 +1,4 @@
-import { createApiClient } from '../../utils/api-client.js';
-import type { BuildStep, OfflineCause } from '../../utils/build-step.js';
+import type { BuildStep, OfflineCause } from '../../frameworks/build-step.js';
 import {
   buildStepShape,
   fetchBuildStepChannelId,
@@ -8,7 +7,8 @@ import {
   resolveFailureText,
   resolveOfflineCause,
   writeBuildResourceFile,
-} from '../../utils/build-step.js';
+} from '../../frameworks/build-step.js';
+import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { printNotice, printWarning } from '../../utils/diagnostics.js';
 import { CliError } from '../../utils/errors.js';

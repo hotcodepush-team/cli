@@ -1,16 +1,14 @@
 import type { AuditLog } from '@hotcodepush/node';
 import { z } from 'zod';
+import { fetchApps } from '../../resources/app.js';
+import { fetchOrganizationId } from '../../resources/organization.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { resolveTimeBound } from '../../utils/duration.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson, printTable } from '../../utils/output.js';
 import { paginationShape, resolveNextOffset } from '../../utils/pagination.js';
-import {
-  fetchApps,
-  fetchOrganizationId,
-  fetchResourceId,
-} from '../../utils/resource-resolution.js';
+import { fetchResourceId } from '../../utils/resources.js';
 
 const ACTOR_TYPES = ['system', 'user'] as const;
 

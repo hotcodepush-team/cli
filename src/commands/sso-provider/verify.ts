@@ -1,10 +1,10 @@
 import type { SsoProvider } from '@hotcodepush/node';
+import { fetchOrganizationId } from '../../resources/organization.js';
+import { printProviderDetails } from '../../resources/sso-provider.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
-import { fetchOrganizationId } from '../../utils/resource-resolution.js';
-import { printProviderDetails } from '../../utils/sso-provider-output.js';
 
 export default defineCommand({
   description:

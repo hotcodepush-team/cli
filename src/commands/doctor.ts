@@ -8,6 +8,19 @@ import {
   PACKAGE_JSON,
   PROJECT_CONFIG_FILE_NAME,
 } from '../config/consts.js';
+import { detectFramework } from '../frameworks/framework.js';
+import type { FrameworkCheck, FrameworkModule } from '../frameworks/index.js';
+import { resolveFrameworkModule } from '../frameworks/index.js';
+import {
+  readInstalledPackageVersion,
+  readSdkDependencyVersion,
+} from '../frameworks/sdk-package.js';
+import { fetchChannels } from '../resources/channel/fetch.js';
+import {
+  fetchHasSigningKey,
+  fetchSigningKeys,
+} from '../resources/signing-key.js';
+import { readSigningKeyPair } from '../upload/signing-private-key.js';
 import { createApiClient } from '../utils/api-client.js';
 import { defineCommand } from '../utils/command.js';
 import {
@@ -24,16 +37,6 @@ import {
   SigningKeyUnavailableError,
   UnknownFrameworkError,
 } from '../utils/errors.js';
-import { detectFramework } from '../utils/framework.js';
-import type {
-  FrameworkCheck,
-  FrameworkModule,
-} from '../utils/frameworks/index.js';
-import { resolveFrameworkModule } from '../utils/frameworks/index.js';
-import {
-  readInstalledPackageVersion,
-  readSdkDependencyVersion,
-} from '../utils/frameworks/sdk-package.js';
 import { defineCommandOptions } from '../utils/global-options.js';
 import { resolveFilesBaseUrl, resolveUpdatesBaseUrl } from '../utils/hosts.js';
 import { printOutcomeRows } from '../utils/outcome.js';
@@ -47,13 +50,7 @@ import {
   resolveProjectChannel,
 } from '../utils/project-config.js';
 import { isId } from '../utils/reference.js';
-import {
-  fetchChannels,
-  fetchHasSigningKey,
-  fetchResourceId,
-  fetchSigningKeys,
-} from '../utils/resource-resolution.js';
-import { readSigningKeyPair } from '../utils/signing-private-key.js';
+import { fetchResourceId } from '../utils/resources.js';
 import { isEnvironmentToken, readToken } from '../utils/token-store.js';
 import { readApiUrl } from '../utils/user-config.js';
 

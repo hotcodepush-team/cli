@@ -1,17 +1,17 @@
 import { z } from 'zod';
-import { createApiClient } from '../../utils/api-client.js';
+import {
+  channelOptionShape,
+  fetchChannel,
+} from '../../resources/channel/fetch.js';
 import {
   channelFieldsClearShape,
   channelFieldsShape,
   resolveChannelFields,
-} from '../../utils/channel-fields.js';
+} from '../../resources/channel/fields.js';
+import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
-import {
-  channelOptionShape,
-  fetchChannel,
-} from '../../utils/resource-resolution.js';
 
 export default defineCommand({
   description:

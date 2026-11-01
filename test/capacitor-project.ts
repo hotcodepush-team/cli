@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import type { LockedPackage } from '@hotcodepush/protocol/fingerprint';
 import { computeFingerprint } from '@hotcodepush/protocol/fingerprint';
-import { capacitorFramework } from '../src/utils/frameworks/capacitor.js';
+import { capacitorFramework } from '../src/frameworks/capacitor.js';
 
 export interface CapacitorProjectOptions {
   isPackageInstalled?: boolean;

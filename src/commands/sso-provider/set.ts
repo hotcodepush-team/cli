@@ -1,6 +1,9 @@
 import { readFileSync } from 'node:fs';
 import type { SetSsoProviderOptions } from '@hotcodepush/node';
 import { z } from 'zod';
+import { fetchOrganizationId } from '../../resources/organization.js';
+import { printProviderDetails } from '../../resources/sso-provider.js';
+import type { SsoProviderType } from '../../resources/sso-provider.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import type { InteractivityOptions } from '../../utils/environment.js';
@@ -8,9 +11,6 @@ import { InvalidParameterError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
 import { promptSecret, promptSelect, promptText } from '../../utils/prompts.js';
-import { fetchOrganizationId } from '../../utils/resource-resolution.js';
-import { printProviderDetails } from '../../utils/sso-provider-output.js';
-import type { SsoProviderType } from '../../utils/sso-provider-output.js';
 
 interface OidcOptions extends InteractivityOptions {
   oidcClientId?: string;

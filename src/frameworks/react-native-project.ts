@@ -1,0 +1,222 @@
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { basename, dirname, join } from 'node:path';
+import { NativeProjectError } from '../utils/errors.js';
+import type { NativeProjectEdit } from './native-project-edit.js';
+import { resolveRefusedEdit } from './native-project-edit.js';
+
+const APP_DELEGATE_FILE_NAMES = ['AppDelegate.swift', 'AppDelegate.mm'];
+
+const BUNDLE_URL_CALL = 'HotCodePush.bundleURL()';
+
+const BUNDLE_URL_FIX = `Import HotcodepushReactNativeCodePush in the file that overrides bundleURL() and return ${BUNDLE_URL_CALL} from it where it returns the embedded bundle.`;
+
+const BUNDLE_URL_OVERRIDE = 'func bundleURL()';
+
+const EMBEDDED_BUNDLE_URL_CALL =
+  'Bundle.main.url(forResource: "main", withExtension: "jsbundle")';
+
+const OBJECTIVE_C_BUNDLE_URL_CALL = '[HotCodePush bundleURL]';
+
+const REACT_HOST_CLASS = 'com.hotcodepush.reactnative.HotCodePushReactHost';
+
+const REACT_HOST_EDIT_DESCRIPTION =
+  'HotCodePushReactHost in MainApplication.kt';
+
+const REACT_HOST_IMPORT = `import ${REACT_HOST_CLASS}.getDefaultReactHost`;
+
+const REACT_NATIVE_REACT_HOST_IMPORT =
+  'import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost';
+
+const SWIFT_MODULE_IMPORT = 'import HotcodepushReactNativeCodePush';
+
+// React Native 0.88's template overrides `bundleURL()` in `SceneDelegate.swift`, older ones in `AppDelegate.swift`.
+// The debug build's Metro line stays as it is.
+export function resolveBundleUrlEdit(
+  iosProjectPath: string,
+): NativeProjectEdit | undefined {
+  if (!existsSync(iosProjectPath)) {
+    return undefined;
+  }
+  const appDelegateFilePath = findAppDelegateFilePath(iosProjectPath);
+  if (
+    appDelegateFilePath === undefined ||
+    !appDelegateFilePath.endsWith('.swift')
+  ) {
+    return resolveRefusedBundleUrlEdit(iosProjectPath, appDelegateFilePath);
+  }
+  const sceneDelegateFilePath = join(
+    dirname(appDelegateFilePath),
+    'SceneDelegate.swift',
+  );
+  const bundleUrlFilePath = [sceneDelegateFilePath, appDelegateFilePath].find(
+    hasBundleUrlOverride,
+  );
+  const filePath = bundleUrlFilePath ?? appDelegateFilePath;
+  return {
+    description: `${BUNDLE_URL_CALL} in ${basename(filePath)}`,
+    filePath,
+    isApplied: () => readFileSync(filePath, 'utf8').includes(BUNDLE_URL_CALL),
+    apply: () => {
+      if (bundleUrlFilePath === undefined) {
+        throw new NativeProjectError(
+          `Neither ${sceneDelegateFilePath} nor ${appDelegateFilePath} returns the template's main.jsbundle from bundleURL().`,
+          BUNDLE_URL_FIX,
+        );
+      }
+      const source = readFileSync(filePath, 'utf8');
+      const lastImportLine = source
+        .split('\n')
+        .findLast(line => line.startsWith('import '));
+      if (
+        !source.includes(EMBEDDED_BUNDLE_URL_CALL) ||
+        lastImportLine === undefined
+      ) {
+        throw new NativeProjectError(
+          `The file ${filePath} does not return the template's main.jsbundle from bundleURL().`,
+          `Import HotcodepushReactNativeCodePush in ${filePath} and return ${BUNDLE_URL_CALL} from bundleURL() where it returns the embedded bundle.`,
+        );
+      }
+      writeFileSync(
+        filePath,
+        source
+          .replace(lastImportLine, `${lastImportLine}\n${SWIFT_MODULE_IMPORT}`)
+          .replace(EMBEDDED_BUNDLE_URL_CALL, BUNDLE_URL_CALL),
+      );
+    },
+  };
+}
+
+// The SDK's `getDefaultReactHost` asks for the served bundle at every start and reload.
+// Only the import changes, so the call and its parameters stay.
+export function resolveReactHostEdit(
+  androidProjectPath: string,
+): NativeProjectEdit | undefined {
+  if (!existsSync(androidProjectPath)) {
+    return undefined;
+  }
+  const sourceDirectoryPath = join(
+    androidProjectPath,
+    'app',
+    'src',
+    'main',
+    'java',
+  );
+  const filePath = findFilePath(sourceDirectoryPath, 'MainApplication.kt');
+  if (filePath === undefined) {
+    return resolveRefusedReactHostEdit(
+      androidProjectPath,
+      findFilePath(sourceDirectoryPath, 'MainApplication.java'),
+    );
+  }
+  return {
+    description: REACT_HOST_EDIT_DESCRIPTION,
+    filePath,
+    isApplied: () => readFileSync(filePath, 'utf8').includes(REACT_HOST_IMPORT),
+    apply: () => {
+      const source = readFileSync(filePath, 'utf8');
+      if (!source.includes(REACT_NATIVE_REACT_HOST_IMPORT)) {
+        throw new NativeProjectError(
+          `The file ${filePath} does not import the template's DefaultReactHost.getDefaultReactHost.`,
+          resolveReactHostFix(filePath),
+        );
+      }
+      writeFileSync(
+        filePath,
+        source.replace(REACT_NATIVE_REACT_HOST_IMPORT, REACT_HOST_IMPORT),
+      );
+    },
+  };
+}
+
+// Templates before React Native 0.77 have an Objective-C app delegate.
+function findAppDelegateFilePath(iosProjectPath: string): string | undefined {
+  const appDirectoryPaths = readdirSync(iosProjectPath, { withFileTypes: true })
+    .filter(entry => entry.isDirectory() && entry.name !== 'Pods')
+    .map(entry => join(iosProjectPath, entry.name));
+  return APP_DELEGATE_FILE_NAMES.flatMap(fileName =>
+    appDirectoryPaths.map(directoryPath => join(directoryPath, fileName)),
+  ).find(filePath => existsSync(filePath));
+}
+
+function findFilePath(
+  directoryPath: string,
+  fileName: string,
+): string | undefined {
+  if (!existsSync(directoryPath)) {
+    return undefined;
+  }
+  for (const entry of readdirSync(directoryPath, { withFileTypes: true })) {
+    const entryPath = join(directoryPath, entry.name);
+    if (entry.isFile() && entry.name === fileName) {
+      return entryPath;
+    }
+    const foundPath = entry.isDirectory()
+      ? findFilePath(entryPath, fileName)
+      : undefined;
+    if (foundPath !== undefined) {
+      return foundPath;
+    }
+  }
+  return undefined;
+}
+
+function hasBundleUrlOverride(filePath: string): boolean {
+  return (
+    existsSync(filePath) &&
+    readFileSync(filePath, 'utf8').includes(BUNDLE_URL_OVERRIDE)
+  );
+}
+
+function resolveReactHostFix(location: string): string {
+  return `Build the React host in ${location} with ${REACT_HOST_CLASS}.getDefaultReactHost, which takes DefaultReactHost.getDefaultReactHost's parameters.`;
+}
+
+function resolveRefusedBundleUrlEdit(
+  iosProjectPath: string,
+  objectiveCFilePath: string | undefined,
+): NativeProjectEdit {
+  if (objectiveCFilePath === undefined) {
+    return resolveRefusedEdit(
+      `${BUNDLE_URL_CALL} in AppDelegate.swift`,
+      iosProjectPath,
+      new NativeProjectError(
+        `The iOS project ${iosProjectPath} has no AppDelegate.swift in an app folder.`,
+        BUNDLE_URL_FIX,
+      ),
+    );
+  }
+  return resolveRefusedEdit(
+    `${BUNDLE_URL_CALL} in ${basename(objectiveCFilePath)}`,
+    objectiveCFilePath,
+    new NativeProjectError(
+      `The app delegate ${objectiveCFilePath} is Objective-C, and init edits only the Swift file that overrides bundleURL().`,
+      `Import <HotcodepushReactNativeCodePush/HotcodepushReactNativeCodePush-Swift.h> in ${objectiveCFilePath} and return ${OBJECTIVE_C_BUNDLE_URL_CALL} from bundleURL where it returns the embedded bundle.`,
+    ),
+    OBJECTIVE_C_BUNDLE_URL_CALL,
+  );
+}
+
+function resolveRefusedReactHostEdit(
+  androidProjectPath: string,
+  javaFilePath: string | undefined,
+): NativeProjectEdit {
+  if (javaFilePath === undefined) {
+    return resolveRefusedEdit(
+      REACT_HOST_EDIT_DESCRIPTION,
+      androidProjectPath,
+      new NativeProjectError(
+        `The Android project ${androidProjectPath} has no MainApplication.kt in its app's sources.`,
+        resolveReactHostFix("the app's Application class"),
+      ),
+    );
+  }
+  return resolveRefusedEdit(
+    REACT_HOST_EDIT_DESCRIPTION,
+    javaFilePath,
+    new NativeProjectError(
+      `The file ${javaFilePath} is Java, and init edits only the MainApplication.kt of React Native's template.`,
+      resolveReactHostFix(javaFilePath),
+    ),
+    REACT_HOST_CLASS,
+  );
+}

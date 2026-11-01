@@ -1,3 +1,8 @@
+import { fetchAppId } from '../resources/app.js';
+import {
+  channelOptionShape,
+  fetchChannel,
+} from '../resources/channel/fetch.js';
 import { createApiClient } from '../utils/api-client.js';
 import { openBrowser } from '../utils/browser.js';
 import { defineCommand } from '../utils/command.js';
@@ -8,11 +13,6 @@ import {
   assertProjectConfigAppId,
   readProjectConfig,
 } from '../utils/project-config.js';
-import {
-  channelOptionShape,
-  fetchAppId,
-  fetchChannel,
-} from '../utils/resource-resolution.js';
 import { readApiUrl } from '../utils/user-config.js';
 
 export default defineCommand({

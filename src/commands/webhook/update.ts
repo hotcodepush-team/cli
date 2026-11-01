@@ -1,10 +1,4 @@
 import { z } from 'zod';
-import { createApiClient } from '../../utils/api-client.js';
-import { booleanFlagSchema } from '../../utils/boolean-flag.js';
-import { defineCommand } from '../../utils/command.js';
-import { defineCommandOptions } from '../../utils/global-options.js';
-import { resolveNullableField } from '../../utils/nullable-field.js';
-import { printJson } from '../../utils/output.js';
 import {
   fetchWebhook,
   fetchWebhookAppId,
@@ -12,7 +6,13 @@ import {
   webhookAppOptionShape,
   webhookEventOptionShape,
   webhookOptionShape,
-} from '../../utils/webhook-resolution.js';
+} from '../../resources/webhook.js';
+import { createApiClient } from '../../utils/api-client.js';
+import { booleanFlagSchema } from '../../utils/boolean-flag.js';
+import { defineCommand } from '../../utils/command.js';
+import { defineCommandOptions } from '../../utils/global-options.js';
+import { resolveNullableField } from '../../utils/nullable-field.js';
+import { printJson } from '../../utils/output.js';
 
 export default defineCommand({
   description:

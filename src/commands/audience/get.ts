@@ -1,19 +1,19 @@
 import { z } from 'zod';
-import { createApiClient } from '../../utils/api-client.js';
-import { resolveAudienceText } from '../../utils/audience.js';
-import { defineCommand } from '../../utils/command.js';
-import { hasLockfile, readFingerprint } from '../../utils/fingerprint.js';
-import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson, printTable, printWarnings } from '../../utils/output.js';
-import { locateProjectConfig } from '../../utils/project-config.js';
-import {
-  buildAudienceQuery,
-  conditionOptionShape,
-} from '../../utils/release-conditions.js';
+import { resolveAudienceText } from '../../resources/audience.js';
 import {
   channelOptionShape,
   fetchChannel,
-} from '../../utils/resource-resolution.js';
+} from '../../resources/channel/fetch.js';
+import {
+  buildAudienceQuery,
+  conditionOptionShape,
+} from '../../resources/release/conditions.js';
+import { hasLockfile, readFingerprint } from '../../upload/fingerprint.js';
+import { createApiClient } from '../../utils/api-client.js';
+import { defineCommand } from '../../utils/command.js';
+import { defineCommandOptions } from '../../utils/global-options.js';
+import { printJson, printTable, printWarnings } from '../../utils/output.js';
+import { locateProjectConfig } from '../../utils/project-config.js';
 
 export default defineCommand({
   description:

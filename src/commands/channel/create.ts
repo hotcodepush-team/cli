@@ -1,21 +1,19 @@
 import type { Channel } from '@hotcodepush/node';
 import { HotCodePushError } from '@hotcodepush/node';
 import { z } from 'zod';
-import { createApiClient } from '../../utils/api-client.js';
+import { fetchAppId } from '../../resources/app.js';
+import { fetchChannels } from '../../resources/channel/fetch.js';
 import {
   channelFieldsShape,
   resolveChannelFields,
-} from '../../utils/channel-fields.js';
+} from '../../resources/channel/fields.js';
+import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
 import { readProjectConfig } from '../../utils/project-config.js';
 import { promptText } from '../../utils/prompts.js';
-import {
-  fetchAppId,
-  fetchChannels,
-  resolveNamedResource,
-} from '../../utils/resource-resolution.js';
+import { resolveNamedResource } from '../../utils/resources.js';
 
 export default defineCommand({
   description:

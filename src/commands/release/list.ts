@@ -1,7 +1,13 @@
 import type { Release } from '@hotcodepush/node';
+import {
+  channelOptionShape,
+  fetchChannel,
+} from '../../resources/channel/fetch.js';
+import { resolveReleaseBundleLabel } from '../../resources/release/fetch.js';
+import { resolveProgressionStepText } from '../../resources/release/progression.js';
+import { resolveReleaseDeviceCount } from '../../resources/statistics.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
-import { resolveReleaseDeviceCount } from '../../utils/fleet.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import {
   printJson,
@@ -10,12 +16,6 @@ import {
   resolveYesNoText,
 } from '../../utils/output.js';
 import { paginationShape, resolveNextOffset } from '../../utils/pagination.js';
-import { resolveProgressionStepText } from '../../utils/progression.js';
-import { resolveReleaseBundleLabel } from '../../utils/release-resolution.js';
-import {
-  channelOptionShape,
-  fetchChannel,
-} from '../../utils/resource-resolution.js';
 
 export default defineCommand({
   description:

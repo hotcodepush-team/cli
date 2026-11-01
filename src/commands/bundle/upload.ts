@@ -1,20 +1,20 @@
 import type { HotCodePush } from '@hotcodepush/node';
-import { createApiClient } from '../../utils/api-client.js';
-import { resolveBundleLabel } from '../../utils/bundle-resolution.js';
+import { resolveBundleLabel } from '../../resources/bundle.js';
 import {
   bundleUploadOptionShape,
   fetchUploadBundleOptions,
-} from '../../utils/bundle-upload.js';
-import { defineCommand } from '../../utils/command.js';
-import { withTemporaryDirectory } from '../../utils/compressed-files.js';
-import { printWarning } from '../../utils/diagnostics.js';
-import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson, resolveByteText } from '../../utils/output.js';
+} from '../../upload/bundle-upload.js';
+import { withTemporaryDirectory } from '../../upload/compressed-files.js';
 import type {
   UploadBundleOptions,
   UploadedBundle,
-} from '../../utils/upload.js';
-import { uploadBundle } from '../../utils/upload.js';
+} from '../../upload/upload.js';
+import { uploadBundle } from '../../upload/upload.js';
+import { createApiClient } from '../../utils/api-client.js';
+import { defineCommand } from '../../utils/command.js';
+import { printWarning } from '../../utils/diagnostics.js';
+import { defineCommandOptions } from '../../utils/global-options.js';
+import { printJson, resolveByteText } from '../../utils/output.js';
 
 const FINGERPRINT_UNKNOWN_TEXT =
   'No binary of the app carries this fingerprint.';

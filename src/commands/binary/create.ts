@@ -1,7 +1,6 @@
 import type { Binary, HotCodePush } from '@hotcodepush/node';
 import { z } from 'zod';
-import { createApiClient } from '../../utils/api-client.js';
-import type { BuildStep, OfflineCause } from '../../utils/build-step.js';
+import type { BuildStep, OfflineCause } from '../../frameworks/build-step.js';
 import {
   buildStepShape,
   fetchBuildStepChannelId,
@@ -10,26 +9,27 @@ import {
   resolveFailureText,
   resolveOfflineCause,
   writeBuildResourceFile,
-} from '../../utils/build-step.js';
-import type { BundleFile } from '../../utils/bundle-files.js';
-import { defineCommand } from '../../utils/command.js';
+} from '../../frameworks/build-step.js';
+import { assertMissingParameter } from '../../frameworks/framework.js';
+import type { BundleFile } from '../../upload/bundle-files.js';
 import {
   compressFiles,
   withTemporaryDirectory,
-} from '../../utils/compressed-files.js';
-import { printNotice, printWarning } from '../../utils/diagnostics.js';
-import { isCi } from '../../utils/environment.js';
-import { CliError, PipelineNotLoggedInError } from '../../utils/errors.js';
-import { assertMissingParameter } from '../../utils/framework.js';
-import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson, resolveByteText } from '../../utils/output.js';
-import { createReporter } from '../../utils/progress.js';
-import type { Platform, UploadedFiles } from '../../utils/upload.js';
+} from '../../upload/compressed-files.js';
+import type { Platform, UploadedFiles } from '../../upload/upload.js';
 import {
   assertWithinBundleBytesLimit,
   resolveMissingSha256s,
   uploadMissingFiles,
-} from '../../utils/upload.js';
+} from '../../upload/upload.js';
+import { createApiClient } from '../../utils/api-client.js';
+import { defineCommand } from '../../utils/command.js';
+import { printNotice, printWarning } from '../../utils/diagnostics.js';
+import { isCi } from '../../utils/environment.js';
+import { CliError, PipelineNotLoggedInError } from '../../utils/errors.js';
+import { defineCommandOptions } from '../../utils/global-options.js';
+import { printJson, resolveByteText } from '../../utils/output.js';
+import { createReporter } from '../../utils/progress.js';
 
 // `CFBundleShortVersionString` and `CFBundleVersion` on iOS, `versionName` and `versionCode` on Android.
 interface BinaryIdentity {

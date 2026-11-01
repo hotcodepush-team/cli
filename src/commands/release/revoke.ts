@@ -5,28 +5,28 @@ import type {
   Release,
 } from '@hotcodepush/node';
 import { z } from 'zod';
+import { fetchAppId } from '../../resources/app.js';
+import { fetchBundle } from '../../resources/bundle.js';
+import {
+  channelOptionShape,
+  fetchChannel,
+} from '../../resources/channel/fetch.js';
+import type { ReleaseOptions } from '../../resources/release/fetch.js';
+import {
+  fetchReleaseInChannel,
+  fetchReleaseLog,
+  releaseOptionShape,
+} from '../../resources/release/fetch.js';
+import { resolveReleaseDeviceCount } from '../../resources/statistics.js';
 import { createApiClient } from '../../utils/api-client.js';
-import { fetchBundle } from '../../utils/bundle-resolution.js';
 import { defineCommand } from '../../utils/command.js';
 import { printWarning } from '../../utils/diagnostics.js';
 import { InvalidParameterError } from '../../utils/errors.js';
-import { resolveReleaseDeviceCount } from '../../utils/fleet.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson, resolveQuantityText } from '../../utils/output.js';
 import { fetchAllPages } from '../../utils/pagination.js';
 import { readProjectConfig } from '../../utils/project-config.js';
 import { confirmConsequence } from '../../utils/prompts.js';
-import type { ReleaseOptions } from '../../utils/release-resolution.js';
-import {
-  fetchReleaseInChannel,
-  fetchReleaseLog,
-  releaseOptionShape,
-} from '../../utils/release-resolution.js';
-import {
-  channelOptionShape,
-  fetchAppId,
-  fetchChannel,
-} from '../../utils/resource-resolution.js';
 
 // The limit of the bulk route.
 const MAX_RELEASE_IDS_PER_REVOCATION = 100;

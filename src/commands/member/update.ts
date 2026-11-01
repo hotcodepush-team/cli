@@ -1,16 +1,16 @@
 import type { Member } from '@hotcodepush/node';
 import { z } from 'zod';
-import { createApiClient } from '../../utils/api-client.js';
-import { defineCommand } from '../../utils/command.js';
-import { defineCommandOptions } from '../../utils/global-options.js';
 import {
   fetchMember,
   memberOptionShape,
   resolveMemberEmail,
-} from '../../utils/member-resolution.js';
+} from '../../resources/member.js';
+import { fetchOrganizationId } from '../../resources/organization.js';
+import { createApiClient } from '../../utils/api-client.js';
+import { defineCommand } from '../../utils/command.js';
+import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
 import { confirmConsequence, promptSelect } from '../../utils/prompts.js';
-import { fetchOrganizationId } from '../../utils/resource-resolution.js';
 
 const MEMBER_ROLES = [
   'admin',
