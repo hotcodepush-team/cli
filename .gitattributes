@@ -1,2 +1,2 @@
-# Xcode writes its projects with LF line endings; the test projects keep them on every checkout, Windows included
-*.pbxproj text eol=lf
+# Every text file keeps LF on every checkout, Windows included, so Prettier's check reads the same bytes on each runner.
+* text=auto eol=lf
