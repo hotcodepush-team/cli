@@ -133,6 +133,7 @@ function readWidget(projectDirectoryPath: string): Widget | undefined {
   const document = new XMLParser({
     attributeNamePrefix: '',
     ignoreAttributes: false,
+    // eslint-disable-next-line max-params -- fast-xml-parser calls isArray with four positional arguments.
     isArray: (tagName, _jPath, _isLeafNode, isAttribute) =>
       !isAttribute && LIST_TAG_NAMES.has(tagName),
     parseAttributeValue: false,

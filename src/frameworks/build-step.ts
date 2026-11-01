@@ -35,6 +35,7 @@ import {
   readInputDirectoryPath,
 } from './framework.js';
 import { omitNativeGlue } from './native-glue.js';
+import type { FrameworkModule } from './index.js';
 import { resolveFrameworkModule } from './index.js';
 
 export interface BuildStep {
@@ -84,32 +85,13 @@ export async function readBuildStep(
 ): Promise<BuildStep> {
   const { directoryPath, projectConfig } = locateProjectConfig(options.config);
   const completeProjectConfig = assertProjectConfig(projectConfig);
-  const platform =
-    options.platform ??
-    (await promptSelect(options, {
-      choices: PLATFORMS.map(platform => ({
-        label: platform,
-        value: platform,
-      })),
-      flag: '--platform',
-      message: 'Which platform?',
-    }));
+  const platform = options.platform ?? (await promptPlatform(options));
   const framework = resolveFrameworkModule(detectFramework(directoryPath));
-  const embeddedBundlePath = await readInputDirectoryPath(
-    { ...options, path: options.embeddedBundlePath },
-    {
-      framework,
-      pathFlag: '--embedded-bundle-path',
-      projectDirectoryPath: directoryPath,
-    },
-  );
-  const embeddedFiles =
-    framework.collectEmbeddedFiles === undefined
-      ? omitNativeGlue(
-          await collectBundleFiles(embeddedBundlePath),
-          framework.nativeGluePaths ?? [],
-        )
-      : await framework.collectEmbeddedFiles(platform, embeddedBundlePath);
+  const embeddedFiles = await readEmbeddedFiles(framework, {
+    options,
+    platform,
+    projectDirectoryPath: directoryPath,
+  });
   const resourceFilePath = resolve(
     assertMissingParameter(options.resourceFilePath, '--resource-file-path'),
   );
@@ -161,8 +143,10 @@ export function resolveFailureText(error: unknown): string {
 
 export function writeBuildResourceFile(
   { fingerprint, platform, projectConfig, resourceFilePath }: BuildStep,
-  channelId: string | null,
-  embeddedBundle: EmbeddedBundle | null,
+  {
+    channelId,
+    embeddedBundle,
+  }: { channelId: string | null; embeddedBundle: EmbeddedBundle | null },
 ): void {
   writeResourceFile(
     resourceFilePath,
@@ -189,6 +173,42 @@ function assertProjectConfig(
   }
   assertProjectConfigAppId(projectConfig.appId);
   return { ...projectConfig, appId: projectConfig.appId };
+}
+
+function promptPlatform(options: BuildStepOptions): Promise<Platform> {
+  return promptSelect(options, {
+    choices: PLATFORMS.map(platform => ({ label: platform, value: platform })),
+    flag: '--platform',
+    message: 'Which platform?',
+  });
+}
+
+async function readEmbeddedFiles(
+  framework: FrameworkModule,
+  {
+    options,
+    platform,
+    projectDirectoryPath,
+  }: {
+    options: BuildStepOptions;
+    platform: Platform;
+    projectDirectoryPath: string;
+  },
+): Promise<BundleFile[] | undefined> {
+  const embeddedBundlePath = await readInputDirectoryPath(
+    { ...options, path: options.embeddedBundlePath },
+    {
+      framework,
+      pathFlag: '--embedded-bundle-path',
+      projectDirectoryPath,
+    },
+  );
+  return framework.collectEmbeddedFiles === undefined
+    ? omitNativeGlue(
+        await collectBundleFiles(embeddedBundlePath),
+        framework.nativeGluePaths ?? [],
+      )
+    : framework.collectEmbeddedFiles(platform, embeddedBundlePath);
 }
 
 // A build flavour sets `HOTCODEPUSH_CHANNEL` to override the channel of hotcodepush.json.

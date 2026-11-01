@@ -291,7 +291,7 @@ export class XcodeProjectError extends CliError {
       cause,
       fix,
       projectFilePath,
-    }: { cause: unknown; fix?: string; projectFilePath: string },
+    }: { cause?: unknown; fix?: string; projectFilePath: string },
   ) {
     super({
       cause,

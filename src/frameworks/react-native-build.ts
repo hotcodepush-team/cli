@@ -29,6 +29,13 @@ export type BundlerArgsResolver = (
 ) => string[];
 
 // The names React Native's own builds give the JavaScript, in the app and in an uploaded bundle alike.
+interface BundlePaths {
+  bundleFilePath: string;
+  javaScriptFilePath: string;
+  outputDirectoryPath: string;
+  sourceMapFilePath: string | undefined;
+}
+
 const BUNDLE_FILE_NAMES: Record<Platform, string> = {
   android: 'index.android.bundle',
   ios: 'main.jsbundle',
@@ -86,34 +93,16 @@ export function packageReactNativeBundles(
   resolveBundlerArgs: BundlerArgsResolver,
 ): Promise<PackagedBundle[]> {
   if (path !== undefined) {
-    const [platform] = platforms;
-    if (platform === undefined || platforms.length > 1) {
-      throw new InvalidParameterError(
-        'A prepared bundle from --path serves one platform.',
-        { fix: 'Name it with --platform ios or --platform android.' },
-      );
-    }
-    const directoryPath = resolve(path);
-    const bundleFileName = BUNDLE_FILE_NAMES[platform];
-    if (!existsSync(join(directoryPath, bundleFileName))) {
-      throw new InvalidParameterError(
-        `The directory ${directoryPath} from --path holds no ${bundleFileName}, the JavaScript the ${platform} app loads.`,
-        {
-          fix: `Pass the ${platform} bundle's directory, with ${bundleFileName} in it, or leave out --path to bundle the project.`,
-        },
-      );
-    }
-    return Promise.resolve([{ directoryPath, platforms }]);
+    return Promise.resolve([readPreparedBundle(path, platforms)]);
   }
   return Promise.resolve(
     platforms.map(platform => {
       const directoryPath = join(packagingDirectoryPath, platform);
-      packageBundle(
-        projectDirectoryPath,
+      packageBundle(projectDirectoryPath, {
+        bundlerArgs: resolveBundlerArgs(projectDirectoryPath, platform),
+        outputDirectoryPath: directoryPath,
         platform,
-        directoryPath,
-        resolveBundlerArgs(projectDirectoryPath, platform),
-      );
+      });
       return { directoryPath, platforms: [platform] };
     }),
   );
@@ -132,6 +121,32 @@ export function resolveNativeProjectPaths(
     android: join(projectDirectoryPath, 'android'),
     ios: join(projectDirectoryPath, 'ios'),
   };
+}
+
+function compileHermesBytecode(
+  projectDirectoryPath: string,
+  {
+    hermescFilePath,
+    paths: { bundleFilePath, javaScriptFilePath },
+    platform,
+  }: { hermescFilePath: string; paths: BundlePaths; platform: Platform },
+): void {
+  const bytecodeFilePath = `${javaScriptFilePath}.hbc`;
+  runCommandLineVisibly(
+    {
+      args: [
+        '-emit-binary',
+        '-max-diagnostic-width=80',
+        ...HERMES_FLAGS[platform],
+        '-out',
+        bytecodeFilePath,
+        javaScriptFilePath,
+      ],
+      command: hermescFilePath,
+    },
+    projectDirectoryPath,
+  );
+  renameSync(bytecodeFilePath, bundleFilePath);
 }
 
 function isHermesEnabled(
@@ -157,71 +172,95 @@ function isHermesEnabled(
 // Mirrors the release build. Intermediate files go beside the bundle's directory, never into it.
 function packageBundle(
   projectDirectoryPath: string,
-  platform: Platform,
-  outputDirectoryPath: string,
-  bundlerArgs: string[],
+  {
+    bundlerArgs,
+    outputDirectoryPath,
+    platform,
+  }: { bundlerArgs: string[]; outputDirectoryPath: string; platform: Platform },
 ): void {
   const intermediateDirectoryPath = `${outputDirectoryPath}-intermediate`;
   mkdirSync(outputDirectoryPath, { recursive: true });
   mkdirSync(intermediateDirectoryPath, { recursive: true });
-  const bundleFileName = BUNDLE_FILE_NAMES[platform];
-  const bundleFilePath = join(outputDirectoryPath, bundleFileName);
   const hermescFilePath = resolveHermescFilePath(
     projectDirectoryPath,
     platform,
   );
-  const javaScriptFilePath =
-    hermescFilePath === undefined
-      ? bundleFilePath
-      : join(intermediateDirectoryPath, bundleFileName);
+  const paths = resolveBundlePaths({
+    hermescFilePath,
+    intermediateDirectoryPath,
+    outputDirectoryPath,
+    platform,
+  });
+  runBundler(projectDirectoryPath, {
+    bundlerArgs,
+    isHermesCompiled: hermescFilePath !== undefined,
+    paths,
+    platform,
+  });
+  if (hermescFilePath !== undefined) {
+    compileHermesBytecode(projectDirectoryPath, {
+      hermescFilePath,
+      paths,
+      platform,
+    });
+  }
+}
+
+// A prepared bundle serves the one platform whose JavaScript it holds.
+function readPreparedBundle(
+  path: string,
+  platforms: Platform[],
+): PackagedBundle {
+  const [platform] = platforms;
+  if (platform === undefined || platforms.length > 1) {
+    throw new InvalidParameterError(
+      'A prepared bundle from --path serves one platform.',
+      { fix: 'Name it with --platform ios or --platform android.' },
+    );
+  }
+  const directoryPath = resolve(path);
+  const bundleFileName = BUNDLE_FILE_NAMES[platform];
+  if (!existsSync(join(directoryPath, bundleFileName))) {
+    throw new InvalidParameterError(
+      `The directory ${directoryPath} from --path holds no ${bundleFileName}, the JavaScript the ${platform} app loads.`,
+      {
+        fix: `Pass the ${platform} bundle's directory, with ${bundleFileName} in it, or leave out --path to bundle the project.`,
+      },
+    );
+  }
+  return { directoryPath, platforms };
+}
+
+// Hermes compiles the JavaScript in the intermediate directory into the bundle file.
+function resolveBundlePaths({
+  hermescFilePath,
+  intermediateDirectoryPath,
+  outputDirectoryPath,
+  platform,
+}: {
+  hermescFilePath: string | undefined;
+  intermediateDirectoryPath: string;
+  outputDirectoryPath: string;
+  platform: Platform;
+}): BundlePaths {
+  const bundleFileName = BUNDLE_FILE_NAMES[platform];
+  const bundleFilePath = join(outputDirectoryPath, bundleFileName);
   const sourceMapFileName = resolvePackagerSourceMapFileName(
     platform,
     hermescFilePath !== undefined,
   );
-  runCommandLineVisibly(
-    {
-      args: [
-        ...bundlerArgs,
-        '--platform',
-        platform,
-        '--dev',
-        'false',
-        '--bundle-output',
-        javaScriptFilePath,
-        '--assets-dest',
-        outputDirectoryPath,
-        '--reset-cache',
-        ...(sourceMapFileName === undefined
-          ? []
-          : [
-              '--sourcemap-output',
-              join(intermediateDirectoryPath, sourceMapFileName),
-            ]),
-        // Hermes compiles the JavaScript itself and needs no minification before it.
-        ...(hermescFilePath === undefined ? [] : ['--minify', 'false']),
-      ],
-      command: 'npx',
-    },
-    projectDirectoryPath,
-  );
-  if (hermescFilePath !== undefined) {
-    const bytecodeFilePath = `${javaScriptFilePath}.hbc`;
-    runCommandLineVisibly(
-      {
-        args: [
-          '-emit-binary',
-          '-max-diagnostic-width=80',
-          ...HERMES_FLAGS[platform],
-          '-out',
-          bytecodeFilePath,
-          javaScriptFilePath,
-        ],
-        command: hermescFilePath,
-      },
-      projectDirectoryPath,
-    );
-    renameSync(bytecodeFilePath, bundleFilePath);
-  }
+  return {
+    bundleFilePath,
+    javaScriptFilePath:
+      hermescFilePath === undefined
+        ? bundleFilePath
+        : join(intermediateDirectoryPath, bundleFileName),
+    outputDirectoryPath,
+    sourceMapFilePath:
+      sourceMapFileName === undefined
+        ? undefined
+        : join(intermediateDirectoryPath, sourceMapFileName),
+  };
 }
 
 function resolveHermescFilePath(
@@ -240,7 +279,10 @@ function resolveHermescFilePath(
     ['hermes-compiler', 'hermesc'],
   ]
     .map(([packageName = '', ...segments]) =>
-      resolvePackageDirectoryPath(projectDirectoryPath, packageName, segments),
+      resolvePackageDirectoryPath(projectDirectoryPath, {
+        packageName,
+        segments,
+      }),
     )
     .map(directoryPath =>
       directoryPath === undefined || directoryName === undefined
@@ -261,8 +303,7 @@ function resolveHermescFilePath(
 
 function resolvePackageDirectoryPath(
   projectDirectoryPath: string,
-  packageName: string,
-  segments: string[],
+  { packageName, segments }: { packageName: string; segments: string[] },
 ): string | undefined {
   try {
     const packageJsonPath = createRequire(
@@ -287,4 +328,43 @@ function resolvePackagerSourceMapFileName(
   return isHermesEnabledForPlatform
     ? `${bundleFileName}.packager.map`
     : `${bundleFileName}.map`;
+}
+
+function runBundler(
+  projectDirectoryPath: string,
+  {
+    bundlerArgs,
+    isHermesCompiled,
+    paths: { javaScriptFilePath, outputDirectoryPath, sourceMapFilePath },
+    platform,
+  }: {
+    bundlerArgs: string[];
+    isHermesCompiled: boolean;
+    paths: BundlePaths;
+    platform: Platform;
+  },
+): void {
+  runCommandLineVisibly(
+    {
+      args: [
+        ...bundlerArgs,
+        '--platform',
+        platform,
+        '--dev',
+        'false',
+        '--bundle-output',
+        javaScriptFilePath,
+        '--assets-dest',
+        outputDirectoryPath,
+        '--reset-cache',
+        ...(sourceMapFilePath === undefined
+          ? []
+          : ['--sourcemap-output', sourceMapFilePath]),
+        // Hermes compiles the JavaScript itself and needs no minification before it.
+        ...(isHermesCompiled ? ['--minify', 'false'] : []),
+      ],
+      command: 'npx',
+    },
+    projectDirectoryPath,
+  );
 }

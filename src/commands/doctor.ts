@@ -443,7 +443,7 @@ function checkVersions({
       ),
       ...(framework.versionedSdkDependencyNames ?? []).map(
         packageName =>
-          `${packageName} ${readSdkDependencyVersion(directoryPath, framework.packageName, packageName) ?? 'missing'}`,
+          `${packageName} ${readSdkDependencyVersion(directoryPath, { packageName, sdkPackageName: framework.packageName }) ?? 'missing'}`,
       ),
     );
   }

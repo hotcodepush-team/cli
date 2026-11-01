@@ -49,6 +49,7 @@ describe('sdk-package', () => {
       ],
     ])(
       'should fail the package with `%s` when it %s',
+      // eslint-disable-next-line max-params -- it.each passes each row's cells as separate arguments.
       (code, _, dependencies) => {
         expect(
           checkSdkPackage(
@@ -63,7 +64,10 @@ describe('sdk-package', () => {
   describe('installSdkPackage', () => {
     it('should install the package from its spec with the package manager of the project and answer the sentence the step prints', () => {
       expect(
-        installSdkPackage(directoryPath, SDK_PACKAGE_NAME, PACKAGE_SPEC),
+        installSdkPackage(directoryPath, {
+          packageName: SDK_PACKAGE_NAME,
+          packageSpec: PACKAGE_SPEC,
+        }),
       ).toBe(`Installed ${SDK_PACKAGE_NAME} from ${PACKAGE_SPEC}.`);
       expect(runCommandLineVisibly).toHaveBeenCalledWith(
         { args: ['install', '--save-exact', PACKAGE_SPEC], command: 'npm' },
@@ -100,21 +104,19 @@ describe('sdk-package', () => {
       );
 
       expect(
-        readSdkDependencyVersion(
-          directoryPath,
-          SDK_PACKAGE_NAME,
-          DEPENDENCY_PACKAGE_NAME,
-        ),
+        readSdkDependencyVersion(directoryPath, {
+          packageName: DEPENDENCY_PACKAGE_NAME,
+          sdkPackageName: SDK_PACKAGE_NAME,
+        }),
       ).toBe('0.2.0');
     });
 
     it('should answer none when the sdk package is not installed', () => {
       expect(
-        readSdkDependencyVersion(
-          directoryPath,
-          SDK_PACKAGE_NAME,
-          DEPENDENCY_PACKAGE_NAME,
-        ),
+        readSdkDependencyVersion(directoryPath, {
+          packageName: DEPENDENCY_PACKAGE_NAME,
+          sdkPackageName: SDK_PACKAGE_NAME,
+        }),
       ).toBeUndefined();
     });
   });

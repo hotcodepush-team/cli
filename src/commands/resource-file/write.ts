@@ -36,11 +36,10 @@ export default defineCommand({
     const buildStep = await readBuildStep(options);
     const { embeddedFiles, platform, resourceFilePath } = buildStep;
     if (embeddedFiles === undefined) {
-      writeBuildResourceFile(
-        buildStep,
-        resolveChannelIdByShape(buildStep.channelReference),
-        null,
-      );
+      writeBuildResourceFile(buildStep, {
+        channelId: resolveChannelIdByShape(buildStep.channelReference),
+        embeddedBundle: null,
+      });
       printNotice(
         `The ${platform} build bundled no JavaScript, as a debug build served by the development server does. Wrote ${resourceFilePath} without an embedded bundle: over-the-air (OTA) updates are off in this build.`,
       );
@@ -51,10 +50,13 @@ export default defineCommand({
     }
     const { channelId, skippedReason } =
       await fetchChannelResolution(buildStep);
-    writeBuildResourceFile(buildStep, channelId, {
-      bundleVersion: UNVERSIONED_BUNDLE_VERSION,
-      files: embeddedFiles,
-      id: null,
+    writeBuildResourceFile(buildStep, {
+      channelId,
+      embeddedBundle: {
+        bundleVersion: UNVERSIONED_BUNDLE_VERSION,
+        files: embeddedFiles,
+        id: null,
+      },
     });
     if (skippedReason !== null) {
       printWarning(skippedReason);

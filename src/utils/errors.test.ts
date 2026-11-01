@@ -79,6 +79,7 @@ describe('errors', () => {
       'invalid_parameter',
       2,
     ],
+    // eslint-disable-next-line max-params -- it.each passes each row's cells as separate arguments.
   ])('should carry the code and exit code of %o', (error, code, exitCode) => {
     expect(error.code).toBe(code);
     expect(error.exitCode).toBe(exitCode);

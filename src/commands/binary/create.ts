@@ -83,11 +83,10 @@ export default defineCommand({
     const buildStep = await readBuildStep(options);
     const { embeddedFiles, platform, resourceFilePath } = buildStep;
     if (embeddedFiles === undefined) {
-      writeBuildResourceFile(
-        buildStep,
-        resolveChannelIdByShape(buildStep.channelReference),
-        null,
-      );
+      writeBuildResourceFile(buildStep, {
+        channelId: resolveChannelIdByShape(buildStep.channelReference),
+        embeddedBundle: null,
+      });
       printNotice(
         `No binary created: the ${platform} build bundled no JavaScript, as a debug build served by the development server does. Wrote ${resourceFilePath} without an embedded bundle: over-the-air (OTA) updates are off in this build.`,
       );
@@ -110,10 +109,13 @@ export default defineCommand({
       embeddedFiles,
       createReporter(options),
     );
-    writeBuildResourceFile(buildStep, binaryCreation.channelId, {
-      bundleVersion: identity.binaryVersion,
-      files: embeddedFiles,
-      id: binaryCreation.binary?.bundleId ?? null,
+    writeBuildResourceFile(buildStep, {
+      channelId: binaryCreation.channelId,
+      embeddedBundle: {
+        bundleVersion: identity.binaryVersion,
+        files: embeddedFiles,
+        id: binaryCreation.binary?.bundleId ?? null,
+      },
     });
     if (binaryCreation.pipelineFailure !== undefined) {
       throw binaryCreation.pipelineFailure;

@@ -91,7 +91,7 @@ export function resolveProgression(
 export function resolveProgressionStep(
   release: Release,
 ): ProgressionStep | null {
-  const { progression, progressionStepStartedAt, releaseCounters } = release;
+  const { progression, progressionStepStartedAt } = release;
   if (progression === null || release.status !== 'active') {
     return null;
   }
@@ -101,11 +101,7 @@ export function resolveProgressionStep(
   if (number === progression.rolloutPercents.length) {
     return null;
   }
-  const appliedUpdateCount =
-    progressionStepStartedAt === null || releaseCounters === undefined
-      ? 0
-      : releaseCounters.appliedUpdateCount -
-        release.stepStartAppliedUpdateCount;
+  const appliedUpdateCount = resolveStepAppliedUpdateCount(release);
   if (
     progressionStepStartedAt === null ||
     appliedUpdateCount < progression.stepMinimumUpdateCount
@@ -181,4 +177,14 @@ function resolveGateText(gate: ProgressionGate): string {
   return gate.type === 'sample'
     ? `Waiting on updates: ${gate.appliedUpdateCount} of ${gate.requiredUpdateCount} applied`
     : `ready at ${gate.readyAt}`;
+}
+
+function resolveStepAppliedUpdateCount({
+  progressionStepStartedAt,
+  releaseCounters,
+  stepStartAppliedUpdateCount,
+}: Release): number {
+  return progressionStepStartedAt === null || releaseCounters === undefined
+    ? 0
+    : releaseCounters.appliedUpdateCount - stepStartAppliedUpdateCount;
 }

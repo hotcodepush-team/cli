@@ -20,11 +20,11 @@ import {
   isSdkPackageDeclared,
 } from './sdk-package.js';
 import type {
-  StepOutcome,
   FrameworkCheck,
   FrameworkModule,
   FrameworkProject,
   FrameworkWiring,
+  StepOutcome,
 } from './index.js';
 
 // Each plugin is a name or a name with its options.
@@ -88,6 +88,25 @@ function addPluginEntry(filePath: string): void {
   writeFileSync(filePath, stringifyLikeSource(appJson, appJsonText));
 }
 
+function assertPluginEntryEditable(
+  projectDirectoryPath: string,
+  appConfigFileNames: AppConfigFileNames,
+): void {
+  const { codeFileName, jsonFileName } = appConfigFileNames;
+  if (codeFileName !== undefined) {
+    throw new NativeProjectError(
+      `The app config ${codeFileName} is code, which the CLI does not edit.`,
+      resolvePluginEntryStep(codeFileName),
+    );
+  }
+  if (!isPluginEntryEditable(projectDirectoryPath, appConfigFileNames)) {
+    throw new NativeProjectError(
+      `The app config ${jsonFileName} is not JSON the CLI can parse.`,
+      resolvePluginEntryStep(jsonFileName),
+    );
+  }
+}
+
 function checkPluginEntry({ directoryPath }: FrameworkProject): FrameworkCheck {
   const appConfigFileNames = findAppConfigFileNames(directoryPath);
   const pluginEntryFileName = findPluginEntryFileName(
@@ -135,6 +154,19 @@ function findPluginEntryFileName(
     fileName =>
       fileName !== undefined && hasPluginEntry(projectDirectoryPath, fileName),
   );
+}
+
+function hasExpoAppJson(projectDirectoryPath: string): boolean {
+  const appJsonPath = join(projectDirectoryPath, APP_JSON_FILE_NAME);
+  if (!existsSync(appJsonPath)) {
+    return false;
+  }
+  try {
+    const appJson: unknown = JSON.parse(readFileSync(appJsonPath, 'utf8'));
+    return typeof appJson === 'object' && appJson !== null && 'expo' in appJson;
+  } catch {
+    return false;
+  }
 }
 
 // A code or JSON5 config is never evaluated, so the package name is matched in its text.
@@ -204,16 +236,24 @@ function resolveWiring({
       ...(isAppJsonToEdit ? [appConfigFileNames.jsonFileName] : []),
     ],
     installPackage: () =>
-      installSdkPackage(directoryPath, EXPO_PACKAGE_NAME, EXPO_PACKAGE_SPEC),
+      installSdkPackage(directoryPath, {
+        packageName: EXPO_PACKAGE_NAME,
+        packageSpec: EXPO_PACKAGE_SPEC,
+      }),
     wireBinaryCreateStep: editBlocker =>
-      wirePluginEntry(directoryPath, appConfigFileNames, editBlocker),
+      wirePluginEntry(directoryPath, { appConfigFileNames, editBlocker }),
   };
 }
 
 async function wirePluginEntry(
   projectDirectoryPath: string,
-  appConfigFileNames: AppConfigFileNames,
-  editBlocker: ConfirmationRequiredError | undefined,
+  {
+    appConfigFileNames,
+    editBlocker,
+  }: {
+    appConfigFileNames: AppConfigFileNames;
+    editBlocker: ConfirmationRequiredError | undefined;
+  },
 ): Promise<StepOutcome<undefined>> {
   const pluginEntryFileName = findPluginEntryFileName(
     projectDirectoryPath,
@@ -226,39 +266,14 @@ async function wirePluginEntry(
       value: undefined,
     };
   }
-  const { codeFileName, jsonFileName } = appConfigFileNames;
-  if (codeFileName !== undefined) {
-    throw new NativeProjectError(
-      `The app config ${codeFileName} is code, which the CLI does not edit.`,
-      resolvePluginEntryStep(codeFileName),
-    );
-  }
-  if (!isPluginEntryEditable(projectDirectoryPath, appConfigFileNames)) {
-    throw new NativeProjectError(
-      `The app config ${jsonFileName} is not JSON the CLI can parse.`,
-      resolvePluginEntryStep(jsonFileName),
-    );
-  }
+  assertPluginEntryEditable(projectDirectoryPath, appConfigFileNames);
   if (editBlocker !== undefined) {
     throw editBlocker;
   }
-  addPluginEntry(join(projectDirectoryPath, jsonFileName));
+  addPluginEntry(join(projectDirectoryPath, appConfigFileNames.jsonFileName));
   return {
-    message: `Added the config plugin ${EXPO_PACKAGE_NAME} to ${jsonFileName}.`,
+    message: `Added the config plugin ${EXPO_PACKAGE_NAME} to ${appConfigFileNames.jsonFileName}.`,
     status: 'done',
     value: undefined,
   };
-}
-
-function hasExpoAppJson(projectDirectoryPath: string): boolean {
-  const appJsonPath = join(projectDirectoryPath, APP_JSON_FILE_NAME);
-  if (!existsSync(appJsonPath)) {
-    return false;
-  }
-  try {
-    const appJson: unknown = JSON.parse(readFileSync(appJsonPath, 'utf8'));
-    return typeof appJson === 'object' && appJson !== null && 'expo' in appJson;
-  } catch {
-    return false;
-  }
 }
