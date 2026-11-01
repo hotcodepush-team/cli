@@ -583,6 +583,67 @@ describe('init', () => {
     expect(result.steps[8]?.message).toBe('Waits on the configuration step.');
   });
 
+  it.each([
+    {
+      apps: [DEMO_APP],
+      name: ACME_ORGANIZATION.name,
+      noun: 'organization',
+      organizations: [
+        ACME_ORGANIZATION,
+        { ...GLOBEX_ORGANIZATION, name: ACME_ORGANIZATION.name.toUpperCase() },
+      ],
+      skippedStep: 'app',
+    },
+    {
+      apps: [
+        DEMO_APP,
+        { ...DEMO_APP, id: UNKNOWN_APP_ID, name: DEMO_APP.name.toUpperCase() },
+      ],
+      name: DEMO_APP.name,
+      noun: 'app',
+      organizations: [ACME_ORGANIZATION],
+      skippedStep: 'configuration',
+    },
+  ])(
+    'should stop at the $noun when two of them share the --$noun name in any case, skipping the steps that wait on it',
+    async ({ apps, name, noun, organizations, skippedStep }) => {
+      const directoryPath = writeProject();
+      respondWithSession(organizations);
+      harness.routes[`GET ${APPS_PATH}`] = () => Response.json(apps);
+
+      await expect(
+        initCommand.action(
+          {
+            [noun]: name,
+            json: true,
+            yes: true,
+            ...withCwd(directoryPath),
+          },
+          undefined,
+        ),
+      ).rejects.toMatchObject({
+        code: 'invalid_parameter',
+        stoppedStep: noun,
+      });
+
+      const result = harness.readJson() as InitResult;
+      const stoppedStep = result.steps.find(({ step }) => step === noun);
+      expect(stoppedStep).toMatchObject({
+        code: 'invalid_parameter',
+        message: `Several ${noun}s carry the name "${name}" from --${noun}.`,
+        status: 'stopped',
+      });
+      expect(readStepStatuses(result)).toMatchObject({
+        [skippedStep]: 'skipped',
+        release: 'skipped',
+        signing_key: 'skipped',
+      });
+      expect(harness.requests.some(({ method }) => method === 'POST')).toBe(
+        false,
+      );
+    },
+  );
+
   describe('when hotcodepush.json names an app the API does not have', () => {
     const projectConfig = {
       appId: UNKNOWN_APP_ID,

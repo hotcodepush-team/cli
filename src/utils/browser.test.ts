@@ -11,5 +11,6 @@ describe('browser', () => {
     vi.mocked(open).mockRejectedValueOnce(new Error('spawn xdg-open ENOENT'));
 
     await expect(openBrowser(URL)).resolves.toBeUndefined();
+    expect(open).toHaveBeenCalledWith(URL);
   });
 });
