@@ -1,8 +1,16 @@
-import type { HotCodePush, Member } from '@hotcodepush/node';
+import type { HotCodePush, Invitation, Member } from '@hotcodepush/node';
 import { z } from 'zod';
 import type { InteractivityOptions } from './environment.js';
 import { fetchAllPages } from './pagination.js';
-import { fetchOrPromptResourceId } from './resource-resolution.js';
+import {
+  fetchOrPromptResourceId,
+  promptResourceId,
+  resolveResource,
+} from './resource-resolution.js';
+
+interface InvitationOptions extends InteractivityOptions {
+  invitation?: string;
+}
 
 interface MemberOptions extends InteractivityOptions {
   member?: string;
@@ -11,6 +19,29 @@ interface MemberOptions extends InteractivityOptions {
 export const memberOptionShape = {
   member: z.string().optional().describe('The member, by id or email.'),
 };
+
+// Invitations have no read by id, and only a pending one is unique by its email.
+export async function fetchPendingInvitation(
+  hotCodePush: HotCodePush,
+  organizationId: string,
+  options: InvitationOptions,
+): Promise<Invitation> {
+  const pendingInvitations = await fetchAllPages(page =>
+    hotCodePush.organizations.invitations.list({
+      organizationId,
+      status: 'pending',
+      ...page,
+    }),
+  );
+  const namedInvitations = pendingInvitations.map(invitation => ({
+    ...invitation,
+    name: invitation.email,
+  }));
+  const reference =
+    options.invitation ??
+    (await promptResourceId('invitation', namedInvitations, options));
+  return resolveResource('invitation', reference, namedInvitations);
+}
 
 export async function fetchMember(
   hotCodePush: HotCodePush,

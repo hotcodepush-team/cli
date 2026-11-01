@@ -42,6 +42,10 @@ interface OrganizationOptions extends InteractivityOptions {
   organization?: string;
 }
 
+interface SigningKeyOptions extends InteractivityOptions {
+  signingKey?: string;
+}
+
 export const channelOptionShape = {
   channel: z
     .string()
@@ -199,6 +203,21 @@ export async function fetchHasSigningKey(
   return count > 0;
 }
 
+// A signing key is named by its key id.
+export async function fetchSigningKey(
+  hotCodePush: HotCodePush,
+  appId: string,
+  options: SigningKeyOptions,
+): Promise<SigningKey> {
+  const namedSigningKeys = (await fetchSigningKeys(hotCodePush, appId)).map(
+    signingKey => ({ ...signingKey, name: signingKey.keyId }),
+  );
+  const reference =
+    options.signingKey ??
+    (await promptResourceId('signing-key', namedSigningKeys, options));
+  return resolveResource('signing-key', reference, namedSigningKeys);
+}
+
 export function fetchSigningKeys(
   hotCodePush: HotCodePush,
   appId: string,
@@ -221,24 +240,40 @@ export function promptResourceId(
   );
 }
 
-// Case-insensitive, as the API keeps app and channel names unique that way.
+// A UUID is an id and anything else a name, both looked up in the list.
+export function findResource<TResource extends NamedResource>(
+  noun: string,
+  reference: string,
+  resources: TResource[],
+): TResource | undefined {
+  return ID_SCHEMA.safeParse(reference).success
+    ? resources.find(({ id }) => id === reference)
+    : findNamedResource(noun, reference, resources, `--${noun}`);
+}
+
 export function resolveNamedResource<TResource extends NamedResource>(
   noun: string,
   name: string,
   resources: TResource[],
   source = `--${noun}`,
 ): TResource {
-  const namedResources = resources.filter(
-    resource => resource.name.toLowerCase() === name.toLowerCase(),
-  );
-  const [namedResource] = namedResources;
+  const namedResource = findNamedResource(noun, name, resources, source);
   if (namedResource === undefined) {
     throw new UnknownNameError(noun, name, source);
   }
-  if (namedResources.length > 1) {
-    throw new AmbiguousNameError(noun, name, source);
-  }
   return namedResource;
+}
+
+export function resolveResource<TResource extends NamedResource>(
+  noun: string,
+  reference: string,
+  resources: TResource[],
+): TResource {
+  const resource = findResource(noun, reference, resources);
+  if (resource === undefined) {
+    throw new UnknownNameError(noun, reference);
+  }
+  return resource;
 }
 
 async function fetchAppsInScope(
@@ -259,4 +294,20 @@ async function fetchAppsInScope(
     ),
   );
   return fetchedApps.flat();
+}
+
+// Case-insensitive, as the API keeps app and channel names unique that way.
+function findNamedResource<TResource extends NamedResource>(
+  noun: string,
+  name: string,
+  resources: TResource[],
+  source: string,
+): TResource | undefined {
+  const namedResources = resources.filter(
+    resource => resource.name.toLowerCase() === name.toLowerCase(),
+  );
+  if (namedResources.length > 1) {
+    throw new AmbiguousNameError(noun, name, source);
+  }
+  return namedResources[0];
 }

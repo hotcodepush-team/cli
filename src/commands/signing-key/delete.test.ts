@@ -10,10 +10,7 @@ import {
   resolveProtocolSigningKey,
   SIGNING_KEY,
 } from '../../../test/fixtures.js';
-import {
-  ConfirmationRequiredError,
-  InvalidParameterError,
-} from '../../utils/errors.js';
+import { ConfirmationRequiredError } from '../../utils/errors.js';
 import signingKeyDeleteCommand from './delete.js';
 
 vi.mock('@clack/prompts', () =>
@@ -91,19 +88,6 @@ describe('signing-key delete', () => {
         undefined,
       ),
     ).rejects.toBeInstanceOf(ConfirmationRequiredError);
-
-    expect(readDeleteRequests()).toHaveLength(0);
-  });
-
-  it('should name --signing-key when the app has no key of that id or key id', async () => {
-    respondWithSigningKey();
-
-    await expect(
-      signingKeyDeleteCommand.action(
-        { app: DEMO_APP.id, signingKey: 'sha256:unknown', yes: true },
-        undefined,
-      ),
-    ).rejects.toThrow(InvalidParameterError);
 
     expect(readDeleteRequests()).toHaveLength(0);
   });

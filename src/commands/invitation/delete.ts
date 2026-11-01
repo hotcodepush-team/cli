@@ -1,12 +1,10 @@
-import type { Invitation } from '@hotcodepush/node';
 import { z } from 'zod';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
-import { InvalidParameterError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
+import { fetchPendingInvitation } from '../../utils/member-resolution.js';
 import { printJson } from '../../utils/output.js';
-import { fetchAllPages } from '../../utils/pagination.js';
-import { confirmConsequence, promptSelect } from '../../utils/prompts.js';
+import { confirmConsequence } from '../../utils/prompts.js';
 import { fetchOrganizationId } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
@@ -25,26 +23,10 @@ export default defineCommand({
   action: async options => {
     const hotCodePush = createApiClient();
     const organizationId = await fetchOrganizationId(hotCodePush, options);
-    // Invitations have no read by id, and only a pending one is unique by its email.
-    const pendingInvitations = await fetchAllPages(page =>
-      hotCodePush.organizations.invitations.list({
-        organizationId,
-        status: 'pending',
-        ...page,
-      }),
-    );
-    const invitation = resolveInvitation(
-      pendingInvitations,
-      options.invitation ??
-        (await promptSelect(
-          '--invitation',
-          'Which invitation?',
-          pendingInvitations.map(({ email, id }) => ({
-            label: email,
-            value: id,
-          })),
-          options,
-        )),
+    const invitation = await fetchPendingInvitation(
+      hotCodePush,
+      organizationId,
+      options,
     );
     const isConfirmed = await confirmConsequence(
       `withdraws the invitation to ${invitation.email}: the link in its mail stops working`,
@@ -66,22 +48,3 @@ export default defineCommand({
     }
   },
 });
-
-// The API stores emails lowercased.
-function resolveInvitation(
-  invitations: Invitation[],
-  reference: string,
-): Invitation {
-  const lowercasedReference = reference.toLowerCase();
-  const invitation = invitations.find(
-    ({ email, id }) =>
-      id === reference || email.toLowerCase() === lowercasedReference,
-  );
-  if (invitation === undefined) {
-    throw new InvalidParameterError(
-      `The organization has no pending invitation ${reference} from --invitation.`,
-      'Run "hotcodepush invitation list" for the ids and emails.',
-    );
-  }
-  return invitation;
-}

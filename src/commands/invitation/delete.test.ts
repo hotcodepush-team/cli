@@ -11,8 +11,8 @@ import {
 } from '../../../test/fixtures.js';
 import {
   ConfirmationRequiredError,
-  InvalidParameterError,
   MissingParameterError,
+  UnknownNameError,
 } from '../../utils/errors.js';
 import invitationDeleteCommand from './delete.js';
 
@@ -170,7 +170,7 @@ describe('invitation delete', () => {
         },
         undefined,
       ),
-    ).rejects.toThrow(InvalidParameterError);
+    ).rejects.toThrow(UnknownNameError);
     expect(readDeleteRequests()).toEqual([]);
   });
 });

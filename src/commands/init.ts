@@ -68,6 +68,7 @@ import {
   fetchApps,
   fetchHasSigningKey,
   fetchOrganizations,
+  findResource,
 } from '../utils/resource-resolution.js';
 import { isEnvironmentToken, readToken } from '../utils/token-store.js';
 import { readApiUrl } from '../utils/user-config.js';
@@ -141,7 +142,11 @@ export default defineCommand({
     const scope = await run.run(
       'organization',
       () =>
-        fetchOrganizationScope(requireValue(hotCodePush), projectConfig, options),
+        fetchOrganizationScope(
+          requireValue(hotCodePush),
+          projectConfig,
+          options,
+        ),
       { dependsOn: ['sign_in'] },
     );
     const app = await run.run(
@@ -266,7 +271,11 @@ async function fetchOrganizationScope(
   }
   const organizations = await fetchOrganizations(hotCodePush);
   if (options.organization !== undefined) {
-    const named = findNamed(organizations, options.organization);
+    const named = findResource(
+      'organization',
+      options.organization,
+      organizations,
+    );
     if (named !== undefined) {
       return resolveUsedScope(named);
     }
@@ -327,7 +336,7 @@ async function fetchInitApp(
   }
   const apps = await fetchApps(hotCodePush, organization.id);
   if (options.app !== undefined) {
-    const named = findNamed(apps, options.app);
+    const named = findResource('app', options.app, apps);
     if (named !== undefined) {
       return resolveUsed('app', named);
     }
@@ -695,17 +704,6 @@ async function fetchExistingApp(
     }
     throw error;
   }
-}
-
-function findNamed<TResource extends { id: string; name: string }>(
-  resources: TResource[],
-  reference: string,
-): TResource | undefined {
-  return ID_SCHEMA.safeParse(reference).success
-    ? resources.find(({ id }) => id === reference)
-    : resources.find(
-        ({ name }) => name.toLowerCase() === reference.toLowerCase(),
-      );
 }
 
 function isConfigurationComplete(
