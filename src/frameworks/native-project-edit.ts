@@ -30,12 +30,14 @@ export function resolveGradleEdit(
   ).find(candidatePath => existsSync(candidatePath));
   if (filePath === undefined) {
     return resolveRefusedEdit(
-      GRADLE_EDIT_DESCRIPTION,
-      join(androidProjectPath, 'app', 'build.gradle'),
       new NativeProjectError(
         `The Android project ${androidProjectPath} has no build.gradle or build.gradle.kts in its app folder.`,
         `Apply node_modules/${packageName}/android/${GRADLE_FILE_MARKER} from the app module's Gradle file.`,
       ),
+      {
+        description: GRADLE_EDIT_DESCRIPTION,
+        filePath: join(androidProjectPath, 'app', 'build.gradle'),
+      },
     );
   }
   const resolvePackageScript = `require.resolve('${packageName}/package.json')`;
@@ -59,10 +61,12 @@ export function resolveGradleEdit(
 
 // A file wired by hand holds the marker, so `doctor` passes it and `init` leaves it alone.
 export function resolveRefusedEdit(
-  description: string,
-  filePath: string,
   error: NativeProjectError,
-  marker?: string,
+  {
+    description,
+    filePath,
+    marker,
+  }: { description: string; filePath: string; marker?: string },
 ): NativeProjectEdit {
   return {
     description,

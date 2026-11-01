@@ -43,17 +43,19 @@ export default defineCommand({
       .describe('The https URL the events are posted to.'),
   }),
   action: async options => {
-    const app = resolveNullableField(options.app, options.clearApp, 'app');
+    const app = resolveNullableField(options.app, {
+      flagName: 'app',
+      isCleared: options.clearApp,
+    });
     const hotCodePush = createApiClient();
     const fetchedWebhook = await fetchWebhook(hotCodePush, options);
     const updatedWebhook = await hotCodePush.organizations.webhooks.update({
       appId:
         typeof app === 'string'
-          ? await fetchWebhookAppId(
-              hotCodePush,
-              fetchedWebhook.organizationId,
+          ? await fetchWebhookAppId(hotCodePush, {
               app,
-            )
+              organizationId: fetchedWebhook.organizationId,
+            })
           : app,
       events:
         options.event === undefined

@@ -82,6 +82,7 @@ describe('update notice', () => {
         'HOTCODEPUSH_UPDATE_NOTICE_DISABLED',
         '1',
       ],
+      // eslint-disable-next-line max-params -- it.each passes each row's cells as separate arguments.
     ])('should ask nothing %s', async (_, variableName, value) => {
       vi.stubEnv(variableName, value);
 
@@ -142,6 +143,7 @@ describe('update notice', () => {
       ['latest', '1.2.3', false],
     ])(
       'should answer whether %s is newer than %s: %s',
+      // eslint-disable-next-line max-params -- it.each passes each row's cells as separate arguments.
       (candidate, current, isNewer) => {
         expect(isNewerVersion(candidate, current)).toBe(isNewer);
       },

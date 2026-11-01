@@ -1,3 +1,4 @@
+import type { Binary, FleetStatistics } from '@hotcodepush/node';
 import { fetchAppId } from '../../resources/apps.js';
 import {
   UNSEEN_IN_FLEET_WINDOW_TEXT,
@@ -20,11 +21,10 @@ export default defineCommand({
   options: defineCommandOptions(paginationShape),
   action: async options => {
     const hotCodePush = createApiClient();
-    const appId = await fetchAppId(
-      hotCodePush,
+    const appId = await fetchAppId(hotCodePush, {
       options,
-      readProjectConfig(options.config),
-    );
+      projectConfig: readProjectConfig(options.config),
+    });
     const listedBinaries = await hotCodePush.apps.binaries.list({
       appId,
       limit: options.limit,
@@ -48,20 +48,25 @@ export default defineCommand({
         'LAST SEEN',
       ],
       nextOffset,
-      rows: listedBinaries.map(({ build, bundleId, id, platform, version }) => {
-        const binaryBucket = resolveBinaryBucket(fleet, id);
-        return [
-          id,
-          version,
-          build,
-          platform,
-          bundleId,
-          String(binaryBucket?.deviceCount ?? 0),
-          binaryBucket === undefined
-            ? UNSEEN_IN_FLEET_WINDOW_TEXT
-            : resolveDate(binaryBucket.lastSeenAt),
-        ];
-      }),
+      rows: listedBinaries.map(binary => resolveBinaryRow(binary, fleet)),
     });
   },
 });
+
+function resolveBinaryRow(
+  { build, bundleId, id, platform, version }: Binary,
+  fleet: FleetStatistics,
+): string[] {
+  const binaryBucket = resolveBinaryBucket(fleet, id);
+  return [
+    id,
+    version,
+    build,
+    platform,
+    bundleId,
+    String(binaryBucket?.deviceCount ?? 0),
+    binaryBucket === undefined
+      ? UNSEEN_IN_FLEET_WINDOW_TEXT
+      : resolveDate(binaryBucket.lastSeenAt),
+  ];
+}

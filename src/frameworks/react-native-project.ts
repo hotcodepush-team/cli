@@ -63,25 +63,7 @@ export function resolveBundleUrlEdit(
           BUNDLE_URL_FIX,
         );
       }
-      const source = readFileSync(filePath, 'utf8');
-      const lastImportLine = source
-        .split('\n')
-        .findLast(line => line.startsWith('import '));
-      if (
-        !source.includes(EMBEDDED_BUNDLE_URL_CALL) ||
-        lastImportLine === undefined
-      ) {
-        throw new NativeProjectError(
-          `The file ${filePath} does not return the template's main.jsbundle from bundleURL().`,
-          `Import HotcodepushReactNativeCodePush in ${filePath} and return ${BUNDLE_URL_CALL} from bundleURL() where it returns the embedded bundle.`,
-        );
-      }
-      writeFileSync(
-        filePath,
-        source
-          .replace(lastImportLine, `${lastImportLine}\n${SWIFT_MODULE_IMPORT}`)
-          .replace(EMBEDDED_BUNDLE_URL_CALL, BUNDLE_URL_CALL),
-      );
+      writeBundleUrlCall(bundleUrlFilePath);
     },
   };
 }
@@ -177,22 +159,26 @@ function resolveRefusedBundleUrlEdit(
 ): NativeProjectEdit {
   if (objectiveCFilePath === undefined) {
     return resolveRefusedEdit(
-      `${BUNDLE_URL_CALL} in AppDelegate.swift`,
-      iosProjectPath,
       new NativeProjectError(
         `The iOS project ${iosProjectPath} has no AppDelegate.swift in an app folder.`,
         BUNDLE_URL_FIX,
       ),
+      {
+        description: `${BUNDLE_URL_CALL} in AppDelegate.swift`,
+        filePath: iosProjectPath,
+      },
     );
   }
   return resolveRefusedEdit(
-    `${BUNDLE_URL_CALL} in ${basename(objectiveCFilePath)}`,
-    objectiveCFilePath,
     new NativeProjectError(
       `The app delegate ${objectiveCFilePath} is Objective-C, and init edits only the Swift file that overrides bundleURL().`,
       `Import <HotcodepushReactNativeCodePush/HotcodepushReactNativeCodePush-Swift.h> in ${objectiveCFilePath} and return ${OBJECTIVE_C_BUNDLE_URL_CALL} from bundleURL where it returns the embedded bundle.`,
     ),
-    OBJECTIVE_C_BUNDLE_URL_CALL,
+    {
+      description: `${BUNDLE_URL_CALL} in ${basename(objectiveCFilePath)}`,
+      filePath: objectiveCFilePath,
+      marker: OBJECTIVE_C_BUNDLE_URL_CALL,
+    },
   );
 }
 
@@ -202,21 +188,47 @@ function resolveRefusedReactHostEdit(
 ): NativeProjectEdit {
   if (javaFilePath === undefined) {
     return resolveRefusedEdit(
-      REACT_HOST_EDIT_DESCRIPTION,
-      androidProjectPath,
       new NativeProjectError(
         `The Android project ${androidProjectPath} has no MainApplication.kt in its app's sources.`,
         resolveReactHostFix("the app's Application class"),
       ),
+      {
+        description: REACT_HOST_EDIT_DESCRIPTION,
+        filePath: androidProjectPath,
+      },
     );
   }
   return resolveRefusedEdit(
-    REACT_HOST_EDIT_DESCRIPTION,
-    javaFilePath,
     new NativeProjectError(
       `The file ${javaFilePath} is Java, and init edits only the MainApplication.kt of React Native's template.`,
       resolveReactHostFix(javaFilePath),
     ),
-    REACT_HOST_CLASS,
+    {
+      description: REACT_HOST_EDIT_DESCRIPTION,
+      filePath: javaFilePath,
+      marker: REACT_HOST_CLASS,
+    },
+  );
+}
+
+function writeBundleUrlCall(filePath: string): void {
+  const source = readFileSync(filePath, 'utf8');
+  const lastImportLine = source
+    .split('\n')
+    .findLast(line => line.startsWith('import '));
+  if (
+    !source.includes(EMBEDDED_BUNDLE_URL_CALL) ||
+    lastImportLine === undefined
+  ) {
+    throw new NativeProjectError(
+      `The file ${filePath} does not return the template's main.jsbundle from bundleURL().`,
+      `Import HotcodepushReactNativeCodePush in ${filePath} and return ${BUNDLE_URL_CALL} from bundleURL() where it returns the embedded bundle.`,
+    );
+  }
+  writeFileSync(
+    filePath,
+    source
+      .replace(lastImportLine, `${lastImportLine}\n${SWIFT_MODULE_IMPORT}`)
+      .replace(EMBEDDED_BUNDLE_URL_CALL, BUNDLE_URL_CALL),
   );
 }

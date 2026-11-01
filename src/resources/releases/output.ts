@@ -2,8 +2,7 @@ import type { Release } from '@hotcodepush/node';
 
 export function printReleasedLine(
   release: Release,
-  channelName: string,
-  bundleLabel: string,
+  { bundleLabel, channelName }: { bundleLabel: string; channelName: string },
 ): void {
   console.log(
     `Released bundle ${bundleLabel} to ${channelName} as release #${release.number} at ${release.rolloutPercent} percent${resolveProgressingText(release)}${resolveLiveText(release)}.`,

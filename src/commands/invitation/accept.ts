@@ -32,11 +32,10 @@ export default defineCommand({
       options.invitation ?? (await promptInvitationId(hotCodePush, options));
     const token =
       options.token ??
-      (await promptText(
-        '--token',
-        'What is the token from the invitation mail?',
-        options,
-      ));
+      (await promptText(options, {
+        flag: '--token',
+        message: 'What is the token from the invitation mail?',
+      }));
     const acceptedMember = await hotCodePush.invitations.accept({
       invitationId,
       token,
@@ -61,13 +60,14 @@ async function promptInvitationId(
   const fetchedInvitations = await hotCodePush.invitations.list({
     relations: ['organization'],
   });
-  return promptSelect(
-    '--invitation',
-    'Which invitation?',
-    fetchedInvitations.map(({ id, organization, organizationId, role }) => ({
-      label: `${organization?.name ?? organizationId} with role ${role}`,
-      value: id,
-    })),
-    options,
-  );
+  return promptSelect(options, {
+    choices: fetchedInvitations.map(
+      ({ id, organization, organizationId, role }) => ({
+        label: `${organization?.name ?? organizationId} with role ${role}`,
+        value: id,
+      }),
+    ),
+    flag: '--invitation',
+    message: 'Which invitation?',
+  });
 }

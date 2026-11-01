@@ -86,8 +86,7 @@ export function buildPbxprojShellScript(lines: string[]): string {
 
 export async function addBinaryCreatePhase(
   projectFilePath: string,
-  phase: BinaryCreatePhase,
-  options: XcodeTargetOptions,
+  { options, phase }: { options: XcodeTargetOptions; phase: BinaryCreatePhase },
 ): Promise<'added' | 'present'> {
   if (hasBinaryCreatePhase(projectFilePath)) {
     return 'present';
@@ -98,40 +97,13 @@ export async function addBinaryCreatePhase(
   const nativeTarget = project.pbxNativeTargetSection()[target.key];
   const buildPhases =
     typeof nativeTarget === 'object' ? nativeTarget.buildPhases : [];
-  const anchorPhaseIndex =
-    phase.anchorPhaseName === undefined
-      ? undefined
-      : buildPhases.findIndex(
-          ({ comment }) => comment === phase.anchorPhaseName,
-        );
-  if (anchorPhaseIndex === -1) {
-    throw new XcodeProjectError(
-      `The Xcode project ${projectFilePath} has no "${phase.anchorPhaseName}" phase to run the build step after.`,
-      undefined,
-      projectFilePath,
-      phase.fix,
-    );
-  }
-  const { buildPhase } = project.addBuildPhase(
-    [],
-    'PBXShellScriptBuildPhase',
-    BINARY_CREATE_PHASE_NAME,
-    target.key,
-    {
-      inputPaths: [INFO_PLIST_INPUT_PATH],
-      shellPath: '/bin/sh',
-      shellScript: phase.shellScript,
-    },
-  );
-  // The phase writes hotcodepush.json with the build time on every build.
-  // Xcode warns about a phase without outputs that is not marked so.
-  buildPhase.alwaysOutOfDate = 1;
+  const anchorPhaseIndex = findAnchorPhaseIndex(buildPhases, {
+    phase,
+    projectFilePath,
+  });
+  appendBinaryCreatePhase(project, { phase, targetKey: target.key });
   if (anchorPhaseIndex !== undefined) {
-    // The package appends the phase, but it must run right after the phase whose output it reads.
-    const binaryCreatePhase = buildPhases.pop();
-    if (binaryCreatePhase !== undefined) {
-      buildPhases.splice(anchorPhaseIndex + 1, 0, binaryCreatePhase);
-    }
+    moveLastPhaseAfterAnchor(buildPhases, anchorPhaseIndex);
   }
   writeProject(projectFilePath, editableProject);
   return 'added';
@@ -165,43 +137,35 @@ export function removeResourceReference(projectFilePath: string): void {
     .map(([key]) => key);
   deleteObjects(objects.PBXFileReference, fileReferenceKeys);
   deleteObjects(objects.PBXBuildFile, buildFileKeys);
-  removeChildren(objects.PBXResourcesBuildPhase ?? {}, 'files', buildFileKeys);
-  removeChildren(objects.PBXGroup, 'children', fileReferenceKeys);
+  removeChildren(objects.PBXResourcesBuildPhase ?? {}, {
+    field: 'files',
+    keys: buildFileKeys,
+  });
+  removeChildren(objects.PBXGroup, {
+    field: 'children',
+    keys: fileReferenceKeys,
+  });
   writeProject(projectFilePath, editableProject);
 }
 
-async function resolveAppTarget(
+function appendBinaryCreatePhase(
   project: XcodeProject,
-  options: XcodeTargetOptions,
-): Promise<AppTarget> {
-  const appTargets = resolveAppTargets(project);
-  if (options.xcodeTarget !== undefined) {
-    const namedTarget = appTargets.find(
-      ({ name }) => name === options.xcodeTarget,
-    );
-    if (namedTarget === undefined) {
-      throw new InvalidParameterError(
-        `No app target is named ${options.xcodeTarget}. The targets are ${appTargets.map(({ name }) => name).join(', ')}.`,
-        'Pass one of them with --xcode-target.',
-      );
-    }
-    return namedTarget;
-  }
-  const [onlyTarget] = appTargets;
-  if (onlyTarget !== undefined && appTargets.length === 1) {
-    return onlyTarget;
-  }
-  const targetKey = await promptSelect(
-    '--xcode-target',
-    'Which app target?',
-    appTargets.map(({ key, name }) => ({ label: name, value: key })),
-    options,
+  { phase, targetKey }: { phase: BinaryCreatePhase; targetKey: string },
+): void {
+  const { buildPhase } = project.addBuildPhase(
+    [],
+    'PBXShellScriptBuildPhase',
+    BINARY_CREATE_PHASE_NAME,
+    targetKey,
+    {
+      inputPaths: [INFO_PLIST_INPUT_PATH],
+      shellPath: '/bin/sh',
+      shellScript: phase.shellScript,
+    },
   );
-  const selectedTarget = appTargets.find(({ key }) => key === targetKey);
-  if (selectedTarget === undefined) {
-    throw new MissingParameterError('--xcode-target');
-  }
-  return selectedTarget;
+  // The phase writes hotcodepush.json with the build time on every build.
+  // Xcode warns about a phase without outputs that is not marked so.
+  buildPhase.alwaysOutOfDate = 1;
 }
 
 function deleteObjects(section: PbxprojSection, keys: string[]): void {
@@ -209,6 +173,28 @@ function deleteObjects(section: PbxprojSection, keys: string[]): void {
     delete section[key];
     delete section[`${key}_comment`];
   }
+}
+
+function findAnchorPhaseIndex(
+  buildPhases: PBXNativeTarget['buildPhases'],
+  {
+    phase,
+    projectFilePath,
+  }: { phase: BinaryCreatePhase; projectFilePath: string },
+): number | undefined {
+  if (phase.anchorPhaseName === undefined) {
+    return undefined;
+  }
+  const anchorPhaseIndex = buildPhases.findIndex(
+    ({ comment }) => comment === phase.anchorPhaseName,
+  );
+  if (anchorPhaseIndex === -1) {
+    throw new XcodeProjectError(
+      `The Xcode project ${projectFilePath} has no "${phase.anchorPhaseName}" phase to run the build step after.`,
+      { fix: phase.fix, projectFilePath },
+    );
+  }
+  return anchorPhaseIndex;
 }
 
 function findResourceReferenceKeys(project: XcodeProject): string[] {
@@ -219,22 +205,6 @@ function findResourceReferenceKeys(project: XcodeProject): string[] {
         String(fileReference.path).replaceAll('"', '') === RESOURCE_FILE_NAME,
     )
     .map(([key]) => key);
-}
-
-function removeChildren(
-  section: PbxprojSection,
-  field: 'children' | 'files',
-  keys: string[],
-): void {
-  for (const sectionObject of Object.values(section)) {
-    const entries =
-      typeof sectionObject === 'object' ? sectionObject[field] : undefined;
-    if (typeof sectionObject === 'object' && Array.isArray(entries)) {
-      sectionObject[field] = (entries as { value: string }[]).filter(
-        ({ value }) => !keys.includes(value),
-      );
-    }
-  }
 }
 
 function findXcodeProjectPath(iosProjectPath: string): string | undefined {
@@ -250,6 +220,17 @@ function findXcodeProjectPath(iosProjectPath: string): string | undefined {
     }
   }
   return undefined;
+}
+
+// The package appends the phase, but it must run right after the phase whose output it reads.
+function moveLastPhaseAfterAnchor(
+  buildPhases: PBXNativeTarget['buildPhases'],
+  anchorPhaseIndex: number,
+): void {
+  const binaryCreatePhase = buildPhases.pop();
+  if (binaryCreatePhase !== undefined) {
+    buildPhases.splice(anchorPhaseIndex + 1, 0, binaryCreatePhase);
+  }
 }
 
 // The `xcode` package reads digits as a JavaScript number, so `0920` would come back as `920` and long values lose digits.
@@ -273,11 +254,67 @@ function parseProject(projectFilePath: string, fix?: string): EditableProject {
   } catch (error) {
     throw new XcodeProjectError(
       `The Xcode project ${projectFilePath} could not be parsed.`,
-      error,
-      projectFilePath,
-      fix,
+      { cause: error, fix, projectFilePath },
     );
   }
+}
+
+function removeChildren(
+  section: PbxprojSection,
+  { field, keys }: { field: 'children' | 'files'; keys: string[] },
+): void {
+  for (const sectionObject of Object.values(section)) {
+    const entries =
+      typeof sectionObject === 'object' ? sectionObject[field] : undefined;
+    if (typeof sectionObject === 'object' && Array.isArray(entries)) {
+      sectionObject[field] = (entries as { value: string }[]).filter(
+        ({ value }) => !keys.includes(value),
+      );
+    }
+  }
+}
+
+async function resolveAppTarget(
+  project: XcodeProject,
+  options: XcodeTargetOptions,
+): Promise<AppTarget> {
+  const appTargets = resolveAppTargets(project);
+  if (options.xcodeTarget !== undefined) {
+    const namedTarget = appTargets.find(
+      ({ name }) => name === options.xcodeTarget,
+    );
+    if (namedTarget === undefined) {
+      throw new InvalidParameterError(
+        `No app target is named ${options.xcodeTarget}. The targets are ${appTargets.map(({ name }) => name).join(', ')}.`,
+        { fix: 'Pass one of them with --xcode-target.' },
+      );
+    }
+    return namedTarget;
+  }
+  const [onlyTarget] = appTargets;
+  if (onlyTarget !== undefined && appTargets.length === 1) {
+    return onlyTarget;
+  }
+  const targetKey = await promptSelect(options, {
+    choices: appTargets.map(({ key, name }) => ({ label: name, value: key })),
+    flag: '--xcode-target',
+    message: 'Which app target?',
+  });
+  const selectedTarget = appTargets.find(({ key }) => key === targetKey);
+  if (selectedTarget === undefined) {
+    throw new MissingParameterError('--xcode-target');
+  }
+  return selectedTarget;
+}
+
+function resolveAppTargets(project: XcodeProject): AppTarget[] {
+  return Object.entries(project.pbxNativeTargetSection())
+    .filter(
+      (entry): entry is [string, PBXNativeTarget] =>
+        typeof entry[1] === 'object' &&
+        entry[1].productType.replaceAll('"', '') === APPLICATION_PRODUCT_TYPE,
+    )
+    .map(([key, target]) => ({ key, name: target.name.replaceAll('"', '') }));
 }
 
 function writeProject(
@@ -294,14 +331,4 @@ function writeProject(
           keptNumbers[Number(index)] ?? placeholder,
       ),
   );
-}
-
-function resolveAppTargets(project: XcodeProject): AppTarget[] {
-  return Object.entries(project.pbxNativeTargetSection())
-    .filter(
-      (entry): entry is [string, PBXNativeTarget] =>
-        typeof entry[1] === 'object' &&
-        entry[1].productType.replaceAll('"', '') === APPLICATION_PRODUCT_TYPE,
-    )
-    .map(([key, target]) => ({ key, name: target.name.replaceAll('"', '') }));
 }

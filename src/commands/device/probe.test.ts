@@ -199,17 +199,19 @@ describe('device probe', () => {
 
     const exitCode = await runCli(
       { 'device probe': () => import('./probe.js') },
-      [
-        'device',
-        'probe',
-        '--platform',
-        'ios',
-        '--binary-version',
-        '2.4.1',
-        '--binary-build',
-        '57',
-      ],
-      PACKAGE_JSON,
+      {
+        argv: [
+          'device',
+          'probe',
+          '--platform',
+          'ios',
+          '--binary-version',
+          '2.4.1',
+          '--binary-build',
+          '57',
+        ],
+        meta: PACKAGE_JSON,
+      },
     );
 
     expect(exitCode).toBe(0);

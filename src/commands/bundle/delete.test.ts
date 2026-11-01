@@ -61,11 +61,10 @@ describe('bundle delete', () => {
     harness.routes[`GET ${BUNDLES_PATH}/${READY_BUNDLE.id}`] = () =>
       Response.json(READY_BUNDLE);
     harness.routes[`DELETE ${BUNDLES_PATH}/${READY_BUNDLE.id}`] = () =>
-      respondWithApiError(
-        409,
-        'bundle_in_use',
-        'A release still serves the bundle.',
-      );
+      respondWithApiError(409, {
+        code: 'bundle_in_use',
+        message: 'A release still serves the bundle.',
+      });
 
     await expect(
       bundleDeleteCommand.action(

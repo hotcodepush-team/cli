@@ -60,11 +60,10 @@ describe('sso-provider verify', () => {
 
   it("should pass the API's `dns_lookup_failed` error through when the lookup could not run", async () => {
     harness.routes[`POST ${VERIFICATIONS_PATH}`] = () =>
-      respondWithApiError(
-        502,
-        'dns_lookup_failed',
-        'The DNS lookup could not be made; try again in a moment.',
-      );
+      respondWithApiError(502, {
+        code: 'dns_lookup_failed',
+        message: 'The DNS lookup could not be made; try again in a moment.',
+      });
 
     await expect(
       ssoProviderVerifyCommand.action(

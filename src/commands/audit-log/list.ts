@@ -60,9 +60,11 @@ export default defineCommand({
       appId:
         options.app === undefined
           ? undefined
-          : await fetchResourceId('app', options.app, () =>
-              fetchApps(hotCodePush, organizationId),
-            ),
+          : await fetchResourceId({
+              fetchResources: () => fetchApps(hotCodePush, organizationId),
+              noun: 'app',
+              reference: options.app,
+            }),
       createdSince: resolveTimeBound(options.createdSince),
       createdUntil: resolveTimeBound(options.createdUntil),
       limit: options.limit,

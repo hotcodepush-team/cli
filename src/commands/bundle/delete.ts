@@ -21,12 +21,11 @@ export default defineCommand({
   options: defineCommandOptions(bundleOptionShape),
   action: async options => {
     const hotCodePush = createApiClient();
-    const appId = await fetchAppId(
-      hotCodePush,
+    const appId = await fetchAppId(hotCodePush, {
       options,
-      readProjectConfig(options.config),
-    );
-    const fetchedBundle = await fetchBundle(hotCodePush, appId, options);
+      projectConfig: readProjectConfig(options.config),
+    });
+    const fetchedBundle = await fetchBundle(hotCodePush, { appId, options });
     const isConfirmed = await confirmConsequence(
       `deletes bundle ${resolveBundleLabel(fetchedBundle)} and its files now, not by retention`,
       options,

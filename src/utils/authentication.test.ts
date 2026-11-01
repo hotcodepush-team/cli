@@ -90,11 +90,10 @@ describe('readSessionState', () => {
     useStoredSession();
     writeSessionExpiresAt(PAST_EXPIRY);
     harness.routes[`GET ${SESSION_PATH}`] = () =>
-      respondWithApiError(
-        401,
-        'unauthenticated',
-        'The bearer token is missing, invalid or expired.',
-      );
+      respondWithApiError(401, {
+        code: 'unauthenticated',
+        message: 'The bearer token is missing, invalid or expired.',
+      });
 
     expect(await readSessionState()).toBe('expired');
   });
@@ -157,11 +156,10 @@ describe('ensureAuthentication', () => {
     useStoredSession();
     writeSessionExpiresAt(PAST_EXPIRY);
     harness.routes[`GET ${SESSION_PATH}`] = () =>
-      respondWithApiError(
-        401,
-        'unauthenticated',
-        'The bearer token is missing, invalid or expired.',
-      );
+      respondWithApiError(401, {
+        code: 'unauthenticated',
+        message: 'The bearer token is missing, invalid or expired.',
+      });
     vi.mocked(promptYesNo).mockResolvedValue(false);
 
     await expect(ensureAuthentication({})).rejects.toThrow(NotLoggedInError);

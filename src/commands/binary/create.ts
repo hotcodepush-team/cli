@@ -1,4 +1,8 @@
-import type { Binary, HotCodePush } from '@hotcodepush/node';
+import type {
+  Binary,
+  CreateBinaryOptions,
+  HotCodePush,
+} from '@hotcodepush/node';
 import { z } from 'zod';
 import type { BuildStep, OfflineCause } from '../../frameworks/build-step.js';
 import {
@@ -29,6 +33,7 @@ import { isCi } from '../../utils/environment.js';
 import { CliError, PipelineNotLoggedInError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson, resolveByteText } from '../../utils/output.js';
+import type { Reporter } from '../../utils/progress.js';
 import { createReporter } from '../../utils/progress.js';
 
 // `CFBundleShortVersionString` and `CFBundleVersion` on iOS, `versionName` and `versionCode` on Android.
@@ -50,6 +55,12 @@ interface BinaryCreationRequest extends BinaryIdentity {
   fingerprint: string;
   force: boolean;
   platform: Platform;
+}
+
+interface BinaryUploadRequest {
+  files: BundleFile[];
+  reporter: Reporter;
+  request: BinaryCreationRequest;
 }
 
 const NO_UPLOAD: UploadedFiles = { fileCount: 0, sizeBytes: 0 };
@@ -83,37 +94,26 @@ export default defineCommand({
     const buildStep = await readBuildStep(options);
     const { embeddedFiles, platform, resourceFilePath } = buildStep;
     if (embeddedFiles === undefined) {
-      writeBuildResourceFile(
-        buildStep,
-        resolveChannelIdByShape(buildStep.channelReference),
-        null,
-      );
-      printNotice(
-        `No binary created: the ${platform} build bundled no JavaScript, as a debug build served by the development server does. Wrote ${resourceFilePath} without an embedded bundle: over-the-air (OTA) updates are off in this build.`,
-      );
-      if (options.json) {
-        printJson({ binary: null, resourceFilePath, upload: NO_UPLOAD });
-      }
+      writeDebugBuildResourceFile(buildStep, options);
       return;
     }
     assertWithinBundleBytesLimit(embeddedFiles);
     const identity = resolveBinaryIdentity(options);
-    const binaryCreation = await createBuildBinary(
-      {
-        ...identity,
-        appId: buildStep.projectConfig.appId,
-        fingerprint: buildStep.fingerprint,
-        force: options.force ?? false,
-        platform,
-      },
-      buildStep,
-      embeddedFiles,
-      createReporter(options),
-    );
-    writeBuildResourceFile(buildStep, binaryCreation.channelId, {
-      bundleVersion: identity.binaryVersion,
+    const binaryCreation = await createBuildBinary(buildStep, {
       files: embeddedFiles,
-      id: binaryCreation.binary?.bundleId ?? null,
+      reporter: createReporter(options),
+      request: resolveCreationRequest(buildStep, {
+        identity,
+        isForced: options.force ?? false,
+      }),
+    });
+    writeBuildResourceFile(buildStep, {
+      channelId: binaryCreation.channelId,
+      embeddedBundle: {
+        bundleVersion: identity.binaryVersion,
+        files: embeddedFiles,
+        id: binaryCreation.binary?.bundleId ?? null,
+      },
     });
     if (binaryCreation.pipelineFailure !== undefined) {
       throw binaryCreation.pipelineFailure;
@@ -121,68 +121,38 @@ export default defineCommand({
     if (binaryCreation.skippedReason !== null) {
       printWarning(binaryCreation.skippedReason);
     }
-    if (options.json) {
-      printJson({
-        binary: binaryCreation.binary,
-        resourceFilePath,
-        upload: binaryCreation.upload,
-      });
-      return;
-    }
-    console.log(`Wrote ${resourceFilePath} for ${platform}.`);
-    if (binaryCreation.binary !== null) {
-      console.log(
-        `Created the binary ${platform} ${identity.binaryVersion} (${identity.binaryBuild}): ${binaryCreation.upload.fileCount} files uploaded, ${resolveByteText(binaryCreation.upload.sizeBytes)}.`,
-      );
-    }
+    printBinaryCreation(binaryCreation, {
+      identity,
+      options,
+      platform,
+      resourceFilePath,
+    });
   },
 });
 
-async function createBuildBinary(
-  request: BinaryCreationRequest,
-  buildStep: BuildStep,
+function buildCreateBinaryOptions(
+  { binaryBuild, binaryVersion, ...identityless }: BinaryCreationRequest,
   files: BundleFile[],
-  reporter: ReturnType<typeof createReporter>,
+): CreateBinaryOptions {
+  return {
+    ...identityless,
+    build: binaryBuild,
+    files: files.map(({ path, sha256, sizeBytes }) => ({
+      path,
+      sha256,
+      sizeBytes,
+    })),
+    version: binaryVersion,
+  };
+}
+
+async function createBinaryInChannel(
+  hotCodePush: HotCodePush,
+  { channelId, ...uploadRequest }: BinaryUploadRequest & { channelId: string },
 ): Promise<BinaryCreation> {
-  const channelIdByShape = resolveChannelIdByShape(buildStep.channelReference);
-  const offlineCause = resolveOfflineCause();
-  if (offlineCause === 'no-token' && isCi()) {
-    return resolveFailedCreation(
-      channelIdByShape,
-      new PipelineNotLoggedInError(),
-    );
-  }
-  if (offlineCause !== undefined) {
-    return {
-      binary: null,
-      channelId: channelIdByShape,
-      skippedReason: resolveOfflineText(offlineCause, channelIdByShape),
-      upload: NO_UPLOAD,
-    };
-  }
-  const hotCodePush = createApiClient();
-  let channelId: string;
-  try {
-    channelId =
-      channelIdByShape ??
-      (await fetchBuildStepChannelId(hotCodePush, buildStep));
-  } catch (error) {
-    if (error instanceof CliError) {
-      throw error;
-    }
-    if (isCi()) {
-      return resolveFailedCreation(null, error);
-    }
-    return {
-      binary: null,
-      channelId: null,
-      skippedReason: `The channel could not be resolved, so the build names none and takes no OTA updates, and no binary was created: ${resolveFailureText(error)}`,
-      upload: NO_UPLOAD,
-    };
-  }
   try {
     return {
-      ...(await createBinaryWithUploads(hotCodePush, request, files, reporter)),
+      ...(await createBinaryWithUploads(hotCodePush, uploadRequest)),
       channelId,
       skippedReason: null,
     };
@@ -202,21 +172,9 @@ async function createBuildBinary(
 
 async function createBinaryWithUploads(
   hotCodePush: HotCodePush,
-  request: BinaryCreationRequest,
-  files: BundleFile[],
-  reporter: ReturnType<typeof createReporter>,
+  { files, reporter, request }: BinaryUploadRequest,
 ): Promise<{ binary: Binary; upload: UploadedFiles }> {
-  const { binaryBuild, binaryVersion, ...identityless } = request;
-  const createOptions = {
-    ...identityless,
-    build: binaryBuild,
-    files: files.map(({ path, sha256, sizeBytes }) => ({
-      path,
-      sha256,
-      sizeBytes,
-    })),
-    version: binaryVersion,
-  };
+  const createOptions = buildCreateBinaryOptions(request, files);
   try {
     const binary = await hotCodePush.apps.binaries.create(createOptions);
     return { binary, upload: NO_UPLOAD };
@@ -225,22 +183,70 @@ async function createBinaryWithUploads(
     if (missingSha256s === undefined) {
       throw error;
     }
-    reporter.report(`Uploading ${missingSha256s.length} files the app lacks…`);
-    const uploadedFiles = await withTemporaryDirectory(
-      async temporaryDirectoryPath =>
-        uploadMissingFiles(
-          hotCodePush,
-          request.appId,
-          missingSha256s,
-          await compressFiles(
-            files.filter(({ sha256 }) => missingSha256s.includes(sha256)),
-            temporaryDirectoryPath,
-          ),
-          reporter,
-        ),
-    );
+    const uploadedFiles = await uploadFilesTheBinaryLacks(hotCodePush, {
+      appId: request.appId,
+      files,
+      missingSha256s,
+      reporter,
+    });
     const binary = await hotCodePush.apps.binaries.create(createOptions);
     return { binary, upload: uploadedFiles };
+  }
+}
+
+async function createBuildBinary(
+  buildStep: BuildStep,
+  { files, reporter, request }: BinaryUploadRequest,
+): Promise<BinaryCreation> {
+  const channelIdByShape = resolveChannelIdByShape(buildStep.channelReference);
+  const offlineCause = resolveOfflineCause();
+  if (offlineCause !== undefined) {
+    return resolveOfflineCreation(offlineCause, channelIdByShape);
+  }
+  const hotCodePush = createApiClient();
+  let channelId: string;
+  try {
+    channelId =
+      channelIdByShape ??
+      (await fetchBuildStepChannelId(hotCodePush, buildStep));
+  } catch (error) {
+    return resolveChannelFailure(error);
+  }
+  return createBinaryInChannel(hotCodePush, {
+    channelId,
+    files,
+    reporter,
+    request,
+  });
+}
+
+function printBinaryCreation(
+  binaryCreation: BinaryCreation,
+  {
+    identity,
+    options,
+    platform,
+    resourceFilePath,
+  }: {
+    identity: BinaryIdentity;
+    options: { json?: boolean };
+    platform: Platform;
+    resourceFilePath: string;
+  },
+): void {
+  if (options.json) {
+    printJson({
+      binary: binaryCreation.binary,
+      resourceFilePath,
+      upload: binaryCreation.upload,
+    });
+    return;
+  }
+  console.log(`Wrote ${resourceFilePath} for ${platform}.`);
+  if (binaryCreation.binary !== null) {
+    console.log(
+      `Created the binary ${platform} ${identity.binaryVersion} (${identity.binaryBuild}): ${binaryCreation.upload.fileCount} files uploaded, ${resolveByteText(binaryCreation.upload.sizeBytes)}.`,
+    );
   }
 }
 
@@ -259,6 +265,34 @@ function resolveBinaryIdentity(options: {
   };
 }
 
+function resolveChannelFailure(error: unknown): BinaryCreation {
+  if (error instanceof CliError) {
+    throw error;
+  }
+  if (isCi()) {
+    return resolveFailedCreation(null, error);
+  }
+  return {
+    binary: null,
+    channelId: null,
+    skippedReason: `The channel could not be resolved, so the build names none and takes no OTA updates, and no binary was created: ${resolveFailureText(error)}`,
+    upload: NO_UPLOAD,
+  };
+}
+
+function resolveCreationRequest(
+  { fingerprint, platform, projectConfig }: BuildStep,
+  { identity, isForced }: { identity: BinaryIdentity; isForced: boolean },
+): BinaryCreationRequest {
+  return {
+    ...identity,
+    appId: projectConfig.appId,
+    fingerprint,
+    force: isForced,
+    platform,
+  };
+}
+
 function resolveFailedCreation(
   channelId: string | null,
   pipelineFailure: unknown,
@@ -268,6 +302,24 @@ function resolveFailedCreation(
     channelId,
     pipelineFailure,
     skippedReason: null,
+    upload: NO_UPLOAD,
+  };
+}
+
+function resolveOfflineCreation(
+  offlineCause: OfflineCause,
+  channelIdByShape: string | null,
+): BinaryCreation {
+  if (offlineCause === 'no-token' && isCi()) {
+    return resolveFailedCreation(
+      channelIdByShape,
+      new PipelineNotLoggedInError(),
+    );
+  }
+  return {
+    binary: null,
+    channelId: channelIdByShape,
+    skippedReason: resolveOfflineText(offlineCause, channelIdByShape),
     upload: NO_UPLOAD,
   };
 }
@@ -289,4 +341,49 @@ function resolveOfflineText(
       ? ''
       : '. Run "hotcodepush login" or set HOTCODEPUSH_TOKEN';
   return `${causeText}, so the build was made offline${consequenceText}${fixText}.`;
+}
+
+async function uploadFilesTheBinaryLacks(
+  hotCodePush: HotCodePush,
+  {
+    appId,
+    files,
+    missingSha256s,
+    reporter,
+  }: {
+    appId: string;
+    files: BundleFile[];
+    missingSha256s: string[];
+    reporter: Reporter;
+  },
+): Promise<UploadedFiles> {
+  reporter.report(`Uploading ${missingSha256s.length} files the app lacks…`);
+  return withTemporaryDirectory(async temporaryDirectoryPath =>
+    uploadMissingFiles(hotCodePush, {
+      appId,
+      compressedFiles: await compressFiles(
+        files.filter(({ sha256 }) => missingSha256s.includes(sha256)),
+        temporaryDirectoryPath,
+      ),
+      missingSha256s,
+      reporter,
+    }),
+  );
+}
+
+function writeDebugBuildResourceFile(
+  buildStep: BuildStep,
+  options: { json?: boolean },
+): void {
+  const { platform, resourceFilePath } = buildStep;
+  writeBuildResourceFile(buildStep, {
+    channelId: resolveChannelIdByShape(buildStep.channelReference),
+    embeddedBundle: null,
+  });
+  printNotice(
+    `No binary created: the ${platform} build bundled no JavaScript, as a debug build served by the development server does. Wrote ${resourceFilePath} without an embedded bundle: over-the-air (OTA) updates are off in this build.`,
+  );
+  if (options.json) {
+    printJson({ binary: null, resourceFilePath, upload: NO_UPLOAD });
+  }
 }

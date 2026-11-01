@@ -652,7 +652,10 @@ describe('init', () => {
 
     beforeEach(() => {
       harness.routes[`GET /v1/apps/${UNKNOWN_APP_ID}`] = () =>
-        respondWithApiError(404, 'not_found', 'The app does not exist.');
+        respondWithApiError(404, {
+          code: 'not_found',
+          message: 'The app does not exist.',
+        });
     });
 
     it('should stop at the app with `invalid_parameter` naming the file, and still run the independent steps', async () => {
@@ -840,7 +843,10 @@ describe('init', () => {
     const directoryPath = writeProject({ isPackageInstalled: true });
     respondWithSession([ACME_ORGANIZATION]);
     harness.routes['GET /v1/organizations'] = () =>
-      respondWithApiError(503, 'unavailable', 'The API is unavailable.');
+      respondWithApiError(503, {
+        code: 'unavailable',
+        message: 'The API is unavailable.',
+      });
 
     await expect(
       initCommand.action({ yes: true, ...withCwd(directoryPath) }, undefined),

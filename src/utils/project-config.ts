@@ -25,7 +25,7 @@ export function assertProjectConfigAppId(appId: string): void {
   if (!isId(appId)) {
     throw new InvalidParameterError(
       `The appId in ${PROJECT_CONFIG_FILE_NAME} is not an id.`,
-      'Set appId to the id "hotcodepush app list" prints.',
+      { fix: 'Set appId to the id "hotcodepush app list" prints.' },
     );
   }
 }

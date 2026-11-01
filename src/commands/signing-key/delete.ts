@@ -28,12 +28,11 @@ export default defineCommand({
   action: async options => {
     const hotCodePush = createApiClient();
     const projectConfigLocation = locateProjectConfig(options.config);
-    const appId = await fetchAppId(
-      hotCodePush,
+    const appId = await fetchAppId(hotCodePush, {
       options,
-      projectConfigLocation.projectConfig,
-    );
-    const signingKey = await fetchSigningKey(hotCodePush, appId, options);
+      projectConfig: projectConfigLocation.projectConfig,
+    });
+    const signingKey = await fetchSigningKey(hotCodePush, { appId, options });
     const isConfirmed = await confirmConsequence(
       `unregisters signing key ${signingKey.keyId}: an upload signed with it is refused from then on`,
       options,
@@ -45,11 +44,10 @@ export default defineCommand({
       appId,
       signingKeyId: signingKey.id,
     });
-    removePublicKeyFromProjectConfig(
-      projectConfigLocation,
+    removePublicKeyFromProjectConfig(projectConfigLocation, {
       appId,
-      signingKey.publicKey,
-    );
+      publicKey: signingKey.publicKey,
+    });
     if (options.json) {
       printJson({ id: signingKey.id, name: signingKey.keyId });
     } else {
@@ -63,8 +61,7 @@ export default defineCommand({
 // Removing the key from `publicKeys` makes the file and the app agree again.
 function removePublicKeyFromProjectConfig(
   { filePath, projectConfig }: ProjectConfigLocation,
-  appId: string,
-  publicKey: string,
+  { appId, publicKey }: { appId: string; publicKey: string },
 ): void {
   if (
     filePath === undefined ||

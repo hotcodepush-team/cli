@@ -142,21 +142,21 @@ export function resolveEffectiveFailurePolicy(
   channelFields?: FailurePolicyFields,
 ): EffectiveFailurePolicy {
   return {
-    failureAction: resolveEffectiveFailurePolicyValue(
-      ownFields.failureAction,
-      channelFields?.failureAction,
-      FAILURE_POLICY_DEFAULTS.failureAction,
-    ),
-    failureMinimumUpdateCount: resolveEffectiveFailurePolicyValue(
-      ownFields.failureMinimumUpdateCount,
-      channelFields?.failureMinimumUpdateCount,
-      FAILURE_POLICY_DEFAULTS.failureMinimumUpdateCount,
-    ),
-    failureThresholdPercent: resolveEffectiveFailurePolicyValue(
-      ownFields.failureThresholdPercent,
-      channelFields?.failureThresholdPercent,
-      FAILURE_POLICY_DEFAULTS.failureThresholdPercent,
-    ),
+    failureAction: resolveEffectiveFailurePolicyValue({
+      channelValue: channelFields?.failureAction,
+      defaultValue: FAILURE_POLICY_DEFAULTS.failureAction,
+      ownValue: ownFields.failureAction,
+    }),
+    failureMinimumUpdateCount: resolveEffectiveFailurePolicyValue({
+      channelValue: channelFields?.failureMinimumUpdateCount,
+      defaultValue: FAILURE_POLICY_DEFAULTS.failureMinimumUpdateCount,
+      ownValue: ownFields.failureMinimumUpdateCount,
+    }),
+    failureThresholdPercent: resolveEffectiveFailurePolicyValue({
+      channelValue: channelFields?.failureThresholdPercent,
+      defaultValue: FAILURE_POLICY_DEFAULTS.failureThresholdPercent,
+      ownValue: ownFields.failureThresholdPercent,
+    }),
   };
 }
 
@@ -164,20 +164,23 @@ export function resolveFailurePolicy(
   options: FailurePolicyOptions,
 ): FailurePolicy {
   return {
-    failureAction: resolveNullableField(
-      options.failureAction,
-      options.clearFailureAction,
-      'failure-action',
-    ),
+    failureAction: resolveNullableField(options.failureAction, {
+      flagName: 'failure-action',
+      isCleared: options.clearFailureAction,
+    }),
     failureMinimumUpdateCount: resolveNullableField(
       options.failureMinimumUpdateCount,
-      options.clearFailureMinimumUpdateCount,
-      'failure-minimum-update-count',
+      {
+        flagName: 'failure-minimum-update-count',
+        isCleared: options.clearFailureMinimumUpdateCount,
+      },
     ),
     failureThresholdPercent: resolveNullableField(
       options.failureThresholdPercent,
-      options.clearFailureThresholdPercent,
-      'failure-threshold-percent',
+      {
+        flagName: 'failure-threshold-percent',
+        isCleared: options.clearFailureThresholdPercent,
+      },
     ),
   };
 }
@@ -220,11 +223,15 @@ function resolveEffectiveFailurePolicyText(
   return level === 'own' ? valueText : `${valueText} (${level})`;
 }
 
-function resolveEffectiveFailurePolicyValue<TValue>(
-  ownValue: TValue | null,
-  channelValue: TValue | null | undefined,
-  defaultValue: TValue,
-): EffectiveFailurePolicyValue<TValue> {
+function resolveEffectiveFailurePolicyValue<TValue>({
+  channelValue,
+  defaultValue,
+  ownValue,
+}: {
+  channelValue: TValue | null | undefined;
+  defaultValue: TValue;
+  ownValue: TValue | null;
+}): EffectiveFailurePolicyValue<TValue> {
   if (ownValue !== null) {
     return { level: 'own', value: ownValue };
   }
@@ -240,19 +247,24 @@ function resolveExpiresAt({
   expiresIn,
 }: ChannelFieldOptions): string | null | undefined {
   if (expiresIn === undefined) {
-    return resolveNullableField(expiresAt, clearExpiresAt, 'expires-at');
+    return resolveNullableField(expiresAt, {
+      flagName: 'expires-at',
+      isCleared: clearExpiresAt,
+    });
   }
   if (expiresAt !== undefined) {
     throw new InvalidParameterError(
       'The flags --expires-in and --expires-at were passed together.',
-      'Pass only one of them.',
+      { fix: 'Pass only one of them.' },
     );
   }
   return resolveNullableField(
     new Date(Date.now() + resolveDurationMilliseconds(expiresIn)).toISOString(),
-    clearExpiresAt,
-    'expires-in',
-    'clear-expires-at',
+    {
+      clearFlagName: 'clear-expires-at',
+      flagName: 'expires-in',
+      isCleared: clearExpiresAt,
+    },
   );
 }
 

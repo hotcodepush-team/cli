@@ -18,7 +18,10 @@ export default defineCommand({
     const hotCodePush = createApiClient();
     const name =
       options.name ??
-      (await promptText('--name', 'What is the organization called?', options));
+      (await promptText(options, {
+        flag: '--name',
+        message: 'What is the organization called?',
+      }));
     const createdOrganization = await hotCodePush.organizations.create({
       name,
     });

@@ -91,7 +91,7 @@ describe('app get', () => {
 
     await expect(
       appGetCommand.action({ app: 'Nope' }, undefined),
-    ).rejects.toThrow(new UnknownNameError('app', 'Nope'));
+    ).rejects.toThrow(new UnknownNameError({ name: 'Nope', noun: 'app' }));
   });
 
   it('should throw `missing_parameter` when there is neither --app nor hotcodepush.json and nobody can be asked', async () => {

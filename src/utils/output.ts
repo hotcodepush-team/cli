@@ -74,8 +74,7 @@ export function resolveDate(timestamp: string): string {
 
 export function resolveQuantityText(
   count: number,
-  noun: string,
-  pluralNoun = `${noun}s`,
+  { noun, pluralNoun = `${noun}s` }: { noun: string; pluralNoun?: string },
 ): string {
   return `${count} ${count === 1 ? noun : pluralNoun}`;
 }

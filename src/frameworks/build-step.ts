@@ -35,6 +35,7 @@ import {
   readInputDirectoryPath,
 } from './framework.js';
 import { omitNativeGlue } from './native-glue.js';
+import type { FrameworkModule } from './index.js';
 import { resolveFrameworkModule } from './index.js';
 
 export interface BuildStep {
@@ -84,28 +85,13 @@ export async function readBuildStep(
 ): Promise<BuildStep> {
   const { directoryPath, projectConfig } = locateProjectConfig(options.config);
   const completeProjectConfig = assertProjectConfig(projectConfig);
-  const platform =
-    options.platform ??
-    (await promptSelect(
-      '--platform',
-      'Which platform?',
-      PLATFORMS.map(platform => ({ label: platform, value: platform })),
-      options,
-    ));
+  const platform = options.platform ?? (await promptPlatform(options));
   const framework = resolveFrameworkModule(detectFramework(directoryPath));
-  const embeddedBundlePath = await readInputDirectoryPath(
-    { ...options, path: options.embeddedBundlePath },
-    '--embedded-bundle-path',
-    directoryPath,
-    framework,
-  );
-  const embeddedFiles =
-    framework.collectEmbeddedFiles === undefined
-      ? omitNativeGlue(
-          await collectBundleFiles(embeddedBundlePath),
-          framework.nativeGluePaths ?? [],
-        )
-      : await framework.collectEmbeddedFiles(platform, embeddedBundlePath);
+  const embeddedFiles = await readEmbeddedFiles(framework, {
+    options,
+    platform,
+    projectDirectoryPath: directoryPath,
+  });
   const resourceFilePath = resolve(
     assertMissingParameter(options.resourceFilePath, '--resource-file-path'),
   );
@@ -133,12 +119,12 @@ export function fetchBuildStepChannelId(
   hotCodePush: HotCodePush,
   { channelReference, projectConfig }: BuildStep,
 ): Promise<string> {
-  return fetchResourceId(
-    'channel',
-    channelReference.reference,
-    () => fetchChannels(hotCodePush, projectConfig.appId),
-    channelReference.source,
-  );
+  return fetchResourceId({
+    fetchResources: () => fetchChannels(hotCodePush, projectConfig.appId),
+    noun: 'channel',
+    reference: channelReference.reference,
+    source: channelReference.source,
+  });
 }
 
 export function resolveOfflineCause(): OfflineCause | undefined {
@@ -157,8 +143,10 @@ export function resolveFailureText(error: unknown): string {
 
 export function writeBuildResourceFile(
   { fingerprint, platform, projectConfig, resourceFilePath }: BuildStep,
-  channelId: string | null,
-  embeddedBundle: EmbeddedBundle | null,
+  {
+    channelId,
+    embeddedBundle,
+  }: { channelId: string | null; embeddedBundle: EmbeddedBundle | null },
 ): void {
   writeResourceFile(
     resourceFilePath,
@@ -180,11 +168,47 @@ function assertProjectConfig(
   if (projectConfig?.appId === undefined) {
     throw new InvalidParameterError(
       'The project has no hotcodepush.json with an appId.',
-      'Run "hotcodepush init", or pass the file with --config.',
+      { fix: 'Run "hotcodepush init", or pass the file with --config.' },
     );
   }
   assertProjectConfigAppId(projectConfig.appId);
   return { ...projectConfig, appId: projectConfig.appId };
+}
+
+function promptPlatform(options: BuildStepOptions): Promise<Platform> {
+  return promptSelect(options, {
+    choices: PLATFORMS.map(platform => ({ label: platform, value: platform })),
+    flag: '--platform',
+    message: 'Which platform?',
+  });
+}
+
+async function readEmbeddedFiles(
+  framework: FrameworkModule,
+  {
+    options,
+    platform,
+    projectDirectoryPath,
+  }: {
+    options: BuildStepOptions;
+    platform: Platform;
+    projectDirectoryPath: string;
+  },
+): Promise<BundleFile[] | undefined> {
+  const embeddedBundlePath = await readInputDirectoryPath(
+    { ...options, path: options.embeddedBundlePath },
+    {
+      framework,
+      pathFlag: '--embedded-bundle-path',
+      projectDirectoryPath,
+    },
+  );
+  return framework.collectEmbeddedFiles === undefined
+    ? omitNativeGlue(
+        await collectBundleFiles(embeddedBundlePath),
+        framework.nativeGluePaths ?? [],
+      )
+    : framework.collectEmbeddedFiles(platform, embeddedBundlePath);
 }
 
 // A build flavour sets `HOTCODEPUSH_CHANNEL` to override the channel of hotcodepush.json.

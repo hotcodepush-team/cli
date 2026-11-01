@@ -21,14 +21,16 @@ export default defineCommand({
   }),
   action: async options => {
     const hotCodePush = createApiClient();
-    const appId = await fetchAppId(
-      hotCodePush,
+    const appId = await fetchAppId(hotCodePush, {
       options,
-      readProjectConfig(options.config),
-    );
+      projectConfig: readProjectConfig(options.config),
+    });
     const name =
       options.name ??
-      (await promptText('--name', 'What is the app called now?', options));
+      (await promptText(options, {
+        flag: '--name',
+        message: 'What is the app called now?',
+      }));
     const updatedApp = await hotCodePush.apps.update({ appId, name });
     if (options.json) {
       printJson(updatedApp);

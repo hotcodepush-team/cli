@@ -145,26 +145,27 @@ describe('member update', () => {
   it("should pass the API's refusal of an ownership transfer through with its code in the docs link", async () => {
     respondWithMember();
     harness.routes[`PATCH ${MEMBER_PATH}`] = () =>
-      respondWithApiError(
-        403,
-        'forbidden',
-        'Only the Owner may transfer the ownership.',
-      );
+      respondWithApiError(403, {
+        code: 'forbidden',
+        message: 'Only the Owner may transfer the ownership.',
+      });
 
     const exitCode = await runCli(
       { 'member update': () => import('./update.js') },
-      [
-        'member',
-        'update',
-        '--organization',
-        ACME_ORGANIZATION.id,
-        '--member',
-        ADMIN_MEMBER.id,
-        '--role',
-        'owner',
-        '--yes',
-      ],
-      PACKAGE_JSON,
+      {
+        argv: [
+          'member',
+          'update',
+          '--organization',
+          ACME_ORGANIZATION.id,
+          '--member',
+          ADMIN_MEMBER.id,
+          '--role',
+          'owner',
+          '--yes',
+        ],
+        meta: PACKAGE_JSON,
+      },
     );
 
     expect(exitCode).toBe(1);

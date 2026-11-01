@@ -1,4 +1,4 @@
-import type { App, User } from '@hotcodepush/node';
+import type { App, Channel, User } from '@hotcodepush/node';
 import {
   ProjectConfigurationSchema,
   resolveSigningKeyId,
@@ -259,18 +259,10 @@ async function checkApp(
       },
     };
   }
-  const { appId } = projectConfig;
-  const hotCodePush = createApiClient();
   try {
-    const [app, channel] = await Promise.all([
-      hotCodePush.apps.get({ appId }),
-      fetchResourceId(
-        'channel',
-        resolveProjectChannel(projectConfig),
-        () => fetchChannels(hotCodePush, appId),
-        PROJECT_CONFIG_FILE_NAME,
-      ).then(channelId => hotCodePush.apps.channels.get({ appId, channelId })),
-    ]);
+    const { app, channel } = await fetchAppAndChannel(projectConfig.appId, {
+      projectConfig,
+    });
     return {
       app,
       check: {
@@ -280,21 +272,37 @@ async function checkApp(
       },
     };
   } catch (error) {
-    return {
-      app: undefined,
-      check: {
-        check: 'app',
-        code: resolveCliError(error).code,
-        manualStep: INIT_MANUAL_STEP,
-        message: `The API does not know the app or the channel. ${resolveSentence(error instanceof Error ? error.message : String(error))}`,
-        status: 'failed',
-      },
-    };
+    return { app: undefined, check: resolveFailedAppCheck(error) };
   }
 }
 
-// No key file is looked for, since an upload is told where its key is.
-// A key the app has but the file does not list fails, since an upload from that project would go unsigned.
+async function fetchAppAndChannel(
+  appId: string,
+  { projectConfig }: { projectConfig: ProjectConfig },
+): Promise<{ app: App; channel: Channel }> {
+  const hotCodePush = createApiClient();
+  const [app, channel] = await Promise.all([
+    hotCodePush.apps.get({ appId }),
+    fetchResourceId({
+      fetchResources: () => fetchChannels(hotCodePush, appId),
+      noun: 'channel',
+      reference: resolveProjectChannel(projectConfig),
+      source: PROJECT_CONFIG_FILE_NAME,
+    }).then(channelId => hotCodePush.apps.channels.get({ appId, channelId })),
+  ]);
+  return { app, channel };
+}
+
+function resolveFailedAppCheck(error: unknown): DoctorCheck {
+  return {
+    check: 'app',
+    code: resolveCliError(error).code,
+    manualStep: INIT_MANUAL_STEP,
+    message: `The API does not know the app or the channel. ${resolveSentence(error instanceof Error ? error.message : String(error))}`,
+    status: 'failed',
+  };
+}
+
 async function checkSigningKey(
   { projectConfig }: Project,
   app: App | undefined,
@@ -302,11 +310,7 @@ async function checkSigningKey(
   const publicKeys =
     projectConfig?.appId === undefined ? [] : (projectConfig.publicKeys ?? []);
   try {
-    if (
-      publicKeys.length === 0 &&
-      app !== undefined &&
-      (await fetchHasSigningKey(createApiClient(), app.id))
-    ) {
+    if (await fetchHasUnlistedSigningKey(app, publicKeys)) {
       return {
         check: 'signing_key',
         code: 'public_key_unlisted',
@@ -325,7 +329,7 @@ async function checkSigningKey(
         code: 'public_key_unregistered',
         manualStep:
           'Run "hotcodepush signing-key list --json" and keep in publicKeys only the keys it prints.',
-        message: `The file ${PROJECT_CONFIG_FILE_NAME} lists ${resolveQuantityText(unregisteredKeyCount, 'public key')} the app has not registered.`,
+        message: `The file ${PROJECT_CONFIG_FILE_NAME} lists ${resolveQuantityText(unregisteredKeyCount, { noun: 'public key' })} the app has not registered.`,
         status: 'failed',
       };
     }
@@ -336,6 +340,17 @@ async function checkSigningKey(
 }
 
 // No variable while keys are listed is fine, since an upload is told where its key is.
+async function fetchHasUnlistedSigningKey(
+  app: App | undefined,
+  publicKeys: string[],
+): Promise<boolean> {
+  return (
+    publicKeys.length === 0 &&
+    app !== undefined &&
+    (await fetchHasSigningKey(createApiClient(), app.id))
+  );
+}
+
 async function checkSigningPrivateKey(
   publicKeys: string[],
 ): Promise<DoctorCheck> {
@@ -443,7 +458,7 @@ function checkVersions({
       ),
       ...(framework.versionedSdkDependencyNames ?? []).map(
         packageName =>
-          `${packageName} ${readSdkDependencyVersion(directoryPath, framework.packageName, packageName) ?? 'missing'}`,
+          `${packageName} ${readSdkDependencyVersion(directoryPath, { packageName, sdkPackageName: framework.packageName }) ?? 'missing'}`,
       ),
     );
   }

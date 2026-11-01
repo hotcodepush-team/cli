@@ -8,6 +8,15 @@ export interface Choice<TValue extends string> {
   value: TValue;
 }
 
+interface InputPrompt {
+  flag: string;
+  message: string;
+}
+
+interface SelectPrompt<TValue extends string> extends InputPrompt {
+  choices: Choice<TValue>[];
+}
+
 export async function confirmConsequence(
   consequence: string,
   options: InteractivityOptions,
@@ -37,10 +46,8 @@ export async function promptYesNo(
 }
 
 export async function promptSelect<TValue extends string>(
-  flag: string,
-  message: string,
-  choices: Choice<TValue>[],
   options: InteractivityOptions,
+  { choices, flag, message }: SelectPrompt<TValue>,
 ): Promise<TValue> {
   if (choices.length === 0 || !isInteractive(options)) {
     throw new MissingParameterError(flag);
@@ -54,26 +61,22 @@ export async function promptSelect<TValue extends string>(
 }
 
 export function promptSecret(
-  flag: string,
-  message: string,
   options: InteractivityOptions,
+  prompt: InputPrompt,
 ): Promise<string> {
-  return promptInput(password, flag, message, options);
+  return promptInput(options, { ...prompt, ask: password });
 }
 
 export function promptText(
-  flag: string,
-  message: string,
   options: InteractivityOptions,
+  prompt: InputPrompt,
 ): Promise<string> {
-  return promptInput(text, flag, message, options);
+  return promptInput(options, { ...prompt, ask: text });
 }
 
 async function promptInput(
-  ask: typeof password | typeof text,
-  flag: string,
-  message: string,
   options: InteractivityOptions,
+  { ask, flag, message }: InputPrompt & { ask: typeof password | typeof text },
 ): Promise<string> {
   if (!isInteractive(options)) {
     throw new MissingParameterError(flag);

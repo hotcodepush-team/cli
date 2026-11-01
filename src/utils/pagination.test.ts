@@ -28,6 +28,7 @@ describe('pagination', () => {
       [0, { limit: 10, offset: 20 }, null],
     ])(
       'should resolve %i items of the page %o to the next offset %o',
+      // eslint-disable-next-line max-params -- it.each passes each row's cells as separate arguments.
       (itemCount, page, nextOffset) => {
         expect(resolveNextOffset(itemCount, page)).toBe(nextOffset);
       },

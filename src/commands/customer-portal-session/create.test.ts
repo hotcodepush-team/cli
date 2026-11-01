@@ -47,23 +47,25 @@ describe('customer-portal-session create', () => {
 
   it("should pass the API's `validation` error through when the organization never subscribed", async () => {
     harness.routes[`POST ${CUSTOMER_PORTAL_SESSIONS_PATH}`] = () =>
-      respondWithApiError(
-        400,
-        'validation',
-        'The organization has no subscription, so it has no customer portal.',
-      );
+      respondWithApiError(400, {
+        code: 'validation',
+        message:
+          'The organization has no subscription, so it has no customer portal.',
+      });
 
     const exitCode = await runCli(
       {
         'customer-portal-session create': () => import('./create.js'),
       },
-      [
-        'customer-portal-session',
-        'create',
-        '--organization',
-        GLOBEX_ORGANIZATION.id,
-      ],
-      PACKAGE_JSON,
+      {
+        argv: [
+          'customer-portal-session',
+          'create',
+          '--organization',
+          GLOBEX_ORGANIZATION.id,
+        ],
+        meta: PACKAGE_JSON,
+      },
     );
 
     expect(exitCode).toBe(1);

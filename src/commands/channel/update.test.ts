@@ -85,6 +85,7 @@ describe('channel update', () => {
     ],
   ])(
     'should send null for the field %s clears and nothing else',
+    // eslint-disable-next-line max-params -- it.each passes each row's cells as separate arguments.
     async (_flag, clearOption, expectedBody) => {
       respondWithChannel();
 
@@ -153,17 +154,19 @@ describe('channel update', () => {
 
     const exitCode = await runCli(
       { 'channel update': () => import('./update.js') },
-      [
-        'channel',
-        'update',
-        '--app',
-        DEMO_APP.id,
-        '--channel',
-        STAGING_CHANNEL.id,
-        '--failure-action',
-        'none',
-      ],
-      PACKAGE_JSON,
+      {
+        argv: [
+          'channel',
+          'update',
+          '--app',
+          DEMO_APP.id,
+          '--channel',
+          STAGING_CHANNEL.id,
+          '--failure-action',
+          'none',
+        ],
+        meta: PACKAGE_JSON,
+      },
     );
 
     expect(exitCode).toBe(0);
@@ -175,17 +178,19 @@ describe('channel update', () => {
   it('should refuse a --failure-threshold-percent that is no whole number', async () => {
     const exitCode = await runCli(
       { 'channel update': () => import('./update.js') },
-      [
-        'channel',
-        'update',
-        '--app',
-        DEMO_APP.id,
-        '--channel',
-        STAGING_CHANNEL.id,
-        '--failure-threshold-percent',
-        '12.5',
-      ],
-      PACKAGE_JSON,
+      {
+        argv: [
+          'channel',
+          'update',
+          '--app',
+          DEMO_APP.id,
+          '--channel',
+          STAGING_CHANNEL.id,
+          '--failure-threshold-percent',
+          '12.5',
+        ],
+        meta: PACKAGE_JSON,
+      },
     );
 
     expect(exitCode).toBe(2);

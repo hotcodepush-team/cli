@@ -28,15 +28,15 @@ export default defineCommand({
   }),
   action: async options => {
     const hotCodePush = createApiClient();
-    const appId = await fetchAppId(
-      hotCodePush,
+    const appId = await fetchAppId(hotCodePush, {
       options,
-      readProjectConfig(options.config),
-    );
+      projectConfig: readProjectConfig(options.config),
+    });
     const fetchedBinary = await hotCodePush.apps.binaries.get({
       appId,
       binaryId:
-        options.binary ?? (await promptBinaryId(hotCodePush, appId, options)),
+        options.binary ??
+        (await promptBinaryId(hotCodePush, { appId, options })),
     });
     if (options.json) {
       printJson(fetchedBinary);
@@ -62,8 +62,7 @@ export default defineCommand({
 
 async function promptBinaryId(
   hotCodePush: HotCodePush,
-  appId: string,
-  options: InteractivityOptions,
+  { appId, options }: { appId: string; options: InteractivityOptions },
 ): Promise<string> {
   if (!isInteractive(options)) {
     throw new MissingParameterError('--binary');
@@ -71,13 +70,12 @@ async function promptBinaryId(
   const binaries = await fetchAllPages(page =>
     hotCodePush.apps.binaries.list({ appId, ...page }),
   );
-  return promptSelect(
-    '--binary',
-    'Which store build?',
-    binaries.map(({ build, id, platform, version }) => ({
+  return promptSelect(options, {
+    choices: binaries.map(({ build, id, platform, version }) => ({
       label: `${platform} ${version} (${build})`,
       value: id,
     })),
-    options,
-  );
+    flag: '--binary',
+    message: 'Which store build?',
+  });
 }

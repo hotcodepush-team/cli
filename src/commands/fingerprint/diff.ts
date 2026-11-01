@@ -6,6 +6,7 @@ import type {
 } from '@hotcodepush/protocol/fingerprint';
 import { z } from 'zod';
 import { defineCommand } from '../../utils/command.js';
+import type { InteractivityOptions } from '../../utils/environment.js';
 import { InvalidParameterError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson, printTable } from '../../utils/output.js';
@@ -60,29 +61,8 @@ export default defineCommand({
   args: z.array(z.string()),
   options: defineCommandOptions({}),
   action: async (options, args) => {
-    if (args.length > 2) {
-      throw new InvalidParameterError(
-        `The fingerprint diff command compares two files, <file-a> and <file-b>. It does not take ${args.slice(2).join(' ')}.`,
-      );
-    }
-    const beforeFile = await readFingerprintFile(
-      '<file-a>',
-      args[0] ??
-        (await promptText(
-          '<file-a>',
-          "Which file holds the earlier fingerprint, the store build's?",
-          options,
-        )),
-    );
-    const afterFile = await readFingerprintFile(
-      '<file-b>',
-      args[1] ??
-        (await promptText(
-          '<file-b>',
-          'Which file holds the later fingerprint?',
-          options,
-        )),
-    );
+    assertTwoFiles(args);
+    const { afterFile, beforeFile } = await readFingerprintFiles(options, args);
     const diff = resolveFingerprintDiff(beforeFile, afterFile);
     if (options.json) {
       printJson(diff);
@@ -92,51 +72,16 @@ export default defineCommand({
       console.log(`Nothing moved: both files hold ${beforeFile.fingerprint}.`);
       return;
     }
-    printTable({
-      emptyText: 'No package moved.',
-      headers: ['PACKAGE', 'BEFORE', 'AFTER'],
-      nextOffset: null,
-      rows: diff.packages.map(({ after, before, name }) => [
-        name,
-        resolveInstalledVersionText(before, after),
-        resolveInstalledVersionText(after, before),
-      ]),
-    });
-    if (diff.extraFingerprintPaths.length > 0) {
-      printTable({
-        emptyText: '',
-        headers: ['EXTRA FINGERPRINT PATH', 'BEFORE', 'AFTER'],
-        nextOffset: null,
-        rows: diff.extraFingerprintPaths.map(({ after, before, path }) => [
-          path,
-          before ?? 'none',
-          after ?? 'none',
-        ]),
-      });
-    }
+    printFingerprintDiff(diff);
   },
 });
 
-async function readFingerprintFile(
-  argumentName: string,
-  filePath: string,
-): Promise<FingerprintFile> {
-  const text = await readFile(filePath, 'utf8').catch((error: unknown) => {
+function assertTwoFiles(args: string[]): void {
+  if (args.length > 2) {
     throw new InvalidParameterError(
-      `The file ${filePath} from ${argumentName} cannot be read.`,
-      FINGERPRINT_FILE_FIX,
-      error,
-    );
-  });
-  const parsedFile = FingerprintFileSchema.safeParse(parseJson(text));
-  if (!parsedFile.success) {
-    throw new InvalidParameterError(
-      `The file ${filePath} from ${argumentName} is not a fingerprint written by fingerprint --json.`,
-      FINGERPRINT_FILE_FIX,
-      parsedFile.error,
+      `The fingerprint diff command compares two files, <file-a> and <file-b>. It does not take ${args.slice(2).join(' ')}.`,
     );
   }
-  return parsedFile.data;
 }
 
 function parseJson(text: string): unknown {
@@ -147,56 +92,77 @@ function parseJson(text: string): unknown {
   }
 }
 
-function resolveFingerprintDiff(
-  before: FingerprintContributors,
-  after: FingerprintContributors,
-): FingerprintDiff {
-  return {
-    extraFingerprintPaths: resolveExtraFingerprintPathChanges(
-      before.extraFingerprintPaths,
-      after.extraFingerprintPaths,
-    ),
-    packages: resolvePackageChanges(before.packages, after.packages),
-  };
+function printFingerprintDiff(diff: FingerprintDiff): void {
+  printTable({
+    emptyText: 'No package moved.',
+    headers: ['PACKAGE', 'BEFORE', 'AFTER'],
+    nextOffset: null,
+    rows: diff.packages.map(({ after, before, name }) => [
+      name,
+      resolveInstalledVersionText(before, after),
+      resolveInstalledVersionText(after, before),
+    ]),
+  });
+  if (diff.extraFingerprintPaths.length > 0) {
+    printTable({
+      emptyText: '',
+      headers: ['EXTRA FINGERPRINT PATH', 'BEFORE', 'AFTER'],
+      nextOffset: null,
+      rows: diff.extraFingerprintPaths.map(({ after, before, path }) => [
+        path,
+        before ?? 'none',
+        after ?? 'none',
+      ]),
+    });
+  }
 }
 
-// Pairs the versions in order: a pair moved, the rest was added or removed.
-function resolvePackageChanges(
-  before: LockedPackage[],
-  after: LockedPackage[],
-): PackageChange[] {
-  const names = [...new Set([...before, ...after].map(({ name }) => name))];
-  return names.sort().flatMap(name => {
-    const beforeVersions = resolveVersionsOnlyIn(before, after, name);
-    const afterVersions = resolveVersionsOnlyIn(after, before, name);
-    return Array.from(
-      { length: Math.max(beforeVersions.length, afterVersions.length) },
-      (_, index) => ({
-        after: afterVersions[index] ?? null,
-        before: beforeVersions[index] ?? null,
-        name,
-      }),
+async function readFingerprintFile({
+  argumentName,
+  filePath,
+}: {
+  argumentName: string;
+  filePath: string;
+}): Promise<FingerprintFile> {
+  const text = await readFile(filePath, 'utf8').catch((error: unknown) => {
+    throw new InvalidParameterError(
+      `The file ${filePath} from ${argumentName} cannot be read.`,
+      { cause: error, fix: FINGERPRINT_FILE_FIX },
     );
   });
+  const parsedFile = FingerprintFileSchema.safeParse(parseJson(text));
+  if (!parsedFile.success) {
+    throw new InvalidParameterError(
+      `The file ${filePath} from ${argumentName} is not a fingerprint written by fingerprint --json.`,
+      { cause: parsedFile.error, fix: FINGERPRINT_FILE_FIX },
+    );
+  }
+  return parsedFile.data;
 }
 
-function resolveVersionsOnlyIn(
-  packages: LockedPackage[],
-  otherPackages: LockedPackage[],
-  name: string,
-): InstalledVersion[] {
-  return packages
-    .filter(
-      locked =>
-        locked.name === name &&
-        !otherPackages.some(
-          other =>
-            other.name === name &&
-            other.version === locked.version &&
-            other.integrity === locked.integrity,
-        ),
-    )
-    .map(({ integrity, version }) => ({ integrity, version }));
+async function readFingerprintFiles(
+  options: InteractivityOptions,
+  [beforeFilePath, afterFilePath]: string[],
+): Promise<{ afterFile: FingerprintFile; beforeFile: FingerprintFile }> {
+  const beforeFile = await readFingerprintFile({
+    argumentName: '<file-a>',
+    filePath:
+      beforeFilePath ??
+      (await promptText(options, {
+        flag: '<file-a>',
+        message: "Which file holds the earlier fingerprint, the store build's?",
+      })),
+  });
+  const afterFile = await readFingerprintFile({
+    argumentName: '<file-b>',
+    filePath:
+      afterFilePath ??
+      (await promptText(options, {
+        flag: '<file-b>',
+        message: 'Which file holds the later fingerprint?',
+      })),
+  });
+  return { afterFile, beforeFile };
 }
 
 function resolveExtraFingerprintPathChanges(
@@ -218,6 +184,19 @@ function resolveExtraFingerprintPathChanges(
     .filter(({ after, before }) => after !== before);
 }
 
+function resolveFingerprintDiff(
+  before: FingerprintContributors,
+  after: FingerprintContributors,
+): FingerprintDiff {
+  return {
+    extraFingerprintPaths: resolveExtraFingerprintPathChanges(
+      before.extraFingerprintPaths,
+      after.extraFingerprintPaths,
+    ),
+    packages: resolvePackageChanges(before.packages, after.packages),
+  };
+}
+
 // Shows the integrity where the version did not move, so a rebuild under the same version shows.
 function resolveInstalledVersionText(
   installedVersion: InstalledVersion | null,
@@ -229,4 +208,48 @@ function resolveInstalledVersionText(
   return installedVersion.version === otherInstalledVersion?.version
     ? (installedVersion.integrity ?? 'no integrity')
     : installedVersion.version;
+}
+
+// Pairs the versions in order: a pair moved, the rest was added or removed.
+function resolvePackageChanges(
+  before: LockedPackage[],
+  after: LockedPackage[],
+): PackageChange[] {
+  const names = [...new Set([...before, ...after].map(({ name }) => name))];
+  return names.sort().flatMap(name => {
+    const beforeVersions = resolveVersionsOnlyIn(before, {
+      name,
+      otherPackages: after,
+    });
+    const afterVersions = resolveVersionsOnlyIn(after, {
+      name,
+      otherPackages: before,
+    });
+    return Array.from(
+      { length: Math.max(beforeVersions.length, afterVersions.length) },
+      (_, index) => ({
+        after: afterVersions[index] ?? null,
+        before: beforeVersions[index] ?? null,
+        name,
+      }),
+    );
+  });
+}
+
+function resolveVersionsOnlyIn(
+  packages: LockedPackage[],
+  { name, otherPackages }: { name: string; otherPackages: LockedPackage[] },
+): InstalledVersion[] {
+  return packages
+    .filter(
+      locked =>
+        locked.name === name &&
+        !otherPackages.some(
+          other =>
+            other.name === name &&
+            other.version === locked.version &&
+            other.integrity === locked.integrity,
+        ),
+    )
+    .map(({ integrity, version }) => ({ integrity, version }));
 }

@@ -1,3 +1,4 @@
+import type { Device } from '@hotcodepush/node';
 import {
   deviceOptionShape,
   fetchDeviceReference,
@@ -36,27 +37,7 @@ export default defineCommand({
       printJson({ ...fetchedDevice, events: fetchedEvents });
       return;
     }
-    printDetails([
-      ['ID', fetchedDevice.deviceId],
-      ['Platform', `${fetchedDevice.platform} ${fetchedDevice.osVersion}`],
-      ['Binary', resolveBinaryText(fetchedDevice)],
-      ['Fingerprint', fetchedDevice.fingerprint ?? 'none'],
-      [
-        'Channel',
-        `${fetchedDevice.channel?.name ?? fetchedDevice.channelId ?? 'none'} (${fetchedDevice.channelSource})`,
-      ],
-      ['Release', fetchedDevice.currentReleaseId ?? 'the embedded bundle'],
-      ['SDK', fetchedDevice.sdkVersion],
-      [
-        'Attributes',
-        Object.entries(fetchedDevice.attributes)
-          .map(([key, value]) => `${key}=${value}`)
-          .join(', ') || 'none',
-      ],
-      ['Country', fetchedDevice.country ?? 'unknown'],
-      ['Last seen', fetchedDevice.lastSeenAt],
-      ['First seen', fetchedDevice.createdAt],
-    ]);
+    printDeviceDetails(fetchedDevice);
     printTable({
       emptyText: 'No outcomes yet: the device has not checked a release.',
       headers: ['RELEASE', 'OUTCOME', 'REASON', 'DATE'],
@@ -70,3 +51,27 @@ export default defineCommand({
     });
   },
 });
+
+function printDeviceDetails(fetchedDevice: Device): void {
+  printDetails([
+    ['ID', fetchedDevice.deviceId],
+    ['Platform', `${fetchedDevice.platform} ${fetchedDevice.osVersion}`],
+    ['Binary', resolveBinaryText(fetchedDevice)],
+    ['Fingerprint', fetchedDevice.fingerprint ?? 'none'],
+    [
+      'Channel',
+      `${fetchedDevice.channel?.name ?? fetchedDevice.channelId ?? 'none'} (${fetchedDevice.channelSource})`,
+    ],
+    ['Release', fetchedDevice.currentReleaseId ?? 'the embedded bundle'],
+    ['SDK', fetchedDevice.sdkVersion],
+    [
+      'Attributes',
+      Object.entries(fetchedDevice.attributes)
+        .map(([key, value]) => `${key}=${value}`)
+        .join(', ') || 'none',
+    ],
+    ['Country', fetchedDevice.country ?? 'unknown'],
+    ['Last seen', fetchedDevice.lastSeenAt],
+    ['First seen', fetchedDevice.createdAt],
+  ]);
+}

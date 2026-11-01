@@ -1,3 +1,4 @@
+import type { Bundle } from '@hotcodepush/node';
 import { z } from 'zod';
 import { fetchAppId } from '../../resources/apps.js';
 import { createApiClient } from '../../utils/api-client.js';
@@ -38,11 +39,10 @@ export default defineCommand({
     const hotCodePush = createApiClient();
     const source = options.source ?? 'upload';
     const listedBundles = await hotCodePush.apps.bundles.list({
-      appId: await fetchAppId(
-        hotCodePush,
+      appId: await fetchAppId(hotCodePush, {
         options,
-        readProjectConfig(options.config),
-      ),
+        projectConfig: readProjectConfig(options.config),
+      }),
       limit: options.limit,
       offset: options.offset,
       source: source === 'all' ? undefined : source,
@@ -65,25 +65,27 @@ export default defineCommand({
         'CREATED',
       ],
       nextOffset,
-      rows: listedBundles.map(
-        ({
-          createdAt,
-          number,
-          platforms,
-          sizeBytes,
-          source,
-          status,
-          version,
-        }) => [
-          number === null ? '' : `#${number}`,
-          version,
-          source,
-          status,
-          platforms.join(','),
-          resolveByteText(sizeBytes),
-          resolveDate(createdAt),
-        ],
-      ),
+      rows: listedBundles.map(resolveBundleRow),
     });
   },
 });
+
+function resolveBundleRow({
+  createdAt,
+  number,
+  platforms,
+  sizeBytes,
+  source,
+  status,
+  version,
+}: Bundle): string[] {
+  return [
+    number === null ? '' : `#${number}`,
+    version,
+    source,
+    status,
+    platforms.join(','),
+    resolveByteText(sizeBytes),
+    resolveDate(createdAt),
+  ];
+}

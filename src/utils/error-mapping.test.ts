@@ -195,7 +195,11 @@ describe('error mapping', () => {
     it('should leave the fix out and the message as received when the error carries none', () => {
       expect(
         resolveErrorSentences(
-          new ApiError('invalid_grant', 'Invalid device code', 400),
+          new ApiError({
+            code: 'invalid_grant',
+            message: 'Invalid device code',
+            status: 400,
+          }),
         ),
       ).toEqual(['Invalid device code']);
     });

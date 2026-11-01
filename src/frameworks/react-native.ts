@@ -7,15 +7,17 @@ import {
 import type { Platform } from '../upload/upload.js';
 import type { ConfirmationRequiredError } from '../utils/errors.js';
 import { runCommandLineVisibly } from '../utils/package-manager.js';
+import type { LocatedNativeProjects } from './binary-create-step.js';
 import {
   applyNativeProjectEdits,
   checkBinaryCreateStep,
   checkEdits,
+  isBinaryCreatePhaseMissing,
+  resolveWiredOutcome,
 } from './binary-create-step.js';
 import type { NativeProjectEdit } from './native-project-edit.js';
 import { resolveGradleEdit } from './native-project-edit.js';
-import type { NativeProjects } from './native-projects.js';
-import { resolveNativeProjects } from './native-projects.js';
+import { locateNativeProjects } from './native-projects.js';
 import {
   collectEmbeddedFiles,
   packageReactNativeBundles,
@@ -34,18 +36,23 @@ import {
 import type { BinaryCreatePhase } from './xcode-project.js';
 import {
   buildPbxprojShellScript,
-  hasBinaryCreatePhase,
   resolveXcodeProjectFilePath,
 } from './xcode-project.js';
 import type {
-  StepOutcome,
   FrameworkCheck,
   FrameworkModule,
   FrameworkProject,
   FrameworkWiring,
   NativeProjectPaths,
+  StepOutcome,
   WiringOptions,
 } from './index.js';
+
+const ALREADY_WIRED_OUTCOME: StepOutcome<undefined> = {
+  message: 'The build step and the bundle wiring are already wired.',
+  status: 'skipped',
+  value: undefined,
+};
 
 // React Native's `with-environment.sh` finds Node for the script.
 const BINARY_CREATE_PHASE: BinaryCreatePhase = {
@@ -72,11 +79,10 @@ export const reactNativeFramework: FrameworkModule = {
   versionedPackageNames: ['react-native', REACT_NATIVE_PACKAGE_NAME],
   checkWiring: project => [
     checkSdkPackage(project, REACT_NATIVE_PACKAGE_NAME),
-    checkBinaryCreateStep(
-      project.directoryPath,
-      resolveNativeProjectPaths(project.directoryPath),
-      REACT_NATIVE_PACKAGE_NAME,
-    ),
+    checkBinaryCreateStep(project.directoryPath, {
+      nativeProjectPaths: resolveNativeProjectPaths(project.directoryPath),
+      packageName: REACT_NATIVE_PACKAGE_NAME,
+    }),
     checkBundleWiring(project),
   ],
   collectEmbeddedFiles,
@@ -91,11 +97,17 @@ function checkBundleWiring({
   directoryPath,
 }: FrameworkProject): FrameworkCheck {
   return checkEdits(
-    'host',
-    'React Native runs the bundle the SDK serves.',
     resolveBundleWiringEdits(resolveNativeProjectPaths(directoryPath)),
-    directoryPath,
+    {
+      check: 'host',
+      projectDirectoryPath: directoryPath,
+      wiredMessage: 'React Native runs the bundle the SDK serves.',
+    },
   );
+}
+
+function installPods(iosProjectPath: string): void {
+  runCommandLineVisibly({ args: ['install'], command: 'pod' }, iosProjectPath);
 }
 
 function isPodInstalled(iosProjectPath: string): boolean {
@@ -143,92 +155,88 @@ function resolveEdits(
   ].filter(edit => edit !== undefined);
 }
 
+function resolveNativeFilePaths({
+  nativeProjects,
+  xcodeProjectFilePath,
+}: LocatedNativeProjects): string[] {
+  return [
+    ...(isBinaryCreatePhaseMissing(xcodeProjectFilePath)
+      ? [xcodeProjectFilePath]
+      : []),
+    ...resolveEdits(nativeProjects)
+      .filter(edit => !edit.isRefused && !edit.isApplied())
+      .map(({ filePath }) => filePath),
+  ];
+}
+
 async function resolveWiring(
   { directoryPath, packageJson }: FrameworkProject,
   options: WiringOptions,
 ): Promise<FrameworkWiring> {
-  const nativeProjects = await resolveNativeProjects(
-    directoryPath,
-    resolveNativeProjectPaths(directoryPath),
-    options,
-    'Pass --ios-path and --android-path.',
-  );
+  const nativeProjects = await locateNativeProjects(options, {
+    defaultPaths: resolveNativeProjectPaths(directoryPath),
+    missingProjectsStep: 'Pass --ios-path and --android-path.',
+    projectDirectoryPath: directoryPath,
+  });
+  const located = {
+    nativeProjects,
+    xcodeProjectFilePath: resolveXcodeProjectFilePath(nativeProjects.ios),
+  };
   const isPackageInstalled = isSdkPackageDeclared(
     packageJson,
     REACT_NATIVE_PACKAGE_NAME,
   );
-  const xcodeProjectFilePath = resolveXcodeProjectFilePath(nativeProjects.ios);
   return {
     isPackageInstalled,
-    nativeFilePaths: [
-      ...(xcodeProjectFilePath === undefined ||
-      hasBinaryCreatePhase(xcodeProjectFilePath)
-        ? []
-        : [xcodeProjectFilePath]),
-      ...resolveEdits(nativeProjects)
-        .filter(edit => !edit.isRefused && !edit.isApplied())
-        .map(({ filePath }) => filePath),
-    ].map(filePath => relative(directoryPath, filePath)),
+    nativeFilePaths: resolveNativeFilePaths(located).map(filePath =>
+      relative(directoryPath, filePath),
+    ),
     packageFilePaths: isPackageInstalled ? [] : ['package.json'],
     installPackage: () =>
-      installSdkPackage(
-        directoryPath,
-        REACT_NATIVE_PACKAGE_NAME,
-        REACT_NATIVE_PACKAGE_SPEC,
-      ),
+      installSdkPackage(directoryPath, {
+        packageName: REACT_NATIVE_PACKAGE_NAME,
+        packageSpec: REACT_NATIVE_PACKAGE_SPEC,
+      }),
     wireBinaryCreateStep: editBlocker =>
-      wireBinaryCreateStep(
-        nativeProjects,
-        xcodeProjectFilePath,
-        editBlocker,
-        options,
-      ),
+      wireBinaryCreateStep(located, { editBlocker, options }),
   };
 }
 
 async function wireBinaryCreateStep(
-  nativeProjects: NativeProjects,
-  xcodeProjectFilePath: string | undefined,
-  editBlocker: ConfirmationRequiredError | undefined,
-  options: WiringOptions,
+  { nativeProjects, xcodeProjectFilePath }: LocatedNativeProjects,
+  {
+    editBlocker,
+    options,
+  }: {
+    editBlocker: ConfirmationRequiredError | undefined;
+    options: WiringOptions;
+  },
 ): Promise<StepOutcome<undefined>> {
   if (nativeProjects.missingError !== undefined) {
     throw nativeProjects.missingError;
   }
-  const isPhaseWired =
-    xcodeProjectFilePath === undefined ||
-    hasBinaryCreatePhase(xcodeProjectFilePath);
   const pendingEdits = resolveEdits(nativeProjects).filter(
     edit => !edit.isApplied(),
   );
+  const hasEdits =
+    isBinaryCreatePhaseMissing(xcodeProjectFilePath) || pendingEdits.length > 0;
   const arePodsInstalled = isPodInstalled(nativeProjects.ios);
-  if (isPhaseWired && pendingEdits.length === 0 && arePodsInstalled) {
-    return {
-      message: 'The build step and the bundle wiring are already wired.',
-      status: 'skipped',
-      value: undefined,
-    };
+  if (!hasEdits && arePodsInstalled) {
+    return ALREADY_WIRED_OUTCOME;
   }
-  if (editBlocker !== undefined && (!isPhaseWired || pendingEdits.length > 0)) {
+  if (editBlocker !== undefined && hasEdits) {
     throw editBlocker;
   }
-  const wired = await applyNativeProjectEdits(
-    xcodeProjectFilePath === undefined
-      ? undefined
-      : { phase: BINARY_CREATE_PHASE, projectFilePath: xcodeProjectFilePath },
-    pendingEdits,
+  const wired = await applyNativeProjectEdits(pendingEdits, {
     options,
-  );
+    phaseEdit:
+      xcodeProjectFilePath === undefined
+        ? undefined
+        : { phase: BINARY_CREATE_PHASE, projectFilePath: xcodeProjectFilePath },
+  });
   if (!arePodsInstalled) {
-    runCommandLineVisibly(
-      { args: ['install'], command: 'pod' },
-      nativeProjects.ios,
-    );
+    installPods(nativeProjects.ios);
     wired.push('the pods through "pod install"');
   }
-  return {
-    message: `Wired ${wired.join(', ')}.`,
-    status: 'done',
-    value: undefined,
-  };
+  return resolveWiredOutcome(wired);
 }

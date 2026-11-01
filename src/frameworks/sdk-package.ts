@@ -45,8 +45,7 @@ export function checkSdkPackage(
 
 export function installSdkPackage(
   projectDirectoryPath: string,
-  packageName: string,
-  packageSpec: string,
+  { packageName, packageSpec }: { packageName: string; packageSpec: string },
 ): string {
   runCommandLineVisibly(
     resolveInstallCommandLine(
@@ -84,16 +83,13 @@ export function readInstalledPackageVersion(
   return readPackageJsonVersion(packageJsonPath);
 }
 
-function readPackageJsonVersion(packageJsonPath: string): string | undefined {
-  return (JSON.parse(readFileSync(packageJsonPath, 'utf8')) as PackageJson)
-    .version;
-}
-
 // Resolved from the SDK package, since an isolated install such as pnpm's keeps it out of the project's `node_modules`.
 export function readSdkDependencyVersion(
   projectDirectoryPath: string,
-  sdkPackageName: string,
-  packageName: string,
+  {
+    packageName,
+    sdkPackageName,
+  }: { packageName: string; sdkPackageName: string },
 ): string | undefined {
   try {
     const projectRequire = createRequire(
@@ -110,4 +106,9 @@ export function readSdkDependencyVersion(
   } catch {
     return undefined;
   }
+}
+
+function readPackageJsonVersion(packageJsonPath: string): string | undefined {
+  return (JSON.parse(readFileSync(packageJsonPath, 'utf8')) as PackageJson)
+    .version;
 }

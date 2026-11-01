@@ -6,13 +6,17 @@ import {
   detectFramework,
   readInputDirectoryPath,
 } from '../frameworks/framework.js';
+import type { FrameworkModule, PackagedBundle } from '../frameworks/index.js';
 import { resolveFrameworkModule } from '../frameworks/index.js';
 import { fetchAppId } from '../resources/apps.js';
 import type { InteractivityOptions } from '../utils/environment.js';
 import { SigningKeyUnavailableError } from '../utils/errors.js';
 import { readPackageJson } from '../utils/package-json.js';
 import { createReporter } from '../utils/progress.js';
-import type { ProjectConfig } from '../utils/project-config.js';
+import type {
+  ProjectConfig,
+  ProjectConfigLocation,
+} from '../utils/project-config.js';
 import { locateProjectConfig } from '../utils/project-config.js';
 import { promptText } from '../utils/prompts.js';
 import { readFingerprint } from './fingerprint.js';
@@ -79,18 +83,92 @@ export const bundleUploadOptionShape = {
     ),
 };
 
-// Nothing is uploaded here, so `release create` can resolve before it confirms.
+// Nothing is uploaded yet, so `release create` can resolve before it confirms.
 // Its dry run resolves without the private key.
-export async function fetchUploadBundleOptions(
+export async function buildBundleUploads(
   hotCodePush: HotCodePush,
-  options: BundleUploadOptions,
-  packagingDirectoryPath: string,
-  { isDryRun = false }: { isDryRun?: boolean } = {},
+  {
+    isDryRun = false,
+    options,
+    packagingDirectoryPath,
+  }: {
+    isDryRun?: boolean;
+    options: BundleUploadOptions;
+    packagingDirectoryPath: string;
+  },
 ): Promise<{ appId: string; bundleUploads: UploadBundleOptions[] }> {
-  const { directoryPath, projectConfig } = locateProjectConfig(options.config);
-  const framework = resolveFrameworkModule(detectFramework(directoryPath));
-  const appId = await fetchAppId(hotCodePush, options, projectConfig);
-  const sharedOptions = {
+  const project = locateProjectConfig(options.config);
+  const framework = resolveFrameworkModule(
+    detectFramework(project.directoryPath),
+  );
+  const appId = await fetchAppId(hotCodePush, {
+    options,
+    projectConfig: project.projectConfig,
+  });
+  const sharedUploadOptions = await readSharedUploadOptions(project, {
+    appId,
+    framework,
+    isDryRun,
+    options,
+  });
+  const packagedBundles = await packageBundles(framework, {
+    options,
+    packagingDirectoryPath,
+    projectDirectoryPath: project.directoryPath,
+  });
+  return {
+    appId,
+    bundleUploads: packagedBundles.map(packagedBundle => ({
+      ...sharedUploadOptions,
+      ...packagedBundle,
+    })),
+  };
+}
+
+// A framework without its own packaging uploads its build output for every platform at once.
+async function packageBundles(
+  framework: FrameworkModule,
+  {
+    options,
+    packagingDirectoryPath,
+    projectDirectoryPath,
+  }: {
+    options: BundleUploadOptions;
+    packagingDirectoryPath: string;
+    projectDirectoryPath: string;
+  },
+): Promise<PackagedBundle[]> {
+  if (framework.packageBundles !== undefined) {
+    return framework.packageBundles({
+      packagingDirectoryPath,
+      path: options.path,
+      platforms: options.platform,
+      projectDirectoryPath,
+    });
+  }
+  const directoryPath = await readInputDirectoryPath(options, {
+    framework,
+    pathFlag: '--path',
+    projectDirectoryPath,
+  });
+  return [{ directoryPath, platforms: options.platform ?? PLATFORMS }];
+}
+
+async function readSharedUploadOptions(
+  { directoryPath, projectConfig }: ProjectConfigLocation,
+  {
+    appId,
+    framework,
+    isDryRun,
+    options,
+  }: {
+    appId: string;
+    framework: FrameworkModule;
+    isDryRun: boolean;
+    options: BundleUploadOptions;
+  },
+): Promise<Omit<UploadBundleOptions, keyof PackagedBundle>> {
+  return {
     appId,
     bundleVersion: await resolveBundleVersion(options, directoryPath),
     fingerprint: await readFingerprint(
@@ -100,48 +178,23 @@ export async function fetchUploadBundleOptions(
     gitProvenance: await resolveGitProvenance(directoryPath, options),
     nativeGluePaths: framework.nativeGluePaths,
     reporter: createReporter(options),
-    signingPrivateKey: await readSigningPrivateKey(
+    signingPrivateKey: await readSigningPrivateKey(projectConfig, {
       appId,
-      projectConfig,
-      options.privateKeyPath,
       isDryRun,
-    ),
-  };
-  const packagedBundles =
-    framework.packageBundles === undefined
-      ? [
-          {
-            directoryPath: await readInputDirectoryPath(
-              options,
-              '--path',
-              directoryPath,
-              framework,
-            ),
-            platforms: options.platform ?? PLATFORMS,
-          },
-        ]
-      : await framework.packageBundles({
-          packagingDirectoryPath,
-          path: options.path,
-          platforms: options.platform,
-          projectDirectoryPath: directoryPath,
-        });
-  return {
-    appId,
-    bundleUploads: packagedBundles.map(packagedBundle => ({
-      ...sharedOptions,
-      ...packagedBundle,
-    })),
+      privateKeyPath: options.privateKeyPath,
+    }),
   };
 }
 
 // Signing is off when `hotcodepush.json` lists no public key or names another app than `--app` meant.
 // A dry run signs nothing, so a given key is checked but none is required.
 async function readSigningPrivateKey(
-  appId: string,
   projectConfig: ProjectConfig | undefined,
-  privateKeyPath: string | undefined,
-  isDryRun: boolean,
+  {
+    appId,
+    isDryRun,
+    privateKeyPath,
+  }: { appId: string; isDryRun: boolean; privateKeyPath: string | undefined },
 ): Promise<string | null> {
   const publicKeys =
     projectConfig?.appId === appId ? (projectConfig.publicKeys ?? []) : [];
@@ -171,9 +224,8 @@ async function resolveBundleVersion(
       return version;
     }
   }
-  return promptText(
-    '--bundle-version',
-    'Which version label does the bundle carry?',
-    options,
-  );
+  return promptText(options, {
+    flag: '--bundle-version',
+    message: 'Which version label does the bundle carry?',
+  });
 }

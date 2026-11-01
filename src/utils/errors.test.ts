@@ -20,10 +20,26 @@ import {
 
 describe('errors', () => {
   it.each<[CliError, string, number]>([
-    [new AmbiguousNameError('organization', 'Acme'), 'invalid_parameter', 2],
-    [new ApiError('forbidden', 'Your role is too low.', 403), 'forbidden', 1],
     [
-      new ApiError('unauthenticated', 'Sign in again.', 401),
+      new AmbiguousNameError({ name: 'Acme', noun: 'organization' }),
+      'invalid_parameter',
+      2,
+    ],
+    [
+      new ApiError({
+        code: 'forbidden',
+        message: 'Your role is too low.',
+        status: 403,
+      }),
+      'forbidden',
+      1,
+    ],
+    [
+      new ApiError({
+        code: 'unauthenticated',
+        message: 'Sign in again.',
+        status: 401,
+      }),
       'unauthenticated',
       3,
     ],
@@ -40,11 +56,9 @@ describe('errors', () => {
       1,
     ],
     [
-      new InvalidParameterError(
-        '--limit: Too big',
-        undefined,
-        new Error('Too big'),
-      ),
+      new InvalidParameterError('--limit: Too big', {
+        cause: new Error('Too big'),
+      }),
       'invalid_parameter',
       2,
     ],
@@ -60,7 +74,12 @@ describe('errors', () => {
       'unknown_command',
       1,
     ],
-    [new UnknownNameError('channel', 'staging'), 'invalid_parameter', 2],
+    [
+      new UnknownNameError({ name: 'staging', noun: 'channel' }),
+      'invalid_parameter',
+      2,
+    ],
+    // eslint-disable-next-line max-params -- it.each passes each row's cells as separate arguments.
   ])('should carry the code and exit code of %o', (error, code, exitCode) => {
     expect(error.code).toBe(code);
     expect(error.exitCode).toBe(exitCode);
@@ -109,7 +128,7 @@ describe('errors', () => {
   });
 
   it('should name the flag and the list command when no resource carries a name', () => {
-    const error = new UnknownNameError('channel', 'staging');
+    const error = new UnknownNameError({ name: 'staging', noun: 'channel' });
 
     expect(error.message).toBe(
       'The channel "staging" from --channel does not exist.',
@@ -118,7 +137,10 @@ describe('errors', () => {
   });
 
   it('should ask for the id when several resources carry a name', () => {
-    const error = new AmbiguousNameError('organization', 'Acme');
+    const error = new AmbiguousNameError({
+      name: 'Acme',
+      noun: 'organization',
+    });
 
     expect(error.message).toBe(
       'Several organizations carry the name "Acme" from --organization.',
@@ -144,8 +166,10 @@ describe('errors', () => {
   it('should ask for the build phase by hand when an Xcode edit names no fix of its own', () => {
     const error = new XcodeProjectError(
       'The Xcode project ios/App.xcodeproj/project.pbxproj could not be parsed.',
-      undefined,
-      'ios/App.xcodeproj/project.pbxproj',
+      {
+        cause: undefined,
+        projectFilePath: 'ios/App.xcodeproj/project.pbxproj',
+      },
     );
 
     expect(error.fix).toBe(

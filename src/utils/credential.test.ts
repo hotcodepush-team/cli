@@ -40,7 +40,10 @@ describe('credential', () => {
 
   it("should pass the API's refusal of the bearer through, and tell it apart from other failures", async () => {
     harness.routes['GET /v1/users/me'] = () =>
-      respondWithApiError(401, 'unauthenticated', 'The bearer is invalid.');
+      respondWithApiError(401, {
+        code: 'unauthenticated',
+        message: 'The bearer is invalid.',
+      });
 
     const error: unknown = await fetchCurrentUser().catch(
       (caught: unknown) => caught,

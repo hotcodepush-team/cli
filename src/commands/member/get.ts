@@ -24,11 +24,10 @@ export default defineCommand({
   options: defineCommandOptions(memberOptionShape),
   action: async options => {
     const hotCodePush = createApiClient();
-    const fetchedMember = await fetchMember(
-      hotCodePush,
-      await fetchOrganizationId(hotCodePush, options),
+    const fetchedMember = await fetchMember(hotCodePush, {
       options,
-    );
+      organizationId: await fetchOrganizationId(hotCodePush, options),
+    });
     if (options.json) {
       printJson(fetchedMember);
       return;

@@ -5,15 +5,20 @@ import {
   CAPACITOR_PACKAGE_SPEC,
 } from '../config/consts.js';
 import type { ConfirmationRequiredError } from '../utils/errors.js';
+import type {
+  BinaryCreatePhaseEdit,
+  LocatedNativeProjects,
+} from './binary-create-step.js';
 import {
   applyNativeProjectEdits,
   checkBinaryCreateStep,
+  isBinaryCreatePhaseMissing,
+  resolveWiredOutcome,
 } from './binary-create-step.js';
 import { NATIVE_GLUE_PATHS } from './native-glue.js';
 import type { NativeProjectEdit } from './native-project-edit.js';
 import { resolveGradleEdit } from './native-project-edit.js';
-import type { NativeProjects } from './native-projects.js';
-import { resolveNativeProjects } from './native-projects.js';
+import { locateNativeProjects } from './native-projects.js';
 import {
   checkSdkPackage,
   installSdkPackage,
@@ -22,18 +27,17 @@ import {
 import type { BinaryCreatePhase } from './xcode-project.js';
 import {
   buildPbxprojShellScript,
-  hasBinaryCreatePhase,
   hasReadableResourceReference,
   removeResourceReference,
   resolveXcodeProjectFilePath,
 } from './xcode-project.js';
 import type {
-  StepOutcome,
   BuildDirectory,
   FrameworkModule,
   FrameworkProject,
   FrameworkWiring,
   NativeProjectPaths,
+  StepOutcome,
   WiringOptions,
 } from './index.js';
 
@@ -42,6 +46,16 @@ interface CapacitorConfig {
   fileName: string;
   text: string;
 }
+
+interface CapacitorNativeProjects extends LocatedNativeProjects {
+  projectDirectoryPath: string;
+}
+
+const ALREADY_WIRED_OUTCOME: StepOutcome<undefined> = {
+  message: 'The Xcode phase and the Gradle task are already wired.',
+  status: 'skipped',
+  value: undefined,
+};
 
 const BINARY_CREATE_SCRIPT_PATH = `node_modules/${CAPACITOR_PACKAGE_NAME}/scripts/binary-create-xcode.sh`;
 
@@ -57,11 +71,10 @@ export const capacitorFramework: FrameworkModule = {
   versionedPackageNames: ['@capacitor/core', CAPACITOR_PACKAGE_NAME],
   checkWiring: project => [
     checkSdkPackage(project, CAPACITOR_PACKAGE_NAME),
-    checkBinaryCreateStep(
-      project.directoryPath,
-      resolveNativeProjectPaths(project.directoryPath),
-      CAPACITOR_PACKAGE_NAME,
-    ),
+    checkBinaryCreateStep(project.directoryPath, {
+      nativeProjectPaths: resolveNativeProjectPaths(project.directoryPath),
+      packageName: CAPACITOR_PACKAGE_NAME,
+    }),
   ],
   hasConfigFile: projectDirectoryPath =>
     CAPACITOR_CONFIG_FILE_NAMES.some(fileName =>
@@ -110,28 +123,6 @@ function readWebDir(projectDirectoryPath: string): BuildDirectory {
     : { path: webDir };
 }
 
-function resolveNativeProjectPaths(
-  projectDirectoryPath: string,
-): NativeProjectPaths {
-  const capacitorConfig = readCapacitorConfig(projectDirectoryPath);
-  return {
-    android: join(
-      projectDirectoryPath,
-      readConfigValue(
-        capacitorConfig,
-        /android:\s*\{[^}]*?path:\s*['"]([^'"]+)['"]/,
-      ) ?? 'android',
-    ),
-    ios: join(
-      projectDirectoryPath,
-      readConfigValue(
-        capacitorConfig,
-        /ios:\s*\{[^}]*?path:\s*['"]([^'"]+)['"]/,
-      ) ?? 'ios',
-    ),
-  };
-}
-
 // The phase runs last, once the web build is copied into the app. The script finds Node itself.
 function resolveBinaryCreatePhase(
   projectDirectoryPath: string,
@@ -158,49 +149,43 @@ function resolveBinaryCreatePhase(
   };
 }
 
-async function resolveWiring(
-  { directoryPath, packageJson }: FrameworkProject,
-  options: WiringOptions,
-): Promise<FrameworkWiring> {
-  const nativeProjects = await resolveNativeProjects(
-    directoryPath,
-    resolveNativeProjectPaths(directoryPath),
-    options,
-    'Run "npx cap add ios" and "npx cap add android", or pass --ios-path and --android-path.',
+function resolveNativeFilePaths({
+  nativeProjects,
+  projectDirectoryPath,
+  xcodeProjectFilePath,
+}: CapacitorNativeProjects): string[] {
+  const nativeFilePaths = new Set([
+    ...(isBinaryCreatePhaseMissing(xcodeProjectFilePath)
+      ? [xcodeProjectFilePath]
+      : []),
+    ...resolvePendingEdits(nativeProjects, xcodeProjectFilePath)
+      .filter(edit => !edit.isRefused)
+      .map(({ filePath }) => filePath),
+  ]);
+  return [...nativeFilePaths].map(filePath =>
+    relative(projectDirectoryPath, filePath),
   );
-  const xcodeProjectFilePath = resolveXcodeProjectFilePath(nativeProjects.ios);
-  const isPackageInstalled = isSdkPackageDeclared(
-    packageJson,
-    CAPACITOR_PACKAGE_NAME,
-  );
+}
+
+function resolveNativeProjectPaths(
+  projectDirectoryPath: string,
+): NativeProjectPaths {
+  const capacitorConfig = readCapacitorConfig(projectDirectoryPath);
   return {
-    isPackageInstalled,
-    nativeFilePaths: [
-      ...new Set([
-        ...(xcodeProjectFilePath === undefined ||
-        hasBinaryCreatePhase(xcodeProjectFilePath)
-          ? []
-          : [xcodeProjectFilePath]),
-        ...resolvePendingEdits(nativeProjects, xcodeProjectFilePath)
-          .filter(edit => !edit.isRefused)
-          .map(({ filePath }) => filePath),
-      ]),
-    ].map(filePath => relative(directoryPath, filePath)),
-    packageFilePaths: isPackageInstalled ? [] : ['package.json'],
-    installPackage: () =>
-      installSdkPackage(
-        directoryPath,
-        CAPACITOR_PACKAGE_NAME,
-        CAPACITOR_PACKAGE_SPEC,
-      ),
-    wireBinaryCreateStep: editBlocker =>
-      wireBinaryCreateStep(
-        directoryPath,
-        nativeProjects,
-        xcodeProjectFilePath,
-        editBlocker,
-        options,
-      ),
+    android: join(
+      projectDirectoryPath,
+      readConfigValue(
+        capacitorConfig,
+        /android:\s*\{[^}]*?path:\s*['"]([^'"]+)['"]/,
+      ) ?? 'android',
+    ),
+    ios: join(
+      projectDirectoryPath,
+      readConfigValue(
+        capacitorConfig,
+        /ios:\s*\{[^}]*?path:\s*['"]([^'"]+)['"]/,
+      ) ?? 'ios',
+    ),
   };
 }
 
@@ -218,6 +203,21 @@ function resolvePendingEdits(
     .filter(edit => !edit.isApplied());
 }
 
+function resolvePhaseEdit({
+  projectDirectoryPath,
+  xcodeProjectFilePath,
+}: CapacitorNativeProjects): BinaryCreatePhaseEdit | undefined {
+  return xcodeProjectFilePath === undefined
+    ? undefined
+    : {
+        phase: resolveBinaryCreatePhase(
+          projectDirectoryPath,
+          xcodeProjectFilePath,
+        ),
+        projectFilePath: xcodeProjectFilePath,
+      };
+}
+
 function resolveResourceReferenceEdit(
   xcodeProjectFilePath: string,
 ): NativeProjectEdit {
@@ -231,49 +231,70 @@ function resolveResourceReferenceEdit(
   };
 }
 
-async function wireBinaryCreateStep(
-  projectDirectoryPath: string,
-  nativeProjects: NativeProjects,
-  xcodeProjectFilePath: string | undefined,
-  editBlocker: ConfirmationRequiredError | undefined,
+async function resolveWiring(
+  { directoryPath, packageJson }: FrameworkProject,
   options: WiringOptions,
+): Promise<FrameworkWiring> {
+  const nativeProjects = await locateNativeProjects(options, {
+    defaultPaths: resolveNativeProjectPaths(directoryPath),
+    missingProjectsStep:
+      'Run "npx cap add ios" and "npx cap add android", or pass --ios-path and --android-path.',
+    projectDirectoryPath: directoryPath,
+  });
+  const located = {
+    nativeProjects,
+    projectDirectoryPath: directoryPath,
+    xcodeProjectFilePath: resolveXcodeProjectFilePath(nativeProjects.ios),
+  };
+  const isPackageInstalled = isSdkPackageDeclared(
+    packageJson,
+    CAPACITOR_PACKAGE_NAME,
+  );
+  return {
+    isPackageInstalled,
+    nativeFilePaths: resolveNativeFilePaths(located),
+    packageFilePaths: isPackageInstalled ? [] : ['package.json'],
+    installPackage: () =>
+      installSdkPackage(directoryPath, {
+        packageName: CAPACITOR_PACKAGE_NAME,
+        packageSpec: CAPACITOR_PACKAGE_SPEC,
+      }),
+    wireBinaryCreateStep: editBlocker =>
+      wireBinaryCreateStep(located, { editBlocker, options }),
+  };
+}
+
+async function wireBinaryCreateStep(
+  located: CapacitorNativeProjects,
+  {
+    editBlocker,
+    options,
+  }: {
+    editBlocker: ConfirmationRequiredError | undefined;
+    options: WiringOptions;
+  },
 ): Promise<StepOutcome<undefined>> {
+  const { nativeProjects, xcodeProjectFilePath } = located;
   if (nativeProjects.missingError !== undefined) {
     throw nativeProjects.missingError;
   }
-  const isPhaseWired =
-    xcodeProjectFilePath === undefined ||
-    hasBinaryCreatePhase(xcodeProjectFilePath);
   const pendingEdits = resolvePendingEdits(
     nativeProjects,
     xcodeProjectFilePath,
   );
-  if (isPhaseWired && pendingEdits.length === 0) {
-    return {
-      message: 'The Xcode phase and the Gradle task are already wired.',
-      status: 'skipped',
-      value: undefined,
-    };
+  if (
+    !isBinaryCreatePhaseMissing(xcodeProjectFilePath) &&
+    pendingEdits.length === 0
+  ) {
+    return ALREADY_WIRED_OUTCOME;
   }
   if (editBlocker !== undefined) {
     throw editBlocker;
   }
-  const wired = await applyNativeProjectEdits(
-    xcodeProjectFilePath === undefined
-      ? undefined
-      : {
-          phase: resolveBinaryCreatePhase(
-            projectDirectoryPath,
-            xcodeProjectFilePath,
-          ),
-          projectFilePath: xcodeProjectFilePath,
-        },
-    pendingEdits,
-    options,
+  return resolveWiredOutcome(
+    await applyNativeProjectEdits(pendingEdits, {
+      options,
+      phaseEdit: resolvePhaseEdit(located),
+    }),
   );
-  return {
-    message: `Wired ${wired.join(', ')}.`,
-    status: 'done',
-    value: undefined,
-  };
 }

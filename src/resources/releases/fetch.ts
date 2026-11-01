@@ -38,7 +38,7 @@ export async function fetchReleaseInChannel(
   options: ReleaseOptions,
 ): Promise<ReleaseInChannel> {
   const channel = await fetchChannel(hotCodePush, options);
-  const releaseId = await fetchReleaseId(hotCodePush, channel, options);
+  const releaseId = await fetchReleaseId(hotCodePush, { channel, options });
   const release = await hotCodePush.apps.releases.get({
     appId: channel.appId,
     relations: ['bundle', 'channel', 'releaseCounters'],
@@ -74,8 +74,7 @@ export function resolveReleaseBundleLabel(release: Release): string {
 
 export function resolveReleaseInLog(
   releases: Release[],
-  reference: string,
-  flag: string,
+  { flag, reference }: { flag: string; reference: string },
 ): Release {
   const release = isId(reference)
     ? releases.find(({ id }) => id === reference)
@@ -85,7 +84,7 @@ export function resolveReleaseInLog(
   if (release === undefined) {
     throw new InvalidParameterError(
       `The channel has no release "${reference}" from ${flag}.`,
-      `Name a release of the channel by number or id with ${flag}.`,
+      { fix: `Name a release of the channel by number or id with ${flag}.` },
     );
   }
   return release;
@@ -95,9 +94,15 @@ export function resolveReleaseInLog(
 // Returns the last read release after the deadline, so the caller can say it is still pending.
 export async function waitUntilLive(
   hotCodePush: HotCodePush,
-  appId: string,
-  releaseId: string,
-  relations?: GetReleaseOptions['relations'],
+  {
+    appId,
+    relations,
+    releaseId,
+  }: {
+    appId: string;
+    relations?: GetReleaseOptions['relations'];
+    releaseId: string;
+  },
 ): Promise<Release> {
   const deadline = Date.now() + LIVE_WAIT_MS;
   for (;;) {
@@ -115,23 +120,24 @@ export async function waitUntilLive(
 
 async function fetchReleaseId(
   hotCodePush: HotCodePush,
-  channel: Channel,
-  options: ReleaseOptions,
+  { channel, options }: { channel: Channel; options: ReleaseOptions },
 ): Promise<string> {
   if (options.release !== undefined && isId(options.release)) {
     return options.release;
   }
   const releases = await fetchReleaseLog(hotCodePush, channel);
   if (options.release !== undefined) {
-    return resolveReleaseInLog(releases, options.release, '--release').id;
+    return resolveReleaseInLog(releases, {
+      flag: '--release',
+      reference: options.release,
+    }).id;
   }
-  return promptSelect(
-    '--release',
-    'Which release?',
-    releases.map(release => ({
+  return promptSelect(options, {
+    choices: releases.map(release => ({
       label: `#${release.number} · ${resolveReleaseBundleLabel(release)} (${release.status})`,
       value: release.id,
     })),
-    options,
-  );
+    flag: '--release',
+    message: 'Which release?',
+  });
 }

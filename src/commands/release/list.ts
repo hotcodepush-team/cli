@@ -1,4 +1,4 @@
-import type { Release } from '@hotcodepush/node';
+import type { FleetStatistics, Release } from '@hotcodepush/node';
 import {
   channelOptionShape,
   fetchChannel,
@@ -16,6 +16,18 @@ import {
   resolveYesNoText,
 } from '../../utils/output.js';
 import { paginationShape, resolveNextOffset } from '../../utils/pagination.js';
+
+const RELEASE_TABLE_HEADERS = [
+  'NUMBER',
+  'BUNDLE',
+  'STATUS',
+  'ROLLOUT',
+  'PROGRESSION',
+  'MANDATORY',
+  'DEVICES',
+  'LIVE',
+  'CREATED',
+];
 
 export default defineCommand({
   description:
@@ -46,29 +58,9 @@ export default defineCommand({
     });
     printTable({
       emptyText: `No releases in channel ${fetchedChannel.name}.`,
-      headers: [
-        'NUMBER',
-        'BUNDLE',
-        'STATUS',
-        'ROLLOUT',
-        'PROGRESSION',
-        'MANDATORY',
-        'DEVICES',
-        'LIVE',
-        'CREATED',
-      ],
+      headers: RELEASE_TABLE_HEADERS,
       nextOffset,
-      rows: listedReleases.map(release => [
-        `#${release.number}`,
-        resolveReleaseBundleLabel(release),
-        release.status,
-        `${release.rolloutPercent}%`,
-        resolveProgressionCell(release),
-        resolveYesNoText(release.isMandatory),
-        String(resolveReleaseDeviceCount(fleet, release.id)),
-        release.liveAt === null ? 'pending' : resolveDate(release.liveAt),
-        resolveDate(release.createdAt),
-      ]),
+      rows: listedReleases.map(release => resolveReleaseRow(release, fleet)),
     });
   },
 });
@@ -78,4 +70,18 @@ function resolveProgressionCell(release: Release): string {
   return progression === null
     ? 'none'
     : `${progression.rolloutPercents.join(',')}% · ${resolveProgressionStepText(release, progression)}`;
+}
+
+function resolveReleaseRow(release: Release, fleet: FleetStatistics): string[] {
+  return [
+    `#${release.number}`,
+    resolveReleaseBundleLabel(release),
+    release.status,
+    `${release.rolloutPercent}%`,
+    resolveProgressionCell(release),
+    resolveYesNoText(release.isMandatory),
+    String(resolveReleaseDeviceCount(fleet, release.id)),
+    release.liveAt === null ? 'pending' : resolveDate(release.liveAt),
+    resolveDate(release.createdAt),
+  ];
 }

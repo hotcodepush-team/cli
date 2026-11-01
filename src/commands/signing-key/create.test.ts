@@ -194,7 +194,10 @@ describe('signing-key create', () => {
 
   it('should remove the private key file and leave hotcodepush.json alone when the registration fails', async () => {
     harness.routes[`POST ${SIGNING_KEYS_PATH}`] = () =>
-      respondWithApiError(403, 'forbidden', 'Your role is too low.');
+      respondWithApiError(403, {
+        code: 'forbidden',
+        message: 'Your role is too low.',
+      });
     const configPath = harness.writeProjectConfig({ appId: DEMO_APP.id });
 
     await expect(

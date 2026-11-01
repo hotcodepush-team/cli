@@ -2,7 +2,7 @@ import type { HotCodePush } from '@hotcodepush/node';
 import { resolveBundleLabel } from '../../resources/bundles.js';
 import {
   bundleUploadOptionShape,
-  fetchUploadBundleOptions,
+  buildBundleUploads,
 } from '../../upload/bundle-upload.js';
 import { withTemporaryDirectory } from '../../upload/compressed-files.js';
 import type {
@@ -31,11 +31,10 @@ export default defineCommand({
     const hotCodePush = createApiClient();
     const uploadedBundles = await withTemporaryDirectory(
       async packagingDirectoryPath => {
-        const { bundleUploads } = await fetchUploadBundleOptions(
-          hotCodePush,
+        const { bundleUploads } = await buildBundleUploads(hotCodePush, {
           options,
           packagingDirectoryPath,
-        );
+        });
         const bundles: UploadedBundle[] = [];
         for (const uploadBundleOptions of bundleUploads) {
           bundles.push(await uploadBundle(hotCodePush, uploadBundleOptions));

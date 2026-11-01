@@ -23,11 +23,10 @@ export default defineCommand({
   action: async options => {
     const hotCodePush = createApiClient();
     const organizationId = await fetchOrganizationId(hotCodePush, options);
-    const invitation = await fetchPendingInvitation(
-      hotCodePush,
-      organizationId,
+    const invitation = await fetchPendingInvitation(hotCodePush, {
       options,
-    );
+      organizationId,
+    });
     const isConfirmed = await confirmConsequence(
       `withdraws the invitation to ${invitation.email}: the link in its mail stops working`,
       options,

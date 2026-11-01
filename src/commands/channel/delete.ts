@@ -99,7 +99,7 @@ function resolveDeletedChannelText(
     return deletedText;
   }
   const verb = deviceCount === 1 ? 'was' : 'were';
-  return `${deletedText} ${resolveQuantityText(deviceCount, 'device')} ${verb} on it.`;
+  return `${deletedText} ${resolveQuantityText(deviceCount, { noun: 'device' })} ${verb} on it.`;
 }
 
 // A deleted app has no channels either.

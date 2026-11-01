@@ -33,13 +33,12 @@ export async function fetchChannel(
   options: ChannelOptions,
 ): Promise<Channel> {
   const projectConfig = readProjectConfig(options.config);
-  const appId = await fetchAppId(hotCodePush, options, projectConfig);
-  const channelId = await fetchChannelId(
-    hotCodePush,
+  const appId = await fetchAppId(hotCodePush, { options, projectConfig });
+  const channelId = await fetchChannelId(hotCodePush, {
     appId,
     options,
     projectConfig,
-  );
+  });
   return hotCodePush.apps.channels.get({ appId, channelId });
 }
 
@@ -50,25 +49,33 @@ export async function fetchChannelFilterId(
 ): Promise<string | undefined> {
   return channel === undefined
     ? undefined
-    : fetchResourceId('channel', channel, () =>
-        fetchChannels(hotCodePush, appId),
-      );
+    : fetchResourceId({
+        fetchResources: () => fetchChannels(hotCodePush, appId),
+        noun: 'channel',
+        reference: channel,
+      });
 }
 
 // The channel of hotcodepush.json counts only when the app is the one of the file too.
 export async function fetchChannelId(
   hotCodePush: HotCodePush,
-  appId: string,
-  options: ChannelOptions,
-  projectConfig: ProjectConfig | undefined,
+  {
+    appId,
+    options,
+    projectConfig,
+  }: {
+    appId: string;
+    options: ChannelOptions;
+    projectConfig: ProjectConfig | undefined;
+  },
 ): Promise<string> {
   if (options.channel === undefined && projectConfig?.appId === appId) {
-    return fetchResourceId(
-      'channel',
-      resolveProjectChannel(projectConfig),
-      () => fetchChannels(hotCodePush, appId),
-      PROJECT_CONFIG_FILE_NAME,
-    );
+    return fetchResourceId({
+      fetchResources: () => fetchChannels(hotCodePush, appId),
+      noun: 'channel',
+      reference: resolveProjectChannel(projectConfig),
+      source: PROJECT_CONFIG_FILE_NAME,
+    });
   }
   return fetchOrPromptResourceId({
     fetchResources: () => fetchChannels(hotCodePush, appId),

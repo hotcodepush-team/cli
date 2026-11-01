@@ -19,7 +19,10 @@ import {
   failurePolicyShape,
   resolveFailurePolicy,
 } from '../../resources/channels/fields.js';
-import type { ConditionOptions } from '../../resources/releases/conditions.js';
+import type {
+  ConditionOptions,
+  AudienceQuery,
+} from '../../resources/releases/conditions.js';
 import {
   buildAudienceQuery,
   buildReleaseConditions,
@@ -42,7 +45,7 @@ import {
 import type { BundleUploadOptions } from '../../upload/bundle-upload.js';
 import {
   bundleUploadOptionShape,
-  fetchUploadBundleOptions,
+  buildBundleUploads,
 } from '../../upload/bundle-upload.js';
 import { withTemporaryDirectory } from '../../upload/compressed-files.js';
 import type { UploadBundleOptions } from '../../upload/upload.js';
@@ -89,6 +92,14 @@ interface ReleaseCreateOptions
   mandatory?: boolean;
   notes?: string;
   rolloutPercent?: number;
+}
+
+interface ReleasePlan {
+  bundleSource: BundleSource;
+  channelAudiences: ChannelAudience[];
+  consequence: string;
+  fingerprint: string | null;
+  rollout: ReleaseRollout;
 }
 
 interface ReleaseRollout {
@@ -156,154 +167,225 @@ export default defineCommand({
     ),
 });
 
+function buildReleaseBody(
+  bundle: Bundle,
+  {
+    options,
+    plan: { bundleSource, fingerprint, rollout },
+  }: { options: ReleaseCreateOptions; plan: ReleasePlan },
+): ReleaseBody {
+  return {
+    ...('sourceChannel' in bundleSource
+      ? { fromChannelId: bundleSource.sourceChannel.id }
+      : { bundleId: bundle.id }),
+    conditions: buildReleaseConditions(options, fingerprint),
+    ...resolveFailurePolicy(options),
+    isMandatory: rollout.isMandatory,
+    notes: options.notes ?? null,
+    progression: rollout.progression ?? undefined,
+    rolloutPercent: rollout.rolloutPercent,
+  };
+}
+
+async function createLiveRelease(
+  hotCodePush: HotCodePush,
+  {
+    bundle,
+    channel,
+    options,
+    releaseBody,
+  }: {
+    bundle: Bundle;
+    channel: Channel;
+    options: ReleaseCreateOptions;
+    releaseBody: ReleaseBody;
+  },
+): Promise<Release> {
+  const createdRelease = await hotCodePush.apps.channels.releases.create({
+    ...releaseBody,
+    appId: bundle.appId,
+    channelId: channel.id,
+  });
+  const liveRelease = await waitUntilLive(hotCodePush, {
+    appId: bundle.appId,
+    relations: ['bundle', 'channel'],
+    releaseId: createdRelease.id,
+  });
+  if (!options.json) {
+    printReleasedLine(liveRelease, {
+      bundleLabel: resolveBundleLabel(bundle),
+      channelName: channel.name,
+    });
+  }
+  return liveRelease;
+}
+
 // The packaging directory is removed when the command ends.
 async function createReleases(
   options: ReleaseCreateOptions,
   packagingDirectoryPath: string,
 ): Promise<void> {
   const hotCodePush = createApiClient();
-  const progression = resolveProgression(options);
-  const bundleSource = await fetchBundleSource(
-    hotCodePush,
+  const plan = await fetchReleasePlan(hotCodePush, {
     options,
     packagingDirectoryPath,
-  );
-  const fingerprint = resolveSourceFingerprint(bundleSource);
-  const isMandatory = options.mandatory ?? false;
-  const rolloutPercent =
-    options.rolloutPercent ?? progression?.rolloutPercents[0] ?? 100;
-  const appId =
-    'bundle' in bundleSource ? bundleSource.bundle.appId : bundleSource.appId;
-  const channelAudiences = await fetchChannelAudiences(
-    hotCodePush,
-    appId,
-    options,
-    fingerprint,
-    rolloutPercent,
-  );
-  const consequence = resolveReleaseConsequence(
-    bundleSource,
-    channelAudiences,
-    { isMandatory, progression, rolloutPercent },
-  );
+  });
   if (options.dryRun) {
-    await printDryRun(bundleSource, channelAudiences, consequence, options);
+    await printDryRun(plan, options);
     return;
   }
-  if (!(await confirmConsequence(consequence, options))) {
+  if (!(await confirmConsequence(plan.consequence, options))) {
     return;
   }
-  const releases: Release[] = [];
-  for (const bundle of await uploadReleasedBundles(hotCodePush, bundleSource)) {
-    const releaseBody: ReleaseBody = {
-      ...('sourceChannel' in bundleSource
-        ? { fromChannelId: bundleSource.sourceChannel.id }
-        : { bundleId: bundle.id }),
-      conditions: buildReleaseConditions(options, fingerprint),
-      ...resolveFailurePolicy(options),
-      isMandatory,
-      notes: options.notes ?? null,
-      progression: progression ?? undefined,
-      rolloutPercent,
-    };
-    for (const { channel } of channelAudiences) {
-      const createdRelease = await hotCodePush.apps.channels.releases.create({
-        ...releaseBody,
-        appId: bundle.appId,
-        channelId: channel.id,
-      });
-      const liveRelease = await waitUntilLive(
-        hotCodePush,
-        bundle.appId,
-        createdRelease.id,
-        ['bundle', 'channel'],
-      );
-      releases.push(liveRelease);
-      if (!options.json) {
-        printReleasedLine(
-          liveRelease,
-          channel.name,
-          resolveBundleLabel(bundle),
-        );
-      }
-    }
-  }
-  printAudienceWarnings(channelAudiences);
+  const releases = await publishReleases(hotCodePush, { options, plan });
+  printAudienceWarnings(plan.channelAudiences);
   if (options.json) {
     printJson(releases);
   }
 }
 
-function resolveReleaseConsequence(
-  bundleSource: BundleSource,
-  channelAudiences: ChannelAudience[],
-  { isMandatory, progression, rolloutPercent }: ReleaseRollout,
-): string {
-  const audienceText = channelAudiences
-    .map(({ audience, channel }) =>
-      resolveAudienceText(audience, channel.name, rolloutPercent),
-    )
-    .join(' and ');
-  const progressionText =
-    progression === null
-      ? ''
-      : `, progressing through ${resolveProgressionText(progression)}`;
-  return `${resolveReleaseText(bundleSource)} at ${rolloutPercent} percent${progressionText}${isMandatory ? ', mandatory' : ''}: ${audienceText}`;
+function fetchAudience(
+  hotCodePush: HotCodePush,
+  {
+    audienceQuery,
+    channel,
+  }: { audienceQuery: AudienceQuery; channel: Channel },
+): Promise<Audience> {
+  return hotCodePush.apps.channels.audience.get({
+    ...audienceQuery,
+    appId: channel.appId,
+    channelId: channel.id,
+  });
+}
+
+// The upload runs only once the release is confirmed.
+async function fetchBundleSource(
+  hotCodePush: HotCodePush,
+  {
+    options,
+    packagingDirectoryPath,
+  }: { options: ReleaseCreateOptions; packagingDirectoryPath: string },
+): Promise<BundleSource> {
+  const sourceFlags = [
+    options.bundle === undefined ? undefined : '--bundle',
+    options.fromChannel === undefined ? undefined : '--from-channel',
+    options.path === undefined ? undefined : '--path',
+  ].filter(flag => flag !== undefined);
+  if (sourceFlags.length > 1) {
+    throw new InvalidParameterError(
+      `The flags ${sourceFlags.join(' and ')} were passed together.`,
+      {
+        fix: 'Pass one of them: the bundle to release, the channel to release from or the build to upload.',
+      },
+    );
+  }
+  if (options.bundle === undefined && options.fromChannel === undefined) {
+    return buildBundleUploads(hotCodePush, {
+      isDryRun: options.dryRun,
+      options,
+      packagingDirectoryPath,
+    });
+  }
+  const appId = await fetchAppId(hotCodePush, {
+    options,
+    projectConfig: readProjectConfig(options.config),
+  });
+  return options.fromChannel === undefined
+    ? { bundle: await fetchBundle(hotCodePush, { appId, options }) }
+    : fetchSourceRelease(hotCodePush, {
+        appId,
+        reference: options.fromChannel,
+      });
 }
 
 // The audience preview checks the conditions before anything is uploaded.
 async function fetchChannelAudiences(
   hotCodePush: HotCodePush,
-  appId: string,
-  options: ReleaseCreateOptions,
-  fingerprint: string | null,
-  rolloutPercent: number,
+  {
+    appId,
+    fingerprint,
+    options,
+    rolloutPercent,
+  }: {
+    appId: string;
+    fingerprint: string | null;
+    options: ReleaseCreateOptions;
+    rolloutPercent: number;
+  },
 ): Promise<ChannelAudience[]> {
   const channelReferences =
     options.channel === undefined || options.channel.length === 0
       ? [undefined]
       : options.channel;
-  const audienceQuery = buildAudienceQuery(
-    options,
+  const audienceQuery = buildAudienceQuery(options, {
     fingerprint,
     rolloutPercent,
-  );
+  });
   const projectConfig = readProjectConfig(options.config);
   return Promise.all(
     channelReferences.map(async channelReference => {
       const channel = await hotCodePush.apps.channels.get({
         appId,
-        channelId: await fetchChannelId(
-          hotCodePush,
+        channelId: await fetchChannelId(hotCodePush, {
           appId,
-          { ...options, channel: channelReference },
+          options: { ...options, channel: channelReference },
           projectConfig,
-        ),
+        }),
       });
-      const audience = await hotCodePush.apps.channels.audience.get({
-        ...audienceQuery,
-        appId: channel.appId,
-        channelId: channel.id,
-      });
-      return { audience, channel };
+      return {
+        audience: await fetchAudience(hotCodePush, { audienceQuery, channel }),
+        channel,
+      };
     }),
   );
+}
+
+// Everything the confirmation names is known before anything is uploaded or released.
+async function fetchReleasePlan(
+  hotCodePush: HotCodePush,
+  {
+    options,
+    packagingDirectoryPath,
+  }: { options: ReleaseCreateOptions; packagingDirectoryPath: string },
+): Promise<ReleasePlan> {
+  const progression = resolveProgression(options);
+  const bundleSource = await fetchBundleSource(hotCodePush, {
+    options,
+    packagingDirectoryPath,
+  });
+  const fingerprint = resolveSourceFingerprint(bundleSource);
+  const rollout = resolveRollout(options, progression);
+  const channelAudiences = await fetchChannelAudiences(hotCodePush, {
+    appId: resolveSourceAppId(bundleSource),
+    fingerprint,
+    options,
+    rolloutPercent: rollout.rolloutPercent,
+  });
+  return {
+    bundleSource,
+    channelAudiences,
+    consequence: resolveReleaseConsequence(bundleSource, {
+      channelAudiences,
+      rollout,
+    }),
+    fingerprint,
+    rollout,
+  };
 }
 
 // Mirrors the API, which releases the newest active release of that channel.
 async function fetchSourceRelease(
   hotCodePush: HotCodePush,
-  appId: string,
-  reference: string,
+  { appId, reference }: { appId: string; reference: string },
 ): Promise<{ bundle: Bundle; sourceChannel: Channel; sourceRelease: Release }> {
   const sourceChannel = await hotCodePush.apps.channels.get({
     appId,
-    channelId: await fetchResourceId(
-      'channel',
+    channelId: await fetchResourceId({
+      fetchResources: () => fetchChannels(hotCodePush, appId),
+      noun: 'channel',
       reference,
-      () => fetchChannels(hotCodePush, appId),
-      '--from-channel',
-    ),
+      source: '--from-channel',
+    }),
   });
   const sourceRelease = (
     await fetchReleaseLog(hotCodePush, sourceChannel)
@@ -322,11 +404,16 @@ async function fetchSourceRelease(
   return { bundle, sourceChannel, sourceRelease };
 }
 
+// Each channel warns once, however many platform bundles the release carries.
+function printAudienceWarnings(channelAudiences: ChannelAudience[]): void {
+  for (const { audience } of channelAudiences) {
+    printWarnings(audience.warnings);
+  }
+}
+
 // A dry run still hashes a web build and checks the size limit, but uploads nothing.
 async function printDryRun(
-  bundleSource: BundleSource,
-  channelAudiences: ChannelAudience[],
-  consequence: string,
+  { bundleSource, channelAudiences, consequence }: ReleasePlan,
   options: ReleaseCreateOptions,
 ): Promise<void> {
   if ('bundleUploads' in bundleSource) {
@@ -347,60 +434,50 @@ async function printDryRun(
   console.log(`Dry run, nothing published: this ${consequence}.`);
 }
 
-// Each channel warns once, however many platform bundles the release carries.
-function printAudienceWarnings(channelAudiences: ChannelAudience[]): void {
-  for (const { audience } of channelAudiences) {
-    printWarnings(audience.warnings);
-  }
-}
-
-// The upload runs only once the release is confirmed.
-async function fetchBundleSource(
+async function publishReleases(
   hotCodePush: HotCodePush,
-  options: ReleaseCreateOptions,
-  packagingDirectoryPath: string,
-): Promise<BundleSource> {
-  const sourceFlags = [
-    options.bundle === undefined ? undefined : '--bundle',
-    options.fromChannel === undefined ? undefined : '--from-channel',
-    options.path === undefined ? undefined : '--path',
-  ].filter(flag => flag !== undefined);
-  if (sourceFlags.length > 1) {
-    throw new InvalidParameterError(
-      `The flags ${sourceFlags.join(' and ')} were passed together.`,
-      'Pass one of them: the bundle to release, the channel to release from or the build to upload.',
-    );
-  }
-  if (options.bundle === undefined && options.fromChannel === undefined) {
-    return fetchUploadBundleOptions(
-      hotCodePush,
-      options,
-      packagingDirectoryPath,
-      { isDryRun: options.dryRun },
-    );
-  }
-  const appId = await fetchAppId(
+  { options, plan }: { options: ReleaseCreateOptions; plan: ReleasePlan },
+): Promise<Release[]> {
+  const releases: Release[] = [];
+  for (const bundle of await uploadReleasedBundles(
     hotCodePush,
-    options,
-    readProjectConfig(options.config),
-  );
-  return options.fromChannel === undefined
-    ? { bundle: await fetchBundle(hotCodePush, appId, options) }
-    : fetchSourceRelease(hotCodePush, appId, options.fromChannel);
+    plan.bundleSource,
+  )) {
+    const releaseBody = buildReleaseBody(bundle, { options, plan });
+    for (const { channel } of plan.channelAudiences) {
+      releases.push(
+        await createLiveRelease(hotCodePush, {
+          bundle,
+          channel,
+          options,
+          releaseBody,
+        }),
+      );
+    }
+  }
+  return releases;
 }
 
-async function uploadReleasedBundles(
-  hotCodePush: HotCodePush,
+function resolveReleaseConsequence(
   bundleSource: BundleSource,
-): Promise<Bundle[]> {
-  if ('bundle' in bundleSource) {
-    return [bundleSource.bundle];
-  }
-  const bundles: Bundle[] = [];
-  for (const uploadBundleOptions of bundleSource.bundleUploads) {
-    bundles.push((await uploadBundle(hotCodePush, uploadBundleOptions)).bundle);
-  }
-  return bundles;
+  {
+    channelAudiences,
+    rollout: { isMandatory, progression, rolloutPercent },
+  }: { channelAudiences: ChannelAudience[]; rollout: ReleaseRollout },
+): string {
+  const audienceText = channelAudiences
+    .map(({ audience, channel }) =>
+      resolveAudienceText(audience, {
+        channelName: channel.name,
+        rolloutPercent,
+      }),
+    )
+    .join(' and ');
+  const progressionText =
+    progression === null
+      ? ''
+      : `, progressing through ${resolveProgressionText(progression)}`;
+  return `${resolveReleaseText(bundleSource)} at ${rolloutPercent} percent${progressionText}${isMandatory ? ', mandatory' : ''}: ${audienceText}`;
 }
 
 function resolveReleaseText(bundleSource: BundleSource): string {
@@ -411,6 +488,31 @@ function resolveReleaseText(bundleSource: BundleSource): string {
   return 'sourceChannel' in bundleSource
     ? `${bundleText}, release #${bundleSource.sourceRelease.number} of ${bundleSource.sourceChannel.name},`
     : bundleText;
+}
+
+function resolveRollout(
+  options: ReleaseCreateOptions,
+  progression: Progression | null,
+): ReleaseRollout {
+  return {
+    isMandatory: options.mandatory ?? false,
+    progression,
+    rolloutPercent:
+      options.rolloutPercent ?? progression?.rolloutPercents[0] ?? 100,
+  };
+}
+
+function resolveSourceAppId(bundleSource: BundleSource): string {
+  return 'bundle' in bundleSource
+    ? bundleSource.bundle.appId
+    : bundleSource.appId;
+}
+
+// A project has one native contract, whatever the platform.
+function resolveSourceFingerprint(bundleSource: BundleSource): string | null {
+  return 'bundle' in bundleSource
+    ? bundleSource.bundle.fingerprint
+    : (bundleSource.bundleUploads[0]?.fingerprint ?? null);
 }
 
 // A build still to upload has no number yet, so it is named by its version label.
@@ -428,9 +530,16 @@ function resolveUploadText(bundleUploads: UploadBundleOptions[]): string {
     : `uploads the ${platformTexts.join(' and ')} bundles as ${bundleVersion} and releases each`;
 }
 
-// A project has one native contract, whatever the platform.
-function resolveSourceFingerprint(bundleSource: BundleSource): string | null {
-  return 'bundle' in bundleSource
-    ? bundleSource.bundle.fingerprint
-    : (bundleSource.bundleUploads[0]?.fingerprint ?? null);
+async function uploadReleasedBundles(
+  hotCodePush: HotCodePush,
+  bundleSource: BundleSource,
+): Promise<Bundle[]> {
+  if ('bundle' in bundleSource) {
+    return [bundleSource.bundle];
+  }
+  const bundles: Bundle[] = [];
+  for (const uploadBundleOptions of bundleSource.bundleUploads) {
+    bundles.push((await uploadBundle(hotCodePush, uploadBundleOptions)).bundle);
+  }
+  return bundles;
 }

@@ -118,24 +118,25 @@ describe('app transfer', () => {
   it("should pass the API's `app_name_taken` error through when the target has an app of the name", async () => {
     respondWithAppAndOrganizations();
     harness.routes[`POST /v1/apps/${DEMO_APP.id}/transfer`] = () =>
-      respondWithApiError(
-        409,
-        'app_name_taken',
-        'An app of that name exists in the organization.',
-      );
+      respondWithApiError(409, {
+        code: 'app_name_taken',
+        message: 'An app of that name exists in the organization.',
+      });
 
     const exitCode = await runCli(
       { 'app transfer': () => import('./transfer.js') },
-      [
-        'app',
-        'transfer',
-        '--app',
-        DEMO_APP.id,
-        '--organization',
-        'Globex',
-        '--yes',
-      ],
-      PACKAGE_JSON,
+      {
+        argv: [
+          'app',
+          'transfer',
+          '--app',
+          DEMO_APP.id,
+          '--organization',
+          'Globex',
+          '--yes',
+        ],
+        meta: PACKAGE_JSON,
+      },
     );
 
     expect(exitCode).toBe(1);

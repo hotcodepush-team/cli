@@ -35,21 +35,19 @@ export default defineCommand({
     const name =
       options.name ??
       (spendingCapCents === undefined
-        ? await promptText(
-            '--name',
-            'What is the organization called now?',
-            options,
-          )
+        ? await promptText(options, {
+            flag: '--name',
+            message: 'What is the organization called now?',
+          })
         : undefined);
     if (spendingCapCents !== undefined) {
       const fetchedOrganization = await hotCodePush.organizations.get({
         organizationId,
       });
-      const isConfirmed = await confirmSpendingCapChange(
-        fetchedOrganization,
-        spendingCapCents,
+      const isConfirmed = await confirmSpendingCapChange(fetchedOrganization, {
         options,
-      );
+        spendingCapCents,
+      });
       if (!isConfirmed) {
         return;
       }
@@ -70,8 +68,10 @@ export default defineCommand({
 // An unchanged cap needs no confirmation, since the API answers it with `no_change`.
 async function confirmSpendingCapChange(
   organization: Organization,
-  spendingCapCents: number,
-  options: InteractivityOptions,
+  {
+    options,
+    spendingCapCents,
+  }: { options: InteractivityOptions; spendingCapCents: number },
 ): Promise<boolean> {
   return (
     spendingCapCents === organization.spendingCapCents ||

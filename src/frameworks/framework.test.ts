@@ -65,17 +65,13 @@ describe('framework', () => {
     expect(
       await readInputDirectoryPath(
         { path: '/abs/dist' },
-        '--path',
-        projectDirectoryPath,
-        CAPACITOR,
+        { framework: CAPACITOR, pathFlag: '--path', projectDirectoryPath },
       ),
     ).toBe(resolve('/abs/dist'));
     expect(
       await readInputDirectoryPath(
         { path: '../dist' },
-        '--path',
-        projectDirectoryPath,
-        CAPACITOR,
+        { framework: CAPACITOR, pathFlag: '--path', projectDirectoryPath },
       ),
     ).toBe(join(projectDirectoryPath, 'dist'));
   });
@@ -89,9 +85,7 @@ describe('framework', () => {
     expect(
       await readInputDirectoryPath(
         {},
-        '--path',
-        projectDirectoryPath,
-        CAPACITOR,
+        { framework: CAPACITOR, pathFlag: '--path', projectDirectoryPath },
       ),
     ).toBe(join(projectDirectoryPath, 'build'));
   });
@@ -100,9 +94,11 @@ describe('framework', () => {
     expect(
       await readInputDirectoryPath(
         {},
-        '--path',
-        projectDirectoryPath,
-        resolveFrameworkModule('cordova'),
+        {
+          framework: resolveFrameworkModule('cordova'),
+          pathFlag: '--path',
+          projectDirectoryPath,
+        },
       ),
     ).toBe(join(projectDirectoryPath, 'www'));
   });
@@ -111,9 +107,7 @@ describe('framework', () => {
     await expect(
       readInputDirectoryPath(
         { json: true },
-        '--path',
-        projectDirectoryPath,
-        CAPACITOR,
+        { framework: CAPACITOR, pathFlag: '--path', projectDirectoryPath },
       ),
     ).rejects.toMatchObject({
       code: 'missing_parameter',
@@ -131,9 +125,7 @@ describe('framework', () => {
     await expect(
       readInputDirectoryPath(
         { json: true },
-        '--path',
-        projectDirectoryPath,
-        CAPACITOR,
+        { framework: CAPACITOR, pathFlag: '--path', projectDirectoryPath },
       ),
     ).rejects.toMatchObject({
       code: 'missing_parameter',

@@ -1,4 +1,4 @@
-import type { Release } from '@hotcodepush/node';
+import type { Channel, HotCodePush, Release } from '@hotcodepush/node';
 import { z } from 'zod';
 import {
   channelOptionShape,
@@ -47,7 +47,10 @@ export default defineCommand({
     const targetRelease =
       options.toRelease === undefined
         ? resolvePreviousRelease(releases)
-        : resolveReleaseInLog(releases, options.toRelease, '--to-release');
+        : resolveReleaseInLog(releases, {
+            flag: '--to-release',
+            reference: options.toRelease,
+          });
     const bundleLabel = resolveReleaseBundleLabel(targetRelease);
     const isMandatory = options.mandatory ?? true;
     const { deviceCount } = await hotCodePush.apps.statistics.fleet.get({
@@ -61,24 +64,41 @@ export default defineCommand({
     if (!isConfirmed) {
       return;
     }
-    const createdRelease = await hotCodePush.apps.channels.rollbacks.create({
-      appId: fetchedChannel.appId,
-      channelId: fetchedChannel.id,
+    const liveRelease = await createLiveRollback(hotCodePush, {
+      channel: fetchedChannel,
       isMandatory,
-      toReleaseId: targetRelease.id,
+      targetRelease,
     });
-    const liveRelease = await waitUntilLive(
-      hotCodePush,
-      fetchedChannel.appId,
-      createdRelease.id,
-    );
     if (options.json) {
       printJson(liveRelease);
     } else {
-      printReleasedLine(liveRelease, fetchedChannel.name, bundleLabel);
+      printReleasedLine(liveRelease, {
+        bundleLabel,
+        channelName: fetchedChannel.name,
+      });
     }
   },
 });
+
+async function createLiveRollback(
+  hotCodePush: HotCodePush,
+  {
+    channel,
+    isMandatory,
+    targetRelease,
+  }: { channel: Channel; isMandatory: boolean; targetRelease: Release },
+): Promise<Release> {
+  const createdRelease = await hotCodePush.apps.channels.rollbacks.create({
+    appId: channel.appId,
+    channelId: channel.id,
+    isMandatory,
+    toReleaseId: targetRelease.id,
+  });
+  return waitUntilLive(hotCodePush, {
+    appId: channel.appId,
+    releaseId: createdRelease.id,
+  });
+}
 
 // Mirrors the API rule for a rollback without a target.
 function resolvePreviousRelease(releases: Release[]): Release {
@@ -95,7 +115,7 @@ function resolvePreviousRelease(releases: Release[]): Release {
   if (previousRelease === undefined) {
     throw new InvalidParameterError(
       'The channel has no earlier release to roll back to.',
-      'Name one with --to-release.',
+      { fix: 'Name one with --to-release.' },
     );
   }
   return previousRelease;

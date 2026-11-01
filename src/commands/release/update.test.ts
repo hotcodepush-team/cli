@@ -155,6 +155,7 @@ describe('release update', () => {
     ['--clear-notes', { clearNotes: true }, { notes: null }],
   ])(
     'should send null for the field %s clears and nothing else',
+    // eslint-disable-next-line max-params -- it.each passes each row's cells as separate arguments.
     async (_flag, clearOption, expectedBody) => {
       respondWithUpdatedRelease();
 
@@ -236,20 +237,22 @@ describe('release update', () => {
 
     const exitCode = await runCli(
       { 'release update': () => import('./update.js') },
-      [
-        'release',
-        'update',
-        '--app',
-        DEMO_APP.id,
-        '--channel',
-        STAGING_CHANNEL.id,
-        '--release',
-        '43',
-        '--failure-action',
-        'none',
-        '--yes',
-      ],
-      PACKAGE_JSON,
+      {
+        argv: [
+          'release',
+          'update',
+          '--app',
+          DEMO_APP.id,
+          '--channel',
+          STAGING_CHANNEL.id,
+          '--release',
+          '43',
+          '--failure-action',
+          'none',
+          '--yes',
+        ],
+        meta: PACKAGE_JSON,
+      },
     );
 
     expect(exitCode).toBe(0);
@@ -262,19 +265,21 @@ describe('release update', () => {
 
     const exitCode = await runCli(
       { 'release update': () => import('./update.js') },
-      [
-        'release',
-        'update',
-        '--app',
-        DEMO_APP.id,
-        '--channel',
-        STAGING_CHANNEL.id,
-        '--release',
-        '43',
-        '--clear-notes',
-        '--yes',
-      ],
-      PACKAGE_JSON,
+      {
+        argv: [
+          'release',
+          'update',
+          '--app',
+          DEMO_APP.id,
+          '--channel',
+          STAGING_CHANNEL.id,
+          '--release',
+          '43',
+          '--clear-notes',
+          '--yes',
+        ],
+        meta: PACKAGE_JSON,
+      },
     );
 
     expect(exitCode).toBe(0);

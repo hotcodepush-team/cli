@@ -27,16 +27,21 @@ export async function fetchOrganizationId(
   options: OrganizationOptions,
 ): Promise<string> {
   if (options.organization !== undefined) {
-    return fetchResourceId('organization', options.organization, () =>
-      fetchOrganizations(hotCodePush),
-    );
+    return fetchResourceId({
+      fetchResources: () => fetchOrganizations(hotCodePush),
+      noun: 'organization',
+      reference: options.organization,
+    });
   }
   const fetchedOrganizations = await fetchOrganizations(hotCodePush);
   const [onlyOrganization] = fetchedOrganizations;
   if (onlyOrganization !== undefined && fetchedOrganizations.length === 1) {
     return onlyOrganization.id;
   }
-  return promptResourceId('organization', fetchedOrganizations, options);
+  return promptResourceId(options, {
+    noun: 'organization',
+    resources: fetchedOrganizations,
+  });
 }
 
 export function fetchOrganizations(

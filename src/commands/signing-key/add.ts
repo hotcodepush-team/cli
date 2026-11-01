@@ -32,30 +32,27 @@ export default defineCommand({
   action: async options => {
     const privateKeyPath = resolve(
       options.privateKeyPath ??
-        (await promptText(
-          '--private-key-path',
-          'Which private key file?',
-          options,
-        )),
+        (await promptText(options, {
+          flag: '--private-key-path',
+          message: 'Which private key file?',
+        })),
     );
     // Read before any request, so a key that is too small or not RSA is refused first.
     const { publicKey } = await readSigningKeyPairFile(privateKeyPath);
     const hotCodePush = createApiClient();
     const projectConfigLocation = locateProjectConfig(options.config);
-    const appId = await fetchAppId(
-      hotCodePush,
+    const appId = await fetchAppId(hotCodePush, {
       options,
-      projectConfigLocation.projectConfig,
-    );
+      projectConfig: projectConfigLocation.projectConfig,
+    });
     const createdSigningKey = await hotCodePush.apps.signingKeys.create({
       appId,
       publicKey,
     });
-    const isConfigured = addPublicKeyToProjectConfig(
-      projectConfigLocation,
+    const isConfigured = addPublicKeyToProjectConfig(projectConfigLocation, {
       appId,
       publicKey,
-    );
+    });
     if (options.json) {
       printJson(createdSigningKey);
       return;
@@ -63,7 +60,7 @@ export default defineCommand({
     console.log(
       `Added signing key ${createdSigningKey.keyId} (${createdSigningKey.id}).`,
     );
-    console.log(resolvePublicKeyListingText(isConfigured, publicKey));
+    console.log(resolvePublicKeyListingText({ isConfigured, publicKey }));
     console.log(UPLOAD_SIGNING_TEXT);
   },
 });

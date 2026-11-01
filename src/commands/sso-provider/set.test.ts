@@ -165,23 +165,25 @@ describe('sso-provider set', () => {
 
     await runCli(
       { 'sso-provider set': () => import('./set.js') },
-      [
-        'sso-provider',
-        'set',
-        '--organization',
-        ACME_ORGANIZATION.id,
-        '--domain',
-        'example.com',
-        '--oidc-issuer',
-        OIDC_FLAGS.oidcIssuer,
-        '--oidc-client-id',
-        OIDC_FLAGS.oidcClientId,
-        '--oidc-client-secret',
-        OIDC_FLAGS.oidcClientSecret,
-        '--oidc-scopes',
-        'openid, email,profile',
-      ],
-      PACKAGE_JSON,
+      {
+        argv: [
+          'sso-provider',
+          'set',
+          '--organization',
+          ACME_ORGANIZATION.id,
+          '--domain',
+          'example.com',
+          '--oidc-issuer',
+          OIDC_FLAGS.oidcIssuer,
+          '--oidc-client-id',
+          OIDC_FLAGS.oidcClientId,
+          '--oidc-client-secret',
+          OIDC_FLAGS.oidcClientSecret,
+          '--oidc-scopes',
+          'openid, email,profile',
+        ],
+        meta: PACKAGE_JSON,
+      },
     );
 
     expect(await readPutBody()).toEqual({

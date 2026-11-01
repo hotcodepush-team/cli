@@ -49,12 +49,11 @@ export default defineCommand({
       options,
     );
     const isConfirmed = await confirmConsequence(
-      resolveRolloutConsequence(
-        release,
-        channel.name,
-        rolloutPercent ?? release.rolloutPercent,
+      resolveRolloutConsequence(release, {
+        channelName: channel.name,
         progression,
-      ),
+        rolloutPercent: rolloutPercent ?? release.rolloutPercent,
+      }),
       options,
     );
     if (!isConfirmed) {
@@ -79,11 +78,10 @@ export default defineCommand({
 async function promptRolloutPercent(
   options: InteractivityOptions,
 ): Promise<number> {
-  const answer = await promptText(
-    '--rollout-percent',
-    'Which share of devices should the release reach, 0 to 100?',
-    options,
-  );
+  const answer = await promptText(options, {
+    flag: '--rollout-percent',
+    message: 'Which share of devices should the release reach, 0 to 100?',
+  });
   return z
     .object({ rolloutPercent: rolloutPercentSchema })
     .parse({ rolloutPercent: answer }).rolloutPercent;
@@ -91,9 +89,15 @@ async function promptRolloutPercent(
 
 function resolveRolloutConsequence(
   release: Release,
-  channelName: string,
-  rolloutPercent: number,
-  progression: Progression | null,
+  {
+    channelName,
+    progression,
+    rolloutPercent,
+  }: {
+    channelName: string;
+    progression: Progression | null;
+    rolloutPercent: number;
+  },
 ): string {
   const releaseText = `release #${release.number} of ${channelName}`;
   if (progression !== null) {

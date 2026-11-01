@@ -50,18 +50,19 @@ export async function fetchWebhook(
   const organizationId = await fetchOrganizationId(hotCodePush, options);
   return hotCodePush.organizations.webhooks.get({
     organizationId,
-    webhookId: await fetchWebhookId(hotCodePush, organizationId, options),
+    webhookId: await fetchWebhookId(hotCodePush, { options, organizationId }),
   });
 }
 
 export function fetchWebhookAppId(
   hotCodePush: HotCodePush,
-  organizationId: string,
-  app: string,
+  { app, organizationId }: { app: string; organizationId: string },
 ): Promise<string> {
-  return fetchResourceId('app', app, () =>
-    fetchApps(hotCodePush, organizationId),
-  );
+  return fetchResourceId({
+    fetchResources: () => fetchApps(hotCodePush, organizationId),
+    noun: 'app',
+    reference: app,
+  });
 }
 
 // The API checks the types against its catalog and names the one it refuses.
@@ -71,8 +72,10 @@ export function resolveWebhookEventTypes(events: string[]): WebhookEventType[] {
 
 async function fetchWebhookId(
   hotCodePush: HotCodePush,
-  organizationId: string,
-  options: WebhookOptions,
+  {
+    options,
+    organizationId,
+  }: { options: WebhookOptions; organizationId: string },
 ): Promise<string> {
   return fetchOrPromptResourceId({
     fetchResources: () => fetchWebhooks(hotCodePush, organizationId),

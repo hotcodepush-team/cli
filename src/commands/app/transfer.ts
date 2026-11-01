@@ -31,19 +31,17 @@ export default defineCommand({
   action: async options => {
     const hotCodePush = createApiClient();
     // Here `--organization` names the target, so the app name is looked up in every organization of the user.
-    const appId = await fetchAppId(
-      hotCodePush,
-      { ...options, organization: undefined },
-      readProjectConfig(options.config),
-    );
+    const appId = await fetchAppId(hotCodePush, {
+      options: { ...options, organization: undefined },
+      projectConfig: readProjectConfig(options.config),
+    });
     const [fetchedApp, fetchedOrganizations] = await Promise.all([
       hotCodePush.apps.get({ appId }),
       fetchOrganizations(hotCodePush),
     ]);
     const targetOrganizationId = await pickTargetOrganizationId(
-      fetchedApp,
       fetchedOrganizations,
-      options,
+      { app: fetchedApp, options },
     );
     const sourceOrganizationName = resolveOrganizationName(
       fetchedOrganizations,
@@ -64,33 +62,41 @@ export default defineCommand({
       appId,
       organizationId: targetOrganizationId,
     });
-    if (options.json) {
-      printJson(transferredApp);
-    } else {
-      console.log(
-        `Transferred app ${transferredApp.name} (${transferredApp.id}) to organization ${targetOrganizationName}.`,
-      );
-    }
+    printTransferredApp(transferredApp, { options, targetOrganizationName });
   },
 });
 
 function pickTargetOrganizationId(
-  app: App,
   organizations: Organization[],
-  options: TargetOrganizationOptions,
+  { app, options }: { app: App; options: TargetOrganizationOptions },
 ): Promise<string> {
   if (options.organization === undefined) {
-    return promptResourceId(
-      'organization',
-      organizations.filter(({ id }) => id !== app.organizationId),
-      options,
+    return promptResourceId(options, {
+      noun: 'organization',
+      resources: organizations.filter(({ id }) => id !== app.organizationId),
+    });
+  }
+  return fetchResourceId({
+    fetchResources: async () => organizations,
+    noun: 'organization',
+    reference: options.organization,
+  });
+}
+
+function printTransferredApp(
+  transferredApp: App,
+  {
+    options,
+    targetOrganizationName,
+  }: { options: { json?: boolean }; targetOrganizationName: string },
+): void {
+  if (options.json) {
+    printJson(transferredApp);
+  } else {
+    console.log(
+      `Transferred app ${transferredApp.name} (${transferredApp.id}) to organization ${targetOrganizationName}.`,
     );
   }
-  return fetchResourceId(
-    'organization',
-    options.organization,
-    async () => organizations,
-  );
 }
 
 // Falls back to the id when the organizations of the user do not include it.

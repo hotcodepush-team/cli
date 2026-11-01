@@ -58,10 +58,12 @@ describe('output', () => {
     [1, '1 app'],
     [3, '3 apps'],
   ])('should phrase %i with its noun as %s', (count, text) => {
-    expect(resolveQuantityText(count, 'app')).toBe(text);
+    expect(resolveQuantityText(count, { noun: 'app' })).toBe(text);
   });
 
   it('should phrase a count with the plural noun given', () => {
-    expect(resolveQuantityText(2, 'patch', 'patches')).toBe('2 patches');
+    expect(
+      resolveQuantityText(2, { noun: 'patch', pluralNoun: 'patches' }),
+    ).toBe('2 patches');
   });
 });

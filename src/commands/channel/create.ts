@@ -39,33 +39,36 @@ export default defineCommand({
   }),
   action: async options => {
     const hotCodePush = createApiClient();
-    const appId = await fetchAppId(
-      hotCodePush,
+    const appId = await fetchAppId(hotCodePush, {
       options,
-      readProjectConfig(options.config),
-    );
+      projectConfig: readProjectConfig(options.config),
+    });
     const name =
       options.name ??
-      (await promptText('--name', 'What is the channel called?', options));
+      (await promptText(options, {
+        flag: '--name',
+        message: 'What is the channel called?',
+      }));
     try {
       const createdChannel = await hotCodePush.apps.channels.create({
         ...resolveChannelFields(options),
         appId,
         name,
       });
-      printChannel(createdChannel, 'Created channel', options.json);
+      printChannel(createdChannel, {
+        isJson: options.json,
+        sentencePrefix: 'Created channel',
+      });
     } catch (error) {
       if (!options.ifNotExists || !isChannelNameTaken(error)) {
         throw error;
       }
       printChannel(
-        resolveNamedResource(
-          'channel',
+        resolveNamedResource(await fetchChannels(hotCodePush, appId), {
           name,
-          await fetchChannels(hotCodePush, appId),
-        ),
-        'Found the existing channel',
-        options.json,
+          noun: 'channel',
+        }),
+        { isJson: options.json, sentencePrefix: 'Found the existing channel' },
       );
     }
   },
@@ -79,8 +82,10 @@ function isChannelNameTaken(error: unknown): boolean {
 
 function printChannel(
   channel: Channel,
-  sentencePrefix: string,
-  isJson: boolean | undefined,
+  {
+    isJson,
+    sentencePrefix,
+  }: { isJson: boolean | undefined; sentencePrefix: string },
 ): void {
   if (isJson) {
     printJson(channel);

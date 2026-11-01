@@ -17,8 +17,7 @@ export const UPLOAD_SIGNING_TEXT =
 // A file of another app, or no file, is left alone.
 export function addPublicKeyToProjectConfig(
   { filePath, projectConfig }: ProjectConfigLocation,
-  appId: string,
-  publicKey: string,
+  { appId, publicKey }: { appId: string; publicKey: string },
 ): boolean {
   if (filePath === undefined || projectConfig?.appId !== appId) {
     return false;
@@ -45,16 +44,18 @@ export async function fetchHasSigningKey(
 // A signing key is named by its key id.
 export async function fetchSigningKey(
   hotCodePush: HotCodePush,
-  appId: string,
-  options: SigningKeyOptions,
+  { appId, options }: { appId: string; options: SigningKeyOptions },
 ): Promise<SigningKey> {
   const namedSigningKeys = (await fetchSigningKeys(hotCodePush, appId)).map(
     signingKey => ({ ...signingKey, name: signingKey.keyId }),
   );
   const reference =
     options.signingKey ??
-    (await promptResourceId('signing-key', namedSigningKeys, options));
-  return resolveResource('signing-key', reference, namedSigningKeys);
+    (await promptResourceId(options, {
+      noun: 'signing-key',
+      resources: namedSigningKeys,
+    }));
+  return resolveResource(namedSigningKeys, { noun: 'signing-key', reference });
 }
 
 export function fetchSigningKeys(
@@ -66,10 +67,13 @@ export function fetchSigningKeys(
   );
 }
 
-export function resolvePublicKeyListingText(
-  isConfigured: boolean,
-  publicKey: string,
-): string {
+export function resolvePublicKeyListingText({
+  isConfigured,
+  publicKey,
+}: {
+  isConfigured: boolean;
+  publicKey: string;
+}): string {
   return isConfigured
     ? `Added to publicKeys in ${PROJECT_CONFIG_FILE_NAME}.`
     : `Add it to publicKeys in the app's ${PROJECT_CONFIG_FILE_NAME}: ${publicKey}`;

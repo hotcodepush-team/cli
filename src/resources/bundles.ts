@@ -16,10 +16,9 @@ export const bundleOptionShape = {
 
 export async function fetchBundle(
   hotCodePush: HotCodePush,
-  appId: string,
-  options: BundleOptions,
+  { appId, options }: { appId: string; options: BundleOptions },
 ): Promise<Bundle> {
-  const bundleId = await fetchBundleId(hotCodePush, appId, options);
+  const bundleId = await fetchBundleId(hotCodePush, { appId, options });
   return hotCodePush.apps.bundles.get({ appId, bundleId });
 }
 
@@ -33,20 +32,18 @@ export function resolveBundleLabel({
 
 async function fetchBundleId(
   hotCodePush: HotCodePush,
-  appId: string,
-  options: BundleOptions,
+  { appId, options }: { appId: string; options: BundleOptions },
 ): Promise<string> {
   if (options.bundle === undefined) {
     const bundles = await fetchUploadedBundles(hotCodePush, appId);
-    return promptSelect(
-      '--bundle',
-      'Which bundle?',
-      bundles.map(bundle => ({
+    return promptSelect(options, {
+      choices: bundles.map(bundle => ({
         label: `${resolveBundleLabel(bundle)} (${bundle.status})`,
         value: bundle.id,
       })),
-      options,
-    );
+      flag: '--bundle',
+      message: 'Which bundle?',
+    });
   }
   if (isId(options.bundle)) {
     return options.bundle;
@@ -56,14 +53,16 @@ async function fetchBundleId(
       `The value "${options.bundle}" of --bundle is neither a number nor an id.`,
     );
   }
-  return fetchBundleIdByNumber(hotCodePush, appId, Number(options.bundle));
+  return fetchBundleIdByNumber(hotCodePush, {
+    appId,
+    number: Number(options.bundle),
+  });
 }
 
 // The list search matches numbers that contain the given one, so the exact match is picked here.
 async function fetchBundleIdByNumber(
   hotCodePush: HotCodePush,
-  appId: string,
-  number: number,
+  { appId, number }: { appId: string; number: number },
 ): Promise<string> {
   const searchedBundles = await fetchAllPages(page =>
     hotCodePush.apps.bundles.list({ appId, ...page, query: String(number) }),

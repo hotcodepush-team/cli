@@ -163,26 +163,28 @@ describe('invitation create', () => {
   it("should pass the API's error through with its code in the docs link", async () => {
     respondWithCreatedInvitation();
     harness.routes[`POST ${INVITATIONS_PATH}`] = () =>
-      respondWithApiError(
-        400,
-        'validation',
-        'The json field email is invalid: this address is a member already.',
-      );
+      respondWithApiError(400, {
+        code: 'validation',
+        message:
+          'The json field email is invalid: this address is a member already.',
+      });
 
     const exitCode = await runCli(
       { 'invitation create': () => import('./create.js') },
-      [
-        'invitation',
-        'create',
-        '--organization',
-        ACME_ORGANIZATION.id,
-        '--email',
-        'anna@example.com',
-        '--role',
-        'member',
-        '--yes',
-      ],
-      PACKAGE_JSON,
+      {
+        argv: [
+          'invitation',
+          'create',
+          '--organization',
+          ACME_ORGANIZATION.id,
+          '--email',
+          'anna@example.com',
+          '--role',
+          'member',
+          '--yes',
+        ],
+        meta: PACKAGE_JSON,
+      },
     );
 
     expect(exitCode).toBe(1);

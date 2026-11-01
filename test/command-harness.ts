@@ -31,8 +31,7 @@ const originalStdoutIsTty = process.stdout.isTTY;
 
 export function respondWithApiError(
   status: number,
-  code: string,
-  message: string,
+  { code, message }: { code: string; message: string },
 ): Response {
   return Response.json({ code, details: null, message }, { status });
 }
@@ -121,5 +120,8 @@ function respondFromRoutes(
     routes[`${request.method} ${url.pathname}`];
   return respond
     ? respond(request)
-    : respondWithApiError(404, 'not_found', 'The resource does not exist.');
+    : respondWithApiError(404, {
+        code: 'not_found',
+        message: 'The resource does not exist.',
+      });
 }

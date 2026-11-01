@@ -97,22 +97,20 @@ export default defineCommand({
     const organizationId = await fetchOrganizationId(hotCodePush, options);
     const domain =
       options.domain ??
-      (await promptText(
-        '--domain',
-        'Which email domain signs in through the provider?',
-        options,
-      ));
+      (await promptText(options, {
+        flag: '--domain',
+        message: 'Which email domain signs in through the provider?',
+      }));
     const providerType =
       flaggedProviderType ??
-      (await promptSelect<SsoProviderType>(
-        PROVIDER_TYPE_FLAG,
-        'Which protocol does the identity provider speak?',
-        [
+      (await promptSelect<SsoProviderType>(options, {
+        choices: [
           { label: 'OIDC', value: 'oidc' },
           { label: 'SAML', value: 'saml' },
         ],
-        options,
-      ));
+        flag: PROVIDER_TYPE_FLAG,
+        message: 'Which protocol does the identity provider speak?',
+      }));
     const updatedProvider = await hotCodePush.organizations.ssoProvider.set({
       domain,
       organizationId,
@@ -136,21 +134,22 @@ async function promptOidcBlock(
 ): Promise<NonNullable<SetSsoProviderOptions['oidc']>> {
   const issuer =
     options.oidcIssuer ??
-    (await promptText(
-      '--oidc-issuer',
-      "What is the identity provider's issuer URL?",
-      options,
-    ));
+    (await promptText(options, {
+      flag: '--oidc-issuer',
+      message: "What is the identity provider's issuer URL?",
+    }));
   const clientId =
     options.oidcClientId ??
-    (await promptText('--oidc-client-id', 'What is the client ID?', options));
+    (await promptText(options, {
+      flag: '--oidc-client-id',
+      message: 'What is the client ID?',
+    }));
   const clientSecret =
     options.oidcClientSecret ??
-    (await promptSecret(
-      '--oidc-client-secret',
-      'What is the client secret?',
-      options,
-    ));
+    (await promptSecret(options, {
+      flag: '--oidc-client-secret',
+      message: 'What is the client secret?',
+    }));
   return {
     clientId,
     clientSecret,
@@ -166,29 +165,26 @@ async function promptSamlBlock(
 ): Promise<NonNullable<SetSsoProviderOptions['saml']>> {
   const entryPoint =
     options.samlEntryPoint ??
-    (await promptText(
-      '--saml-entry-point',
-      "What is the identity provider's sign-in URL?",
-      options,
-    ));
+    (await promptText(options, {
+      flag: '--saml-entry-point',
+      message: "What is the identity provider's sign-in URL?",
+    }));
   const issuer =
     options.samlIssuer ??
-    (await promptText(
-      '--saml-issuer',
-      "What is the identity provider's issuer?",
-      options,
-    ));
+    (await promptText(options, {
+      flag: '--saml-issuer',
+      message: "What is the identity provider's issuer?",
+    }));
   const hasCertificateOrEntityId =
     options.samlCertPath !== undefined || options.samlEntityId !== undefined;
   const metadataPath =
     options.samlMetadataPath ??
     (hasCertificateOrEntityId
       ? undefined
-      : await promptText(
-          '--saml-metadata-path',
-          "Which file holds the identity provider's SAML metadata?",
-          options,
-        ));
+      : await promptText(options, {
+          flag: '--saml-metadata-path',
+          message: "Which file holds the identity provider's SAML metadata?",
+        }));
   return {
     cert:
       options.samlCertPath === undefined
@@ -210,8 +206,7 @@ function readDocumentFile(flag: string, filePath: string): string {
   } catch (error) {
     throw new InvalidParameterError(
       `The file ${filePath} from ${flag} cannot be read.`,
-      'Pass the path of a file you can read.',
-      error,
+      { cause: error, fix: 'Pass the path of a file you can read.' },
     );
   }
 }
@@ -237,7 +232,9 @@ function resolveFlaggedProviderType(
   if (hasOidcFlag && hasSamlFlag) {
     throw new InvalidParameterError(
       'The --oidc- and --saml- flags were passed together.',
-      'Pass the --oidc- flags for an OIDC provider or the --saml- flags for a SAML one, since a provider speaks one protocol.',
+      {
+        fix: 'Pass the --oidc- flags for an OIDC provider or the --saml- flags for a SAML one, since a provider speaks one protocol.',
+      },
     );
   }
   if (hasOidcFlag) {

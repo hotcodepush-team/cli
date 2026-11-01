@@ -179,7 +179,10 @@ describe('resource-file write', () => {
   it('should leave the channel name unresolved with one warning when the API refuses, in CI too', async () => {
     vi.stubEnv('CI', 'true');
     harness.routes[`GET ${CHANNELS_PATH}`] = () =>
-      respondWithApiError(403, 'forbidden', 'You are not a member.');
+      respondWithApiError(403, {
+        code: 'forbidden',
+        message: 'You are not a member.',
+      });
 
     await writeIosResourceFile();
 

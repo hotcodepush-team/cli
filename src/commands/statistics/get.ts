@@ -1,13 +1,16 @@
 import type {
   FleetStatistics,
+  HotCodePush,
   UpdateStatistics,
   UsageStatistics,
 } from '@hotcodepush/node';
 import { z } from 'zod';
 import { fetchAppId } from '../../resources/apps.js';
+import type { ChannelOptions } from '../../resources/channels/fetch.js';
 import { fetchChannelFilterId } from '../../resources/channels/fetch.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
+import type { InteractivityOptions } from '../../utils/environment.js';
 import { InvalidParameterError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import {
@@ -20,6 +23,11 @@ import { readProjectConfig } from '../../utils/project-config.js';
 import { promptSelect } from '../../utils/prompts.js';
 
 type StatisticsType = 'fleet' | 'updates' | 'usage';
+
+interface StatisticsOptions extends ChannelOptions {
+  periodSince?: string;
+  periodUntil?: string;
+}
 
 interface StatisticsQuery {
   appId: string;
@@ -74,29 +82,10 @@ export default defineCommand({
   }),
   action: async options => {
     const hotCodePush = createApiClient();
-    const type =
-      options.type ??
-      (await promptSelect(
-        '--type',
-        'Which statistics?',
-        STATISTICS_TYPES.map(value => ({ label: value, value })),
-        options,
-      ));
+    const type = options.type ?? (await promptStatisticsType(options));
     assertFlagsOfType(type, options);
-    const appId = await fetchAppId(
-      hotCodePush,
-      options,
-      readProjectConfig(options.config),
-    );
-    const query: StatisticsQuery = {
-      appId,
-      channelId: await fetchChannelFilterId(hotCodePush, {
-        appId,
-        channel: options.channel,
-      }),
-      periodSince: options.periodSince,
-      periodUntil: options.periodUntil,
-    };
+    const query = await fetchStatisticsQuery(hotCodePush, options);
+    const { appId } = query;
     switch (type) {
       case 'fleet':
         return printFleetStatistics(
@@ -104,12 +93,12 @@ export default defineCommand({
             appId,
             channelId: query.channelId,
           }),
-          options.json,
+          options,
         );
       case 'updates':
         return printUpdateStatistics(
           await hotCodePush.apps.statistics.updates.get(query),
-          options.json,
+          options,
         );
       case 'usage':
         return printUsageStatistics(
@@ -118,7 +107,7 @@ export default defineCommand({
             periodSince: query.periodSince,
             periodUntil: query.periodUntil,
           }),
-          options.json,
+          options,
         );
     }
   },
@@ -145,11 +134,47 @@ function assertFlagsOfType(
   }
 }
 
+async function fetchStatisticsQuery(
+  hotCodePush: HotCodePush,
+  options: StatisticsOptions,
+): Promise<StatisticsQuery> {
+  const appId = await fetchAppId(hotCodePush, {
+    options,
+    projectConfig: readProjectConfig(options.config),
+  });
+  return {
+    appId,
+    channelId: await fetchChannelFilterId(hotCodePush, {
+      appId,
+      channel: options.channel,
+    }),
+    periodSince: options.periodSince,
+    periodUntil: options.periodUntil,
+  };
+}
+
+function printEventReasons(statistics: UpdateStatistics): void {
+  for (const [header, reasons] of [
+    ['FAILURE REASON', statistics.failureReasons],
+    ['SKIP REASON', statistics.skippedReasons],
+  ] as const) {
+    printTable({
+      emptyText: `${header}: none in the period.`,
+      headers: [header, 'EVENTS'],
+      nextOffset: null,
+      rows: reasons.map(({ eventCount, reason }) => [
+        reason,
+        String(eventCount),
+      ]),
+    });
+  }
+}
+
 function printFleetStatistics(
   statistics: FleetStatistics,
-  isJson: boolean | undefined,
+  { json }: InteractivityOptions,
 ): void {
-  if (isJson) {
+  if (json) {
     printJson(statistics);
     return;
   }
@@ -196,14 +221,24 @@ function printFleetTable(
   });
 }
 
-function printUpdateStatistics(
-  statistics: UpdateStatistics,
-  isJson: boolean | undefined,
-): void {
-  if (isJson) {
-    printJson(statistics);
-    return;
-  }
+function printReleaseAdoption(statistics: UpdateStatistics): void {
+  printTable({
+    emptyText: 'No release went live recently.',
+    headers: ['RELEASE', 'LIVE', 'CONFIRMED', '50% AT', '90% AT'],
+    nextOffset: null,
+    rows: statistics.releases.map(
+      ({ adoption, liveAt, number, timeToAdoption }) => [
+        `#${number}`,
+        liveAt,
+        String(adoption.at(-1)?.confirmedUpdateCount ?? 0),
+        timeToAdoption.percent50At ?? 'not yet',
+        timeToAdoption.percent90At ?? 'not yet',
+      ],
+    ),
+  });
+}
+
+function printUpdateDays(statistics: UpdateStatistics): void {
   printTable({
     emptyText: 'No days in the period.',
     headers: ['DAY', 'CONFIRMED', 'FAILED', 'ROLLED BACK'],
@@ -222,41 +257,26 @@ function printUpdateStatistics(
       ],
     ),
   });
-  printTable({
-    emptyText: 'No release went live recently.',
-    headers: ['RELEASE', 'LIVE', 'CONFIRMED', '50% AT', '90% AT'],
-    nextOffset: null,
-    rows: statistics.releases.map(
-      ({ adoption, liveAt, number, timeToAdoption }) => [
-        `#${number}`,
-        liveAt,
-        String(adoption.at(-1)?.confirmedUpdateCount ?? 0),
-        timeToAdoption.percent50At ?? 'not yet',
-        timeToAdoption.percent90At ?? 'not yet',
-      ],
-    ),
-  });
-  for (const [header, reasons] of [
-    ['FAILURE REASON', statistics.failureReasons],
-    ['SKIP REASON', statistics.skippedReasons],
-  ] as const) {
-    printTable({
-      emptyText: `${header}: none in the period.`,
-      headers: [header, 'EVENTS'],
-      nextOffset: null,
-      rows: reasons.map(({ eventCount, reason }) => [
-        reason,
-        String(eventCount),
-      ]),
-    });
+}
+
+function printUpdateStatistics(
+  statistics: UpdateStatistics,
+  { json }: InteractivityOptions,
+): void {
+  if (json) {
+    printJson(statistics);
+    return;
   }
+  printUpdateDays(statistics);
+  printReleaseAdoption(statistics);
+  printEventReasons(statistics);
 }
 
 function printUsageStatistics(
   statistics: UsageStatistics,
-  isJson: boolean | undefined,
+  { json }: InteractivityOptions,
 ): void {
-  if (isJson) {
+  if (json) {
     printJson(statistics);
     return;
   }
@@ -284,5 +304,15 @@ function printUsageStatistics(
         resolveByteText(deviceDownloadBytes),
       ],
     ),
+  });
+}
+
+function promptStatisticsType(
+  options: InteractivityOptions,
+): Promise<StatisticsType> {
+  return promptSelect(options, {
+    choices: STATISTICS_TYPES.map(value => ({ label: value, value })),
+    flag: '--type',
+    message: 'Which statistics?',
   });
 }

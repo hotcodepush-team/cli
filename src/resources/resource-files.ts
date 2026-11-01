@@ -30,7 +30,7 @@ interface ResourceFileInput {
   fingerprint: string;
   hosts: DeviceHosts;
   platform: Platform;
-  projectConfig: ProjectConfig;
+  projectConfig: ProjectConfig & { appId: string };
 }
 
 // The manifest is the unsigned bundle manifest without patches, whether or not a binary was created.
@@ -52,18 +52,11 @@ export function buildResourceFile({
     embeddedBundleManifest:
       embeddedBundle === null
         ? null
-        : {
+        : buildEmbeddedBundleManifest(embeddedBundle, {
             appId: projectConfig.appId,
-            bundleVersion: embeddedBundle.bundleVersion,
-            files: embeddedBundle.files.map(({ path, sha256, sizeBytes }) => ({
-              path,
-              sha256,
-              sizeBytes,
-            })),
             fingerprint,
-            keyId: null,
-            platforms: [platform],
-          },
+            platform,
+          }),
     fingerprint,
     publicKeys: (projectConfig.publicKeys ?? []).map(publicKey =>
       resolveDevicePublicKey(publicKey, platform),
@@ -83,6 +76,49 @@ export function writeResourceFile(
 ): void {
   mkdirSync(dirname(filePath), { recursive: true });
   writeFileSync(filePath, `${JSON.stringify(configuration, null, 2)}\n`);
+}
+
+function buildEmbeddedBundleManifest(
+  { bundleVersion, files }: EmbeddedBundle,
+  {
+    appId,
+    fingerprint,
+    platform,
+  }: { appId: string; fingerprint: string; platform: Platform },
+): Configuration['embeddedBundleManifest'] {
+  return {
+    appId,
+    bundleVersion,
+    files: files.map(({ path, sha256, sizeBytes }) => ({
+      path,
+      sha256,
+      sizeBytes,
+    })),
+    fingerprint,
+    keyId: null,
+    platforms: [platform],
+  };
+}
+
+function buildUnusablePublicKeyError(
+  publicKey: string,
+  cause?: unknown,
+): InvalidParameterError {
+  return new InvalidParameterError(
+    `The publicKeys in ${PROJECT_CONFIG_FILE_NAME} list ${publicKey.slice(0, 32)}…, which is not an rsa-v1_5-sha256 key of ${SIGNING_KEY_BITS_MINIMUM} bits or more.`,
+    {
+      cause,
+      fix: 'Replace it with the public key "hotcodepush signing-key create" writes.',
+    },
+  );
+}
+
+// The resolved id replaces the channel, and only the CLI reads the fingerprint paths.
+function omitProjectOnlyKeys(projectConfig: ProjectConfig): ProjectConfig {
+  const configuration = { ...projectConfig };
+  delete configuration.channel;
+  delete configuration.extraFingerprintPaths;
+  return configuration;
 }
 
 // The device imports the DER with its platform API and handles no ASN.1 itself.
@@ -117,23 +153,4 @@ function resolveDevicePublicKey(
       .toString('base64'),
     keyId: resolveSigningKeyId(publicKey),
   };
-}
-
-function buildUnusablePublicKeyError(
-  publicKey: string,
-  cause?: unknown,
-): InvalidParameterError {
-  return new InvalidParameterError(
-    `The publicKeys in ${PROJECT_CONFIG_FILE_NAME} list ${publicKey.slice(0, 32)}…, which is not an rsa-v1_5-sha256 key of ${SIGNING_KEY_BITS_MINIMUM} bits or more.`,
-    'Replace it with the public key "hotcodepush signing-key create" writes.',
-    cause,
-  );
-}
-
-// The resolved id replaces the channel, and only the CLI reads the fingerprint paths.
-function omitProjectOnlyKeys(projectConfig: ProjectConfig): ProjectConfig {
-  const configuration = { ...projectConfig };
-  delete configuration.channel;
-  delete configuration.extraFingerprintPaths;
-  return configuration;
 }

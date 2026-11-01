@@ -1,4 +1,5 @@
 import type { CompletionCommand } from './command-tree.js';
+import type { CaseArmPosition } from './posix-case-arms.js';
 import { buildPosixCaseArms } from './posix-case-arms.js';
 import { quotePosixWord } from './posix-quote.js';
 
@@ -32,8 +33,8 @@ export function buildBashScript(commands: CompletionCommand[]): string {
 // A command that takes arguments offers its flags only for a word starting with `-`.
 // Its arguments fall back to the file names.
 function buildOptionsArm(
-  pattern: string,
   { hasArguments, options }: CompletionCommand,
+  { pattern }: CaseArmPosition,
 ): string[] {
   const enumOptions = options.filter(({ choices }) => choices.length > 0);
   const freeValueFlags = options

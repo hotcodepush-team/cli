@@ -73,7 +73,10 @@ describe('xcode-project', () => {
     expect(hasBinaryCreatePhase(projectFilePath)).toBe(false);
 
     expect(
-      await addBinaryCreatePhase(projectFilePath, APPENDED_PHASE, {}),
+      await addBinaryCreatePhase(projectFilePath, {
+        options: {},
+        phase: APPENDED_PHASE,
+      }),
     ).toBe('added');
 
     expect(hasBinaryCreatePhase(projectFilePath)).toBe(true);
@@ -85,14 +88,20 @@ describe('xcode-project', () => {
       'shellScript = "/bin/sh scripts/binary-create-xcode.sh\\n";',
     );
     expect(
-      await addBinaryCreatePhase(projectFilePath, APPENDED_PHASE, {}),
+      await addBinaryCreatePhase(projectFilePath, {
+        options: {},
+        phase: APPENDED_PHASE,
+      }),
     ).toBe('present');
   });
 
   it('should keep every line of the project as it was, the numbers with leading zeros the package would rewrite included', async () => {
     const originalLines = readFileSync(projectFilePath, 'utf8').split('\n');
 
-    await addBinaryCreatePhase(projectFilePath, APPENDED_PHASE, {});
+    await addBinaryCreatePhase(projectFilePath, {
+      options: {},
+      phase: APPENDED_PHASE,
+    });
 
     const projectText = readFileSync(projectFilePath, 'utf8');
     expect(projectText).toContain('LastSwiftUpdateCheck = 0920;');
@@ -103,7 +112,10 @@ describe('xcode-project', () => {
   });
 
   it('should mark the phase to run on every build, since the resource file carries the build time', async () => {
-    await addBinaryCreatePhase(projectFilePath, APPENDED_PHASE, {});
+    await addBinaryCreatePhase(projectFilePath, {
+      options: {},
+      phase: APPENDED_PHASE,
+    });
 
     expect(readFileSync(projectFilePath, 'utf8')).toMatch(
       /\/\* Create HotCodePush binary \*\/ = \{[^}]*\balwaysOutOfDate = 1;/,
@@ -111,7 +123,10 @@ describe('xcode-project', () => {
   });
 
   it("should declare the processed Info.plist as the phase's input, since the script reads the version and build from it", async () => {
-    await addBinaryCreatePhase(projectFilePath, APPENDED_PHASE, {});
+    await addBinaryCreatePhase(projectFilePath, {
+      options: {},
+      phase: APPENDED_PHASE,
+    });
 
     expect(readFileSync(projectFilePath, 'utf8')).toMatch(
       /\/\* Create HotCodePush binary \*\/ = \{[^}]*\binputPaths = \(\n\t+"\$\(TARGET_BUILD_DIR\)\/\$\(INFOPLIST_PATH\)",\n\t+\);/,
@@ -120,8 +135,11 @@ describe('xcode-project', () => {
 
   it('should refuse an --xcode-target that names no app target, listing the targets', async () => {
     await expect(
-      addBinaryCreatePhase(projectFilePath, APPENDED_PHASE, {
-        xcodeTarget: 'Widget',
+      addBinaryCreatePhase(projectFilePath, {
+        options: {
+          xcodeTarget: 'Widget',
+        },
+        phase: APPENDED_PHASE,
       }),
     ).rejects.toMatchObject({
       code: 'invalid_parameter',
@@ -133,7 +151,10 @@ describe('xcode-project', () => {
     writeFileSync(projectFilePath, 'not a project');
 
     await expect(
-      addBinaryCreatePhase(projectFilePath, APPENDED_PHASE, {}),
+      addBinaryCreatePhase(projectFilePath, {
+        options: {},
+        phase: APPENDED_PHASE,
+      }),
     ).rejects.toMatchObject({
       code: 'xcode_project',
       fix: APPENDED_PHASE.fix,
@@ -142,7 +163,10 @@ describe('xcode-project', () => {
 
   it('should stop with the manual step when the project has no phase to run after', async () => {
     await expect(
-      addBinaryCreatePhase(projectFilePath, ANCHORED_PHASE, {}),
+      addBinaryCreatePhase(projectFilePath, {
+        options: {},
+        phase: ANCHORED_PHASE,
+      }),
     ).rejects.toMatchObject({
       code: 'xcode_project',
       fix: ANCHORED_PHASE.fix,
@@ -215,11 +239,10 @@ describe('xcode-project', () => {
         ),
       );
 
-      await addBinaryCreatePhase(
-        reactNativeProjectFilePath,
-        ANCHORED_PHASE,
-        {},
-      );
+      await addBinaryCreatePhase(reactNativeProjectFilePath, {
+        options: {},
+        phase: ANCHORED_PHASE,
+      });
 
       expect(readFileSync(reactNativeProjectFilePath, 'utf8')).toContain(
         'LastUpgradeCheck = 0920;',
@@ -227,11 +250,10 @@ describe('xcode-project', () => {
     });
 
     it('should add the phase right after that phase', async () => {
-      await addBinaryCreatePhase(
-        reactNativeProjectFilePath,
-        ANCHORED_PHASE,
-        {},
-      );
+      await addBinaryCreatePhase(reactNativeProjectFilePath, {
+        options: {},
+        phase: ANCHORED_PHASE,
+      });
 
       expect(readFileSync(reactNativeProjectFilePath, 'utf8')).toMatch(
         /\/\* Bundle React Native code and images \*\/,\n\t+[0-9A-F]+ \/\* Create HotCodePush binary \*\/,/,

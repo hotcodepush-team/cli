@@ -31,17 +31,16 @@ export default defineCommand({
     }
     const shell =
       args[0] ??
-      (await promptSelect(
-        '<shell>',
-        'Which shell is the completion script for?',
-        ShellSchema.options.map(value => ({ label: value, value })),
-        options,
-      ));
+      (await promptSelect(options, {
+        choices: ShellSchema.options.map(value => ({ label: value, value })),
+        flag: '<shell>',
+        message: 'Which shell is the completion script for?',
+      }));
     const parsedShell = ShellSchema.safeParse(shell);
     if (!parsedShell.success) {
       throw new InvalidParameterError(
         `The shell ${shell} has no completion script.`,
-        'Pass bash, fish or zsh as <shell>.',
+        { fix: 'Pass bash, fish or zsh as <shell>.' },
       );
     }
     const script = await readCompletionScript(parsedShell.data);
