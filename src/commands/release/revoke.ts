@@ -5,9 +5,9 @@ import type {
   Release,
 } from '@hotcodepush/node';
 import { z } from 'zod';
-import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
 import { fetchBundle } from '../../utils/bundle-resolution.js';
+import { defineCommand } from '../../utils/command.js';
 import { printWarning } from '../../utils/diagnostics.js';
 import { InvalidParameterError } from '../../utils/errors.js';
 import { resolveReleaseDeviceCount } from '../../utils/fleet.js';

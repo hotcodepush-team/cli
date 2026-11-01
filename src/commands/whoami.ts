@@ -1,5 +1,5 @@
-import { defineCommand } from 'zodline';
 import { DEFAULT_API_URL } from '../config/consts.js';
+import { defineCommand } from '../utils/command.js';
 import {
   fetchCurrentUser,
   resolveCredentialText,

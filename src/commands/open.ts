@@ -1,6 +1,6 @@
-import { defineCommand } from 'zodline';
 import { createApiClient } from '../utils/api-client.js';
 import { openBrowser } from '../utils/browser.js';
+import { defineCommand } from '../utils/command.js';
 import { defineCommandOptions } from '../utils/global-options.js';
 import { resolveConsoleBaseUrl } from '../utils/hosts.js';
 import { printJson } from '../utils/output.js';

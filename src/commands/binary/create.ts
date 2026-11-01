@@ -1,6 +1,5 @@
 import type { Binary, HotCodePush } from '@hotcodepush/node';
 import { z } from 'zod';
-import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
 import type { BuildStep, OfflineCause } from '../../utils/build-step.js';
 import {
@@ -13,6 +12,7 @@ import {
   writeBuildResourceFile,
 } from '../../utils/build-step.js';
 import type { BundleFile } from '../../utils/bundle-files.js';
+import { defineCommand } from '../../utils/command.js';
 import {
   compressFiles,
   withTemporaryDirectory,
@@ -24,7 +24,6 @@ import { assertMissingParameter } from '../../utils/framework.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
 import { createReporter, resolveByteText } from '../../utils/progress.js';
-import type { SessionRequirement } from '../../utils/session.js';
 import type { Platform, UploadedFiles } from '../../utils/upload.js';
 import {
   assertWithinBundleBytesLimit,
@@ -55,11 +54,10 @@ interface BinaryCreationRequest extends BinaryIdentity {
 
 const NO_UPLOAD: UploadedFiles = { fileCount: 0, sizeBytes: 0 };
 
-export const sessionRequirement: SessionRequirement = 'optional';
-
 export default defineCommand({
   description:
     'The build step of a store build: creates the binary with the embedded bundle it ships and writes the resource file the SDK reads, naming that bundle; every other build runs resource-file write. HOTCODEPUSH_OFFLINE=1 builds without the API, naming no channel unless it is given by id and creating no binary.',
+  authentication: 'optional',
   examples: [
     'hotcodepush binary create --platform ios --embedded-bundle-path build/App.app/public --resource-file-path build/App.app/hotcodepush.json --binary-version 2.4.1 --binary-build 57',
     'hotcodepush binary create --platform android --embedded-bundle-path build/assets/public --resource-file-path build/assets/hotcodepush.json --binary-version 2.4.1 --binary-build 57 --force',

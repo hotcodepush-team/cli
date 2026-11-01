@@ -15,7 +15,7 @@ src/
   index.ts     the entry point: runs the command line through the registry
   registry.ts  the registry: space-separated command names, each a lazy import
   commands/    a folder per noun and a file per verb, channel/create.ts, resource-file/write.ts; the standalone commands flat, login.ts, logout.ts, whoami.ts, doctor.ts, init.ts, open.ts, fingerprint.ts, completion.ts
-  utils/       the runner, command resolution and did-you-mean, the session gate, the error catalog and its one mapping, the diagnostics on stderr,
+  utils/       the runner, command resolution and did-you-mean, the CLI's `defineCommand` and the authentication gate, the error catalog and its one mapping, the diagnostics on stderr,
                the global options, environment detection, config.json, the token store,
                the auth client, the API client, hotcodepush.json and its directory, the JSON files a person edits read as `invalid_json` when they do not parse, a resource by id or name,
                the project's fingerprint through the protocol's recipe,
@@ -70,11 +70,11 @@ Release-please keeps a release pull request open on `main`, and merging it tags 
 
 ## Adding a command
 
-1. `src/commands/<noun>/<verb>.ts`, or `src/commands/<name>.ts` for a standalone one, default-exports zodline's `defineCommand`.
+1. `src/commands/<noun>/<verb>.ts`, or `src/commands/<name>.ts` for a standalone one, default-exports the CLI's `defineCommand` from `utils/command.ts`, zodline's with one more field.
 2. Its options are `defineCommandOptions({ … })`, so the global options come with every command; a global option the command gives its own meaning, `app transfer`'s `--organization`, joins its shape with its own description.
 3. It has a `description` and exactly two `examples`, which end its `--help`.
 4. One line joins the registry in `src/registry.ts`: `'channel create': () => import('./commands/channel/create.js')`.
-5. The runner gets the session before the action runs; a command that works without one, as the build step and `doctor` do, exports `sessionRequirement: SessionRequirement = 'optional'` above its definition.
+5. The runner authenticates before the action runs; a command that works without a login, as the build step and `doctor` do, declares `authentication: 'optional'` after its description.
 
 ## Adding a framework
 
@@ -126,7 +126,7 @@ A project with an app config that is code, or with a JSON one that does not pars
   an Expo project's JSON app config one plugin entry,
   and `init` names the files it will change and asks once before touching them.
 - **The token** is `readToken()`: `HOTCODEPUSH_TOKEN` when set, then the keyring, then the `config.json` fallback that any keyring failure latches for the rest of the process.
-- **The session is a precondition**, `ensureSession` in `utils/session.ts`, run by `runCli` before the action unless the module says `optional`: interactively a missing token or a stored `sessionExpiresAt` that has passed and that `get-session` does not renew asks `Log in now?` and runs `logIn` in place; non-interactively only a missing token fails, `not_logged_in`, and the API judges the rest. Nothing retries a command after a 401.
+- **Authentication is a precondition**, `ensureAuthentication` in `utils/authentication.ts`, run by `runCli` before the action unless the command says `optional`: interactively a missing token or a stored `sessionExpiresAt` that has passed and that `get-session` does not renew asks `Log in now?` and runs `logIn` in place; non-interactively only a missing token fails, `not_logged_in`, and the API judges the rest. Nothing retries a command after a 401.
 - **The API URL** is `readApiUrl()`: `HOTCODEPUSH_API_BASE_URL` when set, then the URL `login --api-url` stored in `config.json`, then production; an empty variable is unset.
 - **An upload never holds a file in memory**: every file is hashed and gzip-compressed through streams into a temporary directory,
   put as a `Blob` opened from disk so the client can retry it, and the Node client splits it into parts above its `SINGLE_UPLOAD_LIMIT_BYTES`; the packs go the same way.
@@ -165,7 +165,7 @@ A project with an app config that is code, or with a JSON one that does not pars
 - Prefixes from the monorepo's vocabulary: `fetch` HTTP, `resolve` derivations without I/O, `build` functions that assemble a document without sending it; `read`, `write` and `delete` for the files and the keyring.
 - Result variables carry the past participle of their operation, `loadedCommands`.
 - Alphabetical ordering within a scope.
-  The object passed to `defineCommand` is the one exception, read in the order `description`, `examples`, `args`, `options`, `action`: what the command is, how it is called, what it does.
+  The object passed to `defineCommand` is the one exception, read in the order `description`, `authentication`, `examples`, `args`, `options`, `action`: what the command is, how it is called, what it does.
 - One thing per function, its name saying which; never a function that both decides something and phrases the message about it.
 - Booleans carry `is` or `has`; a state with a moment is a timestamp such as `pausedAt`, never a boolean.
 - Every value of a catalog is lowercase snake_case with no prefix, error codes included; a name a platform owns keeps that platform's form: environment variables, HTTP headers, shell command and flag names, identifiers, JSON field names and telemetry event names.

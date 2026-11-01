@@ -1,6 +1,6 @@
 import type { SsoProvider } from '@hotcodepush/node';
-import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
+import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { resolveConsoleBaseUrl } from '../../utils/hosts.js';
 import { printDetails, printJson } from '../../utils/output.js';

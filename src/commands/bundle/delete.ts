@@ -1,10 +1,10 @@
-import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
 import {
   bundleOptionShape,
   fetchBundle,
   resolveBundleLabel,
 } from '../../utils/bundle-resolution.js';
+import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
 import { readProjectConfig } from '../../utils/project-config.js';

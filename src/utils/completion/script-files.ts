@@ -2,7 +2,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { COMPLETION_DIRECTORY_PATH } from '../../config/consts.js';
 import type { CommandRegistry } from '../command-registry.js';
-import { loadCommandModules, resolveCommands } from '../command-registry.js';
+import { loadCommands } from '../command-registry.js';
 import { buildBashScript } from './bash.js';
 import type { CompletionCommand } from './command-tree.js';
 import { resolveCommandTree } from './command-tree.js';
@@ -33,9 +33,7 @@ export async function writeCompletionScripts(
   commandRegistry: CommandRegistry,
 ): Promise<void> {
   const commands = resolveCommandTree(
-    resolveCommands(
-      await loadCommandModules(commandRegistry, Object.keys(commandRegistry)),
-    ),
+    await loadCommands(commandRegistry, Object.keys(commandRegistry)),
   );
   await mkdir(COMPLETION_DIRECTORY_PATH, { recursive: true });
   await Promise.all(

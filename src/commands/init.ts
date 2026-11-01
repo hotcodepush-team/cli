@@ -3,13 +3,13 @@ import { basename, join } from 'node:path';
 import type { App, HotCodePush, Organization } from '@hotcodepush/node';
 import { HotCodePushError } from '@hotcodepush/node';
 import { z } from 'zod';
-import { defineCommand } from 'zodline';
 import {
   DOCS_URL,
   PROJECT_CONFIG_FILE_NAME,
   SIGNING_PRIVATE_KEY_FILE_NAME,
 } from '../config/consts.js';
 import { createApiClient } from '../utils/api-client.js';
+import { defineCommand } from '../utils/command.js';
 import {
   fetchCurrentUser,
   isUnauthenticatedError,
@@ -68,7 +68,6 @@ import {
   fetchHasSigningKey,
   fetchOrganizations,
 } from '../utils/resource-resolution.js';
-import type { SessionRequirement } from '../utils/session.js';
 import { isEnvironmentToken, readToken } from '../utils/token-store.js';
 import { readApiUrl } from '../utils/user-config.js';
 import { logIn } from './login.js';
@@ -101,11 +100,10 @@ interface Scope {
 
 const CREATE_CHOICE = 'create';
 
-export const sessionRequirement: SessionRequirement = 'optional';
-
 export default defineCommand({
   description:
     'Set a React Native, Expo, Capacitor or Cordova project up from sign-in to the first release, re-runnable at any step.',
+  authentication: 'optional',
   examples: ['hotcodepush init', 'hotcodepush init --yes --json'],
   options: defineCommandOptions({
     androidPath: z

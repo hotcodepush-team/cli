@@ -1,6 +1,5 @@
 import { setTimeout } from 'node:timers/promises';
 import { z } from 'zod';
-import { defineCommand } from 'zodline';
 import { CLI_CLIENT_ID } from '../config/consts.js';
 import type { AuthClient } from '../utils/auth-client.js';
 import {
@@ -9,6 +8,7 @@ import {
   resolveResponseData,
 } from '../utils/auth-client.js';
 import { openBrowser } from '../utils/browser.js';
+import { defineCommand } from '../utils/command.js';
 import { printNotice } from '../utils/diagnostics.js';
 import type { InteractivityOptions } from '../utils/environment.js';
 import { isInteractive } from '../utils/environment.js';
@@ -20,7 +20,6 @@ import {
 } from '../utils/errors.js';
 import { defineCommandOptions } from '../utils/global-options.js';
 import { printJson } from '../utils/output.js';
-import type { SessionRequirement } from '../utils/session.js';
 import { writeToken } from '../utils/token-store.js';
 import {
   readUserConfig,
@@ -50,10 +49,9 @@ export interface LoggedInUser {
   name: string;
 }
 
-export const sessionRequirement: SessionRequirement = 'optional';
-
 export default defineCommand({
   description: 'Log in by approving a one-time code in the browser.',
+  authentication: 'optional',
   examples: [
     'hotcodepush login',
     'hotcodepush login --api-url https://api.example.com --json',

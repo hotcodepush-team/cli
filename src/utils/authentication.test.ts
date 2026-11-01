@@ -8,9 +8,9 @@ import {
   useStoredSession,
 } from '../../test/command-harness.js';
 import { logIn } from '../commands/login.js';
+import { ensureAuthentication, readSessionState } from './authentication.js';
 import { NotLoggedInError } from './errors.js';
 import { promptYesNo } from './prompts.js';
-import { ensureSession, readSessionState } from './session.js';
 import { readUserConfig, writeUserConfig } from './user-config.js';
 
 const keyring = vi.hoisted(() => ({
@@ -100,13 +100,13 @@ describe('readSessionState', () => {
   });
 });
 
-describe('ensureSession', () => {
+describe('ensureAuthentication', () => {
   const harness = useCommandHarness();
 
   it('should throw `not_logged_in` and ask nothing when not interactive and no token exists', async () => {
     vi.stubEnv('HOTCODEPUSH_TOKEN', '');
 
-    await expect(ensureSession({})).rejects.toThrow(NotLoggedInError);
+    await expect(ensureAuthentication({})).rejects.toThrow(NotLoggedInError);
     expect(promptYesNo).not.toHaveBeenCalled();
   });
 
@@ -114,7 +114,7 @@ describe('ensureSession', () => {
     useStoredSession();
     writeSessionExpiresAt(PAST_EXPIRY);
 
-    await ensureSession({});
+    await ensureAuthentication({});
 
     expect(harness.requests).toEqual([]);
     expect(promptYesNo).not.toHaveBeenCalled();
@@ -123,7 +123,7 @@ describe('ensureSession', () => {
   it('should ask nothing when interactive and the session is usable', async () => {
     stubInteractiveTerminal();
 
-    await ensureSession({});
+    await ensureAuthentication({});
 
     expect(promptYesNo).not.toHaveBeenCalled();
   });
@@ -133,7 +133,7 @@ describe('ensureSession', () => {
     vi.stubEnv('HOTCODEPUSH_TOKEN', '');
     vi.mocked(promptYesNo).mockResolvedValue(false);
 
-    await expect(ensureSession({})).rejects.toThrow(NotLoggedInError);
+    await expect(ensureAuthentication({})).rejects.toThrow(NotLoggedInError);
     expect(harness.readDiagnostics()).toBe('You are not logged in.\n');
     expect(logIn).not.toHaveBeenCalled();
   });
@@ -144,7 +144,7 @@ describe('ensureSession', () => {
     vi.mocked(promptYesNo).mockResolvedValue(true);
     vi.mocked(logIn).mockResolvedValue(USER);
 
-    await ensureSession({});
+    await ensureAuthentication({});
 
     expect(logIn).toHaveBeenCalledWith({});
     expect(harness.readDiagnostics()).toBe(
@@ -164,7 +164,7 @@ describe('ensureSession', () => {
       );
     vi.mocked(promptYesNo).mockResolvedValue(false);
 
-    await expect(ensureSession({})).rejects.toThrow(NotLoggedInError);
+    await expect(ensureAuthentication({})).rejects.toThrow(NotLoggedInError);
     expect(harness.readDiagnostics()).toBe('Your session has expired.\n');
   });
 });

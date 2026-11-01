@@ -11,14 +11,11 @@ import {
 } from './token-store.js';
 import { readUserConfig, writeStoredSession } from './user-config.js';
 
-// A command that runs without a session exports `sessionRequirement = 'optional'`; every other command gets one before it runs.
-export type SessionRequirement = 'optional' | 'required';
-
 export type SessionState = 'expired' | 'missing' | 'usable';
 
-// The session is a precondition of the command, never an error inside it, so nothing is retried.
+// Authentication is a precondition of the command, never an error inside it, so nothing is retried.
 // A non-interactive run cannot log in, so it checks only that a token exists and leaves its validity to the API.
-export async function ensureSession(
+export async function ensureAuthentication(
   options: InteractivityOptions,
 ): Promise<void> {
   if (!isInteractive(options)) {

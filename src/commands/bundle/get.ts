@@ -1,10 +1,10 @@
 import type { BundleDelta } from '@hotcodepush/node';
-import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
 import {
   bundleOptionShape,
   fetchBundle,
 } from '../../utils/bundle-resolution.js';
+import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import {
   printDetails,

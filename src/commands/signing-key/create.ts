@@ -2,12 +2,12 @@ import { existsSync, rmSync, statSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { generateSigningKeyPair } from '@hotcodepush/protocol';
 import { z } from 'zod';
-import { defineCommand } from 'zodline';
 import {
   PROJECT_CONFIG_FILE_NAME,
   SIGNING_PRIVATE_KEY_FILE_NAME,
 } from '../../config/consts.js';
 import { createApiClient } from '../../utils/api-client.js';
+import { defineCommand } from '../../utils/command.js';
 import { InvalidParameterError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';

@@ -1,16 +1,10 @@
-import type { CommandDefinition } from 'zodline';
+import type { Command } from './command.js';
 import { UnknownCommandError } from './errors.js';
-import type { SessionRequirement } from './session.js';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- A narrower type rejects zodline commands with options or args.
-export type Command = CommandDefinition<any, any>;
-
-export interface CommandModule {
-  default: Command;
-  sessionRequirement?: SessionRequirement;
-}
-
-export type CommandRegistry = Record<string, () => Promise<CommandModule>>;
+export type CommandRegistry = Record<
+  string,
+  () => Promise<{ default: Command }>
+>;
 
 export interface Invocation {
   argv: string[];
@@ -24,17 +18,17 @@ const SHORT_FLAG_EXPANSIONS: Record<string, string> = {
   '-v': '--version',
 };
 
-export async function loadCommandModules(
+export async function loadCommands(
   commandRegistry: CommandRegistry,
   commandNames: string[],
-): Promise<Record<string, CommandModule>> {
+): Promise<Record<string, Command>> {
   const invokedEntries = Object.entries(commandRegistry).filter(([name]) =>
     commandNames.includes(name),
   );
   const loadedEntries = await Promise.all(
-    invokedEntries.map(async ([name, importCommandModule]) => [
+    invokedEntries.map(async ([name, importCommand]) => [
       name,
-      await importCommandModule(),
+      (await importCommand()).default,
     ]),
   );
   return Object.fromEntries(loadedEntries);
@@ -57,17 +51,6 @@ export function resolveClosestCommandName(
     }
   }
   return closestCommandName;
-}
-
-export function resolveCommands(
-  commandModules: Record<string, CommandModule>,
-): Record<string, Command> {
-  return Object.fromEntries(
-    Object.entries(commandModules).map(([name, { default: command }]) => [
-      name,
-      command,
-    ]),
-  );
 }
 
 export function resolveCommandName(

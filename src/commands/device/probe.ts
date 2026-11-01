@@ -16,8 +16,8 @@ import {
   evaluateChannelIndex,
 } from '@hotcodepush/protocol';
 import { z } from 'zod';
-import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
+import { defineCommand } from '../../utils/command.js';
 import { deviceOptionShape } from '../../utils/device-resolution.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { resolveFilesBaseUrl } from '../../utils/hosts.js';

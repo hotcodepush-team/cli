@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
-import { defineCommand } from 'zodline';
 import type { CommandRegistry } from './command-registry.js';
 import {
-  loadCommandModules,
+  loadCommands,
   resolveClosestCommandName,
   resolveCommandName,
   resolveInvocation,
 } from './command-registry.js';
+import { defineCommand } from './command.js';
 import { UnknownCommandError } from './errors.js';
 
 const COMMAND_NAMES = [
@@ -116,7 +116,7 @@ describe('command registry', () => {
     });
   });
 
-  describe('loadCommandModules', () => {
+  describe('loadCommands', () => {
     it('should import only the commands asked for', async () => {
       const channelCreate = defineCommand({ action: () => undefined });
       const commandRegistry: CommandRegistry = {
@@ -126,13 +126,11 @@ describe('command registry', () => {
         })),
       };
 
-      const loadedCommandModules = await loadCommandModules(commandRegistry, [
+      const loadedCommands = await loadCommands(commandRegistry, [
         'channel create',
       ]);
 
-      expect(loadedCommandModules).toEqual({
-        'channel create': { default: channelCreate },
-      });
+      expect(loadedCommands).toEqual({ 'channel create': channelCreate });
       expect(commandRegistry.login).not.toHaveBeenCalled();
     });
   });

@@ -5,12 +5,11 @@ import type {
   LockedPackage,
 } from '@hotcodepush/protocol/fingerprint';
 import { z } from 'zod';
-import { defineCommand } from 'zodline';
+import { defineCommand } from '../../utils/command.js';
 import { InvalidParameterError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson, printTable } from '../../utils/output.js';
 import { promptText } from '../../utils/prompts.js';
-import type { SessionRequirement } from '../../utils/session.js';
 
 interface ExtraFingerprintPathChange {
   after: string | null;
@@ -50,11 +49,10 @@ const FingerprintFileSchema = z.object({
 
 type FingerprintFile = z.infer<typeof FingerprintFileSchema>;
 
-export const sessionRequirement: SessionRequirement = 'optional';
-
 export default defineCommand({
   description:
     'Print the packages and extra fingerprint paths added, removed or moved between <file-a> and <file-b>, two files written by fingerprint --json, the earlier first; local, no login.',
+  authentication: 'optional',
   examples: [
     'hotcodepush fingerprint diff store-build.json current.json',
     'hotcodepush fingerprint diff store-build.json current.json --json',

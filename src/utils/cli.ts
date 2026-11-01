@@ -1,17 +1,13 @@
 import { stripVTControlCharacters } from 'node:util';
 import type { DefineConfig } from 'zodline';
 import { defineConfig, processConfig } from 'zodline';
+import { ensureAuthentication } from './authentication.js';
 import type { CommandRegistry } from './command-registry.js';
-import {
-  loadCommandModules,
-  resolveCommands,
-  resolveInvocation,
-} from './command-registry.js';
+import { loadCommands, resolveInvocation } from './command-registry.js';
 import { isColorEnabled } from './environment.js';
 import { printError, resolveCliError } from './error-mapping.js';
 import type { CliError } from './errors.js';
 import { ExitCode, ReportedFailureError } from './errors.js';
-import { ensureSession } from './session.js';
 import { printTelemetryNotice, reportFinishedCommand } from './telemetry.js';
 import {
   printUpdateNotice,
@@ -91,22 +87,19 @@ async function runCommandLine(
       invocation.commandNames.length === 1
         ? invocation.commandNames[0]
         : undefined;
-    const commandModules = await loadCommandModules(
+    const commands = await loadCommands(
       commandRegistry,
       invocation.commandNames,
     );
-    const config = defineConfig({
-      commands: resolveCommands(commandModules),
-      meta,
-    });
+    const config = defineConfig({ commands, meta });
     const { args, command, options } = isColorEnabled(process.stdout)
       ? processConfig(config, invocation.argv)
       : processConfigWithoutColor(config, invocation.argv);
     if (
       commandName !== undefined &&
-      commandModules[commandName]?.sessionRequirement !== 'optional'
+      commands[commandName]?.authentication === 'required'
     ) {
-      await ensureSession(options);
+      await ensureAuthentication(options);
     }
     await command.action(options, args);
     return { cliError: undefined, commandName };

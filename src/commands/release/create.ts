@@ -7,7 +7,6 @@ import type {
   Release,
 } from '@hotcodepush/node';
 import { z } from 'zod';
-import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
 import { resolveAudienceText } from '../../utils/audience.js';
 import { booleanFlagSchema } from '../../utils/boolean-flag.js';
@@ -20,6 +19,7 @@ import {
   failurePolicyShape,
   resolveFailurePolicy,
 } from '../../utils/channel-fields.js';
+import { defineCommand } from '../../utils/command.js';
 import { withTemporaryDirectory } from '../../utils/compressed-files.js';
 import { InvalidParameterError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';

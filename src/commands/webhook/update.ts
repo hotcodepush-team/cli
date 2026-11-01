@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
 import { booleanFlagSchema } from '../../utils/boolean-flag.js';
+import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { resolveNullableField } from '../../utils/nullable-field.js';
 import { printJson } from '../../utils/output.js';

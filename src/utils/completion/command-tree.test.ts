@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { defineCommand } from 'zodline';
 import { booleanFlagSchema } from '../boolean-flag.js';
-import type { Command } from '../command-registry.js';
+import { defineCommand } from '../command.js';
+import type { Command } from '../command.js';
 import { defineCommandOptions } from '../global-options.js';
 import { resolveCommandTree } from './command-tree.js';
 

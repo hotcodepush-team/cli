@@ -1,4 +1,3 @@
-import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
 import type { BuildStep, OfflineCause } from '../../utils/build-step.js';
 import {
@@ -10,11 +9,11 @@ import {
   resolveOfflineCause,
   writeBuildResourceFile,
 } from '../../utils/build-step.js';
+import { defineCommand } from '../../utils/command.js';
 import { printNotice, printWarning } from '../../utils/diagnostics.js';
 import { CliError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
-import type { SessionRequirement } from '../../utils/session.js';
 
 interface ChannelResolution {
   channelId: string | null;
@@ -24,11 +23,10 @@ interface ChannelResolution {
 // Only `binary create` gives an embedded bundle a version, the version of the binary.
 const UNVERSIONED_BUNDLE_VERSION = '';
 
-export const sessionRequirement: SessionRequirement = 'optional';
-
 export default defineCommand({
   description:
     'The build step of every build that is no store build: writes the resource file the SDK reads, listing the embedded bundle, and creates no binary. Without a token, offline or with an API that cannot be reached, the channel name stays unresolved and one warning says so, in CI too.',
+  authentication: 'optional',
   examples: [
     'hotcodepush resource-file write --platform ios --embedded-bundle-path build/App.app/public --resource-file-path build/App.app/hotcodepush.json',
     'hotcodepush resource-file write --platform android --embedded-bundle-path build/assets/public --resource-file-path build/assets/hotcodepush.json --json',

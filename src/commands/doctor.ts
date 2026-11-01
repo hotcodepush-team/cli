@@ -3,13 +3,13 @@ import {
   ProjectConfigurationSchema,
   resolveSigningKeyId,
 } from '@hotcodepush/protocol';
-import { defineCommand } from 'zodline';
 import {
   INIT_MANUAL_STEP,
   PACKAGE_JSON,
   PROJECT_CONFIG_FILE_NAME,
 } from '../config/consts.js';
 import { createApiClient } from '../utils/api-client.js';
+import { defineCommand } from '../utils/command.js';
 import {
   fetchCurrentUser,
   isUnauthenticatedError,
@@ -53,7 +53,6 @@ import {
   fetchResourceId,
   fetchSigningKeys,
 } from '../utils/resource-resolution.js';
-import type { SessionRequirement } from '../utils/session.js';
 import { readSigningKeyPair } from '../utils/signing-private-key.js';
 import { isEnvironmentToken, readToken } from '../utils/token-store.js';
 import { readApiUrl } from '../utils/user-config.js';
@@ -83,11 +82,10 @@ const CHANNEL_NAME_SCHEMA = ProjectConfigurationSchema.shape.channel;
 
 const PROBE_TIMEOUT_MS = 5000;
 
-export const sessionRequirement: SessionRequirement = 'optional';
-
 export default defineCommand({
   description:
     'Check the project: its configuration, the hook wiring, the signing key, the hosts and the versions a bug report needs.',
+  authentication: 'optional',
   examples: ['hotcodepush doctor', 'hotcodepush doctor --json'],
   options: defineCommandOptions({}),
   action: async options => {

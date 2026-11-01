@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { defineCommand } from 'zodline';
+import { defineCommand } from '../utils/command.js';
 import {
   COMPLETION_SHELLS,
   readCompletionScript,
@@ -8,17 +8,15 @@ import { InvalidParameterError } from '../utils/errors.js';
 import { defineCommandOptions } from '../utils/global-options.js';
 import { printJson } from '../utils/output.js';
 import { promptSelect } from '../utils/prompts.js';
-import type { SessionRequirement } from '../utils/session.js';
 
 // zodline reports an invalid argument as a plain error that would read as `unexpected`.
 // So the action checks the shell itself.
 const ShellSchema = z.enum(COMPLETION_SHELLS);
 
-export const sessionRequirement: SessionRequirement = 'optional';
-
 export default defineCommand({
   description:
     'Print the completion script for <shell>, bash, fish or zsh: eval "$(hotcodepush completion <shell>)" loads it from ~/.bashrc, or from ~/.zshrc after compinit, and fish loads it saved as ~/.config/fish/completions/hotcodepush.fish.',
+  authentication: 'optional',
   examples: [
     'eval "$(hotcodepush completion zsh)"',
     'hotcodepush completion fish > ~/.config/fish/completions/hotcodepush.fish',

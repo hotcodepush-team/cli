@@ -1,11 +1,10 @@
-import { defineCommand } from 'zodline';
 import type { AuthClient } from '../utils/auth-client.js';
 import { createApiAuthClient } from '../utils/auth-client.js';
+import { defineCommand } from '../utils/command.js';
 import { resolveApiError } from '../utils/error-mapping.js';
 import { NotLoggedInError } from '../utils/errors.js';
 import { defineCommandOptions } from '../utils/global-options.js';
 import { printJson } from '../utils/output.js';
-import type { SessionRequirement } from '../utils/session.js';
 import { deleteToken, readStoredToken } from '../utils/token-store.js';
 import { readUserConfig, writeUserConfig } from '../utils/user-config.js';
 
@@ -16,11 +15,10 @@ interface EndedSession {
 
 const UNAUTHORIZED_STATUS = 401;
 
-export const sessionRequirement: SessionRequirement = 'optional';
-
 export default defineCommand({
   description:
     'End the stored session and remove its token; HOTCODEPUSH_TOKEN, when set, stays what it is.',
+  authentication: 'optional',
   examples: ['hotcodepush logout', 'hotcodepush logout --json'],
   options: defineCommandOptions({}),
   action: async options => {

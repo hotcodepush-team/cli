@@ -1,6 +1,5 @@
 import type { UpdateReleaseOptions } from '@hotcodepush/node';
 import { z } from 'zod';
-import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
 import { booleanFlagSchema } from '../../utils/boolean-flag.js';
 import type { FailurePolicyOptions } from '../../utils/channel-fields.js';
@@ -9,6 +8,7 @@ import {
   releaseFailurePolicyClearShape,
   resolveFailurePolicy,
 } from '../../utils/channel-fields.js';
+import { defineCommand } from '../../utils/command.js';
 import { MissingParameterError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { resolveNullableField } from '../../utils/nullable-field.js';

@@ -3,10 +3,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
-import { defineCommand } from 'zodline';
 import { resolveDiagnosticText } from '../../test/diagnostics.js';
 import { runCli } from './cli.js';
 import type { CommandRegistry } from './command-registry.js';
+import { defineCommand } from './command.js';
 import { MissingParameterError } from './errors.js';
 import { defineCommandOptions } from './global-options.js';
 import { printTelemetryNotice, reportFinishedCommand } from './telemetry.js';
@@ -197,18 +197,18 @@ describe('runCli', () => {
     );
   });
 
-  it('should run a command that names its session optional without one', async () => {
+  it('should run a command whose authentication is optional without a session', async () => {
     const doctorAction = vi.fn();
     stubMissingSession();
     const commandRegistry: CommandRegistry = {
       doctor: async () => ({
         default: defineCommand({
           description: 'Check the project.',
+          authentication: 'optional',
           examples: ['hotcodepush doctor', 'hotcodepush doctor --json'],
           options: defineCommandOptions({}),
           action: doctorAction,
         }),
-        sessionRequirement: 'optional',
       }),
     };
 
