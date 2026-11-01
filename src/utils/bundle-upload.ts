@@ -17,6 +17,7 @@ import { promptText } from './prompts.js';
 import { fetchAppId } from './resource-resolution.js';
 import { readSigningKeyPair } from './signing-private-key.js';
 import type { Platform, UploadBundleOptions } from './upload.js';
+import { PLATFORMS } from './upload.js';
 
 export interface BundleUploadOptions
   extends GitProvenanceOptions, InteractivityOptions {
@@ -28,8 +29,6 @@ export interface BundleUploadOptions
   platform?: Platform[];
   privateKeyPath?: string;
 }
-
-const PLATFORMS: Platform[] = ['android', 'ios'];
 
 // Validated in the schema, so a wrong platform is reported under the flag name.
 const platformListSchema = z

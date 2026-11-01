@@ -30,6 +30,7 @@ import { buildResourceFile, writeResourceFile } from './resource-file.js';
 import { fetchChannels, fetchResourceId } from './resource-resolution.js';
 import { readToken } from './token-store.js';
 import type { Platform } from './upload.js';
+import { PLATFORMS } from './upload.js';
 import { readApiUrl } from './user-config.js';
 
 export interface BuildStep {
@@ -54,8 +55,6 @@ export interface ChannelReference {
 }
 
 export type OfflineCause = 'no-token' | 'offline-switch';
-
-const PLATFORMS = ['android', 'ios'] as const;
 
 export const buildStepShape = {
   embeddedBundlePath: z

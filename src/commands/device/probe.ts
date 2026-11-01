@@ -32,6 +32,7 @@ import {
   fetchChannelId,
 } from '../../utils/resource-resolution.js';
 import type { Platform } from '../../utils/upload.js';
+import { PLATFORMS } from '../../utils/upload.js';
 import { readApiUrl } from '../../utils/user-config.js';
 
 interface ServedIndex {
@@ -76,7 +77,7 @@ export default defineCommand({
         "The store build's version, CFBundleShortVersionString or versionName.",
       ),
     platform: z
-      .enum(['android', 'ios'])
+      .enum(PLATFORMS)
       .optional()
       .describe('The platform, ios or android.'),
   }),

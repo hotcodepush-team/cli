@@ -12,6 +12,7 @@ import {
   fetchChannels,
   fetchResourceId,
 } from '../../utils/resource-resolution.js';
+import { PLATFORMS } from '../../utils/upload.js';
 
 export default defineCommand({
   description:
@@ -55,7 +56,7 @@ export default defineCommand({
         'The latest last report, inclusive: an ISO 8601 timestamp or a duration ago such as 2h or 7d.',
       ),
     platform: z
-      .enum(['android', 'ios'])
+      .enum(PLATFORMS)
       .optional()
       .describe('The platform, ios or android.'),
     sdkVersion: z

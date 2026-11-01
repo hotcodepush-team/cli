@@ -19,6 +19,8 @@ import { resolveByteText } from './progress.js';
 
 export type Platform = 'android' | 'ios';
 
+export const PLATFORMS: Platform[] = ['android', 'ios'];
+
 export interface UploadBundleOptions {
   appId: string;
   bundleVersion: string;
