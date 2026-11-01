@@ -2,7 +2,7 @@ import { createApiClient } from '../../utils/api-client.js';
 import type { BuildStep, OfflineCause } from '../../utils/build-step.js';
 import {
   buildStepShape,
-  fetchChannelId,
+  fetchBuildStepChannelId,
   readBuildStep,
   resolveChannelIdByShape,
   resolveFailureText,
@@ -49,7 +49,8 @@ export default defineCommand({
       }
       return;
     }
-    const { channelId, skippedReason } = await fetchChannelResolution(buildStep);
+    const { channelId, skippedReason } =
+      await fetchChannelResolution(buildStep);
     writeBuildResourceFile(buildStep, channelId, {
       bundleVersion: UNVERSIONED_BUNDLE_VERSION,
       files: embeddedFiles,
@@ -83,7 +84,7 @@ async function fetchChannelResolution(
   }
   try {
     return {
-      channelId: await fetchChannelId(createApiClient(), buildStep),
+      channelId: await fetchBuildStepChannelId(createApiClient(), buildStep),
       skippedReason: null,
     };
   } catch (error) {

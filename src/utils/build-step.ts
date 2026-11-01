@@ -128,7 +128,7 @@ export function resolveChannelIdByShape(
     : null;
 }
 
-export function fetchChannelId(
+export function fetchBuildStepChannelId(
   hotCodePush: HotCodePush,
   { channelReference, projectConfig }: BuildStep,
 ): Promise<string> {

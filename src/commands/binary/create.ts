@@ -4,7 +4,7 @@ import { createApiClient } from '../../utils/api-client.js';
 import type { BuildStep, OfflineCause } from '../../utils/build-step.js';
 import {
   buildStepShape,
-  fetchChannelId,
+  fetchBuildStepChannelId,
   readBuildStep,
   resolveChannelIdByShape,
   resolveFailureText,
@@ -164,7 +164,8 @@ async function createBuildBinary(
   let channelId: string;
   try {
     channelId =
-      channelIdByShape ?? (await fetchChannelId(hotCodePush, buildStep));
+      channelIdByShape ??
+      (await fetchBuildStepChannelId(hotCodePush, buildStep));
   } catch (error) {
     if (error instanceof CliError) {
       throw error;
