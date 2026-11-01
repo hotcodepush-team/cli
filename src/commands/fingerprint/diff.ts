@@ -10,6 +10,7 @@ import { InvalidParameterError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson, printTable } from '../../utils/output.js';
 import { promptText } from '../../utils/prompts.js';
+import type { SessionRequirement } from '../../utils/session.js';
 
 interface ExtraFingerprintPathChange {
   after: string | null;
@@ -48,6 +49,8 @@ const FingerprintFileSchema = z.object({
 });
 
 type FingerprintFile = z.infer<typeof FingerprintFileSchema>;
+
+export const sessionRequirement: SessionRequirement = 'optional';
 
 export default defineCommand({
   description:

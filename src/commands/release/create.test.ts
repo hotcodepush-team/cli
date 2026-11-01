@@ -37,7 +37,12 @@ import type * as bundleUploadModule from '../bundle/upload.js';
 import { resolveUploadBundleOptions } from '../bundle/upload.js';
 import releaseCreateCommand, { resolveReleaseConsequence } from './create.js';
 
-vi.mock('@clack/prompts');
+// Keeps clack's `log` real, so the diagnostics reach stderr.
+vi.mock('@clack/prompts', () =>
+  import('../../../test/clack-prompts.js').then(
+    ({ clackPromptsMock }) => clackPromptsMock,
+  ),
+);
 vi.mock('../bundle/upload.js', async importOriginal => ({
   ...(await importOriginal<typeof bundleUploadModule>()),
   resolveUploadBundleOptions: vi.fn(),
@@ -94,13 +99,8 @@ function buildReleaseWithRelations(
 
 describe('release create', () => {
   const harness = useCommandHarness();
-  let stderrWrite: ReturnType<typeof vi.spyOn>;
 
-  beforeEach(() => {
-    stderrWrite = vi
-      .spyOn(process.stderr, 'write')
-      .mockImplementation(() => true);
-  });
+  beforeEach(() => {});
 
   function readCreateRequests(): Request[] {
     return harness.requests.filter(
@@ -606,8 +606,8 @@ describe('release create', () => {
       expect(harness.readLines()).toEqual([
         'Dry run, nothing published: this releases bundle #17 · 1.4.2 at 5 percent: reaches 100 of 120 active devices in staging; about 5 at a 5 percent rollout.',
       ]);
-      expect(stderrWrite).toHaveBeenCalledWith(
-        `Warning: ${UNSUPPORTED_CONDITION_SHARE_WARNING.message}\n`,
+      expect(harness.readDiagnostics()).toBe(
+        `${UNSUPPORTED_CONDITION_SHARE_WARNING.message}\n`,
       );
       expect(confirm).not.toHaveBeenCalled();
       expect(readCreateRequests()).toEqual([]);
@@ -676,11 +676,8 @@ describe('release create', () => {
       undefined,
     );
 
-    expect(stderrWrite).toHaveBeenCalledWith(
-      `Warning: ${fingerprintUnknownWarning.message}\n`,
-    );
-    expect(stderrWrite).toHaveBeenCalledWith(
-      `Warning: ${UNSUPPORTED_CONDITION_SHARE_WARNING.message}\n`,
+    expect(harness.readDiagnostics()).toBe(
+      `${fingerprintUnknownWarning.message}\n${UNSUPPORTED_CONDITION_SHARE_WARNING.message}\n`,
     );
   });
 
@@ -859,9 +856,9 @@ describe('release create', () => {
         undefined,
       );
 
-      expect(stderrWrite.mock.calls).toEqual([
-        [`Warning: ${UNSUPPORTED_CONDITION_SHARE_WARNING.message}\n`],
-      ]);
+      expect(harness.readDiagnostics()).toBe(
+        `${UNSUPPORTED_CONDITION_SHARE_WARNING.message}\n`,
+      );
     });
   });
 

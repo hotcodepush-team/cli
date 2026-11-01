@@ -18,7 +18,11 @@ import {
 } from '../utils/errors.js';
 import completionCommand from './completion.js';
 
-vi.mock('@clack/prompts');
+vi.mock('@clack/prompts', () =>
+  import('../../test/clack-prompts.js').then(
+    ({ clackPromptsMock }) => clackPromptsMock,
+  ),
+);
 
 // The scripts go to a folder of the test, so it needs no build.
 vi.mock('../config/consts.js', async importOriginal => ({

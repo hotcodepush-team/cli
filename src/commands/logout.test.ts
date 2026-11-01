@@ -54,6 +54,10 @@ describe('logout', () => {
   });
 
   it('should revoke the session and clear the keyring and config.json, naming who was logged out', async () => {
+    writeUserConfig({
+      ...readUserConfig(),
+      sessionExpiresAt: '2099-01-01T00:00:00.000Z',
+    });
     fetchMock
       .mockResolvedValueOnce(Response.json(SESSION))
       .mockResolvedValueOnce(Response.json({ status: true }));

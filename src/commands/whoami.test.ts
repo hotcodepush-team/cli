@@ -87,9 +87,6 @@ describe('whoami', () => {
   });
 
   it("should pass the API's `unauthenticated` error through and exit 3 when the token no longer counts", async () => {
-    const stderrWrite = vi
-      .spyOn(process.stderr, 'write')
-      .mockImplementation(() => true);
     useStoredSession();
     harness.routes[`GET ${USER_PATH}`] = () =>
       respondWithApiError(
@@ -105,7 +102,7 @@ describe('whoami', () => {
     );
 
     expect(exitCode).toBe(3);
-    expect(stderrWrite).toHaveBeenCalledWith(
+    expect(harness.readDiagnostics()).toBe(
       'The bearer token is missing, invalid or expired; sign in again or create a new token.\nhttps://hotcodepush.com/docs/cli/errors#unauthenticated\n',
     );
   });

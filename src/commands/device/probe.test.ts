@@ -24,7 +24,11 @@ import { PACKAGE_JSON } from '../../config/consts.js';
 import { runCli } from '../../utils/cli.js';
 import deviceProbeCommand from './probe.js';
 
-vi.mock('@clack/prompts');
+vi.mock('@clack/prompts', () =>
+  import('../../../test/clack-prompts.js').then(
+    ({ clackPromptsMock }) => clackPromptsMock,
+  ),
+);
 
 const BINARIES_PATH = `/v1/apps/${DEMO_APP.id}/binaries`;
 

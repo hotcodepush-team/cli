@@ -9,7 +9,11 @@ import { DEMO_APP, READY_BUNDLE } from '../../../test/fixtures.js';
 import { ConfirmationRequiredError } from '../../utils/errors.js';
 import bundleDeleteCommand from './delete.js';
 
-vi.mock('@clack/prompts');
+vi.mock('@clack/prompts', () =>
+  import('../../../test/clack-prompts.js').then(
+    ({ clackPromptsMock }) => clackPromptsMock,
+  ),
+);
 
 const BUNDLES_PATH = `/v1/apps/${DEMO_APP.id}/bundles`;
 

@@ -15,7 +15,7 @@ src/
   index.ts     the entry point: runs the command line through the registry
   registry.ts  the registry: space-separated command names, each a lazy import
   commands/    a folder per noun and a file per verb, channel/create.ts, resource-file/write.ts; the standalone commands flat, login.ts, logout.ts, whoami.ts, doctor.ts, init.ts, open.ts, fingerprint.ts, completion.ts
-  utils/       the runner, command resolution and did-you-mean, the error catalog and its one mapping,
+  utils/       the runner, command resolution and did-you-mean, the session gate, the error catalog and its one mapping, the diagnostics on stderr,
                the global options, environment detection, config.json, the token store,
                the auth client, the API client, hotcodepush.json and its directory, the JSON files a person edits read as `invalid_json` when they do not parse, a resource by id or name,
                the project's fingerprint through the protocol's recipe,
@@ -74,6 +74,7 @@ Release-please keeps a release pull request open on `main`, and merging it tags 
 2. Its options are `defineCommandOptions({ … })`, so the global options come with every command; a global option the command gives its own meaning, `app transfer`'s `--organization`, joins its shape with its own description.
 3. It has a `description` and exactly two `examples`, which end its `--help`.
 4. One line joins the registry in `src/registry.ts`: `'channel create': () => import('./commands/channel/create.js')`.
+5. The runner gets the session before the action runs; a command that works without one, as the build step and `doctor` do, exports `sessionRequirement: SessionRequirement = 'optional'` above its definition.
 
 ## Adding a framework
 
@@ -96,8 +97,10 @@ A project with an app config that is code, or with a JSON one that does not pars
 - **A command throws, the entry point exits.**
   A command never calls `process.exit`: it throws an error from `utils/errors.ts`, and `runCli` maps it to the message and the exit code once.
   A new code joins that catalog as a class with its code, exit code, message and fix, and gets its section at `hotcodepush.com/docs/cli/errors#<code>`.
-- **An error is two lines**: what happened and what to do as sentences, then the docs URL, the one place the code appears; `--json` carries the code.
+- **An error is three lines**: what happened, what to do, then the docs URL, the one place the code appears; an API error has no fix, so two; `--json` carries the code.
   The message and the fix each start with a capital letter and end with a full stop, in plain English; a stack trace only with `--verbose`.
+- **Diagnostics go through `utils/diagnostics.ts`**, clack's log on stderr: `printError`, `printWarning`, `printNotice`, `printSuccess`; nothing else writes a symbol or a `Warning:` prefix, and nothing imports clack's log directly.
+  stdout stays plain `console.log` and `printJson`, so a piped result carries no gutter.
 - **API errors pass through verbatim**, their code, message and fix as received and never re-mapped; the CLI's catalog covers only what happens before or without the API.
 - **Exit codes**: `0` done, `1` an error, `2` a missing or invalid parameter, `3` not logged in, `4` a confirmation required without `--yes`.
 - **Parameters are the API's field names**, `--rollout-percent`, `--channel`: nothing is renamed between the console, the API and the terminal.
@@ -123,6 +126,7 @@ A project with an app config that is code, or with a JSON one that does not pars
   an Expo project's JSON app config one plugin entry,
   and `init` names the files it will change and asks once before touching them.
 - **The token** is `readToken()`: `HOTCODEPUSH_TOKEN` when set, then the keyring, then the `config.json` fallback that any keyring failure latches for the rest of the process.
+- **The session is a precondition**, `ensureSession` in `utils/session.ts`, run by `runCli` before the action unless the module says `optional`: interactively a missing token or a stored `sessionExpiresAt` that has passed and that `get-session` does not renew asks `Log in now?` and runs `logIn` in place; non-interactively only a missing token fails, `not_logged_in`, and the API judges the rest. Nothing retries a command after a 401.
 - **The API URL** is `readApiUrl()`: `HOTCODEPUSH_API_BASE_URL` when set, then the URL `login --api-url` stored in `config.json`, then production; an empty variable is unset.
 - **An upload never holds a file in memory**: every file is hashed and gzip-compressed through streams into a temporary directory,
   put as a `Blob` opened from disk so the client can retry it, and the Node client splits it into parts above its `SINGLE_UPLOAD_LIMIT_BYTES`; the packs go the same way.

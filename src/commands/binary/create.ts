@@ -17,12 +17,14 @@ import {
   compressFiles,
   withTemporaryDirectory,
 } from '../../utils/compressed-files.js';
+import { printNotice, printWarning } from '../../utils/diagnostics.js';
 import { isCi } from '../../utils/environment.js';
 import { CliError, PipelineNotLoggedInError } from '../../utils/errors.js';
 import { assertMissingParameter } from '../../utils/framework.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
 import { createReporter, resolveByteText } from '../../utils/progress.js';
+import type { SessionRequirement } from '../../utils/session.js';
 import type { Platform, UploadedFiles } from '../../utils/upload.js';
 import {
   assertWithinBundleBytesLimit,
@@ -52,6 +54,8 @@ interface BinaryCreationRequest extends BinaryIdentity {
 }
 
 const NO_UPLOAD: UploadedFiles = { fileCount: 0, sizeBytes: 0 };
+
+export const sessionRequirement: SessionRequirement = 'optional';
 
 export default defineCommand({
   description:
@@ -86,8 +90,8 @@ export default defineCommand({
         resolveChannelIdByShape(buildStep.channelReference),
         null,
       );
-      process.stderr.write(
-        `No binary created: the ${platform} build bundled no JavaScript, as a debug build served by the development server does. Wrote ${resourceFilePath} without an embedded bundle: over-the-air (OTA) updates are off in this build.\n`,
+      printNotice(
+        `No binary created: the ${platform} build bundled no JavaScript, as a debug build served by the development server does. Wrote ${resourceFilePath} without an embedded bundle: over-the-air (OTA) updates are off in this build.`,
       );
       if (options.json) {
         printJson({ binary: null, resourceFilePath, upload: NO_UPLOAD });
@@ -117,7 +121,7 @@ export default defineCommand({
       throw binaryCreation.pipelineFailure;
     }
     if (binaryCreation.skippedReason !== null) {
-      process.stderr.write(`Warning: ${binaryCreation.skippedReason}\n`);
+      printWarning(binaryCreation.skippedReason);
     }
     if (options.json) {
       printJson({

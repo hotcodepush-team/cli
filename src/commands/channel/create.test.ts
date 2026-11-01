@@ -15,7 +15,12 @@ import { runCli } from '../../utils/cli.js';
 import { InvalidParameterError } from '../../utils/errors.js';
 import channelCreateCommand from './create.js';
 
-vi.mock('@clack/prompts');
+// Keeps clack's `log` real, so the diagnostics reach stderr.
+vi.mock('@clack/prompts', () =>
+  import('../../../test/clack-prompts.js').then(
+    ({ clackPromptsMock }) => clackPromptsMock,
+  ),
+);
 
 const CHANNELS_ROUTE = `POST /v1/apps/${DEMO_APP.id}/channels`;
 
@@ -112,9 +117,6 @@ describe('channel create', () => {
   });
 
   it("should pass the API's `channel_name_taken` error through without --if-not-exists", async () => {
-    const stderrWrite = vi
-      .spyOn(process.stderr, 'write')
-      .mockImplementation(() => true);
     respondWithNameTaken();
 
     const exitCode = await runCli(
@@ -124,7 +126,7 @@ describe('channel create', () => {
     );
 
     expect(exitCode).toBe(1);
-    expect(stderrWrite).toHaveBeenCalledWith(
+    expect(harness.readDiagnostics()).toBe(
       'A channel of that name exists in the app.\nhttps://hotcodepush.com/docs/cli/errors#channel_name_taken\n',
     );
   });

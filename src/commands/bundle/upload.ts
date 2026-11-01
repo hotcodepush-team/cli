@@ -6,6 +6,7 @@ import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
 import { resolveBundleLabel } from '../../utils/bundle-resolution.js';
 import { withTemporaryDirectory } from '../../utils/compressed-files.js';
+import { printWarning } from '../../utils/diagnostics.js';
 import type { InteractivityOptions } from '../../utils/environment.js';
 import { SigningKeyUnavailableError } from '../../utils/errors.js';
 import { readFingerprint } from '../../utils/fingerprint.js';
@@ -121,7 +122,7 @@ export default defineCommand({
           sharedOptions !== undefined &&
           (await fetchIsFingerprintUnknown(hotCodePush, sharedOptions))
         ) {
-          process.stderr.write(`Warning: ${FINGERPRINT_UNKNOWN_TEXT}\n`);
+          printWarning(FINGERPRINT_UNKNOWN_TEXT);
         }
         return bundles;
       },

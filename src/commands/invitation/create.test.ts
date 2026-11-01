@@ -17,7 +17,12 @@ import {
 } from '../../utils/errors.js';
 import invitationCreateCommand from './create.js';
 
-vi.mock('@clack/prompts');
+// Keeps clack's `log` real, so the diagnostics reach stderr.
+vi.mock('@clack/prompts', () =>
+  import('../../../test/clack-prompts.js').then(
+    ({ clackPromptsMock }) => clackPromptsMock,
+  ),
+);
 
 const INVITATIONS_PATH = `/v1/organizations/${ACME_ORGANIZATION.id}/invitations`;
 
@@ -156,9 +161,6 @@ describe('invitation create', () => {
   });
 
   it("should pass the API's error through with its code in the docs link", async () => {
-    const stderrWrite = vi
-      .spyOn(process.stderr, 'write')
-      .mockImplementation(() => true);
     respondWithCreatedInvitation();
     harness.routes[`POST ${INVITATIONS_PATH}`] = () =>
       respondWithApiError(
@@ -184,7 +186,7 @@ describe('invitation create', () => {
     );
 
     expect(exitCode).toBe(1);
-    expect(stderrWrite).toHaveBeenCalledWith(
+    expect(harness.readDiagnostics()).toBe(
       'The json field email is invalid: this address is a member already.\nhttps://hotcodepush.com/docs/cli/errors#validation\n',
     );
   });

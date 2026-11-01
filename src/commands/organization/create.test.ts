@@ -11,7 +11,12 @@ import { runCli } from '../../utils/cli.js';
 import { MissingParameterError } from '../../utils/errors.js';
 import organizationCreateCommand from './create.js';
 
-vi.mock('@clack/prompts');
+// Keeps clack's `log` real, so the diagnostics reach stderr.
+vi.mock('@clack/prompts', () =>
+  import('../../../test/clack-prompts.js').then(
+    ({ clackPromptsMock }) => clackPromptsMock,
+  ),
+);
 
 describe('organization create', () => {
   const harness = useCommandHarness();
@@ -72,9 +77,6 @@ describe('organization create', () => {
   });
 
   it("should pass the API's error through with its code in the docs link", async () => {
-    const stderrWrite = vi
-      .spyOn(process.stderr, 'write')
-      .mockImplementation(() => true);
     harness.routes['POST /v1/organizations'] = () =>
       respondWithApiError(
         400,
@@ -89,7 +91,7 @@ describe('organization create', () => {
     );
 
     expect(exitCode).toBe(1);
-    expect(stderrWrite).toHaveBeenCalledWith(
+    expect(harness.readDiagnostics()).toBe(
       'The json field name is invalid: Too small.\nhttps://hotcodepush.com/docs/cli/errors#validation\n',
     );
   });

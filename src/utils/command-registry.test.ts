@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { defineCommand } from 'zodline';
 import type { CommandRegistry } from './command-registry.js';
 import {
-  loadCommands,
+  loadCommandModules,
   resolveClosestCommandName,
   resolveCommandName,
   resolveInvocation,
@@ -116,7 +116,7 @@ describe('command registry', () => {
     });
   });
 
-  describe('loadCommands', () => {
+  describe('loadCommandModules', () => {
     it('should import only the commands asked for', async () => {
       const channelCreate = defineCommand({ action: () => undefined });
       const commandRegistry: CommandRegistry = {
@@ -126,11 +126,13 @@ describe('command registry', () => {
         })),
       };
 
-      const loadedCommands = await loadCommands(commandRegistry, [
+      const loadedCommandModules = await loadCommandModules(commandRegistry, [
         'channel create',
       ]);
 
-      expect(loadedCommands).toEqual({ 'channel create': channelCreate });
+      expect(loadedCommandModules).toEqual({
+        'channel create': { default: channelCreate },
+      });
       expect(commandRegistry.login).not.toHaveBeenCalled();
     });
   });

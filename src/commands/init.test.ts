@@ -76,7 +76,11 @@ vi.mock('@napi-rs/keyring', () => ({
     return keyring;
   }),
 }));
-vi.mock('@clack/prompts');
+vi.mock('@clack/prompts', () =>
+  import('../../test/clack-prompts.js').then(
+    ({ clackPromptsMock }) => clackPromptsMock,
+  ),
+);
 vi.mock('../utils/package-manager.js', async importOriginal => ({
   ...(await importOriginal<typeof packageManagerModule>()),
   runCommandLineVisibly: vi.fn(),
@@ -459,7 +463,11 @@ describe('init', () => {
     harness.routes['GET /v1/auth/get-session'] = () =>
       hasToken
         ? Response.json({
-            session: { id: 'session-2', userId: 'user-1' },
+            session: {
+              expiresAt: '2099-01-01T00:00:00.000Z',
+              id: 'session-2',
+              userId: 'user-1',
+            },
             user: {
               email: 'anna@example.com',
               id: 'user-1',

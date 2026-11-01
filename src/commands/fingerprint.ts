@@ -4,6 +4,9 @@ import { readProjectFingerprintContributors } from '../utils/fingerprint.js';
 import { defineCommandOptions } from '../utils/global-options.js';
 import { printJson, printTable } from '../utils/output.js';
 import { locateProjectConfig } from '../utils/project-config.js';
+import type { SessionRequirement } from '../utils/session.js';
+
+export const sessionRequirement: SessionRequirement = 'optional';
 
 export default defineCommand({
   description:

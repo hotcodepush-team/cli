@@ -68,6 +68,7 @@ import {
   fetchHasSigningKey,
   fetchOrganizations,
 } from '../utils/resource-resolution.js';
+import type { SessionRequirement } from '../utils/session.js';
 import { isEnvironmentToken, readToken } from '../utils/token-store.js';
 import { readApiUrl } from '../utils/user-config.js';
 import { logIn } from './login.js';
@@ -99,6 +100,8 @@ interface Scope {
 }
 
 const CREATE_CHOICE = 'create';
+
+export const sessionRequirement: SessionRequirement = 'optional';
 
 export default defineCommand({
   description:

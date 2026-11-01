@@ -8,7 +8,11 @@ import { ACME_ORGANIZATION, DEMO_APP } from '../../../test/fixtures.js';
 import { ConfirmationRequiredError } from '../../utils/errors.js';
 import organizationDeleteCommand from './delete.js';
 
-vi.mock('@clack/prompts');
+vi.mock('@clack/prompts', () =>
+  import('../../../test/clack-prompts.js').then(
+    ({ clackPromptsMock }) => clackPromptsMock,
+  ),
+);
 
 describe('organization delete', () => {
   const harness = useCommandHarness();

@@ -8,7 +8,11 @@ import { ACME_ORGANIZATION, SSO_PROVIDER } from '../../../test/fixtures.js';
 import { ConfirmationRequiredError } from '../../utils/errors.js';
 import ssoProviderDeleteCommand from './delete.js';
 
-vi.mock('@clack/prompts');
+vi.mock('@clack/prompts', () =>
+  import('../../../test/clack-prompts.js').then(
+    ({ clackPromptsMock }) => clackPromptsMock,
+  ),
+);
 
 const SSO_PROVIDER_PATH = `/v1/organizations/${ACME_ORGANIZATION.id}/sso-provider`;
 

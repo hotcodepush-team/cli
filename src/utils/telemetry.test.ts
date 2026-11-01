@@ -4,6 +4,7 @@ import { hostname, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { HotCodePushError } from '@hotcodepush/node';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { resolveDiagnosticText } from '../../test/diagnostics.js';
 import type * as constsModule from '../config/consts.js';
 import { PACKAGE_JSON } from '../config/consts.js';
 import {
@@ -300,7 +301,11 @@ describe('telemetry', () => {
       printTelemetryNotice();
       printTelemetryNotice();
 
-      expect(stderrWrite.mock.calls).toEqual([[TELEMETRY_NOTICE]]);
+      expect(
+        resolveDiagnosticText(
+          stderrWrite.mock.calls.map(([chunk]) => String(chunk)).join(''),
+        ),
+      ).toBe(TELEMETRY_NOTICE);
       expect(readUserConfig()).toEqual({
         apiUrl: 'https://api.example.com',
         telemetryNoticeShownAt: expect.any(String),

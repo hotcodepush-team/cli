@@ -15,7 +15,12 @@ import { runCli } from '../../utils/cli.js';
 import { ConfirmationRequiredError } from '../../utils/errors.js';
 import appTransferCommand from './transfer.js';
 
-vi.mock('@clack/prompts');
+// Keeps clack's `log` real, so the diagnostics reach stderr.
+vi.mock('@clack/prompts', () =>
+  import('../../../test/clack-prompts.js').then(
+    ({ clackPromptsMock }) => clackPromptsMock,
+  ),
+);
 
 describe('app transfer', () => {
   const harness = useCommandHarness();
@@ -111,9 +116,6 @@ describe('app transfer', () => {
   });
 
   it("should pass the API's `app_name_taken` error through when the target has an app of the name", async () => {
-    const stderrWrite = vi
-      .spyOn(process.stderr, 'write')
-      .mockImplementation(() => true);
     respondWithAppAndOrganizations();
     harness.routes[`POST /v1/apps/${DEMO_APP.id}/transfer`] = () =>
       respondWithApiError(
@@ -137,7 +139,7 @@ describe('app transfer', () => {
     );
 
     expect(exitCode).toBe(1);
-    expect(stderrWrite).toHaveBeenCalledWith(
+    expect(harness.readDiagnostics()).toBe(
       'An app of that name exists in the organization.\nhttps://hotcodepush.com/docs/cli/errors#app_name_taken\n',
     );
   });

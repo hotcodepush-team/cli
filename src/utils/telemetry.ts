@@ -8,6 +8,7 @@ import {
   POSTHOG_PROJECT_KEY,
   SENTRY_DSN,
 } from '../config/consts.js';
+import { printNotice } from './diagnostics.js';
 import { isCi } from './environment.js';
 import type { CliError } from './errors.js';
 import {
@@ -57,7 +58,7 @@ export function printTelemetryNotice(): void {
     if (userConfig.telemetryNoticeShownAt !== undefined) {
       return;
     }
-    process.stderr.write(`${TELEMETRY_NOTICE}\n`);
+    printNotice(TELEMETRY_NOTICE);
     writeUserConfig({
       ...userConfig,
       telemetryNoticeShownAt: new Date().toISOString(),

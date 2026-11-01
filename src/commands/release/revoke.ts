@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
 import { fetchBundle } from '../../utils/bundle-resolution.js';
+import { printWarning } from '../../utils/diagnostics.js';
 import { InvalidParameterError } from '../../utils/errors.js';
 import { resolveReleaseDeviceCount } from '../../utils/fleet.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
@@ -97,7 +98,7 @@ export default defineCommand({
       appId: firstRevocation.channel.appId,
     });
     for (const pausedText of resolvePausedLandingTexts(revocations, fleet)) {
-      process.stderr.write(`Warning: ${pausedText}\n`);
+      printWarning(pausedText);
     }
     const isConfirmed = await confirmConsequence(
       resolveRevocationConsequence(revocations, fleet),

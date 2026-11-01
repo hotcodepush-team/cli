@@ -9,7 +9,11 @@ import { respondWithChannels } from '../../../test/release-routes.js';
 import { ConfirmationRequiredError } from '../../utils/errors.js';
 import channelPauseCommand from './pause.js';
 
-vi.mock('@clack/prompts');
+vi.mock('@clack/prompts', () =>
+  import('../../../test/clack-prompts.js').then(
+    ({ clackPromptsMock }) => clackPromptsMock,
+  ),
+);
 
 const CHANNEL_PATH = `/v1/apps/${DEMO_APP.id}/channels/${STAGING_CHANNEL.id}`;
 

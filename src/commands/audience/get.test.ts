@@ -19,13 +19,9 @@ const DEVICE_ID = '6b1e9d37-2f5c-4a80-9c46-d8e3a1f7b259';
 
 describe('audience get', () => {
   const harness = useCommandHarness();
-  let stderrWrite: ReturnType<typeof vi.spyOn>;
   let workingDirectoryPath = '';
 
   beforeEach(() => {
-    stderrWrite = vi
-      .spyOn(process.stderr, 'write')
-      .mockImplementation(() => true);
     respondWithStagingReleases(harness);
     // Outside a project there is no lockfile, so no fingerprint unless a test writes one.
     workingDirectoryPath = mkdtempSync(join(tmpdir(), 'hotcodepush-cwd-'));
@@ -137,7 +133,7 @@ describe('audience get', () => {
       ...STAGING_AUDIENCE,
       warnings: [warning],
     });
-    expect(stderrWrite).toHaveBeenCalledWith(`Warning: ${warning.message}\n`);
+    expect(harness.readDiagnostics()).toBe(`${warning.message}\n`);
   });
 
   it('should fail with `invalid_parameter` when an attribute is no key=value pair', async () => {

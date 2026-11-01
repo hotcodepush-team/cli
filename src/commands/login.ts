@@ -9,6 +9,7 @@ import {
   resolveResponseData,
 } from '../utils/auth-client.js';
 import { openBrowser } from '../utils/browser.js';
+import { printNotice } from '../utils/diagnostics.js';
 import type { InteractivityOptions } from '../utils/environment.js';
 import { isInteractive } from '../utils/environment.js';
 import { resolveApiError } from '../utils/error-mapping.js';
@@ -19,8 +20,13 @@ import {
 } from '../utils/errors.js';
 import { defineCommandOptions } from '../utils/global-options.js';
 import { printJson } from '../utils/output.js';
+import type { SessionRequirement } from '../utils/session.js';
 import { writeToken } from '../utils/token-store.js';
-import { readUserConfig, writeUserConfig } from '../utils/user-config.js';
+import {
+  readUserConfig,
+  writeStoredSession,
+  writeUserConfig,
+} from '../utils/user-config.js';
 
 interface DeviceAuthorization {
   deviceCode: string;
@@ -43,6 +49,8 @@ export interface LoggedInUser {
   id: string;
   name: string;
 }
+
+export const sessionRequirement: SessionRequirement = 'optional';
 
 export default defineCommand({
   description: 'Log in by approving a one-time code in the browser.',
@@ -90,7 +98,7 @@ export async function logIn(
   );
   writeToken(sessionToken);
   deletePendingDeviceAuthorization();
-  writeUserConfig({ ...readUserConfig(), sessionId: session.id });
+  writeStoredSession(session);
   return { email: user.email, id: user.id, name: user.name };
 }
 
@@ -215,8 +223,8 @@ async function fetchSessionTokenOnApproval(
   if (!isLoginInteractive) {
     throw new NotLoggedInError(deviceAuthorization);
   }
-  process.stderr.write(
-    `Open ${deviceAuthorization.verificationUrl} and approve the code ${deviceAuthorization.userCode}.\nWaiting for the approval…\n`,
+  printNotice(
+    `Open ${deviceAuthorization.verificationUrl} and approve the code ${deviceAuthorization.userCode}.\nWaiting for the approval…`,
   );
   await openBrowser(deviceAuthorization.verificationUrl);
   return fetchApprovedSessionToken(authClient, deviceAuthorization);

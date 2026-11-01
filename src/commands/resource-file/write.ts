@@ -10,9 +10,11 @@ import {
   resolveOfflineCause,
   writeBuildResourceFile,
 } from '../../utils/build-step.js';
+import { printNotice, printWarning } from '../../utils/diagnostics.js';
 import { CliError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
+import type { SessionRequirement } from '../../utils/session.js';
 
 interface ChannelResolution {
   channelId: string | null;
@@ -21,6 +23,8 @@ interface ChannelResolution {
 
 // Only `binary create` gives an embedded bundle a version, the version of the binary.
 const UNVERSIONED_BUNDLE_VERSION = '';
+
+export const sessionRequirement: SessionRequirement = 'optional';
 
 export default defineCommand({
   description:
@@ -39,8 +43,8 @@ export default defineCommand({
         resolveChannelIdByShape(buildStep.channelReference),
         null,
       );
-      process.stderr.write(
-        `The ${platform} build bundled no JavaScript, as a debug build served by the development server does. Wrote ${resourceFilePath} without an embedded bundle: over-the-air (OTA) updates are off in this build.\n`,
+      printNotice(
+        `The ${platform} build bundled no JavaScript, as a debug build served by the development server does. Wrote ${resourceFilePath} without an embedded bundle: over-the-air (OTA) updates are off in this build.`,
       );
       if (options.json) {
         printJson({ resourceFilePath });
@@ -54,7 +58,7 @@ export default defineCommand({
       id: null,
     });
     if (skippedReason !== null) {
-      process.stderr.write(`Warning: ${skippedReason}\n`);
+      printWarning(skippedReason);
     }
     if (options.json) {
       printJson({ resourceFilePath });

@@ -11,7 +11,12 @@ import { runCli } from '../../utils/cli.js';
 import { MissingParameterError } from '../../utils/errors.js';
 import memberUpdateCommand from './update.js';
 
-vi.mock('@clack/prompts');
+// Keeps clack's `log` real, so the diagnostics reach stderr.
+vi.mock('@clack/prompts', () =>
+  import('../../../test/clack-prompts.js').then(
+    ({ clackPromptsMock }) => clackPromptsMock,
+  ),
+);
 
 const MEMBER_PATH = `/v1/organizations/${ACME_ORGANIZATION.id}/members/${ADMIN_MEMBER.id}`;
 
@@ -138,9 +143,6 @@ describe('member update', () => {
   });
 
   it("should pass the API's refusal of an ownership transfer through with its code in the docs link", async () => {
-    const stderrWrite = vi
-      .spyOn(process.stderr, 'write')
-      .mockImplementation(() => true);
     respondWithMember();
     harness.routes[`PATCH ${MEMBER_PATH}`] = () =>
       respondWithApiError(
@@ -166,7 +168,7 @@ describe('member update', () => {
     );
 
     expect(exitCode).toBe(1);
-    expect(stderrWrite).toHaveBeenCalledWith(
+    expect(harness.readDiagnostics()).toBe(
       'Only the Owner may transfer the ownership.\nhttps://hotcodepush.com/docs/cli/errors#forbidden\n',
     );
   });

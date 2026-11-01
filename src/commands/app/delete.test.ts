@@ -12,7 +12,11 @@ import {
 import { ConfirmationRequiredError } from '../../utils/errors.js';
 import appDeleteCommand from './delete.js';
 
-vi.mock('@clack/prompts');
+vi.mock('@clack/prompts', () =>
+  import('../../../test/clack-prompts.js').then(
+    ({ clackPromptsMock }) => clackPromptsMock,
+  ),
+);
 
 describe('app delete', () => {
   const harness = useCommandHarness();

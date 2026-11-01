@@ -13,7 +13,11 @@ import {
 import { MissingParameterError, UnknownNameError } from '../../utils/errors.js';
 import memberGetCommand from './get.js';
 
-vi.mock('@clack/prompts');
+vi.mock('@clack/prompts', () =>
+  import('../../../test/clack-prompts.js').then(
+    ({ clackPromptsMock }) => clackPromptsMock,
+  ),
+);
 
 const MEMBERS_PATH = `/v1/organizations/${ACME_ORGANIZATION.id}/members`;
 

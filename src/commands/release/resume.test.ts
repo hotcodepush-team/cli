@@ -16,7 +16,11 @@ import {
 import { ConfirmationRequiredError } from '../../utils/errors.js';
 import releaseResumeCommand from './resume.js';
 
-vi.mock('@clack/prompts');
+vi.mock('@clack/prompts', () =>
+  import('../../../test/clack-prompts.js').then(
+    ({ clackPromptsMock }) => clackPromptsMock,
+  ),
+);
 
 const RESUMED_RELEASE = LIVE_RELEASE;
 

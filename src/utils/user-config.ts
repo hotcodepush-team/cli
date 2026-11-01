@@ -10,6 +10,11 @@ import { readJsonFile } from './json-file.js';
 
 // The token is stored here only when no keyring backend works.
 // The pending device authorization stays only until the next login.
+interface StoredSession {
+  expiresAt: Date | string;
+  id: string;
+}
+
 export interface UserConfig {
   apiUrl?: string;
   lastUpdateCheckAt?: string;
@@ -18,6 +23,7 @@ export interface UserConfig {
   pendingDeviceCodeExpiresAt?: string;
   pendingUserCode?: string;
   pendingVerificationUrl?: string;
+  sessionExpiresAt?: string;
   sessionId?: string;
   telemetryNoticeShownAt?: string;
   token?: string;
@@ -55,6 +61,15 @@ export function resolveConfigDirectoryPath(): string {
       ? (process.env.APPDATA ?? join(homedir(), 'AppData', 'Roaming'))
       : process.env.XDG_CONFIG_HOME || join(homedir(), '.config');
   return join(baseDirectoryPath, CONFIG_DIRECTORY_NAME);
+}
+
+// The expiry is the local hint that a session may have ended; the API's answer is the fact.
+export function writeStoredSession({ expiresAt, id }: StoredSession): void {
+  writeUserConfig({
+    ...readUserConfig(),
+    sessionExpiresAt: new Date(expiresAt).toISOString(),
+    sessionId: id,
+  });
 }
 
 export function writeUserConfig(userConfig: UserConfig): void {

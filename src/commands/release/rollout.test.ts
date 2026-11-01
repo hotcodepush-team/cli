@@ -17,7 +17,11 @@ import {
 } from '../../../test/release-routes.js';
 import releaseRolloutCommand from './rollout.js';
 
-vi.mock('@clack/prompts');
+vi.mock('@clack/prompts', () =>
+  import('../../../test/clack-prompts.js').then(
+    ({ clackPromptsMock }) => clackPromptsMock,
+  ),
+);
 
 const ROLLED_OUT_RELEASE = { ...LIVE_RELEASE, rolloutPercent: 20 };
 

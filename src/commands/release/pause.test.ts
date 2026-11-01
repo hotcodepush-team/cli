@@ -16,7 +16,11 @@ import {
 import { ConfirmationRequiredError } from '../../utils/errors.js';
 import releasePauseCommand from './pause.js';
 
-vi.mock('@clack/prompts');
+vi.mock('@clack/prompts', () =>
+  import('../../../test/clack-prompts.js').then(
+    ({ clackPromptsMock }) => clackPromptsMock,
+  ),
+);
 
 const PAUSED_RELEASE = {
   ...LIVE_RELEASE,

@@ -21,7 +21,11 @@ import {
 import { InvalidParameterError } from '../../utils/errors.js';
 import releaseRollbackCommand from './rollback.js';
 
-vi.mock('@clack/prompts');
+vi.mock('@clack/prompts', () =>
+  import('../../../test/clack-prompts.js').then(
+    ({ clackPromptsMock }) => clackPromptsMock,
+  ),
+);
 
 const ROLLBACK_RELEASE = {
   ...LIVE_RELEASE,

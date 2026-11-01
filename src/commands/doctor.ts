@@ -53,6 +53,7 @@ import {
   fetchResourceId,
   fetchSigningKeys,
 } from '../utils/resource-resolution.js';
+import type { SessionRequirement } from '../utils/session.js';
 import { readSigningKeyPair } from '../utils/signing-private-key.js';
 import { isEnvironmentToken, readToken } from '../utils/token-store.js';
 import { readApiUrl } from '../utils/user-config.js';
@@ -81,6 +82,8 @@ interface SessionAndAppChecks {
 const CHANNEL_NAME_SCHEMA = ProjectConfigurationSchema.shape.channel;
 
 const PROBE_TIMEOUT_MS = 5000;
+
+export const sessionRequirement: SessionRequirement = 'optional';
 
 export default defineCommand({
   description:

@@ -11,7 +11,11 @@ import {
 import { MissingParameterError, UnknownNameError } from '../../utils/errors.js';
 import organizationGetCommand from './get.js';
 
-vi.mock('@clack/prompts');
+vi.mock('@clack/prompts', () =>
+  import('../../../test/clack-prompts.js').then(
+    ({ clackPromptsMock }) => clackPromptsMock,
+  ),
+);
 
 describe('organization get', () => {
   const harness = useCommandHarness();

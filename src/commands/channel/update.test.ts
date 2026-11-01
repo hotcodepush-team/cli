@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { useCommandHarness } from '../../../test/command-harness.js';
 import {
   DEMO_APP,
@@ -173,10 +173,6 @@ describe('channel update', () => {
   });
 
   it('should refuse a --failure-threshold-percent that is no whole number', async () => {
-    const stderrWrite = vi
-      .spyOn(process.stderr, 'write')
-      .mockImplementation(() => true);
-
     const exitCode = await runCli(
       { 'channel update': () => import('./update.js') },
       [
@@ -193,7 +189,7 @@ describe('channel update', () => {
     );
 
     expect(exitCode).toBe(2);
-    expect(stderrWrite).toHaveBeenCalledWith(
+    expect(harness.readDiagnostics()).toEqual(
       expect.stringContaining(
         'The value of --failure-threshold-percent is invalid.',
       ),

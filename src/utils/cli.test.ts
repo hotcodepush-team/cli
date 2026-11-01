@@ -1,6 +1,10 @@
-import { describe, expect, it, vi } from 'vitest';
+import { randomUUID } from 'node:crypto';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { defineCommand } from 'zodline';
+import { resolveDiagnosticText } from '../../test/diagnostics.js';
 import { runCli } from './cli.js';
 import type { CommandRegistry } from './command-registry.js';
 import { MissingParameterError } from './errors.js';
@@ -11,6 +15,17 @@ import {
   refreshLatestKnownVersion,
 } from './update-notice.js';
 
+const keyring = vi.hoisted(() => ({
+  deletePassword: vi.fn(),
+  getPassword: vi.fn(),
+  setPassword: vi.fn(),
+}));
+
+vi.mock('@napi-rs/keyring', () => ({
+  Entry: vi.fn(function () {
+    return keyring;
+  }),
+}));
 vi.mock('./telemetry.js', () => ({
   printTelemetryNotice: vi.fn(),
   reportFinishedCommand: vi.fn(),
@@ -108,11 +123,22 @@ function captureOutput() {
   return {
     readConsoleLog: () =>
       consoleLog.mock.calls.map(values => values.join(' ')).join('\n'),
-    readStderr: () =>
-      stderrWrite.mock.calls.map(([chunk]) => String(chunk)).join(''),
+    readDiagnostics: () =>
+      resolveDiagnosticText(
+        stderrWrite.mock.calls.map(([chunk]) => String(chunk)).join(''),
+      ),
     readStdout: () =>
       stdoutWrite.mock.calls.map(([chunk]) => String(chunk)).join(''),
   };
+}
+
+// CI makes the run non-interactive, and a config folder that does not exist keeps a token on the machine out.
+function stubMissingSession() {
+  vi.stubEnv('CI', 'true');
+  vi.stubEnv('HOTCODEPUSH_TOKEN', '');
+  const configHomePath = join(tmpdir(), `hotcodepush-${randomUUID()}`);
+  vi.stubEnv('APPDATA', configHomePath);
+  vi.stubEnv('XDG_CONFIG_HOME', configHomePath);
 }
 
 function stubExit() {
@@ -122,6 +148,11 @@ function stubExit() {
 }
 
 describe('runCli', () => {
+  beforeEach(() => {
+    vi.stubEnv('CI', undefined);
+    vi.stubEnv('HOTCODEPUSH_TOKEN', 'cli-test-token');
+  });
+
   it('should run the command with its options and the global ones', async () => {
     const { channelCreateAction, commandRegistry } = createCommandTree();
 
@@ -152,6 +183,41 @@ describe('runCli', () => {
     );
   });
 
+  it('should stop with `not_logged_in` before the action when no session exists and the run is not interactive', async () => {
+    const { channelCreateAction, commandRegistry } = createCommandTree();
+    const output = captureOutput();
+    stubMissingSession();
+
+    const exitCode = await runCli(commandRegistry, ['channel', 'create'], META);
+
+    expect(exitCode).toBe(3);
+    expect(channelCreateAction).not.toHaveBeenCalled();
+    expect(output.readDiagnostics()).toBe(
+      'You are not logged in.\nRun "hotcodepush login" or set HOTCODEPUSH_TOKEN.\nhttps://hotcodepush.com/docs/cli/errors#not_logged_in\n',
+    );
+  });
+
+  it('should run a command that names its session optional without one', async () => {
+    const doctorAction = vi.fn();
+    stubMissingSession();
+    const commandRegistry: CommandRegistry = {
+      doctor: async () => ({
+        default: defineCommand({
+          description: 'Check the project.',
+          examples: ['hotcodepush doctor', 'hotcodepush doctor --json'],
+          options: defineCommandOptions({}),
+          action: doctorAction,
+        }),
+        sessionRequirement: 'optional',
+      }),
+    };
+
+    const exitCode = await runCli(commandRegistry, ['doctor'], META);
+
+    expect(exitCode).toBe(0);
+    expect(doctorAction).toHaveBeenCalled();
+  });
+
   it('should import only the command it runs', async () => {
     const { commandRegistry } = createCommandTree();
 
@@ -180,8 +246,8 @@ describe('runCli', () => {
     const exitCode = await runCli(commandRegistry, ['login'], META);
 
     expect(exitCode).toBe(2);
-    expect(output.readStderr()).toBe(
-      'No value was given for --token. Pass --token, or run the command interactively to be asked for it.\nhttps://hotcodepush.com/docs/cli/errors#missing_parameter\n',
+    expect(output.readDiagnostics()).toBe(
+      'No value was given for --token.\nPass --token, or run the command interactively to be asked for it.\nhttps://hotcodepush.com/docs/cli/errors#missing_parameter\n',
     );
   });
 
@@ -198,7 +264,7 @@ describe('runCli', () => {
         message: 'No value was given for --token.',
       },
     });
-    expect(output.readStderr()).toBe('');
+    expect(output.readDiagnostics()).toBe('');
   });
 
   it('should answer `invalid_parameter` with exit code 2 when an option is invalid', async () => {
@@ -229,8 +295,8 @@ describe('runCli', () => {
     );
 
     expect(exitCode).toBe(2);
-    expect(output.readStderr()).toBe(
-      'Unknown option: --colour. Run the command with --help to see its options.\nhttps://hotcodepush.com/docs/cli/errors#invalid_parameter\n',
+    expect(output.readDiagnostics()).toBe(
+      'Unknown option: --colour.\nRun the command with --help to see its options.\nhttps://hotcodepush.com/docs/cli/errors#invalid_parameter\n',
     );
   });
 
@@ -241,8 +307,8 @@ describe('runCli', () => {
     const exitCode = await runCli(commandRegistry, ['chanel', 'create'], META);
 
     expect(exitCode).toBe(1);
-    expect(output.readStderr()).toBe(
-      'There is no command "chanel create". Did you mean "channel create"?\nhttps://hotcodepush.com/docs/cli/errors#unknown_command\n',
+    expect(output.readDiagnostics()).toBe(
+      'There is no command "chanel create".\nDid you mean "channel create"?\nhttps://hotcodepush.com/docs/cli/errors#unknown_command\n',
     );
   });
 
@@ -397,8 +463,8 @@ describe('runCli', () => {
     );
 
     expect(exitCode).toBe(2);
-    expect(output.readStderr()).toBe(
-      'Unknown option: --colour. Run the command with --help to see its options.\nhttps://hotcodepush.com/docs/cli/errors#invalid_parameter\n',
+    expect(output.readDiagnostics()).toBe(
+      'Unknown option: --colour.\nRun the command with --help to see its options.\nhttps://hotcodepush.com/docs/cli/errors#invalid_parameter\n',
     );
   });
 
