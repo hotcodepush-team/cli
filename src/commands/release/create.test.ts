@@ -1,6 +1,5 @@
 import { confirm, select } from '@clack/prompts';
 import type { Audience, Channel, Release } from '@hotcodepush/node';
-import { hashAttribute, hashDeviceId } from '@hotcodepush/protocol';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CAPACITOR_FINGERPRINT } from '../../../test/capacitor-project.js';
 import {
@@ -359,7 +358,7 @@ describe('release create', () => {
         Response.json({ ...READY_BUNDLE, fingerprint: CAPACITOR_FINGERPRINT });
     });
 
-    it('should create the release with every condition, the attribute value and the device ids hashed, and the bundle fingerprint beside them', async () => {
+    it('should create the release with every condition as typed and the bundle fingerprint beside them', async () => {
       await releaseCreateCommand.action(OPTIONS, undefined);
 
       const [createRequest] = readCreateRequests();
@@ -368,10 +367,10 @@ describe('release create', () => {
           {
             key: 'tier',
             type: 'attribute',
-            valueSha256: hashAttribute('tier', 'beta'),
+            value: 'beta',
           },
           { range: '>=2.3.0 <3.0.0', type: 'binary' },
-          { hashedIds: [hashDeviceId(DEVICE_ID)], type: 'device' },
+          { ids: [DEVICE_ID], type: 'device' },
           { fingerprint: CAPACITOR_FINGERPRINT, type: 'fingerprint' },
           { range: '>=17', type: 'os' },
         ],

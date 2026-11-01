@@ -3,8 +3,6 @@ import type {
   GetAudienceOptions,
 } from '@hotcodepush/node';
 import {
-  hashAttribute,
-  hashDeviceId,
   isValidAttributeKey,
   isValidAttributeValue,
 } from '@hotcodepush/protocol';
@@ -63,7 +61,6 @@ export function buildAudienceQuery(
   };
 }
 
-// Matches the index: attribute values and device ids are hashed, and all device ids share one condition.
 export function buildReleaseConditions(
   options: ConditionOptions,
   fingerprint: string | null,
@@ -74,7 +71,7 @@ export function buildReleaseConditions(
       ({ key, value }): ReleaseCondition => ({
         key,
         type: 'attribute',
-        valueSha256: hashAttribute(key, value),
+        value,
       }),
     ),
     ...resolveList(options.binaryVersion).map((range): ReleaseCondition => ({
@@ -85,7 +82,7 @@ export function buildReleaseConditions(
       ? []
       : [
           {
-            hashedIds: deviceIds.map(hashDeviceId),
+            ids: deviceIds,
             type: 'device',
           } satisfies ReleaseCondition,
         ]),
