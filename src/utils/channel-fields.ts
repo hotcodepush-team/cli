@@ -44,10 +44,10 @@ type FailurePolicyLevel = 'channel' | 'default' | 'own';
 export interface FailurePolicyOptions {
   clearFailureAction?: boolean;
   clearFailureMinimumUpdateCount?: boolean;
-  clearFailureThreshold?: boolean;
+  clearFailureThresholdPercent?: boolean;
   failureAction?: ChannelFields['failureAction'];
   failureMinimumUpdateCount?: number;
-  failureThreshold?: number;
+  failureThresholdPercent?: number;
 }
 
 type FailurePolicyValues = {
@@ -75,7 +75,7 @@ export const failurePolicyShape = {
     .describe(
       'The applied updates a release needs before auto-pause judges it.',
     ),
-  failureThreshold: z.coerce
+  failureThresholdPercent: z.coerce
     .number()
     .int()
     .optional()
@@ -172,9 +172,9 @@ export function resolveFailurePolicy(
       'failure-minimum-update-count',
     ),
     failureThresholdPercent: resolveNullableField(
-      options.failureThreshold,
-      options.clearFailureThreshold,
-      'failure-threshold',
+      options.failureThresholdPercent,
+      options.clearFailureThresholdPercent,
+      'failure-threshold-percent',
     ),
   };
 }
@@ -263,7 +263,7 @@ function resolveFailurePolicyClearShape(nullMeaning: string) {
       .boolean()
       .optional()
       .describe(`Sets the minimum update count back to null: ${nullMeaning}.`),
-    clearFailureThreshold: z
+    clearFailureThresholdPercent: z
       .boolean()
       .optional()
       .describe(`Sets the threshold back to null: ${nullMeaning}.`),

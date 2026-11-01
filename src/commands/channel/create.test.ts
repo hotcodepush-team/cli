@@ -50,7 +50,7 @@ describe('channel create', () => {
         expiresIn: '14d',
         failureAction: 'pause',
         failureMinimumUpdateCount: 20,
-        failureThreshold: 10,
+        failureThresholdPercent: 10,
         name: 'staging',
         protected: true,
       },

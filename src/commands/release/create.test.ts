@@ -418,7 +418,7 @@ describe('release create', () => {
         channel: [STAGING_CHANNEL.id],
         failureAction: 'revoke',
         failureMinimumUpdateCount: 50,
-        failureThreshold: 5,
+        failureThresholdPercent: 5,
         yes: true,
       },
       undefined,

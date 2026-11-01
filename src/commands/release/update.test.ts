@@ -113,7 +113,7 @@ describe('release update', () => {
         channel: STAGING_CHANNEL.id,
         failureAction: 'revoke',
         failureMinimumUpdateCount: 20,
-        failureThreshold: 10,
+        failureThresholdPercent: 10,
         release: '43',
       },
       undefined,
@@ -144,8 +144,8 @@ describe('release update', () => {
       { failureMinimumUpdateCount: null },
     ],
     [
-      '--clear-failure-threshold',
-      { clearFailureThreshold: true },
+      '--clear-failure-threshold-percent',
+      { clearFailureThresholdPercent: true },
       { failureThresholdPercent: null },
     ],
     ['--clear-notes', { clearNotes: true }, { notes: null }],
@@ -200,8 +200,8 @@ describe('release update', () => {
       { clearFailureMinimumUpdateCount: true, failureMinimumUpdateCount: 20 },
     ],
     [
-      'failure-threshold',
-      { clearFailureThreshold: true, failureThreshold: 10 },
+      'failure-threshold-percent',
+      { clearFailureThresholdPercent: true, failureThresholdPercent: 10 },
     ],
     ['notes', { clearNotes: true, notes: 'hotfix' }],
   ] as const)(
