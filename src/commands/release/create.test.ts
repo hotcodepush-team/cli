@@ -33,7 +33,7 @@ import type * as uploadModule from '../../utils/upload.js';
 import type { UploadBundleOptions } from '../../utils/upload.js';
 import { uploadBundle } from '../../utils/upload.js';
 import type * as bundleUploadModule from '../bundle/upload.js';
-import { resolveUploadBundleOptions } from '../bundle/upload.js';
+import { fetchUploadBundleOptions } from '../bundle/upload.js';
 import releaseCreateCommand, { resolveReleaseConsequence } from './create.js';
 
 // Keeps clack's `log` real, so the diagnostics reach stderr.
@@ -44,7 +44,7 @@ vi.mock('@clack/prompts', () =>
 );
 vi.mock('../bundle/upload.js', async importOriginal => ({
   ...(await importOriginal<typeof bundleUploadModule>()),
-  resolveUploadBundleOptions: vi.fn(),
+  fetchUploadBundleOptions: vi.fn(),
 }));
 vi.mock('../../utils/bundle-files.js');
 vi.mock('../../utils/upload.js', async importOriginal => ({
@@ -147,7 +147,7 @@ describe('release create', () => {
   }
 
   function stubWebBuildUpload(): void {
-    vi.mocked(resolveUploadBundleOptions).mockResolvedValue({
+    vi.mocked(fetchUploadBundleOptions).mockResolvedValue({
       appId: DEMO_APP.id,
       bundleUploads: [UPLOAD_BUNDLE_OPTIONS],
     });
@@ -263,7 +263,7 @@ describe('release create', () => {
       undefined,
     );
 
-    expect(resolveUploadBundleOptions).toHaveBeenCalledWith(
+    expect(fetchUploadBundleOptions).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ path: 'dist' }),
       expect.any(String),
@@ -634,7 +634,7 @@ describe('release create', () => {
         undefined,
       );
 
-      expect(resolveUploadBundleOptions).toHaveBeenCalledWith(
+      expect(fetchUploadBundleOptions).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({ path: 'dist' }),
         expect.any(String),
@@ -788,7 +788,7 @@ describe('release create', () => {
     const OPTIONS = { app: DEMO_APP.id, channel: [STAGING_CHANNEL.id] };
 
     function stubPlatformBundleUploads(): void {
-      vi.mocked(resolveUploadBundleOptions).mockResolvedValue({
+      vi.mocked(fetchUploadBundleOptions).mockResolvedValue({
         appId: DEMO_APP.id,
         bundleUploads: [
           { ...UPLOAD_BUNDLE_OPTIONS, platforms: ['android'] },

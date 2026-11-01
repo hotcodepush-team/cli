@@ -37,7 +37,7 @@ import {
 import type * as packageManagerModule from '../../utils/package-manager.js';
 import { runCommandLineVisibly } from '../../utils/package-manager.js';
 import { writeSigningPrivateKeyFile } from '../../utils/signing-private-key.js';
-import bundleUploadCommand, { resolveUploadBundleOptions } from './upload.js';
+import bundleUploadCommand, { fetchUploadBundleOptions } from './upload.js';
 
 // Keeps clack's `log` real, so the diagnostics reach stderr.
 vi.mock('@clack/prompts', () =>
@@ -464,7 +464,7 @@ describe('bundle upload', () => {
   });
 
   it('should resolve a dry run without a private key when hotcodepush.json lists a public key', async () => {
-    const { bundleUploads } = await resolveUploadBundleOptions(
+    const { bundleUploads } = await fetchUploadBundleOptions(
       createApiClient(),
       { config: listPublicKey(), noGit: true },
       projectDirectoryPath,
@@ -477,7 +477,7 @@ describe('bundle upload', () => {
 
   it('should check the private key a dry run is given', async () => {
     await expect(
-      resolveUploadBundleOptions(
+      fetchUploadBundleOptions(
         createApiClient(),
         {
           config: listPublicKey(),

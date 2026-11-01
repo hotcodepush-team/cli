@@ -21,7 +21,7 @@ export default defineCommand({
   examples: ['hotcodepush open', 'hotcodepush open --channel staging'],
   options: defineCommandOptions(channelOptionShape),
   action: async options => {
-    const url = await resolveConsolePageUrl(options);
+    const url = await fetchConsolePageUrl(options);
     if (options.json) {
       printJson({ url });
       return;
@@ -31,7 +31,7 @@ export default defineCommand({
   },
 });
 
-async function resolveConsolePageUrl(options: {
+async function fetchConsolePageUrl(options: {
   app?: string;
   channel?: string;
   config?: string;

@@ -44,7 +44,7 @@ export function detectFramework(projectDirectoryPath: string): Framework {
   return framework;
 }
 
-export async function resolveInputDirectoryPath(
+export async function readInputDirectoryPath(
   options: InputDirectoryOptions,
   pathFlag: string,
   projectDirectoryPath: string,

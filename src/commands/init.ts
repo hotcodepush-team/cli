@@ -141,13 +141,13 @@ export default defineCommand({
     const scope = await run.run(
       'organization',
       () =>
-        resolveOrganization(requireValue(hotCodePush), projectConfig, options),
+        fetchOrganizationScope(requireValue(hotCodePush), projectConfig, options),
       { dependsOn: ['sign_in'] },
     );
     const app = await run.run(
       'app',
       () =>
-        resolveApp(
+        fetchInitApp(
           requireValue(hotCodePush),
           requireValue(scope),
           projectConfigLocation,
@@ -245,7 +245,7 @@ async function signIn(options: InitOptions): Promise<StepOutcome<HotCodePush>> {
 }
 
 // Without `--organization`, a person picks or creates one. Non-interactively the only one is used.
-async function resolveOrganization(
+async function fetchOrganizationScope(
   hotCodePush: HotCodePush,
   projectConfig: ProjectConfig | undefined,
   options: InitOptions,
@@ -301,7 +301,7 @@ async function resolveOrganization(
 }
 
 // An app in the file that the API lacks is refused non-interactively. A person picks or creates another.
-async function resolveApp(
+async function fetchInitApp(
   hotCodePush: HotCodePush,
   { app, organization }: Scope,
   { filePath, projectConfig }: ProjectConfigLocation,

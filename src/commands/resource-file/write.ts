@@ -49,7 +49,7 @@ export default defineCommand({
       }
       return;
     }
-    const { channelId, skippedReason } = await resolveChannel(buildStep);
+    const { channelId, skippedReason } = await fetchChannelResolution(buildStep);
     writeBuildResourceFile(buildStep, channelId, {
       bundleVersion: UNVERSIONED_BUNDLE_VERSION,
       files: embeddedFiles,
@@ -67,7 +67,7 @@ export default defineCommand({
 });
 
 // Unlike `binary create`, this never fails offline or without a token, in a pipeline too.
-async function resolveChannel(
+async function fetchChannelResolution(
   buildStep: BuildStep,
 ): Promise<ChannelResolution> {
   const channelIdByShape = resolveChannelIdByShape(buildStep.channelReference);

@@ -40,7 +40,7 @@ export async function fetchReleaseInChannel(
   options: ReleaseOptions,
 ): Promise<ReleaseInChannel> {
   const channel = await fetchChannel(hotCodePush, options);
-  const releaseId = await resolveReleaseId(hotCodePush, channel, options);
+  const releaseId = await fetchReleaseId(hotCodePush, channel, options);
   const release = await hotCodePush.apps.releases.get({
     appId: channel.appId,
     relations: ['bundle', 'channel', 'releaseCounters'],
@@ -115,7 +115,7 @@ export async function waitUntilLive(
   }
 }
 
-async function resolveReleaseId(
+async function fetchReleaseId(
   hotCodePush: HotCodePush,
   channel: Channel,
   options: ReleaseOptions,

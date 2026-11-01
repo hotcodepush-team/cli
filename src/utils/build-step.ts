@@ -12,7 +12,7 @@ import { readFingerprint } from './fingerprint.js';
 import {
   assertMissingParameter,
   detectFramework,
-  resolveInputDirectoryPath,
+  readInputDirectoryPath,
 } from './framework.js';
 import { resolveFrameworkModule } from './frameworks/index.js';
 import { omitNativeGlue } from './frameworks/native-glue.js';
@@ -90,7 +90,7 @@ export async function readBuildStep(
       options,
     ));
   const framework = resolveFrameworkModule(detectFramework(directoryPath));
-  const embeddedBundlePath = await resolveInputDirectoryPath(
+  const embeddedBundlePath = await readInputDirectoryPath(
     { ...options, path: options.embeddedBundlePath },
     '--embedded-bundle-path',
     directoryPath,

@@ -12,7 +12,7 @@ import { SigningKeyUnavailableError } from '../../utils/errors.js';
 import { readFingerprint } from '../../utils/fingerprint.js';
 import {
   detectFramework,
-  resolveInputDirectoryPath,
+  readInputDirectoryPath,
 } from '../../utils/framework.js';
 import { resolveFrameworkModule } from '../../utils/frameworks/index.js';
 import type { GitProvenanceOptions } from '../../utils/git-provenance.js';
@@ -107,7 +107,7 @@ export default defineCommand({
     const hotCodePush = createApiClient();
     const uploadedBundles = await withTemporaryDirectory(
       async packagingDirectoryPath => {
-        const { bundleUploads } = await resolveUploadBundleOptions(
+        const { bundleUploads } = await fetchUploadBundleOptions(
           hotCodePush,
           options,
           packagingDirectoryPath,
@@ -171,7 +171,7 @@ function printUploadedBundle({ bundle, upload }: UploadedBundle): void {
 
 // Nothing is uploaded here, so `release create` can resolve before it confirms.
 // Its dry run resolves without the private key.
-export async function resolveUploadBundleOptions(
+export async function fetchUploadBundleOptions(
   hotCodePush: HotCodePush,
   options: BundleUploadOptions,
   packagingDirectoryPath: string,
@@ -201,7 +201,7 @@ export async function resolveUploadBundleOptions(
     framework.packageBundles === undefined
       ? [
           {
-            directoryPath: await resolveInputDirectoryPath(
+            directoryPath: await readInputDirectoryPath(
               options,
               '--path',
               directoryPath,

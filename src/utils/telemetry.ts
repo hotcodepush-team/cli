@@ -121,7 +121,7 @@ function resolveMachineId(): string {
 }
 
 // Imported lazily, since the framework modules load native-project parsers that a build without telemetry never needs.
-async function resolveProjectFramework(): Promise<Framework | null> {
+async function readProjectFramework(): Promise<Framework | null> {
   try {
     const [{ detectFramework }, { locateProjectConfigFile }] =
       await Promise.all([
@@ -155,7 +155,7 @@ async function sendCommandFinishedEvent({
         cli_version: PACKAGE_JSON.version,
         command: commandName,
         duration_ms: Math.round(durationMs),
-        framework: await resolveProjectFramework(),
+        framework: await readProjectFramework(),
         is_ci: isCi(),
         outcome: cliError === undefined ? 'succeeded' : 'failed',
         source: 'cli',
