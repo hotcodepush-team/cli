@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 import type { SetSsoProviderOptions } from '@hotcodepush/node';
 import { z } from 'zod';
-import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
+import { defineCommand } from '../../utils/command.js';
 import type { InteractivityOptions } from '../../utils/environment.js';
 import { InvalidParameterError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
@@ -33,7 +33,7 @@ const PROVIDER_TYPE_FLAG = '--oidc-issuer or --saml-entry-point';
 
 export default defineCommand({
   description:
-    "Set the organization's OIDC or SAML provider and its email domain, replacing the one before; a new domain starts unverified.",
+    "Set the organization's OIDC or SAML provider and its email domain, replacing the one before. A new domain starts unverified.",
   examples: [
     'hotcodepush sso-provider set --domain example.com --oidc-issuer https://login.example.com --oidc-client-id hotcodepush --oidc-client-secret "$OIDC_CLIENT_SECRET"',
     'hotcodepush sso-provider set --domain example.com --saml-entry-point https://idp.example.com/sso --saml-issuer https://idp.example.com --saml-metadata-path idp-metadata.xml --json',

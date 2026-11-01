@@ -1,5 +1,5 @@
-import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
+import { defineCommand } from '../../utils/command.js';
 import {
   deviceOptionShape,
   resolveDeviceReference,
@@ -10,7 +10,7 @@ import { confirmConsequence } from '../../utils/prompts.js';
 
 export default defineCommand({
   description:
-    "Delete a device's record, an erasure request; the device reports again with its next check.",
+    "Delete a device's record, an erasure request. The device reports again with its next check.",
   examples: [
     'hotcodepush device delete --device 6b1e9d37-2f5c-4a80-9c46-d8e3a1f7b259',
     'hotcodepush device delete --device 6b1e9d37-2f5c-4a80-9c46-d8e3a1f7b259 --yes --json',

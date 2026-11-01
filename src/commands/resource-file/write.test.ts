@@ -50,7 +50,6 @@ describe('resource-file write', () => {
   const harness = useCommandHarness();
   let projectDirectoryPath = '';
   let resourceFilePath = '';
-  let stderrWrite: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     projectDirectoryPath = writeCapacitorProject({
@@ -61,9 +60,6 @@ describe('resource-file write', () => {
     });
     writeFingerprintInputs(projectDirectoryPath);
     resourceFilePath = join(projectDirectoryPath, 'build', 'hotcodepush.json');
-    stderrWrite = vi
-      .spyOn(process.stderr, 'write')
-      .mockImplementation(() => true);
     respondWithChannels(harness);
   });
 
@@ -121,7 +117,7 @@ describe('resource-file write', () => {
       fingerprint: CAPACITOR_FINGERPRINT,
     });
     expect(harness.readLines()).toEqual([`Wrote ${resourceFilePath} for ios.`]);
-    expect(stderrWrite).not.toHaveBeenCalled();
+    expect(harness.readDiagnostics()).toBe('');
   });
 
   it('should leave the native glue the platform copy carries out of the embedded manifest', async () => {
@@ -148,7 +144,7 @@ describe('resource-file write', () => {
 
     expect(harness.requests).toEqual([]);
     expect(readResourceFile().channelId).toBe(PRODUCTION_CHANNEL.id);
-    expect(stderrWrite).not.toHaveBeenCalled();
+    expect(harness.readDiagnostics()).toBe('');
   });
 
   it('should leave the channel name unresolved with one warning and ask the API nothing under HOTCODEPUSH_OFFLINE, in CI too', async () => {
@@ -162,11 +158,9 @@ describe('resource-file write', () => {
       channelId: null,
       embeddedBundleId: null,
     });
-    expect(stderrWrite.mock.calls).toEqual([
-      [
-        'Warning: HOTCODEPUSH_OFFLINE is set, so the channel name was not resolved: the build names no channel and takes no OTA updates.\n',
-      ],
-    ]);
+    expect(harness.readDiagnostics()).toBe(
+      'HOTCODEPUSH_OFFLINE is set, so the channel name was not resolved. The build names no channel and takes no OTA updates.\n',
+    );
   });
 
   it('should leave the channel name unresolved with one warning naming the login when not logged in, in CI too', async () => {
@@ -177,11 +171,9 @@ describe('resource-file write', () => {
 
     expect(harness.requests).toEqual([]);
     expect(readResourceFile().channelId).toBeNull();
-    expect(stderrWrite.mock.calls).toEqual([
-      [
-        'Warning: not logged in, so the channel name was not resolved: the build names no channel and takes no OTA updates; run "hotcodepush login" or set HOTCODEPUSH_TOKEN.\n',
-      ],
-    ]);
+    expect(harness.readDiagnostics()).toBe(
+      'Not logged in, so the channel name was not resolved. The build names no channel and takes no OTA updates. Run "hotcodepush login" or set HOTCODEPUSH_TOKEN.\n',
+    );
   });
 
   it('should leave the channel name unresolved with one warning when the API refuses, in CI too', async () => {
@@ -192,11 +184,9 @@ describe('resource-file write', () => {
     await writeIosResourceFile();
 
     expect(readResourceFile().channelId).toBeNull();
-    expect(stderrWrite.mock.calls).toEqual([
-      [
-        'Warning: the channel could not be resolved, so the build names none and takes no OTA updates: forbidden You are not a member.\n',
-      ],
-    ]);
+    expect(harness.readDiagnostics()).toBe(
+      'The channel could not be resolved, so the build names none and takes no OTA updates: forbidden You are not a member.\n',
+    );
   });
 
   it('should fail naming hotcodepush.json when the app has no channel of its name, before writing anything', async () => {
@@ -238,11 +228,9 @@ describe('resource-file write', () => {
       channelId: null,
       embeddedBundleManifest: null,
     });
-    expect(stderrWrite.mock.calls).toEqual([
-      [
-        `The ios build bundled no JavaScript, as a debug build served by the development server does. Wrote ${resourceFilePath} without an embedded bundle: over-the-air (OTA) updates are off in this build.\n`,
-      ],
-    ]);
+    expect(harness.readDiagnostics()).toBe(
+      `The ios build bundled no JavaScript, as a debug build served by the development server does. Wrote ${resourceFilePath} without an embedded bundle: over-the-air (OTA) updates are off in this build.\n`,
+    );
   });
 
   function rewriteAsReactNativeProject(): void {

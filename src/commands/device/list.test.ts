@@ -64,7 +64,7 @@ describe('device list', () => {
       sdkVersion: '0.1.0',
     });
     expect(harness.readLines()).toEqual([
-      'No devices match; a device appears with its first check.',
+      'No devices match. A device appears with its first check.',
     ]);
   });
 

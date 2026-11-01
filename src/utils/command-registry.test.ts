@@ -1,5 +1,4 @@
 import { describe, expect, it, vi } from 'vitest';
-import { defineCommand } from 'zodline';
 import type { CommandRegistry } from './command-registry.js';
 import {
   loadCommands,
@@ -7,6 +6,7 @@ import {
   resolveCommandName,
   resolveInvocation,
 } from './command-registry.js';
+import { defineCommand } from './command.js';
 import { UnknownCommandError } from './errors.js';
 
 const COMMAND_NAMES = [

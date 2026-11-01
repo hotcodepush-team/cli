@@ -16,7 +16,11 @@ import {
 } from '../utils/errors.js';
 import openCommand from './open.js';
 
-vi.mock('@clack/prompts');
+vi.mock('@clack/prompts', () =>
+  import('../../test/clack-prompts.js').then(
+    ({ clackPromptsMock }) => clackPromptsMock,
+  ),
+);
 vi.mock('../utils/browser.js');
 
 describe('open', () => {

@@ -5,9 +5,10 @@ import type {
   Release,
 } from '@hotcodepush/node';
 import { z } from 'zod';
-import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
 import { fetchBundle } from '../../utils/bundle-resolution.js';
+import { defineCommand } from '../../utils/command.js';
+import { printWarning } from '../../utils/diagnostics.js';
 import { InvalidParameterError } from '../../utils/errors.js';
 import { resolveReleaseDeviceCount } from '../../utils/fleet.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
@@ -65,13 +66,13 @@ export default defineCommand({
       .boolean()
       .optional()
       .describe(
-        'Every release of the channel; its devices return to the embedded bundle.',
+        'Every release of the channel. Its devices return to the embedded bundle.',
       ),
     bundle: z
       .string()
       .optional()
       .describe(
-        "Every release of this bundle, by number or id, across the app's channels; without --channel.",
+        "Every release of this bundle, by number or id, across the app's channels. Takes no --channel.",
       ),
     releaseFrom: z.coerce
       .number()
@@ -97,7 +98,7 @@ export default defineCommand({
       appId: firstRevocation.channel.appId,
     });
     for (const pausedText of resolvePausedLandingTexts(revocations, fleet)) {
-      process.stderr.write(`Warning: ${pausedText}\n`);
+      printWarning(pausedText);
     }
     const isConfirmed = await confirmConsequence(
       resolveRevocationConsequence(revocations, fleet),

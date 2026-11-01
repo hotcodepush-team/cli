@@ -1,6 +1,5 @@
 import type { Binary, HotCodePush } from '@hotcodepush/node';
 import { z } from 'zod';
-import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
 import type { BuildStep, OfflineCause } from '../../utils/build-step.js';
 import {
@@ -13,10 +12,12 @@ import {
   writeBuildResourceFile,
 } from '../../utils/build-step.js';
 import type { BundleFile } from '../../utils/bundle-files.js';
+import { defineCommand } from '../../utils/command.js';
 import {
   compressFiles,
   withTemporaryDirectory,
 } from '../../utils/compressed-files.js';
+import { printNotice, printWarning } from '../../utils/diagnostics.js';
 import { isCi } from '../../utils/environment.js';
 import { CliError, PipelineNotLoggedInError } from '../../utils/errors.js';
 import { assertMissingParameter } from '../../utils/framework.js';
@@ -55,7 +56,8 @@ const NO_UPLOAD: UploadedFiles = { fileCount: 0, sizeBytes: 0 };
 
 export default defineCommand({
   description:
-    'The build step of a store build: creates the binary with the embedded bundle it ships and writes the resource file the SDK reads, naming that bundle; every other build runs resource-file write. HOTCODEPUSH_OFFLINE=1 builds without the API, naming no channel unless it is given by id and creating no binary.',
+    'The build step of a store build: creates the binary with the embedded bundle it ships and writes the resource file the SDK reads, naming that bundle. Every other build runs resource-file write. HOTCODEPUSH_OFFLINE=1 builds without the API, naming no channel unless it is given by id and creating no binary.',
+  authentication: 'optional',
   examples: [
     'hotcodepush binary create --platform ios --embedded-bundle-path build/App.app/public --resource-file-path build/App.app/hotcodepush.json --binary-version 2.4.1 --binary-build 57',
     'hotcodepush binary create --platform android --embedded-bundle-path build/assets/public --resource-file-path build/assets/hotcodepush.json --binary-version 2.4.1 --binary-build 57 --force',
@@ -86,8 +88,8 @@ export default defineCommand({
         resolveChannelIdByShape(buildStep.channelReference),
         null,
       );
-      process.stderr.write(
-        `No binary created: the ${platform} build bundled no JavaScript, as a debug build served by the development server does. Wrote ${resourceFilePath} without an embedded bundle: over-the-air (OTA) updates are off in this build.\n`,
+      printNotice(
+        `No binary created: the ${platform} build bundled no JavaScript, as a debug build served by the development server does. Wrote ${resourceFilePath} without an embedded bundle: over-the-air (OTA) updates are off in this build.`,
       );
       if (options.json) {
         printJson({ binary: null, resourceFilePath, upload: NO_UPLOAD });
@@ -117,7 +119,7 @@ export default defineCommand({
       throw binaryCreation.pipelineFailure;
     }
     if (binaryCreation.skippedReason !== null) {
-      process.stderr.write(`Warning: ${binaryCreation.skippedReason}\n`);
+      printWarning(binaryCreation.skippedReason);
     }
     if (options.json) {
       printJson({
@@ -173,7 +175,7 @@ async function createBuildBinary(
     return {
       binary: null,
       channelId: null,
-      skippedReason: `the channel could not be resolved, so the build names none and takes no OTA updates, and no binary was created: ${resolveFailureText(error)}`,
+      skippedReason: `The channel could not be resolved, so the build names none and takes no OTA updates, and no binary was created: ${resolveFailureText(error)}`,
       upload: NO_UPLOAD,
     };
   }
@@ -191,7 +193,7 @@ async function createBuildBinary(
     return {
       binary: null,
       channelId,
-      skippedReason: `the binary was not created: ${resolveFailureText(error)}`,
+      skippedReason: `The binary was not created: ${resolveFailureText(error)}`,
       upload: NO_UPLOAD,
     };
   }
@@ -276,14 +278,14 @@ function resolveOfflineText(
   const causeText =
     offlineCause === 'offline-switch'
       ? 'HOTCODEPUSH_OFFLINE is set'
-      : 'not logged in';
+      : 'Not logged in';
   const consequenceText =
     channelId === null
-      ? ': it names no channel and takes no OTA updates until it is built with a token, and no binary was created'
+      ? '. It names no channel and takes no OTA updates until it is built with a token, and no binary was created'
       : ' and no binary was created';
   const fixText =
     offlineCause === 'offline-switch'
       ? ''
-      : '; run "hotcodepush login" or set HOTCODEPUSH_TOKEN';
+      : '. Run "hotcodepush login" or set HOTCODEPUSH_TOKEN';
   return `${causeText}, so the build was made offline${consequenceText}${fixText}.`;
 }

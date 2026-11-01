@@ -47,7 +47,7 @@ export const channelOptionShape = {
     .string()
     .optional()
     .describe(
-      "The channel, by id or name; hotcodepush.json's channel by default.",
+      "The channel, by id or name. Defaults to hotcodepush.json's channel.",
     ),
 };
 

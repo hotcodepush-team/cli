@@ -20,7 +20,11 @@ import {
 } from '../../utils/errors.js';
 import ssoProviderSetCommand from './set.js';
 
-vi.mock('@clack/prompts');
+vi.mock('@clack/prompts', () =>
+  import('../../../test/clack-prompts.js').then(
+    ({ clackPromptsMock }) => clackPromptsMock,
+  ),
+);
 
 const SSO_PROVIDER_PATH = `/v1/organizations/${ACME_ORGANIZATION.id}/sso-provider`;
 

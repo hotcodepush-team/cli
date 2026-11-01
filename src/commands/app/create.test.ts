@@ -12,7 +12,11 @@ import {
 import { MissingParameterError } from '../../utils/errors.js';
 import appCreateCommand from './create.js';
 
-vi.mock('@clack/prompts');
+vi.mock('@clack/prompts', () =>
+  import('../../../test/clack-prompts.js').then(
+    ({ clackPromptsMock }) => clackPromptsMock,
+  ),
+);
 
 describe('app create', () => {
   const harness = useCommandHarness();

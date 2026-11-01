@@ -3,13 +3,13 @@ import {
   ProjectConfigurationSchema,
   resolveSigningKeyId,
 } from '@hotcodepush/protocol';
-import { defineCommand } from 'zodline';
 import {
   INIT_MANUAL_STEP,
   PACKAGE_JSON,
   PROJECT_CONFIG_FILE_NAME,
 } from '../config/consts.js';
 import { createApiClient } from '../utils/api-client.js';
+import { defineCommand } from '../utils/command.js';
 import {
   fetchCurrentUser,
   isUnauthenticatedError,
@@ -85,6 +85,7 @@ const PROBE_TIMEOUT_MS = 5000;
 export default defineCommand({
   description:
     'Check the project: its configuration, the hook wiring, the signing key, the hosts and the versions a bug report needs.',
+  authentication: 'optional',
   examples: ['hotcodepush doctor', 'hotcodepush doctor --json'],
   options: defineCommandOptions({}),
   action: async options => {

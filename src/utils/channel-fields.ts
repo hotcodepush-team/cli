@@ -86,13 +86,13 @@ export const channelFieldsShape = {
   discoverable: booleanFlagSchema
     .optional()
     .describe(
-      "Whether the app's setChannel finds the channel by its name; pass false to turn it off.",
+      "Whether the app's setChannel finds the channel by its name. Pass false to turn it off.",
     ),
   expiresAt: z
     .string()
     .optional()
     .describe(
-      'When the preview channel expires, an ISO 8601 timestamp; not on protected or default channels.',
+      'When the preview channel expires, an ISO 8601 timestamp. Protected and default channels have none.',
     ),
   expiresIn: z
     .string()
@@ -106,7 +106,7 @@ export const channelFieldsShape = {
   protected: booleanFlagSchema
     .optional()
     .describe(
-      'Whether only Owners and Admins change what the channel serves; pass false to turn it off.',
+      'Whether only Owners and Admins change what the channel serves. Pass false to turn it off.',
     ),
 };
 

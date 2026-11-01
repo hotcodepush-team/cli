@@ -15,7 +15,11 @@ import {
 } from '../../utils/errors.js';
 import organizationUpdateCommand from './update.js';
 
-vi.mock('@clack/prompts');
+vi.mock('@clack/prompts', () =>
+  import('../../../test/clack-prompts.js').then(
+    ({ clackPromptsMock }) => clackPromptsMock,
+  ),
+);
 
 const GLOBEX_PATH = `/v1/organizations/${GLOBEX_ORGANIZATION.id}`;
 

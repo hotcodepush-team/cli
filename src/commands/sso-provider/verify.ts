@@ -1,6 +1,6 @@
 import type { SsoProvider } from '@hotcodepush/node';
-import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
+import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
 import { fetchOrganizationId } from '../../utils/resource-resolution.js';
@@ -35,5 +35,5 @@ function resolveVerificationText({
 }: SsoProvider): string {
   return domainVerified
     ? `Verified ${domain}.`
-    : `No TXT record verifies ${domain} yet; a new record can take a while to appear.`;
+    : `No TXT record verifies ${domain} yet. A new record can take a while to appear.`;
 }

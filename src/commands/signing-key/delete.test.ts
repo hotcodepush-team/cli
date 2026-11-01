@@ -16,7 +16,11 @@ import {
 } from '../../utils/errors.js';
 import signingKeyDeleteCommand from './delete.js';
 
-vi.mock('@clack/prompts');
+vi.mock('@clack/prompts', () =>
+  import('../../../test/clack-prompts.js').then(
+    ({ clackPromptsMock }) => clackPromptsMock,
+  ),
+);
 
 const SIGNING_KEYS_PATH = `/v1/apps/${DEMO_APP.id}/signing-keys`;
 

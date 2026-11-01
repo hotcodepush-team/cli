@@ -1,12 +1,12 @@
 import type { Channel } from '@hotcodepush/node';
 import { HotCodePushError } from '@hotcodepush/node';
 import { z } from 'zod';
-import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
 import {
   channelFieldsShape,
   resolveChannelFields,
 } from '../../utils/channel-fields.js';
+import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
 import { readProjectConfig } from '../../utils/project-config.js';

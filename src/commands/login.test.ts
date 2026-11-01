@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { setTimeout } from 'node:timers/promises';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { resolveDiagnosticText } from '../../test/diagnostics.js';
 import { PACKAGE_JSON } from '../config/consts.js';
 import { openBrowser } from '../utils/browser.js';
 import { runCli } from '../utils/cli.js';
@@ -36,8 +37,14 @@ const DEVICE_AUTHORIZATION = {
     'https://console.example.com/device?user_code=WDJBMJHT',
 };
 
+const SESSION_EXPIRES_AT = '2099-01-01T00:00:00.000Z';
+
 const SESSION = {
-  session: { id: 'session-1', userId: 'user-1' },
+  session: {
+    expiresAt: SESSION_EXPIRES_AT,
+    id: 'session-1',
+    userId: 'user-1',
+  },
   user: { email: 'anna@example.com', id: 'user-1', name: 'Anna Example' },
 };
 
@@ -79,6 +86,15 @@ function runLogin(flags: string[]) {
 describe('login', () => {
   let configHomePath: string;
   const fetchMock = vi.fn<typeof fetch>();
+
+  function readDiagnostics(): string {
+    return resolveDiagnosticText(
+      vi
+        .mocked(process.stderr.write)
+        .mock.calls.map(([chunk]) => String(chunk))
+        .join(''),
+    );
+  }
 
   function readRequests(): Request[] {
     return fetchMock.mock.calls.map(
@@ -123,12 +139,13 @@ describe('login', () => {
     expect(keyring.setPassword).toHaveBeenCalledWith('session-token-1');
     expect(readUserConfig()).toEqual({
       apiUrl: API_URL,
+      sessionExpiresAt: SESSION_EXPIRES_AT,
       sessionId: 'session-1',
     });
     expect(openBrowser).toHaveBeenCalledWith(
       DEVICE_AUTHORIZATION.verification_uri_complete,
     );
-    expect(process.stderr.write).toHaveBeenCalledWith(
+    expect(readDiagnostics()).toBe(
       'Open https://console.example.com/device?user_code=WDJBMJHT and approve the code WDJBMJHT.\nWaiting for the approval…\n',
     );
     expect(console.log).toHaveBeenCalledWith(
@@ -281,6 +298,7 @@ describe('login', () => {
     });
     expect(readUserConfig()).toEqual({
       apiUrl: API_URL,
+      sessionExpiresAt: SESSION_EXPIRES_AT,
       sessionId: 'session-1',
     });
   });
@@ -307,6 +325,7 @@ describe('login', () => {
     expect(exitCode).toBe(0);
     expect(readUserConfig()).toEqual({
       apiUrl: API_URL,
+      sessionExpiresAt: SESSION_EXPIRES_AT,
       sessionId: 'session-1',
     });
     expect(readRequests()[0]?.url).toBe(`${API_URL}/v1/auth/device/code`);
@@ -331,6 +350,7 @@ describe('login', () => {
       expect(storedUserConfig).toEqual({ apiUrl: OTHER_API_URL });
       expect(readUserConfig()).toEqual({
         apiUrl: OTHER_API_URL,
+        sessionExpiresAt: SESSION_EXPIRES_AT,
         sessionId: 'session-1',
       });
       expect(readRequests().map(request => request.url)).toEqual([
@@ -420,6 +440,7 @@ describe('login', () => {
       expect(keyring.setPassword).toHaveBeenCalledWith('session-token-1');
       expect(readUserConfig()).toEqual({
         apiUrl: API_URL,
+        sessionExpiresAt: SESSION_EXPIRES_AT,
         sessionId: 'session-1',
       });
       const [, tokenRequest, sessionRequest] = readRequests();
@@ -514,7 +535,7 @@ describe('login', () => {
 
       await loginCommand.action({}, undefined);
 
-      expect(process.stderr.write).toHaveBeenCalledWith(
+      expect(readDiagnostics()).toBe(
         `Open ${KEPT_VERIFICATION_URL} and approve the code KEPTCODE.\nWaiting for the approval…\n`,
       );
       expect(openBrowser).toHaveBeenCalledWith(KEPT_VERIFICATION_URL);
@@ -528,6 +549,7 @@ describe('login', () => {
       }
       expect(readUserConfig()).toEqual({
         apiUrl: API_URL,
+        sessionExpiresAt: SESSION_EXPIRES_AT,
         sessionId: 'session-1',
       });
     });

@@ -1,9 +1,9 @@
-import { inspect, stripVTControlCharacters, styleText } from 'node:util';
+import { inspect, stripVTControlCharacters } from 'node:util';
 import { HotCodePushError } from '@hotcodepush/node';
 import { ZodError } from 'zod';
 import { ZodlineError } from 'zodline';
 import { ERRORS_DOCS_URL } from '../config/consts.js';
-import { isColorEnabled } from './environment.js';
+import { printError as printErrorDiagnostic } from './diagnostics.js';
 import {
   ApiError,
   CliError,
@@ -33,10 +33,6 @@ export interface ErrorJson {
   };
 }
 
-interface ErrorLinesOptions {
-  isColorEnabled: boolean;
-}
-
 interface PrintErrorOptions {
   isJson: boolean;
   isVerbose: boolean;
@@ -55,19 +51,13 @@ export function resolveSentence(message: string): string {
   return SENTENCE_END_PATTERN.test(message) ? message : `${message}.`;
 }
 
+export function resolveErrorDocsUrl({ code }: CliError): string {
+  return `${ERRORS_DOCS_URL}#${code}`;
+}
+
 // An API error message says what to do itself, so it has no fix.
-export function buildErrorLines(
-  { code, fix, message }: CliError,
-  options: ErrorLinesOptions,
-): string[] {
-  const sentence = fix === null ? message : resolveSentence(message);
-  const styledSentence = options.isColorEnabled
-    ? styleText('red', sentence, { validateStream: false })
-    : sentence;
-  return [
-    fix === null ? styledSentence : `${styledSentence} ${fix}`,
-    `${ERRORS_DOCS_URL}#${code}`,
-  ];
+export function resolveErrorSentences({ fix, message }: CliError): string[] {
+  return fix === null ? [message] : [resolveSentence(message), fix];
 }
 
 export function printError(
@@ -80,10 +70,10 @@ export function printError(
   if (isJson) {
     printJson(buildErrorJson(cliError));
   } else {
-    const errorLines = buildErrorLines(cliError, {
-      isColorEnabled: isColorEnabled(process.stderr),
+    printErrorDiagnostic({
+      docsUrl: resolveErrorDocsUrl(cliError),
+      sentences: resolveErrorSentences(cliError),
     });
-    process.stderr.write(`${errorLines.join('\n')}\n`);
   }
 }
 

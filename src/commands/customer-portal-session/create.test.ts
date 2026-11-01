@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   respondWithApiError,
   useCommandHarness,
@@ -46,9 +46,6 @@ describe('customer-portal-session create', () => {
   });
 
   it("should pass the API's `validation` error through when the organization never subscribed", async () => {
-    const stderrWrite = vi
-      .spyOn(process.stderr, 'write')
-      .mockImplementation(() => true);
     harness.routes[`POST ${CUSTOMER_PORTAL_SESSIONS_PATH}`] = () =>
       respondWithApiError(
         400,
@@ -70,7 +67,7 @@ describe('customer-portal-session create', () => {
     );
 
     expect(exitCode).toBe(1);
-    expect(stderrWrite).toHaveBeenCalledWith(
+    expect(harness.readDiagnostics()).toBe(
       'The organization has no subscription, so it has no customer portal.\nhttps://hotcodepush.com/docs/cli/errors#validation\n',
     );
   });

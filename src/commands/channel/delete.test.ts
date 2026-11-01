@@ -15,7 +15,11 @@ import {
 } from '../../utils/errors.js';
 import channelDeleteCommand from './delete.js';
 
-vi.mock('@clack/prompts');
+vi.mock('@clack/prompts', () =>
+  import('../../../test/clack-prompts.js').then(
+    ({ clackPromptsMock }) => clackPromptsMock,
+  ),
+);
 
 const CHANNEL_PATH = `/v1/apps/${DEMO_APP.id}/channels/${STAGING_CHANNEL.id}`;
 
@@ -93,7 +97,7 @@ describe('channel delete', () => {
 
     expect(readDeleteRequests()).toEqual([]);
     expect(harness.readLines()).toEqual([
-      'The channel does not exist; nothing to delete.',
+      'The channel does not exist. There is nothing to delete.',
     ]);
   });
 

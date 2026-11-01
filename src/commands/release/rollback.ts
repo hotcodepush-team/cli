@@ -1,8 +1,8 @@
 import type { Release } from '@hotcodepush/node';
 import { z } from 'zod';
-import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
 import { booleanFlagSchema } from '../../utils/boolean-flag.js';
+import { defineCommand } from '../../utils/command.js';
 import { InvalidParameterError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
@@ -31,13 +31,13 @@ export default defineCommand({
     mandatory: booleanFlagSchema
       .optional()
       .describe(
-        'Devices apply the rollback at once and restart, the default for an incident fix; pass false to let them wait.',
+        'Devices apply the rollback at once and restart, the default for an incident fix. Pass false to let them wait.',
       ),
     toRelease: z
       .string()
       .optional()
       .describe(
-        "The release whose bundle comes back, by number or id; the channel's previous one by default.",
+        "The release whose bundle comes back, by number or id. Defaults to the channel's previous one.",
       ),
   }),
   action: async options => {

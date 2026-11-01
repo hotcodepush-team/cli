@@ -1,6 +1,7 @@
 import { stripVTControlCharacters } from 'node:util';
 import type { DefineConfig } from 'zodline';
 import { defineConfig, processConfig } from 'zodline';
+import { ensureAuthentication } from './authentication.js';
 import type { CommandRegistry } from './command-registry.js';
 import { loadCommands, resolveInvocation } from './command-registry.js';
 import { isColorEnabled } from './environment.js';
@@ -94,6 +95,12 @@ async function runCommandLine(
     const { args, command, options } = isColorEnabled(process.stdout)
       ? processConfig(config, invocation.argv)
       : processConfigWithoutColor(config, invocation.argv);
+    if (
+      commandName !== undefined &&
+      commands[commandName]?.authentication === 'required'
+    ) {
+      await ensureAuthentication(options);
+    }
     await command.action(options, args);
     return { cliError: undefined, commandName };
   } catch (error) {

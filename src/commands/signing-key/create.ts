@@ -2,12 +2,12 @@ import { existsSync, rmSync, statSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { generateSigningKeyPair } from '@hotcodepush/protocol';
 import { z } from 'zod';
-import { defineCommand } from 'zodline';
 import {
   PROJECT_CONFIG_FILE_NAME,
   SIGNING_PRIVATE_KEY_FILE_NAME,
 } from '../../config/consts.js';
 import { createApiClient } from '../../utils/api-client.js';
+import { defineCommand } from '../../utils/command.js';
 import { InvalidParameterError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
@@ -20,7 +20,7 @@ import { fetchAppId } from '../../utils/resource-resolution.js';
 import { writeSigningPrivateKeyFile } from '../../utils/signing-private-key.js';
 
 export const UPLOAD_SIGNING_TEXT =
-  "Uploads sign with it through --private-key-path; in CI, set HOTCODEPUSH_SIGNING_KEY to the file's content.";
+  "Uploads sign with it through --private-key-path. In CI, set HOTCODEPUSH_SIGNING_KEY to the file's content.";
 
 export default defineCommand({
   description:

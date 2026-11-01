@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { Command } from '../command-registry.js';
+import type { Command } from '../command.js';
 import { resolveFlagName } from '../flag-name.js';
 
 export interface CompletionCommand {

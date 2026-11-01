@@ -1,8 +1,5 @@
-import type { CommandDefinition } from 'zodline';
+import type { Command } from './command.js';
 import { UnknownCommandError } from './errors.js';
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- A narrower type rejects zodline commands with options or args.
-export type Command = CommandDefinition<any, any>;
 
 export type CommandRegistry = Record<
   string,

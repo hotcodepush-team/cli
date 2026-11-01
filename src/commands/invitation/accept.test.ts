@@ -15,7 +15,12 @@ import { runCli } from '../../utils/cli.js';
 import { MissingParameterError } from '../../utils/errors.js';
 import invitationAcceptCommand from './accept.js';
 
-vi.mock('@clack/prompts');
+// Keeps clack's `log` real, so the diagnostics reach stderr.
+vi.mock('@clack/prompts', () =>
+  import('../../../test/clack-prompts.js').then(
+    ({ clackPromptsMock }) => clackPromptsMock,
+  ),
+);
 
 const ACCEPT_PATH = `/v1/invitations/${PENDING_INVITATION.id}/accept`;
 
@@ -107,9 +112,6 @@ describe('invitation accept', () => {
   });
 
   it("should pass the API's refusal of a used invitation through with its code in the docs link", async () => {
-    const stderrWrite = vi
-      .spyOn(process.stderr, 'write')
-      .mockImplementation(() => true);
     harness.routes[`POST ${ACCEPT_PATH}`] = () =>
       respondWithApiError(
         410,
@@ -131,7 +133,7 @@ describe('invitation accept', () => {
     );
 
     expect(exitCode).toBe(1);
-    expect(stderrWrite).toHaveBeenCalledWith(
+    expect(harness.readDiagnostics()).toBe(
       'The invitation is no longer valid.\nhttps://hotcodepush.com/docs/cli/errors#invitation_invalid\n',
     );
   });

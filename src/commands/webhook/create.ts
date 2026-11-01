@@ -1,7 +1,7 @@
 import type { CreatedWebhook, CreateWebhookOptions } from '@hotcodepush/node';
 import { z } from 'zod';
-import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
+import { defineCommand } from '../../utils/command.js';
 import type { InteractivityOptions } from '../../utils/environment.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
@@ -20,7 +20,7 @@ const WEBHOOK_FORMATS = ['raw', 'slack', 'discord', 'teams'] as const;
 
 export default defineCommand({
   description:
-    "Create a webhook that posts the organization's events to a URL, as signed JSON or as a Slack, Discord or Teams message; a raw webhook's secret is printed this once.",
+    "Create a webhook that posts the organization's events to a URL, as signed JSON or as a Slack, Discord or Teams message. A raw webhook's secret is printed this once.",
   examples: [
     'hotcodepush webhook create --name releases --url https://example.com/hooks/hotcodepush --format raw --event release.created --event release.paused',
     'hotcodepush webhook create --name team-chat --url https://chat.example.com/incoming/team --format slack --event release.failure_rate_exceeded --app "My App" --json',
@@ -88,7 +88,7 @@ function printCreatedWebhook(webhook: CreatedWebhook): void {
   }
   console.log(`Secret: ${webhook.secret}`);
   console.log(
-    'Store the secret now to verify the signature of every delivery; it is never shown again.',
+    'Store the secret now to verify the signature of every delivery. It is never shown again.',
   );
 }
 

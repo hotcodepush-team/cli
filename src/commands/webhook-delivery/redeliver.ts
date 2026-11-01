@@ -1,7 +1,7 @@
 import type { WebhookDelivery } from '@hotcodepush/node';
 import { z } from 'zod';
-import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
+import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
 import { confirmConsequence, promptText } from '../../utils/prompts.js';
@@ -12,7 +12,7 @@ import {
 
 export default defineCommand({
   description:
-    "Deliver a webhook's event again, once, and print the receiver's answer; a pending delivery is taken from the retries.",
+    "Deliver a webhook's event again, once, and print the receiver's answer. A pending delivery is taken from the retries.",
   examples: [
     'hotcodepush webhook-delivery redeliver --webhook releases --delivery 9a4f2e71-3b8c-4d65-b1e7-0c2d5f8a6e93',
     'hotcodepush webhook-delivery redeliver --webhook releases --delivery 9a4f2e71-3b8c-4d65-b1e7-0c2d5f8a6e93 --yes --json',

@@ -1,5 +1,5 @@
 import { computeFingerprint } from '@hotcodepush/protocol/fingerprint';
-import { defineCommand } from 'zodline';
+import { defineCommand } from '../utils/command.js';
 import { readProjectFingerprintContributors } from '../utils/fingerprint.js';
 import { defineCommandOptions } from '../utils/global-options.js';
 import { printJson, printTable } from '../utils/output.js';
@@ -7,7 +7,8 @@ import { locateProjectConfig } from '../utils/project-config.js';
 
 export default defineCommand({
   description:
-    "Print the project's native fingerprint with the packages and the files under the extra fingerprint paths that contribute to it; local, no login.",
+    "Print the project's native fingerprint with the packages and the files under the extra fingerprint paths that contribute to it. Runs locally without a login.",
+  authentication: 'optional',
   examples: [
     'hotcodepush fingerprint',
     'hotcodepush fingerprint --json > fingerprint.json',

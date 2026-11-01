@@ -16,8 +16,8 @@ import {
   evaluateChannelIndex,
 } from '@hotcodepush/protocol';
 import { z } from 'zod';
-import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
+import { defineCommand } from '../../utils/command.js';
 import { deviceOptionShape } from '../../utils/device-resolution.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { resolveFilesBaseUrl } from '../../utils/hosts.js';
@@ -200,7 +200,7 @@ export default defineCommand({
         'Unknown',
         unknownFacts.length === 0
           ? 'nothing'
-          : `${unknownFacts.join(', ')}, treated as passing; pass --device for the facts of a real device`,
+          : `${unknownFacts.join(', ')}, treated as passing. Pass --device for the facts of a real device.`,
       ],
     ]);
     if (evaluation !== null && servedIndex.index !== null) {
@@ -349,7 +349,7 @@ function resolveOutcomeText({ outcome }: ChannelIndexEvaluation): string {
 // The index sequence is the publish time in milliseconds.
 function resolveServedIndexText({ index, status, url }: ServedIndex): string {
   return index === null
-    ? `none: HTTP ${status} at ${url}; a device gets no release`
+    ? `none: HTTP ${status} at ${url}, so a device gets no release`
     : `published ${new Date(index.sequence).toISOString()}`;
 }
 

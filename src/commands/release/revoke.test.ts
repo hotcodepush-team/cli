@@ -24,7 +24,12 @@ import {
 import { ConfirmationRequiredError } from '../../utils/errors.js';
 import releaseRevokeCommand from './revoke.js';
 
-vi.mock('@clack/prompts');
+// Keeps clack's `log` real, so the diagnostics reach stderr.
+vi.mock('@clack/prompts', () =>
+  import('../../../test/clack-prompts.js').then(
+    ({ clackPromptsMock }) => clackPromptsMock,
+  ),
+);
 
 const OLDEST_RELEASE = {
   ...PREVIOUS_RELEASE,
@@ -48,12 +53,8 @@ const REVOKED_RELEASE = { ...LIVE_RELEASE, status: 'revoked' as const };
 
 describe('release revoke', () => {
   const harness = useCommandHarness();
-  let stderrWrite: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    stderrWrite = vi
-      .spyOn(process.stderr, 'write')
-      .mockImplementation(() => true);
     respondWithStagingReleases(harness);
     harness.routes[`POST ${RELEASES_PATH}/${LIVE_RELEASE.id}/revoke`] = () =>
       Response.json(REVOKED_RELEASE);
@@ -183,8 +184,8 @@ describe('release revoke', () => {
         'revokes release #43 of staging for good: 80 devices move to release #41. Revoked is final, and "release create --bundle 17" releases its bundle again',
       ),
     );
-    expect(stderrWrite).toHaveBeenCalledWith(
-      'Warning: release #42 of staging is paused, so the devices that would land on it land one further back\n',
+    expect(harness.readDiagnostics()).toBe(
+      'release #42 of staging is paused, so the devices that would land on it land one further back\n',
     );
   });
 

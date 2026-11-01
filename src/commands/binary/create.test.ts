@@ -60,7 +60,6 @@ const INDEX_SHA256 = createHash('sha256').update(INDEX_HTML).digest('hex');
 describe('binary create', () => {
   const harness = useCommandHarness();
   let projectDirectoryPath = '';
-  let stderrWrite: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     projectDirectoryPath = mkdtempSync(
@@ -88,9 +87,6 @@ describe('binary create', () => {
     mkdirSync(join(projectDirectoryPath, 'dist'));
     writeFileSync(join(projectDirectoryPath, 'dist', 'index.html'), INDEX_HTML);
     writeFingerprintInputs(projectDirectoryPath);
-    stderrWrite = vi
-      .spyOn(process.stderr, 'write')
-      .mockImplementation(() => true);
     respondWithChannels(harness);
   });
 
@@ -347,7 +343,7 @@ describe('binary create', () => {
 
   describe('when the build does not reach the API', () => {
     const NO_CHANNEL_TEXT =
-      'it names no channel and takes no OTA updates until it is built with a token, and no binary was created';
+      'It names no channel and takes no OTA updates until it is built with a token, and no binary was created';
 
     function writeChannelById(): string {
       const configPath = join(projectDirectoryPath, 'hotcodepush.json');
@@ -383,11 +379,9 @@ describe('binary create', () => {
         embeddedBundleId: null,
         fingerprint: CAPACITOR_FINGERPRINT,
       });
-      expect(stderrWrite.mock.calls).toEqual([
-        [
-          `Warning: HOTCODEPUSH_OFFLINE is set, so the build was made offline: ${NO_CHANNEL_TEXT}.\n`,
-        ],
-      ]);
+      expect(harness.readDiagnostics()).toBe(
+        `HOTCODEPUSH_OFFLINE is set, so the build was made offline. ${NO_CHANNEL_TEXT}.\n`,
+      );
     });
 
     it('should write the listed public keys for the platform it builds, PKCS #1 on iOS and SPKI on Android, each with its key id', async () => {
@@ -435,8 +429,8 @@ describe('binary create', () => {
       expect(readResourceFile('build/ios/hotcodepush.json')).toMatchObject({
         channelId: PRODUCTION_CHANNEL.id,
       });
-      expect(stderrWrite).toHaveBeenCalledWith(
-        'Warning: HOTCODEPUSH_OFFLINE is set, so the build was made offline and no binary was created.\n',
+      expect(harness.readDiagnostics()).toBe(
+        'HOTCODEPUSH_OFFLINE is set, so the build was made offline and no binary was created.\n',
       );
     });
 
@@ -450,11 +444,9 @@ describe('binary create', () => {
         channelId: null,
         embeddedBundleId: null,
       });
-      expect(stderrWrite.mock.calls).toEqual([
-        [
-          `Warning: not logged in, so the build was made offline: ${NO_CHANNEL_TEXT}; run "hotcodepush login" or set HOTCODEPUSH_TOKEN.\n`,
-        ],
-      ]);
+      expect(harness.readDiagnostics()).toBe(
+        `Not logged in, so the build was made offline. ${NO_CHANNEL_TEXT}. Run "hotcodepush login" or set HOTCODEPUSH_TOKEN.\n`,
+      );
     });
 
     it('should fail with `not_logged_in` in CI without a token, naming HOTCODEPUSH_TOKEN and HOTCODEPUSH_OFFLINE, after writing the resource file', async () => {
@@ -483,11 +475,9 @@ describe('binary create', () => {
         channelId: null,
         embeddedBundleId: null,
       });
-      expect(stderrWrite.mock.calls).toEqual([
-        [
-          'Warning: the channel could not be resolved, so the build names none and takes no OTA updates, and no binary was created: forbidden You are not a member.\n',
-        ],
-      ]);
+      expect(harness.readDiagnostics()).toBe(
+        'The channel could not be resolved, so the build names none and takes no OTA updates, and no binary was created: forbidden You are not a member.\n',
+      );
       expect(
         harness.requests.filter(({ method }) => method === 'POST'),
       ).toEqual([]);
@@ -538,8 +528,8 @@ describe('binary create', () => {
       channelId: PRODUCTION_CHANNEL.id,
       embeddedBundleId: null,
     });
-    expect(stderrWrite).toHaveBeenCalledWith(
-      'Warning: the binary was not created: fetch failed\n',
+    expect(harness.readDiagnostics()).toBe(
+      'The binary was not created: fetch failed\n',
     );
 
     rmSync(join(projectDirectoryPath, 'build'), { recursive: true });
@@ -574,7 +564,7 @@ describe('binary create', () => {
     };
 
     await binaryCreateCommand.action(options, undefined);
-    expect(stderrWrite).toHaveBeenCalledWith(
+    expect(harness.readDiagnostics()).toEqual(
       expect.stringContaining('binary_conflict'),
     );
     expect(readResourceFile('build/ios/hotcodepush.json')).toMatchObject({
@@ -719,11 +709,9 @@ describe('binary create', () => {
           embeddedBundleManifest: null,
           fingerprint: REACT_NATIVE_FINGERPRINT,
         });
-        expect(stderrWrite.mock.calls).toEqual([
-          [
-            `No binary created: the ios build bundled no JavaScript, as a debug build served by the development server does. Wrote ${join(appDirectoryPath, 'hotcodepush.json')} without an embedded bundle: over-the-air (OTA) updates are off in this build.\n`,
-          ],
-        ]);
+        expect(harness.readDiagnostics()).toBe(
+          `No binary created: the ios build bundled no JavaScript, as a debug build served by the development server does. Wrote ${join(appDirectoryPath, 'hotcodepush.json')} without an embedded bundle: over-the-air (OTA) updates are off in this build.\n`,
+        );
       });
 
       it('should name the channel in it when the project names it by id', async () => {

@@ -8,6 +8,7 @@ import {
   POSTHOG_PROJECT_KEY,
   SENTRY_DSN,
 } from '../config/consts.js';
+import { printNotice } from './diagnostics.js';
 import { isCi } from './environment.js';
 import type { CliError } from './errors.js';
 import {
@@ -34,7 +35,7 @@ const COMMAND_FINISHED_EVENT = 'cli.command_finished';
 const STACK_FRAME_PATTERN = /^\s*at (?:(.+?) \()?(.+?):(\d+):(\d+)\)?$/;
 
 const TELEMETRY_NOTICE =
-  'HotCodePush collects anonymous usage and error data to improve the CLI; set HOTCODEPUSH_TELEMETRY_DISABLED=1 to opt out.';
+  'HotCodePush collects anonymous usage and error data to improve the CLI. Set HOTCODEPUSH_TELEMETRY_DISABLED=1 to opt out.';
 
 // The longest telemetry may delay the exit, requests included.
 const TELEMETRY_TIMEOUT_MS = 1500;
@@ -57,7 +58,7 @@ export function printTelemetryNotice(): void {
     if (userConfig.telemetryNoticeShownAt !== undefined) {
       return;
     }
-    process.stderr.write(`${TELEMETRY_NOTICE}\n`);
+    printNotice(TELEMETRY_NOTICE);
     writeUserConfig({
       ...userConfig,
       telemetryNoticeShownAt: new Date().toISOString(),

@@ -2,6 +2,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { resolveDiagnosticText } from '../../test/diagnostics.js';
 import { PACKAGE_JSON } from '../config/consts.js';
 import {
   isNewerVersion,
@@ -99,11 +100,13 @@ describe('update notice', () => {
 
       printUpdateNotice();
 
-      expect(stderrWrite.mock.calls).toEqual([
-        [
-          `HotCodePush CLI 1.2.0 is available; you run ${PACKAGE_JSON.version}.\n`,
-        ],
-      ]);
+      expect(
+        resolveDiagnosticText(
+          stderrWrite.mock.calls.map(([chunk]) => String(chunk)).join(''),
+        ),
+      ).toBe(
+        `HotCodePush CLI 1.2.0 is available. You run ${PACKAGE_JSON.version}.\n`,
+      );
     });
 
     it('should print nothing when the version known is the one running', () => {

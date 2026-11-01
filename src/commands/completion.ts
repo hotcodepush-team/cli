@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { defineCommand } from 'zodline';
+import { defineCommand } from '../utils/command.js';
 import {
   COMPLETION_SHELLS,
   readCompletionScript,
@@ -16,6 +16,7 @@ const ShellSchema = z.enum(COMPLETION_SHELLS);
 export default defineCommand({
   description:
     'Print the completion script for <shell>, bash, fish or zsh: eval "$(hotcodepush completion <shell>)" loads it from ~/.bashrc, or from ~/.zshrc after compinit, and fish loads it saved as ~/.config/fish/completions/hotcodepush.fish.',
+  authentication: 'optional',
   examples: [
     'eval "$(hotcodepush completion zsh)"',
     'hotcodepush completion fish > ~/.config/fish/completions/hotcodepush.fish',

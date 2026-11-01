@@ -3,13 +3,13 @@ import { basename, join } from 'node:path';
 import type { App, HotCodePush, Organization } from '@hotcodepush/node';
 import { HotCodePushError } from '@hotcodepush/node';
 import { z } from 'zod';
-import { defineCommand } from 'zodline';
 import {
   DOCS_URL,
   PROJECT_CONFIG_FILE_NAME,
   SIGNING_PRIVATE_KEY_FILE_NAME,
 } from '../config/consts.js';
 import { createApiClient } from '../utils/api-client.js';
+import { defineCommand } from '../utils/command.js';
 import {
   fetchCurrentUser,
   isUnauthenticatedError,
@@ -37,6 +37,7 @@ import { resolveConsoleBaseUrl } from '../utils/hosts.js';
 import type { StepOutcome } from '../utils/init-steps.js';
 import { InitRun, resolveStepRows } from '../utils/init-steps.js';
 import { stringifyLikeSource } from '../utils/json-file.js';
+import { logIn } from '../utils/login.js';
 import { printOutcomeRows } from '../utils/outcome.js';
 import { printJson } from '../utils/output.js';
 import type { PackageJson } from '../utils/package-json.js';
@@ -70,7 +71,6 @@ import {
 } from '../utils/resource-resolution.js';
 import { isEnvironmentToken, readToken } from '../utils/token-store.js';
 import { readApiUrl } from '../utils/user-config.js';
-import { logIn } from './login.js';
 import releaseCreateCommand from './release/create.js';
 import signingKeyCreateCommand from './signing-key/create.js';
 
@@ -103,6 +103,7 @@ const CREATE_CHOICE = 'create';
 export default defineCommand({
   description:
     'Set a React Native, Expo, Capacitor or Cordova project up from sign-in to the first release, re-runnable at any step.',
+  authentication: 'optional',
   examples: ['hotcodepush init', 'hotcodepush init --yes --json'],
   options: defineCommandOptions({
     androidPath: z
@@ -652,7 +653,7 @@ function printFinish(
   console.log('');
   console.log(
     isReleased
-      ? `Build the app natively once and run it; change a line, run the build and "${resolveReleaseCommandText(privateKeyPath)}", then reopen the app.`
+      ? `Build the app natively once and run it. Change a line, run the build and "${resolveReleaseCommandText(privateKeyPath)}", then reopen the app.`
       : 'Build the app natively once and run it, then publish the first release as shown above.',
   );
   console.log(`Console: ${resolveConsoleBaseUrl(readApiUrl())}/apps/${app.id}`);

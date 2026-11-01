@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, vi } from 'vitest';
 import type { ProjectConfig } from '../src/utils/project-config.js';
 import { readUserConfig, writeUserConfig } from '../src/utils/user-config.js';
+import { resolveDiagnosticText } from './diagnostics.js';
 
 // Keyed by method and path, with the query where it matters, such as `GET /v1/organizations?limit=2`.
 // Any other request gets a 404.
@@ -13,6 +14,7 @@ export type Routes = Record<
 >;
 
 export interface CommandHarness {
+  readDiagnostics: () => string;
   readJson: () => unknown;
   readLines: () => string[];
   requests: Request[];
@@ -49,6 +51,7 @@ export function stubInteractiveTerminal(): void {
 export function useCommandHarness(): CommandHarness {
   let temporaryDirectoryPath = '';
   const harness: CommandHarness = {
+    readDiagnostics: () => '',
     readJson: () => undefined,
     readLines: () => [],
     requests: [],
@@ -84,9 +87,16 @@ export function useCommandHarness(): CommandHarness {
     const consoleLog = vi
       .spyOn(console, 'log')
       .mockImplementation(() => undefined);
+    const stderrWrite = vi
+      .spyOn(process.stderr, 'write')
+      .mockImplementation(() => true);
     const stdoutWrite = vi
       .spyOn(process.stdout, 'write')
       .mockImplementation(() => true);
+    harness.readDiagnostics = () =>
+      resolveDiagnosticText(
+        stderrWrite.mock.calls.map(([chunk]) => String(chunk)).join(''),
+      );
     harness.readJson = () =>
       JSON.parse(stdoutWrite.mock.calls.map(([chunk]) => chunk).join(''));
     harness.readLines = () =>

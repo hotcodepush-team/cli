@@ -105,7 +105,7 @@ describe('signing-key create', () => {
       'Added to publicKeys in hotcodepush.json.',
       `Wrote the private key to ${keyFilePath}.`,
       "Keep the file out of version control: whoever holds it can sign the app's bundles.",
-      "Uploads sign with it through --private-key-path; in CI, set HOTCODEPUSH_SIGNING_KEY to the file's content.",
+      "Uploads sign with it through --private-key-path. In CI, set HOTCODEPUSH_SIGNING_KEY to the file's content.",
     ]);
     expect(harness.readLines().join('\n')).not.toContain(pemBody);
   });

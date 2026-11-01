@@ -1,6 +1,6 @@
-import { defineCommand } from 'zodline';
 import type { AuthClient } from '../utils/auth-client.js';
 import { createApiAuthClient } from '../utils/auth-client.js';
+import { defineCommand } from '../utils/command.js';
 import { resolveApiError } from '../utils/error-mapping.js';
 import { NotLoggedInError } from '../utils/errors.js';
 import { defineCommandOptions } from '../utils/global-options.js';
@@ -17,7 +17,8 @@ const UNAUTHORIZED_STATUS = 401;
 
 export default defineCommand({
   description:
-    'End the stored session and remove its token; HOTCODEPUSH_TOKEN, when set, stays what it is.',
+    'End the stored session and remove its token. HOTCODEPUSH_TOKEN, when set, stays what it is.',
+  authentication: 'optional',
   examples: ['hotcodepush logout', 'hotcodepush logout --json'],
   options: defineCommandOptions({}),
   action: async options => {
@@ -39,7 +40,7 @@ export default defineCommand({
       throw resolveApiError(error);
     }
     deleteToken();
-    const storedSessionId = deleteSessionId();
+    const storedSessionId = deleteStoredSession();
     printEnded(
       {
         id: knownSession?.session.id ?? storedSessionId ?? null,
@@ -50,12 +51,13 @@ export default defineCommand({
   },
 });
 
-function deleteSessionId(): string | undefined {
+function deleteStoredSession(): string | undefined {
   const userConfig = readUserConfig();
   const { sessionId } = userConfig;
-  if (sessionId === undefined) {
+  if (sessionId === undefined && userConfig.sessionExpiresAt === undefined) {
     return undefined;
   }
+  delete userConfig.sessionExpiresAt;
   delete userConfig.sessionId;
   writeUserConfig(userConfig);
   return sessionId;

@@ -1,4 +1,3 @@
-import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
 import type { BuildStep, OfflineCause } from '../../utils/build-step.js';
 import {
@@ -10,6 +9,8 @@ import {
   resolveOfflineCause,
   writeBuildResourceFile,
 } from '../../utils/build-step.js';
+import { defineCommand } from '../../utils/command.js';
+import { printNotice, printWarning } from '../../utils/diagnostics.js';
 import { CliError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
@@ -25,6 +26,7 @@ const UNVERSIONED_BUNDLE_VERSION = '';
 export default defineCommand({
   description:
     'The build step of every build that is no store build: writes the resource file the SDK reads, listing the embedded bundle, and creates no binary. Without a token, offline or with an API that cannot be reached, the channel name stays unresolved and one warning says so, in CI too.',
+  authentication: 'optional',
   examples: [
     'hotcodepush resource-file write --platform ios --embedded-bundle-path build/App.app/public --resource-file-path build/App.app/hotcodepush.json',
     'hotcodepush resource-file write --platform android --embedded-bundle-path build/assets/public --resource-file-path build/assets/hotcodepush.json --json',
@@ -39,8 +41,8 @@ export default defineCommand({
         resolveChannelIdByShape(buildStep.channelReference),
         null,
       );
-      process.stderr.write(
-        `The ${platform} build bundled no JavaScript, as a debug build served by the development server does. Wrote ${resourceFilePath} without an embedded bundle: over-the-air (OTA) updates are off in this build.\n`,
+      printNotice(
+        `The ${platform} build bundled no JavaScript, as a debug build served by the development server does. Wrote ${resourceFilePath} without an embedded bundle: over-the-air (OTA) updates are off in this build.`,
       );
       if (options.json) {
         printJson({ resourceFilePath });
@@ -54,7 +56,7 @@ export default defineCommand({
       id: null,
     });
     if (skippedReason !== null) {
-      process.stderr.write(`Warning: ${skippedReason}\n`);
+      printWarning(skippedReason);
     }
     if (options.json) {
       printJson({ resourceFilePath });
@@ -90,13 +92,13 @@ async function resolveChannel(
     }
     return {
       channelId: null,
-      skippedReason: `the channel could not be resolved, so the build names none and takes no OTA updates: ${resolveFailureText(error)}`,
+      skippedReason: `The channel could not be resolved, so the build names none and takes no OTA updates: ${resolveFailureText(error)}`,
     };
   }
 }
 
 function resolveOfflineText(offlineCause: OfflineCause): string {
   return offlineCause === 'offline-switch'
-    ? 'HOTCODEPUSH_OFFLINE is set, so the channel name was not resolved: the build names no channel and takes no OTA updates.'
-    : 'not logged in, so the channel name was not resolved: the build names no channel and takes no OTA updates; run "hotcodepush login" or set HOTCODEPUSH_TOKEN.';
+    ? 'HOTCODEPUSH_OFFLINE is set, so the channel name was not resolved. The build names no channel and takes no OTA updates.'
+    : 'Not logged in, so the channel name was not resolved. The build names no channel and takes no OTA updates. Run "hotcodepush login" or set HOTCODEPUSH_TOKEN.';
 }

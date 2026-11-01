@@ -1,7 +1,7 @@
 import type { Invitation } from '@hotcodepush/node';
 import { z } from 'zod';
-import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
+import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
 import {
@@ -19,7 +19,7 @@ const INVITATION_ROLES = [
 
 export default defineCommand({
   description:
-    'Invite an address to the organization with a role; the invitation mail is valid for two days.',
+    'Invite an address to the organization with a role. The invitation mail is valid for two days.',
   examples: [
     'hotcodepush invitation create --email anna@example.com --role member',
     'hotcodepush invitation create --organization Acme --email anna@example.com --role admin --yes --json',

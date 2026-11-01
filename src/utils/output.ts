@@ -1,4 +1,5 @@
 import type { Audience } from '@hotcodepush/node';
+import { printWarning } from './diagnostics.js';
 
 interface Table {
   emptyText: string;
@@ -23,7 +24,7 @@ export function printJson(data: unknown): void {
 // The API warns when a computed preview is likely not what was meant.
 export function printWarnings(warnings: Warning[]): void {
   for (const { message } of warnings) {
-    process.stderr.write(`Warning: ${message}\n`);
+    printWarning(message);
   }
 }
 

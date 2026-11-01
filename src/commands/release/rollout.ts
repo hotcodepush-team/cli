@@ -1,7 +1,7 @@
 import type { Release } from '@hotcodepush/node';
 import { z } from 'zod';
-import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
+import { defineCommand } from '../../utils/command.js';
 import type { InteractivityOptions } from '../../utils/environment.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
@@ -23,7 +23,7 @@ const rolloutPercentSchema = z.coerce.number().int().min(0).max(100);
 
 export default defineCommand({
   description:
-    "Set a release's rollout percentage in either direction, or widen it step by step with --progression; a device that has the release keeps it.",
+    "Set a release's rollout percentage in either direction, or widen it step by step with --progression. A device that has the release keeps it.",
   examples: [
     'hotcodepush release rollout --release 43 --rollout-percent 50',
     'hotcodepush release rollout --channel staging --release 43 --rollout-percent 10 --progression --yes',
@@ -35,7 +35,7 @@ export default defineCommand({
     rolloutPercent: rolloutPercentSchema
       .optional()
       .describe(
-        "The share of devices the release reaches from now on, 0 to 100; with --progression where the schedule starts, the release's own percentage by default.",
+        "The share of devices the release reaches from now on, 0 to 100. With --progression it is where the schedule starts. Defaults to the release's own percentage.",
       ),
   }),
   action: async options => {
@@ -100,6 +100,6 @@ function resolveRolloutConsequence(
     return `progresses ${releaseText} from ${rolloutPercent} percent through ${resolveProgressionText(progression)}: devices already on it keep it`;
   }
   const progressionEndText =
-    release.progression === null ? '' : '; its progression ends';
+    release.progression === null ? '' : ', and its progression ends';
   return `sets ${releaseText} to ${rolloutPercent} percent: devices already on it keep it, and no new device above ${rolloutPercent} percent gets it${progressionEndText}`;
 }

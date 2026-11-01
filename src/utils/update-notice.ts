@@ -1,4 +1,5 @@
 import { PACKAGE_JSON } from '../config/consts.js';
+import { printNotice } from './diagnostics.js';
 import { isCi } from './environment.js';
 import {
   ignoreUserConfigErrors,
@@ -37,8 +38,8 @@ export function printUpdateNotice(): void {
       latestKnownVersion !== undefined &&
       isNewerVersion(latestKnownVersion, PACKAGE_JSON.version)
     ) {
-      process.stderr.write(
-        `HotCodePush CLI ${latestKnownVersion} is available; you run ${PACKAGE_JSON.version}.\n`,
+      printNotice(
+        `HotCodePush CLI ${latestKnownVersion} is available. You run ${PACKAGE_JSON.version}.`,
       );
     }
   });

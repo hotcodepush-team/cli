@@ -1,5 +1,5 @@
-import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
+import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import {
   fetchMember,
@@ -12,7 +12,7 @@ import { fetchOrganizationId } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
   description:
-    'Remove a member from the organization, or yourself to leave it; the Owner leaves only after transferring the ownership.',
+    'Remove a member from the organization, or yourself to leave it. The Owner leaves only after transferring the ownership.',
   examples: [
     'hotcodepush member delete --member bob@example.com',
     'hotcodepush member delete --member 5e8a2c71-0b4d-4f39-9a6e-3c1d7b2f8e40 --yes --json',

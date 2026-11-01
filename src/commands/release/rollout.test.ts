@@ -17,7 +17,11 @@ import {
 } from '../../../test/release-routes.js';
 import releaseRolloutCommand from './rollout.js';
 
-vi.mock('@clack/prompts');
+vi.mock('@clack/prompts', () =>
+  import('../../../test/clack-prompts.js').then(
+    ({ clackPromptsMock }) => clackPromptsMock,
+  ),
+);
 
 const ROLLED_OUT_RELEASE = { ...LIVE_RELEASE, rolloutPercent: 20 };
 
@@ -215,7 +219,7 @@ describe('release rollout', () => {
     ).rejects.toMatchObject({
       code: 'confirmation_required',
       message:
-        'A confirmation is required. This sets release #43 of staging to 50 percent: devices already on it keep it, and no new device above 50 percent gets it; its progression ends.',
+        'A confirmation is required. This sets release #43 of staging to 50 percent: devices already on it keep it, and no new device above 50 percent gets it, and its progression ends.',
     });
   });
 

@@ -15,9 +15,9 @@ src/
   index.ts     the entry point: runs the command line through the registry
   registry.ts  the registry: space-separated command names, each a lazy import
   commands/    a folder per noun and a file per verb, channel/create.ts, resource-file/write.ts; the standalone commands flat, login.ts, logout.ts, whoami.ts, doctor.ts, init.ts, open.ts, fingerprint.ts, completion.ts
-  utils/       the runner, command resolution and did-you-mean, the error catalog and its one mapping,
+  utils/       the runner, command resolution and did-you-mean, the CLI's `defineCommand` and the authentication gate, the error catalog and its one mapping, the diagnostics on stderr,
                the global options, environment detection, config.json, the token store,
-               the auth client, the API client, hotcodepush.json and its directory, the JSON files a person edits read as `invalid_json` when they do not parse, a resource by id or name,
+               the auth client, the login flow, the API client, hotcodepush.json and its directory, the JSON files a person edits read as `invalid_json` when they do not parse, a resource by id or name,
                the project's fingerprint through the protocol's recipe,
                a bundle by number or id, a release by number or id in its channel with the wait until it is live,
                the released line, the prompts and the confirmation, the pages of a list, the boolean flag, a nullable field from its flag and its clear flag, the channel fields,
@@ -70,10 +70,11 @@ Release-please keeps a release pull request open on `main`, and merging it tags 
 
 ## Adding a command
 
-1. `src/commands/<noun>/<verb>.ts`, or `src/commands/<name>.ts` for a standalone one, default-exports zodline's `defineCommand`.
+1. `src/commands/<noun>/<verb>.ts`, or `src/commands/<name>.ts` for a standalone one, default-exports the CLI's `defineCommand` from `utils/command.ts`, zodline's with one more field.
 2. Its options are `defineCommandOptions({ … })`, so the global options come with every command; a global option the command gives its own meaning, `app transfer`'s `--organization`, joins its shape with its own description.
 3. It has a `description` and exactly two `examples`, which end its `--help`.
 4. One line joins the registry in `src/registry.ts`: `'channel create': () => import('./commands/channel/create.js')`.
+5. The runner authenticates before the action runs; a command that works without a login, as the build step and `doctor` do, declares `authentication: 'optional'` after its description.
 
 ## Adding a framework
 
@@ -96,8 +97,11 @@ A project with an app config that is code, or with a JSON one that does not pars
 - **A command throws, the entry point exits.**
   A command never calls `process.exit`: it throws an error from `utils/errors.ts`, and `runCli` maps it to the message and the exit code once.
   A new code joins that catalog as a class with its code, exit code, message and fix, and gets its section at `hotcodepush.com/docs/cli/errors#<code>`.
-- **An error is two lines**: what happened and what to do as sentences, then the docs URL, the one place the code appears; `--json` carries the code.
+- **An error is three lines**: what happened, what to do, then the docs URL, the one place the code appears; an API error has no fix, so two; `--json` carries the code.
   The message and the fix each start with a capital letter and end with a full stop, in plain English; a stack trace only with `--verbose`.
+  Every text a person reads, descriptions, warnings, notices and empty-list lines included, is whole sentences: no semicolon joins two clauses, and a default reads `Defaults to X.`
+- **Diagnostics go through `utils/diagnostics.ts`**, clack's log on stderr: `printError`, `printWarning`, `printNotice`, `printSuccess`; nothing else writes a symbol or a `Warning:` prefix, and nothing imports clack's log directly.
+  stdout stays plain `console.log` and `printJson`, so a piped result carries no gutter.
 - **API errors pass through verbatim**, their code, message and fix as received and never re-mapped; the CLI's catalog covers only what happens before or without the API.
 - **Exit codes**: `0` done, `1` an error, `2` a missing or invalid parameter, `3` not logged in, `4` a confirmation required without `--yes`.
 - **Parameters are the API's field names**, `--rollout-percent`, `--channel`: nothing is renamed between the console, the API and the terminal.
@@ -123,6 +127,7 @@ A project with an app config that is code, or with a JSON one that does not pars
   an Expo project's JSON app config one plugin entry,
   and `init` names the files it will change and asks once before touching them.
 - **The token** is `readToken()`: `HOTCODEPUSH_TOKEN` when set, then the keyring, then the `config.json` fallback that any keyring failure latches for the rest of the process.
+- **Authentication is a precondition**, `ensureAuthentication` in `utils/authentication.ts`, run by `runCli` before the action unless the command says `optional`: interactively a missing token or a stored `sessionExpiresAt` that has passed and that `get-session` does not renew asks `Log in now?` and runs `logIn` in place; non-interactively only a missing token fails, `not_logged_in`, and the API judges the rest. Nothing retries a command after a 401.
 - **The API URL** is `readApiUrl()`: `HOTCODEPUSH_API_BASE_URL` when set, then the URL `login --api-url` stored in `config.json`, then production; an empty variable is unset.
 - **An upload never holds a file in memory**: every file is hashed and gzip-compressed through streams into a temporary directory,
   put as a `Blob` opened from disk so the client can retry it, and the Node client splits it into parts above its `SINGLE_UPLOAD_LIMIT_BYTES`; the packs go the same way.
@@ -161,7 +166,7 @@ A project with an app config that is code, or with a JSON one that does not pars
 - Prefixes from the monorepo's vocabulary: `fetch` HTTP, `resolve` derivations without I/O, `build` functions that assemble a document without sending it; `read`, `write` and `delete` for the files and the keyring.
 - Result variables carry the past participle of their operation, `loadedCommands`.
 - Alphabetical ordering within a scope.
-  The object passed to `defineCommand` is the one exception, read in the order `description`, `examples`, `args`, `options`, `action`: what the command is, how it is called, what it does.
+  The object passed to `defineCommand` is the one exception, read in the order `description`, `authentication`, `examples`, `args`, `options`, `action`: what the command is, how it is called, what it does.
 - One thing per function, its name saying which; never a function that both decides something and phrases the message about it.
 - Booleans carry `is` or `has`; a state with a moment is a timestamp such as `pausedAt`, never a boolean.
 - Every value of a catalog is lowercase snake_case with no prefix, error codes included; a name a platform owns keeps that platform's form: environment variables, HTTP headers, shell command and flag names, identifiers, JSON field names and telemetry event names.

@@ -4,7 +4,7 @@ export const monthOptionShape = {
   month: z
     .string()
     .optional()
-    .describe('The month, YYYY-MM; the current one by default.'),
+    .describe('The month, YYYY-MM. Defaults to the current one.'),
 };
 
 export function resolveMonthText(month: string): string {

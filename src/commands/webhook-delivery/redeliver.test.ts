@@ -15,7 +15,11 @@ import {
 } from '../../utils/errors.js';
 import webhookDeliveryRedeliverCommand from './redeliver.js';
 
-vi.mock('@clack/prompts');
+vi.mock('@clack/prompts', () =>
+  import('../../../test/clack-prompts.js').then(
+    ({ clackPromptsMock }) => clackPromptsMock,
+  ),
+);
 
 const WEBHOOK_PATH = `/v1/organizations/${ACME_ORGANIZATION.id}/webhooks/${WEBHOOK.id}`;
 

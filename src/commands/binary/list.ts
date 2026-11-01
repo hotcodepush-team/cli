@@ -1,5 +1,5 @@
-import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
+import { defineCommand } from '../../utils/command.js';
 import {
   resolveBinaryBucket,
   UNSEEN_IN_FLEET_WINDOW_TEXT,
@@ -37,7 +37,7 @@ export default defineCommand({
     }
     const fleet = await hotCodePush.apps.statistics.fleet.get({ appId });
     printTable({
-      emptyText: 'No binaries; a store build creates one.',
+      emptyText: 'No binaries. A store build creates one.',
       headers: [
         'ID',
         'VERSION',

@@ -8,7 +8,7 @@ export function resolveAudienceText(
   const reachText = `reaches ${resolveCountText(audience.reachedDeviceCount)} of ${resolveCountText(audience.deviceCount)} active devices in ${channelName}`;
   return rolloutPercent === 100
     ? reachText
-    : `${reachText}; about ${resolveCountText(audience.estimatedDeviceCount)} at a ${rolloutPercent} percent rollout`;
+    : `${reachText}, about ${resolveCountText(audience.estimatedDeviceCount)} at a ${rolloutPercent} percent rollout`;
 }
 
 function resolveCountText(count: number): string {

@@ -24,7 +24,11 @@ import { PACKAGE_JSON } from '../../config/consts.js';
 import { runCli } from '../../utils/cli.js';
 import deviceProbeCommand from './probe.js';
 
-vi.mock('@clack/prompts');
+vi.mock('@clack/prompts', () =>
+  import('../../../test/clack-prompts.js').then(
+    ({ clackPromptsMock }) => clackPromptsMock,
+  ),
+);
 
 const BINARIES_PATH = `/v1/apps/${DEMO_APP.id}/binaries`;
 
@@ -213,7 +217,7 @@ describe('device probe', () => {
       'Channel  staging, ios',
       `Index    published ${INDEX_PUBLISHED_AT}`,
       'Outcome  available, release #43',
-      'Unknown  os, rollout, treated as passing; pass --device for the facts of a real device',
+      'Unknown  os, rollout, treated as passing. Pass --device for the facts of a real device.',
       'RELEASE  ROLLOUT  CONDITIONS                                 VERDICT',
       '#43      0%       binary pass, fingerprint pass, os unknown  eligible',
     ]);
@@ -279,9 +283,9 @@ describe('device probe', () => {
 
     expect(harness.readLines()).toEqual([
       'Channel  staging, ios',
-      `Index    none: HTTP 404 at ${API_URL}${INDEX_PATH}; a device gets no release`,
+      `Index    none: HTTP 404 at ${API_URL}${INDEX_PATH}, so a device gets no release`,
       'Outcome  none',
-      'Unknown  os, rollout, treated as passing; pass --device for the facts of a real device',
+      'Unknown  os, rollout, treated as passing. Pass --device for the facts of a real device.',
     ]);
   });
 

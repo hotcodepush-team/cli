@@ -39,7 +39,12 @@ import { runCommandLineVisibly } from '../../utils/package-manager.js';
 import { writeSigningPrivateKeyFile } from '../../utils/signing-private-key.js';
 import bundleUploadCommand, { resolveUploadBundleOptions } from './upload.js';
 
-vi.mock('@clack/prompts');
+// Keeps clack's `log` real, so the diagnostics reach stderr.
+vi.mock('@clack/prompts', () =>
+  import('../../../test/clack-prompts.js').then(
+    ({ clackPromptsMock }) => clackPromptsMock,
+  ),
+);
 vi.mock('../../utils/package-manager.js', async importOriginal => ({
   ...(await importOriginal<typeof packageManagerModule>()),
   runCommandLineVisibly: vi.fn(),
@@ -284,14 +289,10 @@ describe('bundle upload', () => {
 
   describe('when the fingerprint check runs', () => {
     const FINGERPRINT_WARNING =
-      'Warning: No binary of the app carries this fingerprint.\n';
-    let stderrWrite: ReturnType<typeof vi.spyOn>;
+      'No binary of the app carries this fingerprint.\n';
 
     beforeEach(() => {
       respondWithUploadRoutes();
-      stderrWrite = vi
-        .spyOn(process.stderr, 'write')
-        .mockImplementation(() => true);
     });
 
     async function runBundleUpload(): Promise<void> {
@@ -310,7 +311,7 @@ describe('bundle upload', () => {
 
       await runBundleUpload();
 
-      expect(stderrWrite).toHaveBeenCalledWith(FINGERPRINT_WARNING);
+      expect(harness.readDiagnostics()).toBe(FINGERPRINT_WARNING);
     });
 
     it('should stay silent when the app has no binary yet', async () => {
@@ -318,7 +319,7 @@ describe('bundle upload', () => {
 
       await runBundleUpload();
 
-      expect(stderrWrite).not.toHaveBeenCalledWith(FINGERPRINT_WARNING);
+      expect(harness.readDiagnostics()).not.toContain(FINGERPRINT_WARNING);
     });
 
     it("should stay silent and count no other binary when a binary carries the bundle's fingerprint", async () => {
@@ -326,7 +327,7 @@ describe('bundle upload', () => {
 
       await runBundleUpload();
 
-      expect(stderrWrite).not.toHaveBeenCalledWith(FINGERPRINT_WARNING);
+      expect(harness.readDiagnostics()).not.toContain(FINGERPRINT_WARNING);
       expect(
         harness.requests.filter(({ url }) => url.includes('/binaries/count')),
       ).toHaveLength(1);
@@ -519,10 +520,6 @@ describe('bundle upload', () => {
   });
 
   it('should name --platform when a platform is not ios or android', async () => {
-    const stderrWrite = vi
-      .spyOn(process.stderr, 'write')
-      .mockImplementation(() => true);
-
     const exitCode = await runCli(
       { 'bundle upload': () => import('./upload.js') },
       [
@@ -537,7 +534,7 @@ describe('bundle upload', () => {
     );
 
     expect(exitCode).toBe(2);
-    expect(stderrWrite).toHaveBeenCalledWith(
+    expect(harness.readDiagnostics()).toEqual(
       expect.stringMatching(/^The value of --platform is invalid\. /),
     );
   });
@@ -633,9 +630,6 @@ describe('bundle upload', () => {
         Response.json({
           count: new URL(request.url).searchParams.has('fingerprint') ? 0 : 2,
         });
-      const stderrWrite = vi
-        .spyOn(process.stderr, 'write')
-        .mockImplementation(() => true);
 
       await bundleUploadCommand.action(
         {
@@ -646,9 +640,9 @@ describe('bundle upload', () => {
         undefined,
       );
 
-      expect(stderrWrite.mock.calls).toEqual([
-        ['Warning: No binary of the app carries this fingerprint.\n'],
-      ]);
+      expect(harness.readDiagnostics()).toBe(
+        'No binary of the app carries this fingerprint.\n',
+      );
       expect(
         harness.requests.filter(({ url }) => url.includes('/binaries/count')),
       ).toHaveLength(2);

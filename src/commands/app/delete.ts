@@ -1,5 +1,5 @@
-import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
+import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson, resolveQuantityText } from '../../utils/output.js';
 import { readProjectConfig } from '../../utils/project-config.js';
@@ -8,7 +8,7 @@ import { fetchAppId, fetchChannels } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
   description:
-    'Delete an app with its channels, bundles and releases; support can restore it for seven days.',
+    'Delete an app with its channels, bundles and releases. Support can restore it for seven days.',
   examples: [
     'hotcodepush app delete --app "My App"',
     'hotcodepush app delete --app 7c9e6679-7425-40de-944b-e07fc1f90ae7 --yes --json',

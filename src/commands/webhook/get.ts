@@ -1,6 +1,6 @@
 import type { Webhook } from '@hotcodepush/node';
-import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
+import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printDetails, printJson } from '../../utils/output.js';
 import {
@@ -10,7 +10,7 @@ import {
 
 export default defineCommand({
   description:
-    'Print a webhook: its URL, format, events, app filter and whether it is enabled; never its secret.',
+    'Print a webhook: its URL, format, events, app filter and whether it is enabled. The secret is never printed.',
   examples: [
     'hotcodepush webhook get --webhook releases',
     'hotcodepush webhook get --webhook 3c9e7a52-8d14-4b6f-a0e2-5f71c3d8b946 --json',

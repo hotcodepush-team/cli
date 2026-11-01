@@ -1,7 +1,7 @@
 import type { HotCodePush } from '@hotcodepush/node';
 import { z } from 'zod';
-import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
+import { defineCommand } from '../../utils/command.js';
 import type { InteractivityOptions } from '../../utils/environment.js';
 import { isInteractive } from '../../utils/environment.js';
 import { MissingParameterError } from '../../utils/errors.js';

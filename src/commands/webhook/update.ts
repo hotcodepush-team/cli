@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
 import { booleanFlagSchema } from '../../utils/boolean-flag.js';
+import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { resolveNullableField } from '../../utils/nullable-field.js';
 import { printJson } from '../../utils/output.js';
@@ -16,7 +16,7 @@ import {
 
 export default defineCommand({
   description:
-    'Rename a webhook or change its URL, events, app filter or whether it is enabled; the format and the secret never change.',
+    'Rename a webhook or change its URL, events, app filter or whether it is enabled. The format and the secret never change.',
   examples: [
     'hotcodepush webhook update --webhook releases --event release.created --event release.revoked',
     'hotcodepush webhook update --webhook team-chat --enabled --clear-app --json',
@@ -34,7 +34,7 @@ export default defineCommand({
     enabled: booleanFlagSchema
       .optional()
       .describe(
-        'Whether the webhook delivers; turning it on again restarts the count of failures that disables it. Pass false to turn it off.',
+        'Whether the webhook delivers. Turning it on again restarts the count of failures that disables it. Pass false to turn it off.',
       ),
     name: z.string().optional().describe("The webhook's new name."),
     url: z

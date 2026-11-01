@@ -2,9 +2,11 @@ import { HotCodePushError } from '@hotcodepush/node';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { ZodlineError } from 'zodline';
+import { resolveDiagnosticText } from '../../test/diagnostics.js';
 import {
   buildErrorJson,
-  buildErrorLines,
+  resolveErrorDocsUrl,
+  resolveErrorSentences,
   printError,
   resolveApiError,
   resolveCliError,
@@ -25,8 +27,10 @@ function captureOutput() {
     .spyOn(process.stdout, 'write')
     .mockImplementation(() => true);
   return {
-    readStderr: () =>
-      stderrWrite.mock.calls.map(([chunk]) => String(chunk)).join(''),
+    readDiagnostics: () =>
+      resolveDiagnosticText(
+        stderrWrite.mock.calls.map(([chunk]) => String(chunk)).join(''),
+      ),
     readStdout: () =>
       stdoutWrite.mock.calls.map(([chunk]) => String(chunk)).join(''),
   };
@@ -166,68 +170,55 @@ describe('error mapping', () => {
     });
   });
 
-  describe('buildErrorLines', () => {
-    it('should put the message and the fix on the first line and the page on the second', () => {
-      const lines = buildErrorLines(new NotLoggedInError(), {
-        isColorEnabled: false,
-      });
-
-      expect(lines).toEqual([
-        'You are not logged in. Run "hotcodepush login" or set HOTCODEPUSH_TOKEN.',
-        'https://hotcodepush.com/docs/cli/errors#not_logged_in',
+  describe('resolveErrorSentences', () => {
+    it('should put the message and the fix on their own lines', () => {
+      expect(resolveErrorSentences(new NotLoggedInError())).toEqual([
+        'You are not logged in.',
+        'Run "hotcodepush login" or set HOTCODEPUSH_TOKEN.',
       ]);
     });
 
     it('should never start a line with the code', () => {
-      const lines = buildErrorLines(
+      const sentences = resolveErrorSentences(
         new UnknownCommandError('relese create', 'release create'),
-        { isColorEnabled: false },
       );
 
-      expect(lines).toEqual([
-        'There is no command "relese create". Did you mean "release create"?',
-        'https://hotcodepush.com/docs/cli/errors#unknown_command',
+      expect(sentences).toEqual([
+        'There is no command "relese create".',
+        'Did you mean "release create"?',
       ]);
-      for (const line of lines) {
-        expect(line).not.toMatch(/^unknown_command/);
+      for (const sentence of sentences) {
+        expect(sentence).not.toMatch(/^unknown_command/);
       }
     });
 
     it('should leave the fix out and the message as received when the error carries none', () => {
-      const lines = buildErrorLines(
-        new ApiError('invalid_grant', 'Invalid device code', 400),
-        { isColorEnabled: false },
-      );
-
-      expect(lines).toEqual([
-        'Invalid device code',
-        'https://hotcodepush.com/docs/cli/errors#invalid_grant',
-      ]);
+      expect(
+        resolveErrorSentences(
+          new ApiError('invalid_grant', 'Invalid device code', 400),
+        ),
+      ).toEqual(['Invalid device code']);
     });
 
     it('should end a message without its full stop with one when a fix follows', () => {
-      const lines = buildErrorLines(
+      const [message] = resolveErrorSentences(
         resolveCliError(new ZodlineError('Unknown option: --foo')),
-        { isColorEnabled: false },
       );
 
-      expect(lines[0]).toBe(
-        'Unknown option: --foo. Run the command with --help to see its options.',
-      );
+      expect(message).toBe('Unknown option: --foo.');
     });
+  });
 
-    it('should colour the message when colour is enabled', () => {
-      const [firstLine] = buildErrorLines(
-        new MissingParameterError('--channel'),
-        { isColorEnabled: true },
+  describe('resolveErrorDocsUrl', () => {
+    it('should anchor the code on the errors page', () => {
+      expect(resolveErrorDocsUrl(new NotLoggedInError())).toBe(
+        'https://hotcodepush.com/docs/cli/errors#not_logged_in',
       );
-
-      expect(firstLine).toContain('\x1b[');
     });
   });
 
   describe('printError', () => {
-    it('should print the two lines on stderr and nothing on stdout', () => {
+    it('should print the three lines on stderr and nothing on stdout', () => {
       const output = captureOutput();
 
       printError(new MissingParameterError('--channel'), {
@@ -235,8 +226,8 @@ describe('error mapping', () => {
         isVerbose: false,
       });
 
-      expect(output.readStderr()).toBe(
-        'No value was given for --channel. Pass --channel, or run the command interactively to be asked for it.\nhttps://hotcodepush.com/docs/cli/errors#missing_parameter\n',
+      expect(output.readDiagnostics()).toBe(
+        'No value was given for --channel.\nPass --channel, or run the command interactively to be asked for it.\nhttps://hotcodepush.com/docs/cli/errors#missing_parameter\n',
       );
       expect(output.readStdout()).toBe('');
     });
@@ -252,7 +243,7 @@ describe('error mapping', () => {
       expect(JSON.parse(output.readStdout())).toEqual(
         buildErrorJson(new MissingParameterError('--channel')),
       );
-      expect(output.readStderr()).toBe('');
+      expect(output.readDiagnostics()).toBe('');
     });
 
     it('should print the stack on stderr when --verbose is passed', () => {
@@ -263,7 +254,7 @@ describe('error mapping', () => {
         isVerbose: true,
       });
 
-      expect(output.readStderr()).toContain('TypeError: boom');
+      expect(output.readDiagnostics()).toContain('TypeError: boom');
       expect(JSON.parse(output.readStdout()).error.code).toBe('unexpected');
     });
   });

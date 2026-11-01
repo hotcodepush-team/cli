@@ -9,7 +9,11 @@ import { FLEET_PATH, respondWithFleet } from '../../../test/release-routes.js';
 import { MissingParameterError } from '../../utils/errors.js';
 import binaryGetCommand from './get.js';
 
-vi.mock('@clack/prompts');
+vi.mock('@clack/prompts', () =>
+  import('../../../test/clack-prompts.js').then(
+    ({ clackPromptsMock }) => clackPromptsMock,
+  ),
+);
 
 describe('binary get', () => {
   const harness = useCommandHarness();

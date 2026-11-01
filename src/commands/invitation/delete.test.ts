@@ -16,7 +16,11 @@ import {
 } from '../../utils/errors.js';
 import invitationDeleteCommand from './delete.js';
 
-vi.mock('@clack/prompts');
+vi.mock('@clack/prompts', () =>
+  import('../../../test/clack-prompts.js').then(
+    ({ clackPromptsMock }) => clackPromptsMock,
+  ),
+);
 
 const INVITATIONS_PATH = `/v1/organizations/${ACME_ORGANIZATION.id}/invitations`;
 

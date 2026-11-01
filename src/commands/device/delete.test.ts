@@ -8,7 +8,11 @@ import { DEMO_APP, DEVICE } from '../../../test/fixtures.js';
 import { ConfirmationRequiredError } from '../../utils/errors.js';
 import deviceDeleteCommand from './delete.js';
 
-vi.mock('@clack/prompts');
+vi.mock('@clack/prompts', () =>
+  import('../../../test/clack-prompts.js').then(
+    ({ clackPromptsMock }) => clackPromptsMock,
+  ),
+);
 
 const DEVICE_PATH = `/v1/apps/${DEMO_APP.id}/devices/${DEVICE.deviceId}`;
 

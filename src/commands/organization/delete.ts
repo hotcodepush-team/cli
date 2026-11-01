@@ -1,5 +1,5 @@
-import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
+import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson, resolveQuantityText } from '../../utils/output.js';
 import { confirmConsequence } from '../../utils/prompts.js';
@@ -10,7 +10,7 @@ import {
 
 export default defineCommand({
   description:
-    'Delete an organization with everything in it; support can restore it for seven days.',
+    'Delete an organization with everything in it. Support can restore it for seven days.',
   examples: [
     'hotcodepush organization delete --organization Acme',
     'hotcodepush organization delete --organization Acme --yes --json',
