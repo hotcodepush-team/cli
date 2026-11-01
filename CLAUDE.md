@@ -166,6 +166,8 @@ A project with an app config that is code, or with a JSON one that does not pars
 - Every value of a catalog is lowercase snake_case with no prefix, error codes included; a name a platform owns keeps that platform's form: environment variables, HTTP headers, shell command and flag names, identifiers, JSON field names and telemetry event names.
 - Never the non-null assertion; nullish coalescing or a real check.
 - Test titles read `should <verb> …`, lowercase, conditions starting with `when`.
+- A test earns its place by catching a bug nothing else catches, at the lowest layer that can prove it; one test per branch, never per value, and nothing for what the types, the framework or a library guarantee.
+- A new test names the behaviour or the bug it proves; if deleting the production code would not fail it, it does not get in.
 - Fixtures and examples carry invented data only.
 - HotCodePush ships over-the-air (OTA) updates: a surface, the root `--help`, a command's `--help`, a message or the README, writes "over-the-air (OTA) update" on its first mention and "OTA update" after it. "Live update" names the Capacitor offering alone, `capacitor-live-updates`, or sits in a list of alternative names for search, never as the product's own term.
 - The supported frameworks are listed as React Native, Expo, Capacitor and Cordova wherever a reader sees them listed, a description, a message, an enum's choices, a prompt or the README, the larger communities first and React Native beside Expo; identifiers and the detection order are logic, not lists.
