@@ -2,25 +2,20 @@ import { existsSync, rmSync, statSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { generateSigningKeyPair } from '@hotcodepush/protocol';
 import { z } from 'zod';
-import {
-  PROJECT_CONFIG_FILE_NAME,
-  SIGNING_PRIVATE_KEY_FILE_NAME,
-} from '../../config/consts.js';
+import { SIGNING_PRIVATE_KEY_FILE_NAME } from '../../config/consts.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { InvalidParameterError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
-import type { ProjectConfigLocation } from '../../utils/project-config.js';
-import {
-  locateProjectConfig,
-  writeProjectConfig,
-} from '../../utils/project-config.js';
+import { locateProjectConfig } from '../../utils/project-config.js';
 import { fetchAppId } from '../../utils/resource-resolution.js';
+import {
+  addPublicKeyToProjectConfig,
+  resolvePublicKeyListingText,
+  UPLOAD_SIGNING_TEXT,
+} from '../../utils/signing-key.js';
 import { writeSigningPrivateKeyFile } from '../../utils/signing-private-key.js';
-
-export const UPLOAD_SIGNING_TEXT =
-  "Uploads sign with it through --private-key-path. In CI, set HOTCODEPUSH_SIGNING_KEY to the file's content.";
 
 export default defineCommand({
   description:
@@ -80,26 +75,6 @@ export default defineCommand({
   },
 });
 
-// Keys already listed stay, so the next builds keep trusting them.
-// A file of another app, or no file, is left alone.
-export function addPublicKeyToProjectConfig(
-  { filePath, projectConfig }: ProjectConfigLocation,
-  appId: string,
-  publicKey: string,
-): boolean {
-  if (filePath === undefined || projectConfig?.appId !== appId) {
-    return false;
-  }
-  if (projectConfig.publicKeys?.includes(publicKey)) {
-    return true;
-  }
-  writeProjectConfig(filePath, {
-    ...projectConfig,
-    publicKeys: [...(projectConfig.publicKeys ?? []), publicKey],
-  });
-  return true;
-}
-
 // An existing file may hold a key that a store build trusts, and no folder is made on the person's behalf.
 function assertNewFilePath(filePath: string): void {
   if (existsSync(filePath)) {
@@ -115,13 +90,4 @@ function assertNewFilePath(filePath: string): void {
       'Create the folder first, or pass a path in an existing one.',
     );
   }
-}
-
-export function resolvePublicKeyListingText(
-  isConfigured: boolean,
-  publicKey: string,
-): string {
-  return isConfigured
-    ? `Added to publicKeys in ${PROJECT_CONFIG_FILE_NAME}.`
-    : `Add it to publicKeys in the app's ${PROJECT_CONFIG_FILE_NAME}: ${publicKey}`;
 }

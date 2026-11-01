@@ -5,11 +5,11 @@ import { resolveTimeBound } from '../../utils/duration.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson, printTable } from '../../utils/output.js';
 import { paginationShape, resolveNextOffset } from '../../utils/pagination.js';
+import { resolveResponseText } from '../../utils/webhook-delivery-output.js';
 import {
   fetchWebhook,
   webhookOptionShape,
 } from '../../utils/webhook-resolution.js';
-import { resolveResponseText } from './redeliver.js';
 
 export default defineCommand({
   description:

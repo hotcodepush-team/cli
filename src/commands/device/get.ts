@@ -1,5 +1,6 @@
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
+import { resolveBinaryText } from '../../utils/device-output.js';
 import {
   deviceOptionShape,
   fetchDeviceReference,
@@ -12,7 +13,6 @@ import {
   resolveDate,
 } from '../../utils/output.js';
 import { fetchAllPages } from '../../utils/pagination.js';
-import { resolveBinaryText } from './list.js';
 
 export default defineCommand({
   description:

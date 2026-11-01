@@ -1,7 +1,7 @@
-import type { Device } from '@hotcodepush/node';
 import { z } from 'zod';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
+import { resolveBinaryText } from '../../utils/device-output.js';
 import { resolveTimeBound } from '../../utils/duration.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson, printTable, resolveDate } from '../../utils/output.js';
@@ -110,10 +110,3 @@ export default defineCommand({
     });
   },
 });
-
-export function resolveBinaryText({
-  binaryBuild,
-  binaryVersion,
-}: Pick<Device, 'binaryBuild' | 'binaryVersion'>): string {
-  return `${binaryVersion} (${binaryBuild})`;
-}

@@ -14,6 +14,11 @@ import {
   fetchBundle,
   resolveBundleLabel,
 } from '../../utils/bundle-resolution.js';
+import type { BundleUploadOptions } from '../../utils/bundle-upload.js';
+import {
+  bundleUploadOptionShape,
+  fetchUploadBundleOptions,
+} from '../../utils/bundle-upload.js';
 import type { FailurePolicyOptions } from '../../utils/channel-fields.js';
 import {
   failurePolicyShape,
@@ -58,11 +63,6 @@ import {
   collectUploadFiles,
   uploadBundle,
 } from '../../utils/upload.js';
-import type { BundleUploadOptions } from '../bundle/upload.js';
-import {
-  bundleUploadOptionShape,
-  fetchUploadBundleOptions,
-} from '../bundle/upload.js';
 
 export type BundleSource =
   | { bundle: Bundle }
@@ -197,10 +197,7 @@ async function createReleases(
     return;
   }
   const releases: Release[] = [];
-  for (const bundle of await uploadReleasedBundles(
-    hotCodePush,
-    bundleSource,
-  )) {
+  for (const bundle of await uploadReleasedBundles(hotCodePush, bundleSource)) {
     const releaseBody: ReleaseBody = {
       ...('sourceChannel' in bundleSource
         ? { fromChannelId: bundleSource.sourceChannel.id }

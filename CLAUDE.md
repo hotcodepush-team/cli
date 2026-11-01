@@ -20,14 +20,15 @@ src/
                the auth client, the login flow, the API client, hotcodepush.json and its directory, the JSON files a person edits read as `invalid_json` when they do not parse, a resource by id or name,
                the project's fingerprint through the protocol's recipe,
                a bundle by number or id, a release by number or id in its channel with the wait until it is live,
-               the released line, the prompts and the confirmation, the pages of a list, the boolean flag, a nullable field from its flag and its clear flag, the channel fields,
+               the released line, the details of an organization, an SSO provider, a device binary and a settled webhook delivery that several commands print,
+               the prompts and the confirmation, the pages of a list, the boolean flag, a nullable field from its flag and its clear flag, the channel fields,
                the release conditions from their flags, the audience in one clause, a device by id, a duration as a time bound,
                the framework and the build's directory, `frameworks/` with one module per framework behind one interface
                and the registry line that makes the CLI package it, beside them React Native's release build, which
                Expo's module runs too, the SDK package's install and check and the native projects as named or asked for,
                the files of a build hashed, their gzip copies,
                the pack writer, the git provenance, the device hosts derived from the API URL,
-               the upload flow, the private key an upload is given, read into the pair that signs, and the writer of its file,
+               the upload flow, the flags of a bundle upload read into its options, the private key an upload is given, read into the pair that signs, and the writer of its file, a public key listed in hotcodepush.json,
                the progression schedule from its flags, the spending cap in whole dollars, a member or an invitation by id or email, a webhook by id or name,
                the native glue the Capacitor and Cordova modules name, one constant in `frameworks/native-glue.ts`,
                the build step both commands share, the resource file,

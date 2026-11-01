@@ -9,8 +9,8 @@ import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
 import { promptSecret, promptSelect, promptText } from '../../utils/prompts.js';
 import { fetchOrganizationId } from '../../utils/resource-resolution.js';
-import { printProviderDetails } from './get.js';
-import type { SsoProviderType } from './get.js';
+import { printProviderDetails } from '../../utils/sso-provider-output.js';
+import type { SsoProviderType } from '../../utils/sso-provider-output.js';
 
 interface OidcOptions extends InteractivityOptions {
   oidcClientId?: string;

@@ -1,10 +1,10 @@
-import type { WebhookDelivery } from '@hotcodepush/node';
 import { z } from 'zod';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
 import { confirmConsequence, promptText } from '../../utils/prompts.js';
+import { printSettledDelivery } from '../../utils/webhook-delivery-output.js';
 import {
   fetchWebhook,
   webhookOptionShape,
@@ -53,16 +53,3 @@ export default defineCommand({
     printSettledDelivery(settledDelivery, fetchedWebhook.name);
   },
 });
-
-export function printSettledDelivery(
-  delivery: WebhookDelivery,
-  webhookName: string,
-): void {
-  console.log(
-    `Sent ${delivery.type} to webhook ${webhookName}: ${delivery.status}, ${resolveResponseText(delivery)}.`,
-  );
-}
-
-export function resolveResponseText({ responseCode }: WebhookDelivery): string {
-  return responseCode === null ? 'no response' : `HTTP ${responseCode}`;
-}

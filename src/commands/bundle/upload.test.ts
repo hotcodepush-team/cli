@@ -28,6 +28,7 @@ import {
 } from '../../../test/fixtures.js';
 import { PACKAGE_JSON } from '../../config/consts.js';
 import { createApiClient } from '../../utils/api-client.js';
+import { fetchUploadBundleOptions } from '../../utils/bundle-upload.js';
 import { runCli } from '../../utils/cli.js';
 import {
   InvalidParameterError,
@@ -37,7 +38,7 @@ import {
 import type * as packageManagerModule from '../../utils/package-manager.js';
 import { runCommandLineVisibly } from '../../utils/package-manager.js';
 import { writeSigningPrivateKeyFile } from '../../utils/signing-private-key.js';
-import bundleUploadCommand, { fetchUploadBundleOptions } from './upload.js';
+import bundleUploadCommand from './upload.js';
 
 // Keeps clack's `log` real, so the diagnostics reach stderr.
 vi.mock('@clack/prompts', () =>

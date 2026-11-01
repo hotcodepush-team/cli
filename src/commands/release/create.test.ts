@@ -24,6 +24,8 @@ import {
   STAGING_AUDIENCE,
 } from '../../../test/release-routes.js';
 import { collectBundleFiles } from '../../utils/bundle-files.js';
+import type * as bundleUploadModule from '../../utils/bundle-upload.js';
+import { fetchUploadBundleOptions } from '../../utils/bundle-upload.js';
 import {
   ConfirmationRequiredError,
   InvalidParameterError,
@@ -32,8 +34,6 @@ import { createReporter } from '../../utils/progress.js';
 import type * as uploadModule from '../../utils/upload.js';
 import type { UploadBundleOptions } from '../../utils/upload.js';
 import { uploadBundle } from '../../utils/upload.js';
-import type * as bundleUploadModule from '../bundle/upload.js';
-import { fetchUploadBundleOptions } from '../bundle/upload.js';
 import releaseCreateCommand, { resolveReleaseConsequence } from './create.js';
 
 // Keeps clack's `log` real, so the diagnostics reach stderr.
@@ -42,7 +42,7 @@ vi.mock('@clack/prompts', () =>
     ({ clackPromptsMock }) => clackPromptsMock,
   ),
 );
-vi.mock('../bundle/upload.js', async importOriginal => ({
+vi.mock('../../utils/bundle-upload.js', async importOriginal => ({
   ...(await importOriginal<typeof bundleUploadModule>()),
   fetchUploadBundleOptions: vi.fn(),
 }));
