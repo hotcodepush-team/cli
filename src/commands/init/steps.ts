@@ -1,3 +1,4 @@
+import type { StepOutcome } from '../../frameworks/index.js';
 import { resolveCliError, resolveSentence } from '../../utils/error-mapping.js';
 import type { OutcomeRow } from '../../utils/outcome.js';
 
@@ -9,12 +10,6 @@ export interface InitStep {
   message: string;
   status: StepStatus;
   step: string;
-}
-
-export interface StepOutcome<TValue> {
-  message: string;
-  status: 'done' | 'skipped';
-  value: TValue;
 }
 
 export interface RunStepOptions {

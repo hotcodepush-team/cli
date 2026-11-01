@@ -1,6 +1,5 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { StepOutcome } from '../commands/init/steps.js';
 import {
   EXPO_PACKAGE_NAME,
   EXPO_PACKAGE_SPEC,
@@ -21,6 +20,7 @@ import {
   isSdkPackageDeclared,
 } from './sdk-package.js';
 import type {
+  StepOutcome,
   FrameworkCheck,
   FrameworkModule,
   FrameworkProject,

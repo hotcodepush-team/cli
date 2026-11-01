@@ -10,8 +10,12 @@ import {
 } from '../config/consts.js';
 import type { Framework } from '../frameworks/framework.js';
 import { detectFramework } from '../frameworks/framework.js';
-import type { FrameworkModule, FrameworkWiring } from '../frameworks/index.js';
 import { resolveFrameworkModule } from '../frameworks/index.js';
+import type {
+  FrameworkModule,
+  FrameworkWiring,
+  StepOutcome,
+} from '../frameworks/index.js';
 import { fetchApps } from '../resources/apps.js';
 import { fetchOrganizations } from '../resources/organizations.js';
 import { fetchHasSigningKey } from '../resources/signing-keys.js';
@@ -66,7 +70,6 @@ import { findResource } from '../utils/resources.js';
 import { isEnvironmentToken, readToken } from '../utils/token-store.js';
 import { readApiUrl } from '../utils/user-config.js';
 import { InitRun, resolveStepRows } from './init/steps.js';
-import type { StepOutcome } from './init/steps.js';
 import releaseCreateCommand from './release/create.js';
 import signingKeyCreateCommand from './signing-key/create.js';
 

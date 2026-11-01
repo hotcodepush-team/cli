@@ -1,6 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import type { StepOutcome } from '../commands/init/steps.js';
 import {
   REACT_NATIVE_PACKAGE_NAME,
   REACT_NATIVE_PACKAGE_SPEC,
@@ -39,6 +38,7 @@ import {
   resolveXcodeProjectFilePath,
 } from './xcode-project.js';
 import type {
+  StepOutcome,
   FrameworkCheck,
   FrameworkModule,
   FrameworkProject,

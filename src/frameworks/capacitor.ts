@@ -1,6 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, relative, sep } from 'node:path';
-import type { StepOutcome } from '../commands/init/steps.js';
 import {
   CAPACITOR_PACKAGE_NAME,
   CAPACITOR_PACKAGE_SPEC,
@@ -29,6 +28,7 @@ import {
   resolveXcodeProjectFilePath,
 } from './xcode-project.js';
 import type {
+  StepOutcome,
   BuildDirectory,
   FrameworkModule,
   FrameworkProject,

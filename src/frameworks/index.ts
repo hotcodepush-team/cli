@@ -1,4 +1,3 @@
-import type { StepOutcome } from '../commands/init/steps.js';
 import type { BundleFile } from '../upload/bundle-files.js';
 import type { Platform } from '../upload/upload.js';
 import type { InteractivityOptions } from '../utils/environment.js';
@@ -87,6 +86,12 @@ export interface PackagingRequest {
 export interface NativeProjectPaths {
   android: string;
   ios: string;
+}
+
+export interface StepOutcome<TValue> {
+  message: string;
+  status: 'done' | 'skipped';
+  value: TValue;
 }
 
 export interface WiringOptions extends InteractivityOptions {
