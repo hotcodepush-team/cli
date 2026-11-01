@@ -53,15 +53,17 @@ The one exception is Better Auth's `/v1/auth/*` slice, reached through `better-a
 
 ## Commands
 
-| Command             | Does                           |
-| ------------------- | ------------------------------ |
-| `npm run build`     | compile `src/` into `dist/`    |
-| `npm run fmt`       | format with Prettier           |
-| `npm run lint`      | ESLint                         |
-| `npm test`          | Vitest                         |
-| `npm run typecheck` | `tsc --noEmit`, tests included |
+| Command             | Does                                                          |
+| ------------------- | ------------------------------------------------------------- |
+| `npm run build`     | compile `src/` into `dist/`                                   |
+| `npm run fmt`       | ESLint's fixes and Prettier                                   |
+| `npm run lint`      | ESLint and Prettier's check                                   |
+| `npm test`          | Vitest                                                        |
+| `npm run typecheck` | `tsc --noEmit`, tests included                                |
+| `npm run verify`    | lint, typecheck, test and build, the local gate before a push |
 
 Run `npm run fmt` before every commit; lint, typecheck, test and build must pass, as `ci.yml` checks on every push to `main` and every pull request, on Ubuntu, macOS and Windows, each on Node 22 and 24.
+`.prettierignore` keeps the `CHANGELOG.md` and manifest that release-please writes as it writes them.
 A test of a POSIX file mode is skipped on Windows, which has none: a file there is protected by the access list of its folder, the user profile's for `config.json` and the project's own for a private key file.
 `node dist/index.js --help` runs the build locally.
 `ci.yml`'s `preview` job publishes every push to `main` and every pull request to pkg.pr.new, and consumers pin one build by its short commit hash: `npm install --save-dev https://pkg.pr.new/hotcodepush-team/cli/hotcodepush@<sha>`.

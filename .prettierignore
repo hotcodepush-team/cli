@@ -1,1 +1,5 @@
 .claude
+
+# Written by release-please
+.release-please-manifest.json
+CHANGELOG.md

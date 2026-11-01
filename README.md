@@ -42,7 +42,7 @@ npm ci
 npm run build        # compiles src/ into dist/; node dist/index.js --help runs it
 npm test
 npm run lint && npm run typecheck
-npm run fmt          # Prettier, run before every commit
+npm run fmt          # ESLint's fixes and Prettier, run before every commit
 ```
 
 Tests live next to the code they test as `*.test.ts`.
