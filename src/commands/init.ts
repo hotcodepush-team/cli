@@ -92,12 +92,46 @@ interface ProjectFiles {
   wiring: FrameworkWiring;
 }
 
+interface Account {
+  app: App | undefined;
+  hotCodePush: HotCodePush | undefined;
+}
+
+interface InitProject {
+  framework: Framework;
+  frameworkModule: FrameworkModule;
+  location: ProjectConfigLocation;
+}
+
+interface NamedResource {
+  id: string;
+  name: string;
+}
+
+interface ResourceCreation<TResource extends NamedResource> {
+  create: (name: string) => Promise<TResource>;
+  noun: string;
+  options: InitOptions;
+}
+
 interface Scope {
   app: App | undefined;
   organization: Organization;
 }
 
 const CREATE_CHOICE = 'create';
+
+const SIGNING_KEY_DECLINED_OUTCOME: StepOutcome<undefined> = {
+  message: 'Run "hotcodepush signing-key create" to enable code signing.',
+  status: 'skipped',
+  value: undefined,
+};
+
+const SIGNING_KEY_PRESENT_OUTCOME: StepOutcome<undefined> = {
+  message: 'The app already has a signing key.',
+  status: 'skipped',
+  value: undefined,
+};
 
 export default defineCommand({
   description:
@@ -131,92 +165,156 @@ export default defineCommand({
       ),
   }),
   action: async options => {
-    const projectConfigLocation = locateProjectConfig(options.config);
-    const { directoryPath, projectConfig } = projectConfigLocation;
-    const framework = options.framework ?? detectFramework(directoryPath);
-    const frameworkModule = resolveFrameworkModule(framework);
     const run = new InitRun();
-    const hotCodePush = await run.run('sign_in', () => signIn(options));
-    const scope = await run.run(
-      'organization',
-      () =>
-        fetchOrganizationScope(
-          requireValue(hotCodePush),
-          projectConfig,
-          options,
-        ),
-      { dependsOn: ['sign_in'] },
-    );
-    const app = await run.run(
-      'app',
-      () =>
-        fetchInitApp(
-          requireValue(hotCodePush),
-          requireValue(scope),
-          projectConfigLocation,
-          framework,
-          options,
-        ),
-      { dependsOn: ['organization'] },
-    );
-    const projectFiles = await resolveProjectFiles(
-      projectConfigLocation,
-      frameworkModule,
+    const project = locateInitProject(options);
+    const account = await runAccountSteps(run, { options, project });
+    const projectFiles = await readProjectFiles(project.location, {
+      framework: project.frameworkModule,
       options,
-    );
-    const editBlocker = await resolveEditBlocker(projectFiles, app, options);
-    await run.run('package', () => installPackage(projectFiles, editBlocker));
-    await run.run(
-      'configuration',
-      () =>
-        writeConfiguration(
-          requireValue(hotCodePush),
-          projectFiles,
-          requireValue(app),
-          editBlocker,
-        ),
-      { dependsOn: ['app'] },
-    );
-    await run.run('hook', () =>
-      projectFiles.wiring.wireBinaryCreateStep(editBlocker),
-    );
-    const privateKeyPath = await run.run('signing_key', () =>
-      createSigningKey(app, projectFiles, options),
-    );
-    const isReleaseWanted =
-      run.stoppedCode === undefined &&
-      (await promptYesNo('Publish a first release now?', options));
-    const isBuilt = await run.run('build', () =>
-      buildProject(projectFiles, isReleaseWanted),
-    );
-    const isReleased = await run.run(
-      'release',
-      () =>
-        releaseFirst(
-          projectFiles,
-          isReleaseWanted,
-          isBuilt === true,
-          privateKeyPath,
-          options,
-        ),
-      { dependsOn: ['configuration', 'build'] },
-    );
-    const status = run.stoppedCode === undefined ? 'complete' : 'incomplete';
-    if (options.json) {
-      printJson({ status, steps: run.steps });
-    } else {
-      // A blank line separates the rows from the package manager and build output above them.
-      console.log('');
-      printOutcomeRows(resolveStepRows(run.steps));
-      if (app !== undefined && status === 'complete') {
-        printFinish(app, isReleased === true, privateKeyPath);
-      }
-    }
+    });
+    const privateKeyPath = await runProjectSteps(run, {
+      account,
+      options,
+      projectFiles,
+    });
+    const isReleased = await runReleaseSteps(run, {
+      options,
+      privateKeyPath,
+      projectFiles,
+    });
+    printRun(run, { app: account.app, isReleased, options, privateKeyPath });
     if (run.stoppedCode !== undefined) {
       throw new ReportedFailureError(run.stoppedCode, run.stoppedStep);
     }
   },
 });
+
+function locateInitProject(options: InitOptions): InitProject {
+  const location = locateProjectConfig(options.config);
+  const framework =
+    options.framework ?? detectFramework(location.directoryPath);
+  return {
+    framework,
+    frameworkModule: resolveFrameworkModule(framework),
+    location,
+  };
+}
+
+async function runAccountSteps(
+  run: InitRun,
+  { options, project }: { options: InitOptions; project: InitProject },
+): Promise<Account> {
+  const hotCodePush = await run.run('sign_in', {
+    perform: () => signIn(options),
+  });
+  const scope = await run.run('organization', {
+    dependsOn: ['sign_in'],
+    perform: () =>
+      fetchOrganizationScope(requireValue(hotCodePush), {
+        options,
+        projectConfig: project.location.projectConfig,
+      }),
+  });
+  const app = await run.run('app', {
+    dependsOn: ['organization'],
+    perform: () =>
+      fetchInitApp(requireValue(hotCodePush), {
+        framework: project.framework,
+        location: project.location,
+        options,
+        scope: requireValue(scope),
+      }),
+  });
+  return { app, hotCodePush };
+}
+
+// Returns the private key's path when the signing key step generated one.
+async function runProjectSteps(
+  run: InitRun,
+  {
+    account: { app, hotCodePush },
+    options,
+    projectFiles,
+  }: { account: Account; options: InitOptions; projectFiles: ProjectFiles },
+): Promise<string | undefined> {
+  const editBlocker = await confirmProjectEdits(projectFiles, { app, options });
+  await run.run('package', {
+    perform: () => installPackage(projectFiles, editBlocker),
+  });
+  await run.run('configuration', {
+    dependsOn: ['app'],
+    perform: () =>
+      writeConfiguration(requireValue(hotCodePush), {
+        app: requireValue(app),
+        editBlocker,
+        projectFiles,
+      }),
+  });
+  await run.run('hook', {
+    perform: () => projectFiles.wiring.wireBinaryCreateStep(editBlocker),
+  });
+  return run.run('signing_key', {
+    perform: () => createSigningKey(projectFiles, { app, options }),
+  });
+}
+
+async function runReleaseSteps(
+  run: InitRun,
+  {
+    options,
+    privateKeyPath,
+    projectFiles,
+  }: {
+    options: InitOptions;
+    privateKeyPath: string | undefined;
+    projectFiles: ProjectFiles;
+  },
+): Promise<boolean> {
+  const isReleaseWanted =
+    run.stoppedCode === undefined &&
+    (await promptYesNo('Publish a first release now?', options));
+  const isBuilt = await run.run('build', {
+    perform: () => runBuildScript(projectFiles, { isReleaseWanted }),
+  });
+  const isReleased = await run.run('release', {
+    dependsOn: ['configuration', 'build'],
+    perform: () =>
+      releaseFirst(projectFiles, {
+        isBuilt: isBuilt === true,
+        isReleaseWanted,
+        options,
+        privateKeyPath,
+      }),
+  });
+  return isReleased === true;
+}
+
+function printRun(
+  run: InitRun,
+  {
+    app,
+    isReleased,
+    options,
+    privateKeyPath,
+  }: {
+    app: App | undefined;
+    isReleased: boolean;
+    options: InitOptions;
+    privateKeyPath: string | undefined;
+  },
+): void {
+  const status = run.stoppedCode === undefined ? 'complete' : 'incomplete';
+  if (options.json) {
+    printJson({ status, steps: run.steps });
+    return;
+  }
+  // A blank line separates the rows from the package manager and build output above them.
+  console.log('');
+  printOutcomeRows(resolveStepRows(run.steps));
+  if (app !== undefined && status === 'complete') {
+    printFinish(app, { isReleased, privateKeyPath });
+  }
+}
 
 // A non-interactive login leaves the device code for the next run.
 async function signIn(options: InitOptions): Promise<StepOutcome<HotCodePush>> {
@@ -250,68 +348,65 @@ async function signIn(options: InitOptions): Promise<StepOutcome<HotCodePush>> {
 // Without `--organization`, a person picks or creates one. Non-interactively the only one is used.
 async function fetchOrganizationScope(
   hotCodePush: HotCodePush,
-  projectConfig: ProjectConfig | undefined,
-  options: InitOptions,
+  {
+    options,
+    projectConfig,
+  }: { options: InitOptions; projectConfig: ProjectConfig | undefined },
 ): Promise<StepOutcome<Scope>> {
   const app =
     options.app === undefined && projectConfig?.appId !== undefined
       ? await fetchExistingApp(hotCodePush, projectConfig.appId)
       : undefined;
   if (app !== undefined) {
-    const organization = await hotCodePush.organizations.get({
-      organizationId: app.organizationId,
-    });
-    return {
-      message: `Used organization ${organization.name}, the one of ${PROJECT_CONFIG_FILE_NAME}'s app.`,
-      status: 'done',
-      value: { app, organization },
-    };
+    return fetchAppScope(hotCodePush, app);
   }
   const organizations = await fetchOrganizations(hotCodePush);
-  if (options.organization !== undefined) {
-    const named = findResource(organizations, {
-      noun: 'organization',
-      reference: options.organization,
-    });
-    if (named !== undefined) {
-      return resolveUsedScope(named);
-    }
-    assertName('--organization', options.organization);
-    await confirmCreation('organization', options.organization, options);
-    return resolveCreatedScope(
-      await hotCodePush.organizations.create({ name: options.organization }),
-    );
-  }
-  const [onlyOrganization] = organizations;
-  if (
-    !isInteractive(options) &&
-    onlyOrganization !== undefined &&
-    organizations.length === 1
-  ) {
-    return resolveUsedScope(onlyOrganization);
-  }
-  const choice = await promptCreateOrPick(
-    'organization',
-    organizations,
+  const creation = {
+    create: (name: string) => hotCodePush.organizations.create({ name }),
+    noun: 'organization',
     options,
-  );
-  if (choice !== CREATE_CHOICE) {
-    return resolveUsedScope(requireById(organizations, choice));
-  }
-  const name = await promptText(options, {
-    flag: '--organization',
-    message: 'What is the new organization called?',
+  };
+  const outcome =
+    options.organization === undefined
+      ? await pickOrCreateResource(organizations, {
+          ...creation,
+          newNameMessage: 'What is the new organization called?',
+        })
+      : await useOrCreateNamedResource(organizations, {
+          ...creation,
+          name: options.organization,
+        });
+  return { ...outcome, value: { app: undefined, organization: outcome.value } };
+}
+
+async function fetchAppScope(
+  hotCodePush: HotCodePush,
+  app: App,
+): Promise<StepOutcome<Scope>> {
+  const organization = await hotCodePush.organizations.get({
+    organizationId: app.organizationId,
   });
-  return resolveCreatedScope(await hotCodePush.organizations.create({ name }));
+  return {
+    message: `Used organization ${organization.name}, the one of ${PROJECT_CONFIG_FILE_NAME}'s app.`,
+    status: 'done',
+    value: { app, organization },
+  };
 }
 
 // An app in the file that the API lacks is refused non-interactively. A person picks or creates another.
 async function fetchInitApp(
   hotCodePush: HotCodePush,
-  { app, organization }: Scope,
-  { filePath, projectConfig }: ProjectConfigLocation,
-  framework: Framework,
-  options: InitOptions,
+  {
+    framework,
+    location,
+    options,
+    scope: { app, organization },
+  }: {
+    framework: Framework;
+    location: ProjectConfigLocation;
+    options: InitOptions;
+    scope: Scope;
+  },
 ): Promise<StepOutcome<App>> {
   if (app !== undefined) {
     return {
@@ -320,6 +415,30 @@ async function fetchInitApp(
       value: app,
     };
   }
+  assertProjectConfigAppReplaceable(location, options);
+  const apps = await fetchApps(hotCodePush, organization.id);
+  const creation = {
+    create: (name: string) =>
+      hotCodePush.organizations.apps.create({
+        framework,
+        name,
+        organizationId: organization.id,
+      }),
+    noun: 'app',
+    options,
+  };
+  return options.app === undefined
+    ? pickOrCreateResource(apps, {
+        ...creation,
+        newNameMessage: 'What is the app called?',
+      })
+    : useOrCreateNamedResource(apps, { ...creation, name: options.app });
+}
+
+function assertProjectConfigAppReplaceable(
+  { filePath, projectConfig }: ProjectConfigLocation,
+  options: InitOptions,
+): void {
   if (
     options.app === undefined &&
     projectConfig?.appId !== undefined &&
@@ -332,49 +451,57 @@ async function fetchInitApp(
       },
     );
   }
-  const apps = await fetchApps(hotCodePush, organization.id);
-  if (options.app !== undefined) {
-    const named = findResource(apps, { noun: 'app', reference: options.app });
-    if (named !== undefined) {
-      return resolveUsed('app', named);
-    }
-    assertName('--app', options.app);
-    await confirmCreation('app', options.app, options);
-    return resolveCreated(
-      'app',
-      await hotCodePush.organizations.apps.create({
-        framework,
-        name: options.app,
-        organizationId: organization.id,
-      }),
-    );
-  }
-  const [onlyApp] = apps;
-  if (!isInteractive(options) && onlyApp !== undefined && apps.length === 1) {
-    return resolveUsed('app', onlyApp);
-  }
-  const choice = await promptCreateOrPick('app', apps, options);
-  if (choice !== CREATE_CHOICE) {
-    return resolveUsed('app', requireById(apps, choice));
-  }
-  const name = await promptText(options, {
-    flag: '--app',
-    message: 'What is the app called?',
-  });
-  return resolveCreated(
-    'app',
-    await hotCodePush.organizations.apps.create({
-      framework,
-      name,
-      organizationId: organization.id,
-    }),
-  );
 }
 
-async function resolveProjectFiles(
+async function pickOrCreateResource<TResource extends NamedResource>(
+  resources: TResource[],
+  {
+    create,
+    newNameMessage,
+    noun,
+    options,
+  }: ResourceCreation<TResource> & { newNameMessage: string },
+): Promise<StepOutcome<TResource>> {
+  const [onlyResource] = resources;
+  if (
+    !isInteractive(options) &&
+    onlyResource !== undefined &&
+    resources.length === 1
+  ) {
+    return resolveUsed(noun, onlyResource);
+  }
+  const choice = await promptCreateOrPick(options, { noun, resources });
+  if (choice !== CREATE_CHOICE) {
+    return resolveUsed(noun, requireById(resources, choice));
+  }
+  const name = await promptText(options, {
+    flag: `--${noun}`,
+    message: newNameMessage,
+  });
+  return resolveCreated(noun, await create(name));
+}
+
+async function useOrCreateNamedResource<TResource extends NamedResource>(
+  resources: TResource[],
+  {
+    create,
+    name,
+    noun,
+    options,
+  }: ResourceCreation<TResource> & { name: string },
+): Promise<StepOutcome<TResource>> {
+  const named = findResource(resources, { noun, reference: name });
+  if (named !== undefined) {
+    return resolveUsed(noun, named);
+  }
+  assertName(`--${noun}`, name);
+  await confirmCreation(options, { name, noun });
+  return resolveCreated(noun, await create(name));
+}
+
+async function readProjectFiles(
   { directoryPath, filePath, projectConfig }: ProjectConfigLocation,
-  framework: FrameworkModule,
-  options: InitOptions,
+  { framework, options }: { framework: FrameworkModule; options: InitOptions },
 ): Promise<ProjectFiles> {
   const packageJson = readPackageJson(directoryPath);
   return {
@@ -391,10 +518,9 @@ async function resolveProjectFiles(
 }
 
 // Declined, or with nobody to ask, each editing step stops with that reason.
-async function resolveEditBlocker(
+async function confirmProjectEdits(
   projectFiles: ProjectFiles,
-  app: App | undefined,
-  options: InitOptions,
+  { app, options }: { app: App | undefined; options: InitOptions },
 ): Promise<ConfirmationRequiredError | undefined> {
   const filePaths = resolveFilesToChange(projectFiles, app);
   if (filePaths.length === 0) {
@@ -451,9 +577,15 @@ function installPackage(
 
 async function writeConfiguration(
   hotCodePush: HotCodePush,
-  { configFilePath, projectConfig }: ProjectFiles,
-  app: App,
-  editBlocker: ConfirmationRequiredError | undefined,
+  {
+    app,
+    editBlocker,
+    projectFiles: { configFilePath, projectConfig },
+  }: {
+    app: App;
+    editBlocker: ConfirmationRequiredError | undefined;
+    projectFiles: ProjectFiles;
+  },
 ): Promise<StepOutcome<undefined>> {
   if (isConfigurationComplete(projectConfig, app)) {
     return {
@@ -465,37 +597,39 @@ async function writeConfiguration(
   if (editBlocker !== undefined) {
     throw editBlocker;
   }
-  const sourceText = existsSync(configFilePath)
-    ? readFileSync(configFilePath, 'utf8')
-    : '';
-  writeFileSync(
-    configFilePath,
-    stringifyLikeSource(
-      {
-        ...projectConfig,
-        appId: app.id,
-        ...(projectConfig?.channel !== undefined
-          ? {}
-          : { channel: await fetchDefaultChannelName(hotCodePush, app) }),
-      },
-      sourceText || '{}\n',
-    ),
-  );
+  writeProjectConfigFile(configFilePath, {
+    ...projectConfig,
+    appId: app.id,
+    ...(projectConfig?.channel !== undefined
+      ? {}
+      : { channel: await fetchDefaultChannelName(hotCodePush, app) }),
+  });
   return {
-    message: resolveConfigurationMessage(
-      basename(configFilePath),
-      projectConfig,
+    message: resolveConfigurationMessage(projectConfig, {
       app,
-    ),
+      fileName: basename(configFilePath),
+    }),
     status: 'done',
     value: undefined,
   };
 }
 
+function writeProjectConfigFile(
+  configFilePath: string,
+  projectConfig: ProjectConfig,
+): void {
+  const sourceText = existsSync(configFilePath)
+    ? readFileSync(configFilePath, 'utf8')
+    : '';
+  writeFileSync(
+    configFilePath,
+    stringifyLikeSource(projectConfig, sourceText || '{}\n'),
+  );
+}
+
 function resolveConfigurationMessage(
-  fileName: string,
   projectConfig: ProjectConfig | undefined,
-  app: App,
+  { app, fileName }: { app: App; fileName: string },
 ): string {
   if (projectConfig === undefined) {
     return `Wrote ${fileName}.`;
@@ -522,29 +656,20 @@ async function fetchDefaultChannelName(
 
 // Nobody to ask points at the command instead, since a key file written on a runner is lost with it.
 async function createSigningKey(
-  app: App | undefined,
   { configFilePath }: ProjectFiles,
-  options: InitOptions,
+  { app, options }: { app: App | undefined; options: InitOptions },
 ): Promise<StepOutcome<string | undefined>> {
   if (
     app !== undefined &&
     (await fetchHasSigningKey(createApiClient(), app.id))
   ) {
-    return {
-      message: 'The app already has a signing key.',
-      status: 'skipped',
-      value: undefined,
-    };
+    return SIGNING_KEY_PRESENT_OUTCOME;
   }
   if (
     app === undefined ||
     !(await promptYesNo('Generate a signing key pair?', options))
   ) {
-    return {
-      message: 'Run "hotcodepush signing-key create" to enable code signing.',
-      status: 'skipped',
-      value: undefined,
-    };
+    return SIGNING_KEY_DECLINED_OUTCOME;
   }
   const privateKeyPath = SIGNING_PRIVATE_KEY_FILE_NAME;
   await signingKeyCreateCommand.action(
@@ -564,9 +689,9 @@ async function createSigningKey(
   };
 }
 
-function buildProject(
+function runBuildScript(
   { directoryPath, framework, packageJson }: ProjectFiles,
-  isReleaseWanted: boolean,
+  { isReleaseWanted }: { isReleaseWanted: boolean },
 ): Promise<StepOutcome<boolean>> {
   if (framework.packageBundles !== undefined) {
     return Promise.resolve({
@@ -600,47 +725,33 @@ function buildProject(
 }
 
 async function releaseFirst(
-  { configFilePath, directoryPath, framework, packageJson }: ProjectFiles,
-  isReleaseWanted: boolean,
-  isBuilt: boolean,
-  privateKeyPath: string | undefined,
-  options: InitOptions,
+  projectFiles: ProjectFiles,
+  {
+    isBuilt,
+    isReleaseWanted,
+    options,
+    privateKeyPath,
+  }: {
+    isBuilt: boolean;
+    isReleaseWanted: boolean;
+    options: InitOptions;
+    privateKeyPath: string | undefined;
+  },
 ): Promise<StepOutcome<boolean>> {
   const releaseCommandText = resolveReleaseCommandText(privateKeyPath);
   if (!isReleaseWanted) {
-    const buildCommandLine =
-      framework.packageBundles === undefined
-        ? resolveBuildCommandLine(directoryPath, packageJson)
-        : undefined;
-    return {
-      message:
-        buildCommandLine === undefined
-          ? `Run "${releaseCommandText}" to publish the first release.`
-          : `Run "${resolveCommandLineText(buildCommandLine)}", then "${releaseCommandText}" to publish the first release.`,
-      status: 'skipped',
-      value: false,
-    };
+    return resolveDeclinedReleaseOutcome(projectFiles, releaseCommandText);
   }
-  const buildDirectory = framework.readBuildDirectory(directoryPath);
-  if (
-    framework.packageBundles === undefined &&
-    !isBuilt &&
-    'path' in buildDirectory &&
-    !existsSync(join(directoryPath, buildDirectory.path))
-  ) {
-    const buildCommandLine = resolveBuildCommandLine(
-      directoryPath,
-      packageJson,
-    );
-    return {
-      message: `There is ${buildCommandLine === undefined ? 'no build script and ' : ''}no output at ${buildDirectory.path}. Build, then run "${releaseCommandText}".`,
-      status: 'skipped',
-      value: false,
-    };
+  const missingBuildOutcome = checkBuildOutput(projectFiles, {
+    isBuilt,
+    releaseCommandText,
+  });
+  if (missingBuildOutcome !== undefined) {
+    return missingBuildOutcome;
   }
   await releaseCreateCommand.action(
     {
-      config: configFilePath,
+      config: projectFiles.configFilePath,
       json: options.json,
       privateKeyPath,
       yes: true,
@@ -654,11 +765,55 @@ async function releaseFirst(
   };
 }
 
+function checkBuildOutput(
+  { directoryPath, framework, packageJson }: ProjectFiles,
+  {
+    isBuilt,
+    releaseCommandText,
+  }: { isBuilt: boolean; releaseCommandText: string },
+): StepOutcome<boolean> | undefined {
+  const buildDirectory = framework.readBuildDirectory(directoryPath);
+  if (
+    framework.packageBundles !== undefined ||
+    isBuilt ||
+    !('path' in buildDirectory) ||
+    existsSync(join(directoryPath, buildDirectory.path))
+  ) {
+    return undefined;
+  }
+  const buildCommandLine = resolveBuildCommandLine(directoryPath, packageJson);
+  return {
+    message: `There is ${buildCommandLine === undefined ? 'no build script and ' : ''}no output at ${buildDirectory.path}. Build, then run "${releaseCommandText}".`,
+    status: 'skipped',
+    value: false,
+  };
+}
+
+function resolveDeclinedReleaseOutcome(
+  { directoryPath, framework, packageJson }: ProjectFiles,
+  releaseCommandText: string,
+): StepOutcome<boolean> {
+  const buildCommandLine =
+    framework.packageBundles === undefined
+      ? resolveBuildCommandLine(directoryPath, packageJson)
+      : undefined;
+  return {
+    message:
+      buildCommandLine === undefined
+        ? `Run "${releaseCommandText}" to publish the first release.`
+        : `Run "${resolveCommandLineText(buildCommandLine)}", then "${releaseCommandText}" to publish the first release.`,
+    status: 'skipped',
+    value: false,
+  };
+}
+
 // A skipped release row already names the release command, so it is repeated only after a release.
 function printFinish(
   app: App,
-  isReleased: boolean,
-  privateKeyPath: string | undefined,
+  {
+    isReleased,
+    privateKeyPath,
+  }: { isReleased: boolean; privateKeyPath: string | undefined },
 ): void {
   console.log('');
   console.log(
@@ -679,9 +834,8 @@ function assertName(flag: string, reference: string): void {
 }
 
 async function confirmCreation(
-  noun: string,
-  name: string,
   options: InitOptions,
+  { name, noun }: { name: string; noun: string },
 ): Promise<void> {
   const isConfirmed = await confirmConsequence(
     `creates the ${noun} ${name}, which does not exist yet`,
@@ -715,9 +869,8 @@ function isConfigurationComplete(
 }
 
 function promptCreateOrPick(
-  noun: string,
-  resources: { id: string; name: string }[],
   options: InitOptions,
+  { noun, resources }: { noun: string; resources: NamedResource[] },
 ): Promise<string> {
   return promptSelect(options, {
     choices: [
@@ -764,22 +917,6 @@ function resolveReleaseCommandText(privateKeyPath: string | undefined): string {
   return privateKeyPath === undefined
     ? 'hotcodepush release create'
     : `hotcodepush release create --private-key-path ${privateKeyPath}`;
-}
-
-function resolveCreatedScope(organization: Organization): StepOutcome<Scope> {
-  return {
-    message: `Created organization ${organization.name}.`,
-    status: 'done',
-    value: { app: undefined, organization },
-  };
-}
-
-function resolveUsedScope(organization: Organization): StepOutcome<Scope> {
-  return {
-    message: `Used organization ${organization.name}.`,
-    status: 'done',
-    value: { app: undefined, organization },
-  };
 }
 
 function resolveCreated<TResource extends { name: string }>(

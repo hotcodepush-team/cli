@@ -12,8 +12,9 @@ export interface InitStep {
   step: string;
 }
 
-export interface RunStepOptions {
+export interface RunStepOptions<TValue> {
   dependsOn?: string[];
+  perform: () => Promise<StepOutcome<TValue>>;
 }
 
 // Any error stops only its own step, so the run reports instead of throwing and independent steps still run.
@@ -32,8 +33,7 @@ export class InitRun {
 
   async run<TValue>(
     step: string,
-    perform: () => Promise<StepOutcome<TValue>>,
-    { dependsOn = [] }: RunStepOptions = {},
+    { dependsOn = [], perform }: RunStepOptions<TValue>,
   ): Promise<TValue | undefined> {
     const unmetStep = dependsOn.find(name => this.unmetSteps.has(name));
     if (unmetStep !== undefined) {

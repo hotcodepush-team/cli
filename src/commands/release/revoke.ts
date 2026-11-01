@@ -43,6 +43,11 @@ interface DeviceMove {
   targetRelease: Release | undefined;
 }
 
+interface RevokedChannel {
+  channel: Channel;
+  releases: Release[];
+}
+
 interface ReleaseRevokeOptions extends ReleaseOptions {
   all?: boolean;
   bundle?: string;
@@ -107,55 +112,16 @@ export default defineCommand({
     if (!isConfirmed) {
       return;
     }
-    const answers: { channel: Channel; releases: Release[] }[] = [];
-    for (const { channel, request } of revocations) {
-      answers.push({
-        channel,
-        releases: await fetchRevocation(hotCodePush, channel, request),
-      });
-    }
+    const revokedChannels = await revokeReleases(hotCodePush, revocations);
     if (options.json) {
-      printJson(answers.flatMap(({ releases }) => releases));
+      printJson(revokedChannels.flatMap(({ releases }) => releases));
       return;
     }
-    for (const { channel, releases } of answers) {
-      console.log(
-        `Revoked ${resolveReleasesText(releases)} of ${channel.name}${releases.length === 1 ? ` (${releases[0]?.id})` : ''}.`,
-      );
-    }
+    printRevokedLines(revokedChannels);
   },
 });
 
-async function fetchRevocation(
-  hotCodePush: HotCodePush,
-  channel: Channel,
-  request: RevocationRequest,
-): Promise<Release[]> {
-  if ('releaseId' in request) {
-    return [
-      await hotCodePush.apps.releases.revoke({
-        appId: channel.appId,
-        releaseId: request.releaseId,
-      }),
-    ];
-  }
-  const revokedReleases: Release[] = [];
-  for (const releaseIds of resolveReleaseIdPages(request.releaseIds)) {
-    revokedReleases.push(
-      ...(await hotCodePush.apps.channels.releases.revoke({
-        appId: channel.appId,
-        channelId: channel.id,
-        releaseIds,
-      })),
-    );
-  }
-  return revokedReleases.sort((left, right) => right.number - left.number);
-}
-
-async function fetchRevocations(
-  hotCodePush: HotCodePush,
-  options: ReleaseRevokeOptions,
-): Promise<ChannelRevocation[]> {
+function assertOneRevocationForm(options: ReleaseRevokeOptions): void {
   const formFlags = [
     options.all ? '--all' : undefined,
     options.bundle === undefined ? undefined : '--bundle',
@@ -168,43 +134,6 @@ async function fetchRevocations(
       { fix: 'Pass one of them.' },
     );
   }
-  if (options.bundle !== undefined) {
-    if (options.channel !== undefined) {
-      throw new InvalidParameterError(
-        "With --bundle, the bundle's releases are revoked in every channel, so --channel does not apply.",
-        { fix: 'Pass --bundle alone.' },
-      );
-    }
-    return fetchBundleRevocations(hotCodePush, options);
-  }
-  if (options.all || options.releaseFrom !== undefined) {
-    const fromNumber = options.releaseFrom ?? 1;
-    const channel = await fetchChannel(hotCodePush, options);
-    const releaseLog = await fetchReleaseLog(hotCodePush, channel);
-    const revokedReleases = releaseLog.filter(
-      ({ number, status }) => number >= fromNumber && status !== 'revoked',
-    );
-    return [
-      {
-        channel,
-        releaseLog,
-        request: { releaseIds: revokedReleases.map(({ id }) => id) },
-        revokedReleases,
-      },
-    ];
-  }
-  const { channel, release } = await fetchReleaseInChannel(
-    hotCodePush,
-    options,
-  );
-  return [
-    {
-      channel,
-      releaseLog: await fetchReleaseLog(hotCodePush, channel),
-      request: { releaseId: release.id },
-      revokedReleases: [release],
-    },
-  ];
 }
 
 async function fetchBundleRevocations(
@@ -247,12 +176,69 @@ async function fetchBundleRevocations(
   );
 }
 
+async function fetchRangeRevocation(
+  hotCodePush: HotCodePush,
+  options: ReleaseRevokeOptions,
+): Promise<ChannelRevocation> {
+  const fromNumber = options.releaseFrom ?? 1;
+  const channel = await fetchChannel(hotCodePush, options);
+  const releaseLog = await fetchReleaseLog(hotCodePush, channel);
+  const revokedReleases = releaseLog.filter(
+    ({ number, status }) => number >= fromNumber && status !== 'revoked',
+  );
+  return {
+    channel,
+    releaseLog,
+    request: { releaseIds: revokedReleases.map(({ id }) => id) },
+    revokedReleases,
+  };
+}
+
+async function fetchRevocations(
+  hotCodePush: HotCodePush,
+  options: ReleaseRevokeOptions,
+): Promise<ChannelRevocation[]> {
+  assertOneRevocationForm(options);
+  if (options.bundle !== undefined) {
+    if (options.channel !== undefined) {
+      throw new InvalidParameterError(
+        "With --bundle, the bundle's releases are revoked in every channel, so --channel does not apply.",
+        { fix: 'Pass --bundle alone.' },
+      );
+    }
+    return fetchBundleRevocations(hotCodePush, options);
+  }
+  if (options.all || options.releaseFrom !== undefined) {
+    return [await fetchRangeRevocation(hotCodePush, options)];
+  }
+  const { channel, release } = await fetchReleaseInChannel(
+    hotCodePush,
+    options,
+  );
+  return [
+    {
+      channel,
+      releaseLog: await fetchReleaseLog(hotCodePush, channel),
+      request: { releaseId: release.id },
+      revokedReleases: [release],
+    },
+  ];
+}
+
 function printNothingToRevoke(isJson: boolean | undefined): void {
   if (isJson) {
     printJson([]);
     return;
   }
   console.log('Nothing to revoke: no release named is active or paused.');
+}
+
+function printRevokedLines(revokedChannels: RevokedChannel[]): void {
+  for (const { channel, releases } of revokedChannels) {
+    console.log(
+      `Revoked ${resolveReleasesText(releases)} of ${channel.name}${releases.length === 1 ? ` (${releases[0]?.id})` : ''}.`,
+    );
+  }
 }
 
 // Mirrors the API: devices move to the newest active older release not revoked with it, or to the embedded bundle.
@@ -279,8 +265,10 @@ function resolveDeviceMoves(
 
 function resolveMovesText(
   revocation: ChannelRevocation,
-  fleet: FleetStatistics,
-  isChannelNamed: boolean,
+  {
+    fleet,
+    isChannelNamed,
+  }: { fleet: FleetStatistics; isChannelNamed: boolean },
 ): string | undefined {
   const moves = resolveDeviceMoves(revocation, fleet);
   if (moves.length === 0) {
@@ -336,35 +324,6 @@ function resolvePausedLandingTexts(
   return [...texts];
 }
 
-function resolveRevocationConsequence(
-  revocations: ChannelRevocation[],
-  fleet: FleetStatistics,
-): string {
-  const isChannelNamed = revocations.length > 1;
-  const releasesText = revocations
-    .map(
-      ({ channel, revokedReleases }) =>
-        `${resolveReleasesText(revokedReleases)} of ${channel.name}`,
-    )
-    .join(' and ');
-  const movesText =
-    revocations
-      .map(revocation => resolveMovesText(revocation, fleet, isChannelNamed))
-      .filter(text => text !== undefined)
-      .join(', ') || 'no device runs them';
-  const bundleNumbers = new Set(
-    revocations.flatMap(({ revokedReleases }) =>
-      revokedReleases.map(({ bundle }) => bundle?.number),
-    ),
-  );
-  const [bundleNumber] = bundleNumbers;
-  const reReleaseText =
-    bundleNumbers.size === 1 && bundleNumber !== undefined
-      ? `"release create --bundle ${bundleNumber}" releases its bundle again`
-      : '"release create --bundle <number>" releases a bundle again';
-  return `revokes ${releasesText} for good: ${movesText}. Revoked is final, and ${reReleaseText}`;
-}
-
 // The oldest page goes first, so devices never land on a newer release that a later page revokes.
 function resolveReleaseIdPages(newestFirstReleaseIds: string[]): string[][] {
   const oldestFirstReleaseIds = newestFirstReleaseIds.toReversed();
@@ -393,4 +352,74 @@ function resolveReleasesText(releases: Release[]): string {
     return resolveQuantityText(numberTexts.length, { noun: 'release' });
   }
   return `releases ${numberTexts.slice(0, -1).join(', ')} and ${numberTexts.at(-1)}`;
+}
+
+function resolveRevocationConsequence(
+  revocations: ChannelRevocation[],
+  fleet: FleetStatistics,
+): string {
+  const isChannelNamed = revocations.length > 1;
+  const releasesText = revocations
+    .map(
+      ({ channel, revokedReleases }) =>
+        `${resolveReleasesText(revokedReleases)} of ${channel.name}`,
+    )
+    .join(' and ');
+  const movesText =
+    revocations
+      .map(revocation =>
+        resolveMovesText(revocation, { fleet, isChannelNamed }),
+      )
+      .filter(text => text !== undefined)
+      .join(', ') || 'no device runs them';
+  const bundleNumbers = new Set(
+    revocations.flatMap(({ revokedReleases }) =>
+      revokedReleases.map(({ bundle }) => bundle?.number),
+    ),
+  );
+  const [bundleNumber] = bundleNumbers;
+  const reReleaseText =
+    bundleNumbers.size === 1 && bundleNumber !== undefined
+      ? `"release create --bundle ${bundleNumber}" releases its bundle again`
+      : '"release create --bundle <number>" releases a bundle again';
+  return `revokes ${releasesText} for good: ${movesText}. Revoked is final, and ${reReleaseText}`;
+}
+
+async function revokeChannelReleases(
+  hotCodePush: HotCodePush,
+  { channel, request }: { channel: Channel; request: RevocationRequest },
+): Promise<Release[]> {
+  if ('releaseId' in request) {
+    return [
+      await hotCodePush.apps.releases.revoke({
+        appId: channel.appId,
+        releaseId: request.releaseId,
+      }),
+    ];
+  }
+  const revokedReleases: Release[] = [];
+  for (const releaseIds of resolveReleaseIdPages(request.releaseIds)) {
+    revokedReleases.push(
+      ...(await hotCodePush.apps.channels.releases.revoke({
+        appId: channel.appId,
+        channelId: channel.id,
+        releaseIds,
+      })),
+    );
+  }
+  return revokedReleases.sort((left, right) => right.number - left.number);
+}
+
+async function revokeReleases(
+  hotCodePush: HotCodePush,
+  revocations: ChannelRevocation[],
+): Promise<RevokedChannel[]> {
+  const revokedChannels: RevokedChannel[] = [];
+  for (const { channel, request } of revocations) {
+    revokedChannels.push({
+      channel,
+      releases: await revokeChannelReleases(hotCodePush, { channel, request }),
+    });
+  }
+  return revokedChannels;
 }

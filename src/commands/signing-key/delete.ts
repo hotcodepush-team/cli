@@ -44,11 +44,10 @@ export default defineCommand({
       appId,
       signingKeyId: signingKey.id,
     });
-    removePublicKeyFromProjectConfig(
-      projectConfigLocation,
+    removePublicKeyFromProjectConfig(projectConfigLocation, {
       appId,
-      signingKey.publicKey,
-    );
+      publicKey: signingKey.publicKey,
+    });
     if (options.json) {
       printJson({ id: signingKey.id, name: signingKey.keyId });
     } else {
@@ -62,8 +61,7 @@ export default defineCommand({
 // Removing the key from `publicKeys` makes the file and the app agree again.
 function removePublicKeyFromProjectConfig(
   { filePath, projectConfig }: ProjectConfigLocation,
-  appId: string,
-  publicKey: string,
+  { appId, publicKey }: { appId: string; publicKey: string },
 ): void {
   if (
     filePath === undefined ||

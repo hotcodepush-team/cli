@@ -1,3 +1,4 @@
+import type { Device } from '@hotcodepush/node';
 import { z } from 'zod';
 import { fetchAppId } from '../../resources/apps.js';
 import { fetchChannelFilterId } from '../../resources/channels/fetch.js';
@@ -90,18 +91,25 @@ export default defineCommand({
       printJson({ devices: listedDevices, nextOffset });
       return;
     }
-    printTable({
-      emptyText: 'No devices match. A device appears with its first check.',
-      headers: ['ID', 'PLATFORM', 'BINARY', 'CHANNEL', 'SDK', 'LAST SEEN'],
-      nextOffset,
-      rows: listedDevices.map(device => [
-        device.deviceId,
-        device.platform,
-        resolveBinaryText(device),
-        device.channel?.name ?? device.channelId ?? 'none',
-        device.sdkVersion,
-        resolveDate(device.lastSeenAt),
-      ]),
-    });
+    printDeviceTable(listedDevices, nextOffset);
   },
 });
+
+function printDeviceTable(
+  listedDevices: Device[],
+  nextOffset: number | null,
+): void {
+  printTable({
+    emptyText: 'No devices match. A device appears with its first check.',
+    headers: ['ID', 'PLATFORM', 'BINARY', 'CHANNEL', 'SDK', 'LAST SEEN'],
+    nextOffset,
+    rows: listedDevices.map(device => [
+      device.deviceId,
+      device.platform,
+      resolveBinaryText(device),
+      device.channel?.name ?? device.channelId ?? 'none',
+      device.sdkVersion,
+      resolveDate(device.lastSeenAt),
+    ]),
+  });
+}

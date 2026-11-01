@@ -1,3 +1,4 @@
+import type { Audience } from '@hotcodepush/node';
 import { z } from 'zod';
 import { resolveAudienceText } from '../../resources/audience.js';
 import {
@@ -52,32 +53,42 @@ export default defineCommand({
       printJson(audience);
       return;
     }
-    const audienceText = resolveAudienceText(audience, {
-      channelName: channel.name,
-      rolloutPercent,
-    });
-    console.log(
-      `${audienceText.charAt(0).toUpperCase()}${audienceText.slice(1)}.`,
-    );
-    if (audience.reachedDeviceCount === 0) {
-      return;
-    }
-    for (const [header, deviceCounts] of [
-      ['PLATFORM', audience.platform],
-      ['BINARY VERSION', audience.binaryVersion],
-    ] as const) {
-      printTable({
-        emptyText: '',
-        headers: [header, 'DEVICES'],
-        nextOffset: null,
-        rows: deviceCounts.map(({ deviceCount, value }) => [
-          value ?? 'none',
-          String(deviceCount),
-        ]),
-      });
-    }
+    printAudience(audience, { channelName: channel.name, rolloutPercent });
   },
 });
+
+function printAudience(
+  audience: Audience,
+  {
+    channelName,
+    rolloutPercent,
+  }: { channelName: string; rolloutPercent: number },
+): void {
+  const audienceText = resolveAudienceText(audience, {
+    channelName,
+    rolloutPercent,
+  });
+  console.log(
+    `${audienceText.charAt(0).toUpperCase()}${audienceText.slice(1)}.`,
+  );
+  if (audience.reachedDeviceCount === 0) {
+    return;
+  }
+  for (const [header, deviceCounts] of [
+    ['PLATFORM', audience.platform],
+    ['BINARY VERSION', audience.binaryVersion],
+  ] as const) {
+    printTable({
+      emptyText: '',
+      headers: [header, 'DEVICES'],
+      nextOffset: null,
+      rows: deviceCounts.map(({ deviceCount, value }) => [
+        value ?? 'none',
+        String(deviceCount),
+      ]),
+    });
+  }
+}
 
 // Uses the fingerprint that `release create` would set, so the preview counts the same devices.
 async function readProjectFingerprint(

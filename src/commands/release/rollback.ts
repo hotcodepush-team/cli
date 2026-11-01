@@ -1,4 +1,4 @@
-import type { Release } from '@hotcodepush/node';
+import type { Channel, HotCodePush, Release } from '@hotcodepush/node';
 import { z } from 'zod';
 import {
   channelOptionShape,
@@ -64,15 +64,10 @@ export default defineCommand({
     if (!isConfirmed) {
       return;
     }
-    const createdRelease = await hotCodePush.apps.channels.rollbacks.create({
-      appId: fetchedChannel.appId,
-      channelId: fetchedChannel.id,
+    const liveRelease = await createLiveRollback(hotCodePush, {
+      channel: fetchedChannel,
       isMandatory,
-      toReleaseId: targetRelease.id,
-    });
-    const liveRelease = await waitUntilLive(hotCodePush, {
-      appId: fetchedChannel.appId,
-      releaseId: createdRelease.id,
+      targetRelease,
     });
     if (options.json) {
       printJson(liveRelease);
@@ -84,6 +79,26 @@ export default defineCommand({
     }
   },
 });
+
+async function createLiveRollback(
+  hotCodePush: HotCodePush,
+  {
+    channel,
+    isMandatory,
+    targetRelease,
+  }: { channel: Channel; isMandatory: boolean; targetRelease: Release },
+): Promise<Release> {
+  const createdRelease = await hotCodePush.apps.channels.rollbacks.create({
+    appId: channel.appId,
+    channelId: channel.id,
+    isMandatory,
+    toReleaseId: targetRelease.id,
+  });
+  return waitUntilLive(hotCodePush, {
+    appId: channel.appId,
+    releaseId: createdRelease.id,
+  });
+}
 
 // Mirrors the API rule for a rollback without a target.
 function resolvePreviousRelease(releases: Release[]): Release {

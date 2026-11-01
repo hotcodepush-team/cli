@@ -35,7 +35,8 @@ export default defineCommand({
     const fetchedBinary = await hotCodePush.apps.binaries.get({
       appId,
       binaryId:
-        options.binary ?? (await promptBinaryId(hotCodePush, appId, options)),
+        options.binary ??
+        (await promptBinaryId(hotCodePush, { appId, options })),
     });
     if (options.json) {
       printJson(fetchedBinary);
@@ -61,8 +62,7 @@ export default defineCommand({
 
 async function promptBinaryId(
   hotCodePush: HotCodePush,
-  appId: string,
-  options: InteractivityOptions,
+  { appId, options }: { appId: string; options: InteractivityOptions },
 ): Promise<string> {
   if (!isInteractive(options)) {
     throw new MissingParameterError('--binary');

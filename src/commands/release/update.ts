@@ -94,36 +94,55 @@ export default defineCommand({
 });
 
 // Uses the field order of `release get`.
-function resolveChangeTexts({
-  failureAction,
-  failureMinimumUpdateCount,
-  failureThresholdPercent,
-  isMandatory,
-  notes,
-}: ReleaseChanges): string[] {
-  const changeTexts: string[] = [];
-  if (failureThresholdPercent !== undefined) {
-    changeTexts.push(
-      `failure threshold ${failureThresholdPercent === null ? CLEARED_TEXT : `${failureThresholdPercent}%`}`,
-    );
+function resolveChangeTexts(changes: ReleaseChanges): string[] {
+  return [
+    resolveFailureThresholdText(changes.failureThresholdPercent),
+    resolveFailureMinimumUpdateCountText(changes.failureMinimumUpdateCount),
+    resolveFailureActionText(changes.failureAction),
+    resolveMandatoryText(changes.isMandatory),
+    resolveNotesText(changes.notes),
+  ].filter(changeText => changeText !== undefined);
+}
+
+function resolveFailureActionText(
+  failureAction: ReleaseChanges['failureAction'],
+): string | undefined {
+  return failureAction === undefined
+    ? undefined
+    : `failure action ${failureAction ?? CLEARED_TEXT}`;
+}
+
+function resolveFailureMinimumUpdateCountText(
+  failureMinimumUpdateCount: ReleaseChanges['failureMinimumUpdateCount'],
+): string | undefined {
+  return failureMinimumUpdateCount === undefined
+    ? undefined
+    : `failure minimum update count ${failureMinimumUpdateCount ?? CLEARED_TEXT}`;
+}
+
+function resolveFailureThresholdText(
+  failureThresholdPercent: ReleaseChanges['failureThresholdPercent'],
+): string | undefined {
+  if (failureThresholdPercent === undefined) {
+    return undefined;
   }
-  if (failureMinimumUpdateCount !== undefined) {
-    changeTexts.push(
-      `failure minimum update count ${failureMinimumUpdateCount ?? CLEARED_TEXT}`,
-    );
+  return `failure threshold ${failureThresholdPercent === null ? CLEARED_TEXT : `${failureThresholdPercent}%`}`;
+}
+
+function resolveMandatoryText(
+  isMandatory: ReleaseChanges['isMandatory'],
+): string | undefined {
+  if (isMandatory === undefined) {
+    return undefined;
   }
-  if (failureAction !== undefined) {
-    changeTexts.push(`failure action ${failureAction ?? CLEARED_TEXT}`);
+  return `mandatory ${isMandatory ? 'on' : 'off'}`;
+}
+
+function resolveNotesText(notes: ReleaseChanges['notes']): string | undefined {
+  if (notes === undefined) {
+    return undefined;
   }
-  if (isMandatory !== undefined) {
-    changeTexts.push(`mandatory ${isMandatory ? 'on' : 'off'}`);
-  }
-  if (notes !== undefined) {
-    changeTexts.push(
-      notes === null ? `notes ${CLEARED_TEXT}` : `notes "${notes}"`,
-    );
-  }
-  return changeTexts;
+  return notes === null ? `notes ${CLEARED_TEXT}` : `notes "${notes}"`;
 }
 
 function resolveReleaseChanges(options: ReleaseUpdateOptions): ReleaseChanges {

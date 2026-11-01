@@ -61,12 +61,7 @@ export default defineCommand({
     const format = options.format ?? (await promptFormat(options));
     const events = options.event?.length
       ? options.event
-      : [
-          await promptText(options, {
-            flag: '--event',
-            message: 'Which event type, such as release.created?',
-          }),
-        ];
+      : [await promptEventType(options)];
     const createdWebhook = await hotCodePush.organizations.webhooks.create({
       appId:
         options.app === undefined
@@ -98,6 +93,13 @@ function printCreatedWebhook(webhook: CreatedWebhook): void {
   console.log(
     'Store the secret now to verify the signature of every delivery. It is never shown again.',
   );
+}
+
+function promptEventType(options: InteractivityOptions): Promise<string> {
+  return promptText(options, {
+    flag: '--event',
+    message: 'Which event type, such as release.created?',
+  });
 }
 
 function promptFormat(options: InteractivityOptions): Promise<WebhookFormat> {

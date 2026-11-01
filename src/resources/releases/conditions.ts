@@ -16,7 +16,7 @@ export interface ConditionOptions {
   osVersion?: string;
 }
 
-type AudienceQuery = Omit<GetAudienceOptions, 'appId' | 'channelId'>;
+export type AudienceQuery = Omit<GetAudienceOptions, 'appId' | 'channelId'>;
 
 type ReleaseCondition = NonNullable<CreateReleaseOptions['conditions']>[number];
 

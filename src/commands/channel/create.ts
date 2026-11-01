@@ -55,7 +55,10 @@ export default defineCommand({
         appId,
         name,
       });
-      printChannel(createdChannel, 'Created channel', options.json);
+      printChannel(createdChannel, {
+        isJson: options.json,
+        sentencePrefix: 'Created channel',
+      });
     } catch (error) {
       if (!options.ifNotExists || !isChannelNameTaken(error)) {
         throw error;
@@ -65,8 +68,7 @@ export default defineCommand({
           name,
           noun: 'channel',
         }),
-        'Found the existing channel',
-        options.json,
+        { isJson: options.json, sentencePrefix: 'Found the existing channel' },
       );
     }
   },
@@ -80,8 +82,10 @@ function isChannelNameTaken(error: unknown): boolean {
 
 function printChannel(
   channel: Channel,
-  sentencePrefix: string,
-  isJson: boolean | undefined,
+  {
+    isJson,
+    sentencePrefix,
+  }: { isJson: boolean | undefined; sentencePrefix: string },
 ): void {
   if (isJson) {
     printJson(channel);

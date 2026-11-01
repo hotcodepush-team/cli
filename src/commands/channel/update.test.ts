@@ -85,6 +85,7 @@ describe('channel update', () => {
     ],
   ])(
     'should send null for the field %s clears and nothing else',
+    // eslint-disable-next-line max-params -- it.each passes each row's cells as separate arguments.
     async (_flag, clearOption, expectedBody) => {
       respondWithChannel();
 

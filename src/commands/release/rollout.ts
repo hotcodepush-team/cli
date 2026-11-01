@@ -49,12 +49,11 @@ export default defineCommand({
       options,
     );
     const isConfirmed = await confirmConsequence(
-      resolveRolloutConsequence(
-        release,
-        channel.name,
-        rolloutPercent ?? release.rolloutPercent,
+      resolveRolloutConsequence(release, {
+        channelName: channel.name,
         progression,
-      ),
+        rolloutPercent: rolloutPercent ?? release.rolloutPercent,
+      }),
       options,
     );
     if (!isConfirmed) {
@@ -90,9 +89,15 @@ async function promptRolloutPercent(
 
 function resolveRolloutConsequence(
   release: Release,
-  channelName: string,
-  rolloutPercent: number,
-  progression: Progression | null,
+  {
+    channelName,
+    progression,
+    rolloutPercent,
+  }: {
+    channelName: string;
+    progression: Progression | null;
+    rolloutPercent: number;
+  },
 ): string {
   const releaseText = `release #${release.number} of ${channelName}`;
   if (progression !== null) {

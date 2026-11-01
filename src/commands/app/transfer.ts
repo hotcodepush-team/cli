@@ -40,9 +40,8 @@ export default defineCommand({
       fetchOrganizations(hotCodePush),
     ]);
     const targetOrganizationId = await pickTargetOrganizationId(
-      fetchedApp,
       fetchedOrganizations,
-      options,
+      { app: fetchedApp, options },
     );
     const sourceOrganizationName = resolveOrganizationName(
       fetchedOrganizations,
@@ -63,20 +62,13 @@ export default defineCommand({
       appId,
       organizationId: targetOrganizationId,
     });
-    if (options.json) {
-      printJson(transferredApp);
-    } else {
-      console.log(
-        `Transferred app ${transferredApp.name} (${transferredApp.id}) to organization ${targetOrganizationName}.`,
-      );
-    }
+    printTransferredApp(transferredApp, { options, targetOrganizationName });
   },
 });
 
 function pickTargetOrganizationId(
-  app: App,
   organizations: Organization[],
-  options: TargetOrganizationOptions,
+  { app, options }: { app: App; options: TargetOrganizationOptions },
 ): Promise<string> {
   if (options.organization === undefined) {
     return promptResourceId(options, {
@@ -89,6 +81,22 @@ function pickTargetOrganizationId(
     noun: 'organization',
     reference: options.organization,
   });
+}
+
+function printTransferredApp(
+  transferredApp: App,
+  {
+    options,
+    targetOrganizationName,
+  }: { options: { json?: boolean }; targetOrganizationName: string },
+): void {
+  if (options.json) {
+    printJson(transferredApp);
+  } else {
+    console.log(
+      `Transferred app ${transferredApp.name} (${transferredApp.id}) to organization ${targetOrganizationName}.`,
+    );
+  }
 }
 
 // Falls back to the id when the organizations of the user do not include it.
