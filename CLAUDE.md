@@ -99,7 +99,7 @@ A project with an app config that is code, or with a JSON one that does not pars
   The message and the fix each start with a capital letter and end with a full stop, in plain English; a stack trace only with `--verbose`.
 - **API errors pass through verbatim**, their code, message and fix as received and never re-mapped; the CLI's catalog covers only what happens before or without the API.
 - **Exit codes**: `0` done, `1` an error, `2` a missing or invalid parameter, `3` not logged in, `4` a confirmation required without `--yes`.
-- **Parameters are the API's field names**, `--rollout-percentage`, `--channel`: nothing is renamed between the console, the API and the terminal.
+- **Parameters are the API's field names**, `--rollout-percent`, `--channel`: nothing is renamed between the console, the API and the terminal.
   The one exception is a version: `--version` is the CLI's own flag, so a bundle's `version` is `--bundle-version` and a binary's `version` and `build` are `--binary-version` and `--binary-build`, the names a device's `binaryVersion` and `binaryBuild` already carry.
   A condition flag is named after the device field it ranges over, `--binary-version <range>` and `--os-version <range>` on `release create` and `audience get`, while a resource flag stays `--<noun> <id|name>`.
   The schema key is the camelCase field, and zodline takes the kebab-case flag.

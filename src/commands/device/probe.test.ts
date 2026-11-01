@@ -53,7 +53,7 @@ const RELEASE = {
   manifestUrl: `${API_URL}/files/apps/${DEMO_APP.id}/bundles/c56a4180-65aa-42ec-a945-5fd21dec0538/manifest.json`,
   notes: null,
   number: 43,
-  rolloutPercentage: 100,
+  rolloutPercent: 100,
   sizeBytes: 1000,
 };
 
@@ -61,7 +61,7 @@ const INDEX: ChannelIndex = {
   appId: DEMO_APP.id,
   cappedAt: null,
   channelId: STAGING_CHANNEL.id,
-  isPaused: false,
+  pausedAt: null,
   platform: 'ios',
   releases: [
     {
@@ -71,7 +71,7 @@ const INDEX: ChannelIndex = {
         { fingerprint: FINGERPRINT, type: 'fingerprint' },
         { range: '>=99', type: 'os' },
       ],
-      rolloutPercentage: 0,
+      rolloutPercent: 0,
     },
   ],
   revokedReleaseIds: [],
@@ -159,7 +159,7 @@ describe('device probe', () => {
 
       const { outcome, unknownFacts } = harness.readJson() as {
         outcome: {
-          condition?: string;
+          conditionType?: string;
           isMandatory?: boolean;
           reason?: string;
           release: { id: string } | null;
@@ -169,13 +169,13 @@ describe('device probe', () => {
       };
       expect(unknownFacts).toEqual([]);
       expect({
-        condition: outcome.condition,
+        conditionType: outcome.conditionType,
         isMandatory: outcome.isMandatory,
         reason: outcome.reason,
         releaseId: outcome.release?.id ?? null,
         status: outcome.status,
       }).toEqual({
-        condition: fixture.expected.condition,
+        conditionType: fixture.expected.conditionType,
         isMandatory: fixture.expected.isMandatory,
         reason: fixture.expected.reason,
         releaseId: fixture.expected.releaseId,
@@ -256,7 +256,7 @@ describe('device probe', () => {
       verdicts: [
         {
           isEligible: true,
-          release: { id: RELEASE.id, rolloutPercentage: 0 },
+          release: { id: RELEASE.id, rolloutPercent: 0 },
         },
       ],
     });
@@ -328,7 +328,7 @@ describe('device probe', () => {
         fingerprint: FINGERPRINT,
         osVersion: '17.4',
       },
-      outcome: { condition: 'attribute', reason: 'device_not_targeted' },
+      outcome: { conditionType: 'attribute', reason: 'device_not_targeted' },
       unknownFacts: [],
     });
   });

@@ -13,16 +13,16 @@ import {
 
 // Reaches 100 of the 120 active devices.
 export const STAGING_AUDIENCE: Audience = {
-  byBinaryVersion: [
+  binaryVersion: [
     { deviceCount: 70, value: '2.4.1' },
     { deviceCount: 30, value: '2.3.0' },
   ],
-  byPlatform: [
+  deviceCount: 120,
+  estimatedDeviceCount: 100,
+  platform: [
     { deviceCount: 60, value: 'ios' },
     { deviceCount: 40, value: 'android' },
   ],
-  deviceCount: 120,
-  estimatedDeviceCount: 100,
   reachedDeviceCount: 100,
   warnings: [],
 };
@@ -74,8 +74,7 @@ export function respondWithStagingReleases(harness: CommandHarness): void {
   respondWithChannels(harness);
   respondWithFleet(harness);
   harness.routes[`GET ${CHANNEL_PATH}`] = () => Response.json(STAGING_CHANNEL);
-  harness.routes[`GET ${CHANNEL_PATH}/releases`] = () =>
-    Response.json(RELEASE_LOG);
+  harness.routes[`GET ${RELEASES_PATH}`] = () => Response.json(RELEASE_LOG);
   harness.routes[`GET ${RELEASES_PATH}/${LIVE_RELEASE.id}`] = () =>
     Response.json(LIVE_RELEASE_WITH_RELATIONS);
 }

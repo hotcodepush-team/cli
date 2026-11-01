@@ -1,7 +1,7 @@
 import type { App, User } from '@hotcodepush/node';
 import {
   ProjectConfigurationSchema,
-  resolveSigningKeyFingerprint,
+  resolveSigningKeyId,
 } from '@hotcodepush/protocol';
 import { defineCommand } from 'zodline';
 import {
@@ -355,7 +355,7 @@ async function checkSigningPrivateKey(
         }
       : {
           check: 'signing_key',
-          message: `HOTCODEPUSH_SIGNING_KEY signs with key ${resolveSigningKeyFingerprint(signingKeyPair.publicKey)}.`,
+          message: `HOTCODEPUSH_SIGNING_KEY signs with key ${resolveSigningKeyId(signingKeyPair.publicKey)}.`,
           status: 'ok',
         };
   } catch (error) {

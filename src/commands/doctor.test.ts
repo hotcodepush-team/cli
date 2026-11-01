@@ -388,7 +388,7 @@ describe('doctor', () => {
 
     expect(await readSigningKeyCheck(directoryPath)).toEqual({
       check: 'signing_key',
-      message: `HOTCODEPUSH_SIGNING_KEY signs with key ${SIGNING_KEY.fingerprint}.`,
+      message: `HOTCODEPUSH_SIGNING_KEY signs with key ${SIGNING_KEY.keyId}.`,
       status: 'ok',
     });
   });

@@ -19,7 +19,7 @@ import releaseRolloutCommand from './rollout.js';
 
 vi.mock('@clack/prompts');
 
-const ROLLED_OUT_RELEASE = { ...LIVE_RELEASE, rolloutPercentage: 20 };
+const ROLLED_OUT_RELEASE = { ...LIVE_RELEASE, rolloutPercent: 20 };
 
 describe('release rollout', () => {
   const harness = useCommandHarness();
@@ -49,7 +49,7 @@ describe('release rollout', () => {
           channel: STAGING_CHANNEL.name,
         }),
         release: '43',
-        rolloutPercentage: 20,
+        rolloutPercent: 20,
       },
       undefined,
     );
@@ -62,7 +62,7 @@ describe('release rollout', () => {
     const updateRequest = harness.requests.find(
       ({ method }) => method === 'PATCH',
     );
-    expect(await updateRequest?.json()).toEqual({ rolloutPercentage: 20 });
+    expect(await updateRequest?.json()).toEqual({ rolloutPercent: 20 });
     expect(harness.readLines()).toEqual([
       'Set release #43 of staging to 20 percent.',
     ]);
@@ -77,7 +77,7 @@ describe('release rollout', () => {
         channel: STAGING_CHANNEL.id,
         json: true,
         release: LIVE_RELEASE.id,
-        rolloutPercentage: 20,
+        rolloutPercent: 20,
         yes: true,
       },
       undefined,
@@ -106,7 +106,7 @@ describe('release rollout', () => {
     const updateRequest = harness.requests.find(
       ({ method }) => method === 'PATCH',
     );
-    expect(await updateRequest?.json()).toEqual({ rolloutPercentage: 20 });
+    expect(await updateRequest?.json()).toEqual({ rolloutPercent: 20 });
   });
 
   it('should name the flag with `missing_parameter` when it is missing and nobody can answer', async () => {
@@ -124,7 +124,7 @@ describe('release rollout', () => {
       ),
     ).rejects.toMatchObject({
       code: 'missing_parameter',
-      message: 'No value was given for --rollout-percentage.',
+      message: 'No value was given for --rollout-percent.',
     });
   });
 
@@ -141,7 +141,7 @@ describe('release rollout', () => {
         channel: STAGING_CHANNEL.id,
         progression: true,
         release: '43',
-        rolloutPercentage: 10,
+        rolloutPercent: 10,
       },
       undefined,
     );
@@ -153,21 +153,21 @@ describe('release rollout', () => {
     });
     expect(await readUpdateBody()).toEqual({
       progression: {
-        percentages: [10, 50, 100],
+        rolloutPercents: [10, 50, 100],
         stepMinimumSeconds: 3600,
         stepMinimumUpdateCount: 50,
       },
-      rolloutPercentage: 10,
+      rolloutPercent: 10,
     });
     expect(harness.readLines()).toEqual([
       'Set release #43 of staging to 10 percent, progressing through 10, 50, 100 percent.',
     ]);
   });
 
-  it('should send the schedule its flags override and leave the percentage as it stands when --rollout-percentage is missing', async () => {
+  it('should send the schedule its flags override and leave the percentage as it stands when --rollout-percent is missing', async () => {
     respondWithStagingReleases(harness);
     harness.routes[`GET ${RELEASES_PATH}/${LIVE_RELEASE.id}`] = () =>
-      Response.json({ ...LIVE_RELEASE_WITH_RELATIONS, rolloutPercentage: 5 });
+      Response.json({ ...LIVE_RELEASE_WITH_RELATIONS, rolloutPercent: 5 });
     harness.routes[`PATCH ${RELEASES_PATH}/${LIVE_RELEASE.id}`] = () =>
       Response.json(PROGRESSING_RELEASE);
 
@@ -179,7 +179,7 @@ describe('release rollout', () => {
         progression: true,
         progressionMinimumSeconds: 600,
         progressionMinimumUpdateCount: 20,
-        progressionPercentages: [20, 100],
+        progressionRolloutPercents: [20, 100],
         release: '43',
         yes: true,
       },
@@ -189,7 +189,7 @@ describe('release rollout', () => {
     expect(text).not.toHaveBeenCalled();
     expect(await readUpdateBody()).toEqual({
       progression: {
-        percentages: [20, 100],
+        rolloutPercents: [20, 100],
         stepMinimumSeconds: 600,
         stepMinimumUpdateCount: 20,
       },
@@ -208,7 +208,7 @@ describe('release rollout', () => {
           app: DEMO_APP.id,
           channel: STAGING_CHANNEL.id,
           release: '43',
-          rolloutPercentage: 50,
+          rolloutPercent: 50,
         },
         undefined,
       ),
@@ -227,9 +227,9 @@ describe('release rollout', () => {
         {
           app: DEMO_APP.id,
           channel: STAGING_CHANNEL.id,
-          progressionPercentages: [20, 100],
+          progressionRolloutPercents: [20, 100],
           release: '43',
-          rolloutPercentage: 20,
+          rolloutPercent: 20,
           yes: true,
         },
         undefined,
@@ -237,7 +237,7 @@ describe('release rollout', () => {
     ).rejects.toMatchObject({
       code: 'invalid_parameter',
       message:
-        "The schedule's flags --progression-percentages apply only with --progression.",
+        "The schedule's flags --progression-rollout-percents apply only with --progression.",
     });
     expect(harness.requests).toEqual([]);
   });

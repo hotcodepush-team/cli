@@ -17,7 +17,7 @@ export interface ProgressionOptions {
   progression?: boolean;
   progressionMinimumSeconds?: number;
   progressionMinimumUpdateCount?: number;
-  progressionPercentages?: number[];
+  progressionRolloutPercents?: number[];
 }
 
 interface ProgressionStep {
@@ -26,7 +26,7 @@ interface ProgressionStep {
 }
 
 const DEFAULT_PROGRESSION: Progression = {
-  percentages: [10, 50, 100],
+  rolloutPercents: [10, 50, 100],
   stepMinimumSeconds: 3600,
   stepMinimumUpdateCount: 50,
 };
@@ -59,7 +59,7 @@ export const progressionShape = {
     .describe(
       'The applied updates each step needs before the next one, with --progression; 50 by default.',
     ),
-  progressionPercentages: percentageListSchema
+  progressionRolloutPercents: percentageListSchema
     .optional()
     .describe(
       'The percentages the rollout widens through, rising, the last above the starting rollout, with --progression; 10,50,100 by default.',
@@ -75,8 +75,8 @@ export function resolveProgression(
     return null;
   }
   return {
-    percentages:
-      options.progressionPercentages ?? DEFAULT_PROGRESSION.percentages,
+    rolloutPercents:
+      options.progressionRolloutPercents ?? DEFAULT_PROGRESSION.rolloutPercents,
     stepMinimumSeconds:
       options.progressionMinimumSeconds ??
       DEFAULT_PROGRESSION.stepMinimumSeconds,
@@ -95,10 +95,10 @@ export function resolveProgressionStep(
   if (progression === null || release.status !== 'active') {
     return null;
   }
-  const number = progression.percentages.filter(
-    percentage => percentage <= release.rolloutPercentage,
+  const number = progression.rolloutPercents.filter(
+    percentage => percentage <= release.rolloutPercent,
   ).length;
-  if (number === progression.percentages.length) {
+  if (number === progression.rolloutPercents.length) {
     return null;
   }
   const appliedUpdateCount =
@@ -137,7 +137,7 @@ export function resolveProgressionStepText(
 ): string {
   const progressionStep = resolveProgressionStep(release);
   if (progressionStep !== null) {
-    return `${progressionStep.number} of ${progression.percentages.length}, ${resolveGateText(progressionStep.gate)}`;
+    return `${progressionStep.number} of ${progression.rolloutPercents.length}, ${resolveGateText(progressionStep.gate)}`;
   }
   switch (release.status) {
     case 'active':
@@ -150,11 +150,11 @@ export function resolveProgressionStepText(
 }
 
 export function resolveProgressionText({
-  percentages,
+  rolloutPercents,
   stepMinimumSeconds,
   stepMinimumUpdateCount,
 }: Progression): string {
-  return `${percentages.join(', ')} percent, each step at least ${stepMinimumSeconds} seconds and ${stepMinimumUpdateCount} applied updates`;
+  return `${rolloutPercents.join(', ')} percent, each step at least ${stepMinimumSeconds} seconds and ${stepMinimumUpdateCount} applied updates`;
 }
 
 function assertNoProgressionFlags(options: ProgressionOptions): void {
@@ -165,9 +165,9 @@ function assertNoProgressionFlags(options: ProgressionOptions): void {
     options.progressionMinimumUpdateCount === undefined
       ? undefined
       : '--progression-minimum-update-count',
-    options.progressionPercentages === undefined
+    options.progressionRolloutPercents === undefined
       ? undefined
-      : '--progression-percentages',
+      : '--progression-rollout-percents',
   ].filter(flag => flag !== undefined);
   if (progressionFlags.length > 0) {
     throw new InvalidParameterError(

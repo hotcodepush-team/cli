@@ -120,9 +120,9 @@ describe('error mapping', () => {
 
     it('should map a zod validation error to `invalid_parameter` naming the flag', () => {
       const result = z
-        .object({ rolloutPercentage: z.number().max(100) })
+        .object({ rolloutPercent: z.number().max(100) })
         .safeParse({
-          rolloutPercentage: 120,
+          rolloutPercent: 120,
         });
 
       const cliError = resolveCliError(result.error);
@@ -130,7 +130,7 @@ describe('error mapping', () => {
       expect(cliError.code).toBe('invalid_parameter');
       expect(cliError.exitCode).toBe(2);
       expect(cliError.message).toMatch(
-        /^The value of --rollout-percentage is invalid\. .+\.$/,
+        /^The value of --rollout-percent is invalid\. .+\.$/,
       );
     });
 

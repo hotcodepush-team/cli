@@ -23,7 +23,7 @@ export default defineCommand({
   action: async options => {
     const hotCodePush = createApiClient();
     const fetchedChannel = await fetchChannel(hotCodePush, options);
-    const listedReleases = await hotCodePush.apps.channels.releases.list({
+    const listedReleases = await hotCodePush.apps.releases.list({
       appId: fetchedChannel.appId,
       channelId: fetchedChannel.id,
       limit: options.limit,
@@ -57,7 +57,7 @@ export default defineCommand({
         `#${release.number}`,
         resolveReleaseBundleLabel(release),
         release.status,
-        `${release.rolloutPercentage}%`,
+        `${release.rolloutPercent}%`,
         resolveProgressionCell(release),
         release.isMandatory ? 'yes' : 'no',
         String(resolveReleaseDeviceCount(fleet, release.id)),
@@ -72,5 +72,5 @@ function resolveProgressionCell(release: Release): string {
   const { progression } = release;
   return progression === null
     ? 'none'
-    : `${progression.percentages.join(',')}% · ${resolveProgressionStepText(release, progression)}`;
+    : `${progression.rolloutPercents.join(',')}% · ${resolveProgressionStepText(release, progression)}`;
 }

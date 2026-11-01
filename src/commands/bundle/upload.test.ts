@@ -400,7 +400,7 @@ describe('bundle upload', () => {
         version: string;
       };
     expect(platforms).toEqual(['android', 'ios']);
-    expect(signature.keyId).toBe(SIGNING_KEY.fingerprint);
+    expect(signature.keyId).toBe(SIGNING_KEY.keyId);
     expect(
       await verifyManifestSignature(
         {
@@ -432,7 +432,7 @@ describe('bundle upload', () => {
     const { signature } = (await readRequest('POST', '/bundles')?.json()) as {
       signature: { keyId: string };
     };
-    expect(signature.keyId).toBe(SIGNING_KEY.fingerprint);
+    expect(signature.keyId).toBe(SIGNING_KEY.keyId);
   });
 
   it('should stop with `signing_key_unavailable` before any request when hotcodepush.json lists a public key and no private key is given', async () => {

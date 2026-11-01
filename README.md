@@ -16,7 +16,7 @@ npm install --save-dev https://pkg.pr.new/hotcodepush-team/cli/hotcodepush@<sha>
 npx hotcodepush login
 npx hotcodepush init                                  # wires the SDK and the build step into your project
 npx hotcodepush release create --path dist            # uploads the build and releases it to the project's channel
-npx hotcodepush release create --channel staging --rollout-percentage 10
+npx hotcodepush release create --channel staging --rollout-percent 10
 npx hotcodepush doctor                                # checks the setup
 npx hotcodepush --help                                # every command; <command> --help for its flags
 ```

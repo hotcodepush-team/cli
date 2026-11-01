@@ -41,7 +41,7 @@ function createCommandTree() {
         ],
         options: defineCommandOptions({
           name: z.string().optional().describe('The channel name.'),
-          rolloutPercentage: z.coerce.number().max(100).optional(),
+          rolloutPercent: z.coerce.number().max(100).optional(),
         }),
         action: channelCreateAction,
       }),
@@ -132,7 +132,7 @@ describe('runCli', () => {
         'create',
         '--name',
         'beta',
-        '--rollout-percentage',
+        '--rollout-percent',
         '50',
         '-y',
         '--json',
@@ -145,7 +145,7 @@ describe('runCli', () => {
       expect.objectContaining({
         json: true,
         name: 'beta',
-        rolloutPercentage: 50,
+        rolloutPercent: 50,
         yes: true,
       }),
       [],
@@ -207,7 +207,7 @@ describe('runCli', () => {
 
     const exitCode = await runCli(
       commandRegistry,
-      ['channel', 'create', '--rollout-percentage', '120', '--json'],
+      ['channel', 'create', '--rollout-percent', '120', '--json'],
       META,
     );
 

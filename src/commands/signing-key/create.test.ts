@@ -10,7 +10,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   resolvePublicKeyOfPrivateKey,
-  resolveSigningKeyFingerprint,
+  resolveSigningKeyId,
 } from '@hotcodepush/protocol';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -51,7 +51,7 @@ describe('signing-key create', () => {
         {
           appId: DEMO_APP.id,
           createdAt: CREATED_AT,
-          fingerprint: resolveSigningKeyFingerprint(publicKey),
+          keyId: resolveSigningKeyId(publicKey),
           id: SIGNING_KEY_ID,
           publicKey,
         },
@@ -101,7 +101,7 @@ describe('signing-key create', () => {
       publicKeys: [SIGNING_KEY.publicKey, publicKey],
     });
     expect(harness.readLines()).toEqual([
-      `Created signing key ${resolveSigningKeyFingerprint(publicKey)} (${SIGNING_KEY_ID}).`,
+      `Created signing key ${resolveSigningKeyId(publicKey)} (${SIGNING_KEY_ID}).`,
       'Added to publicKeys in hotcodepush.json.',
       `Wrote the private key to ${keyFilePath}.`,
       "Keep the file out of version control: whoever holds it can sign the app's bundles.",
@@ -146,7 +146,7 @@ describe('signing-key create', () => {
     expect(harness.readJson()).toEqual({
       appId: DEMO_APP.id,
       createdAt: CREATED_AT,
-      fingerprint: resolveSigningKeyFingerprint(publicKey),
+      keyId: resolveSigningKeyId(publicKey),
       id: SIGNING_KEY_ID,
       privateKeyPath: keyFilePath,
       publicKey,

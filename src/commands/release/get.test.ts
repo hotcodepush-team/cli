@@ -205,7 +205,7 @@ describe('release get', () => {
     expect(
       await readProgressionLines({
         ...PROGRESSING_RELEASE,
-        rolloutPercentage: 50,
+        rolloutPercent: 50,
         stepStartAppliedUpdateCount: 50,
       }),
     ).toEqual([
@@ -218,7 +218,7 @@ describe('release get', () => {
     expect(
       await readProgressionLines({
         ...PROGRESSING_RELEASE,
-        rolloutPercentage: 100,
+        rolloutPercent: 100,
       }),
     ).toContain('Progression step              complete');
   });

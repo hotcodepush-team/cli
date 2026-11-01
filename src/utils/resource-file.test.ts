@@ -184,7 +184,7 @@ describe('resource file', () => {
         DEVICE_PUBLIC_KEYS_CASE?.devicePublicKeys[platform],
       );
       expect(resourceFile.publicKeys.map(({ keyId }) => keyId)).toContain(
-        SIGNING_KEY.fingerprint,
+        SIGNING_KEY.keyId,
       );
     },
   );

@@ -50,7 +50,7 @@ export default defineCommand({
       ['Channel', channel.name],
       ['Bundle', `${resolveReleaseBundleLabel(release)} (${release.bundleId})`],
       ['Status', resolveStatusText(release)],
-      ['Rollout', `${release.rolloutPercentage}%`],
+      ['Rollout', `${release.rolloutPercent}%`],
       ...resolveProgressionDetails(release),
       ...resolveFailurePolicyDetails(
         resolveEffectiveFailurePolicy(release, channel),

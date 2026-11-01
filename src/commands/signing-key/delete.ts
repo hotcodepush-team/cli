@@ -27,7 +27,7 @@ export default defineCommand({
     signingKey: z
       .string()
       .optional()
-      .describe('The signing key, by id or fingerprint.'),
+      .describe('The signing key, by id or key id.'),
   }),
   action: async options => {
     const hotCodePush = createApiClient();
@@ -44,15 +44,15 @@ export default defineCommand({
         (await promptSelect(
           '--signing-key',
           'Which signing key?',
-          signingKeys.map(({ fingerprint, id }) => ({
-            label: fingerprint,
+          signingKeys.map(({ id, keyId }) => ({
+            label: keyId,
             value: id,
           })),
           options,
         )),
     );
     const isConfirmed = await confirmConsequence(
-      `unregisters signing key ${signingKey.fingerprint}: an upload signed with it is refused from then on`,
+      `unregisters signing key ${signingKey.keyId}: an upload signed with it is refused from then on`,
       options,
     );
     if (!isConfirmed) {
@@ -68,10 +68,10 @@ export default defineCommand({
       signingKey.publicKey,
     );
     if (options.json) {
-      printJson({ id: signingKey.id, name: signingKey.fingerprint });
+      printJson({ id: signingKey.id, name: signingKey.keyId });
     } else {
       console.log(
-        `Deleted signing key ${signingKey.fingerprint} (${signingKey.id}).`,
+        `Deleted signing key ${signingKey.keyId} (${signingKey.id}).`,
       );
     }
   },
@@ -103,12 +103,12 @@ function resolveSigningKey(
   reference: string,
 ): SigningKey {
   const signingKey = signingKeys.find(
-    ({ fingerprint, id }) => id === reference || fingerprint === reference,
+    ({ id, keyId }) => id === reference || keyId === reference,
   );
   if (signingKey === undefined) {
     throw new InvalidParameterError(
       `The app has no signing key ${reference} from --signing-key.`,
-      'Run "hotcodepush signing-key list" for the ids and fingerprints.',
+      'Run "hotcodepush signing-key list" for the ids and key ids.',
     );
   }
   return signingKey;

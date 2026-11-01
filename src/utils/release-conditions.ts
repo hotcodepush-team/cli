@@ -49,7 +49,7 @@ export const conditionOptionShape = {
 export function buildAudienceQuery(
   options: ConditionOptions,
   fingerprint: string | null,
-  rolloutPercentage: number,
+  rolloutPercent: number,
 ): AudienceQuery {
   return {
     attribute: resolveAttributePairs(options.attribute).map(
@@ -59,7 +59,7 @@ export function buildAudienceQuery(
     device: options.device ?? [],
     fingerprint: resolveList(fingerprint ?? undefined),
     os: resolveList(options.osVersion),
-    rolloutPercentage,
+    rolloutPercent,
   };
 }
 

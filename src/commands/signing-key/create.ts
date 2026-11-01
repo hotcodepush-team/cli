@@ -69,7 +69,7 @@ export default defineCommand({
       return;
     }
     console.log(
-      `Created signing key ${createdSigningKey.fingerprint} (${createdSigningKey.id}).`,
+      `Created signing key ${createdSigningKey.keyId} (${createdSigningKey.id}).`,
     );
     console.log(resolvePublicKeyListingText(isConfigured, publicKey));
     console.log(`Wrote the private key to ${privateKeyPath}.`);

@@ -59,7 +59,7 @@ export function fetchReleaseLog(
   channel: Channel,
 ): Promise<Release[]> {
   return fetchAllPages(page =>
-    hotCodePush.apps.channels.releases.list({
+    hotCodePush.apps.releases.list({
       appId: channel.appId,
       channelId: channel.id,
       relations: ['bundle'],

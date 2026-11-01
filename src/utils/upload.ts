@@ -245,7 +245,7 @@ async function fetchMissingSha256s(
     page =>
       hotCodePush.apps.bundles.files.list({
         ...pathParameters,
-        isStored: 'false',
+        isStored: false,
         ...page,
       }),
     BUNDLE_FILE_PAGE_LIMIT,
