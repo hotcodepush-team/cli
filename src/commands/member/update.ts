@@ -38,19 +38,17 @@ export default defineCommand({
   action: async options => {
     const hotCodePush = createApiClient();
     const organizationId = await fetchOrganizationId(hotCodePush, options);
-    const fetchedMember = await fetchMember(
-      hotCodePush,
-      organizationId,
+    const fetchedMember = await fetchMember(hotCodePush, {
       options,
-    );
+      organizationId,
+    });
     const role =
       options.role ??
-      (await promptSelect(
-        '--role',
-        'Which role does the member get?',
-        MEMBER_ROLES.map(role => ({ label: role, value: role })),
-        options,
-      ));
+      (await promptSelect(options, {
+        choices: MEMBER_ROLES.map(role => ({ label: role, value: role })),
+        flag: '--role',
+        message: 'Which role does the member get?',
+      }));
     const email = resolveMemberEmail(fetchedMember);
     if (role === 'owner') {
       const isConfirmed = await confirmConsequence(

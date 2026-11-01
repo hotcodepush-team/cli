@@ -156,9 +156,8 @@ describe('runCli', () => {
   it('should run the command with its options and the global ones', async () => {
     const { channelCreateAction, commandRegistry } = createCommandTree();
 
-    const exitCode = await runCli(
-      commandRegistry,
-      [
+    const exitCode = await runCli(commandRegistry, {
+      argv: [
         'channel',
         'create',
         '--name',
@@ -168,8 +167,8 @@ describe('runCli', () => {
         '-y',
         '--json',
       ],
-      META,
-    );
+      meta: META,
+    });
 
     expect(exitCode).toBe(0);
     expect(channelCreateAction).toHaveBeenCalledWith(
@@ -188,7 +187,10 @@ describe('runCli', () => {
     const output = captureOutput();
     stubMissingSession();
 
-    const exitCode = await runCli(commandRegistry, ['channel', 'create'], META);
+    const exitCode = await runCli(commandRegistry, {
+      argv: ['channel', 'create'],
+      meta: META,
+    });
 
     expect(exitCode).toBe(3);
     expect(channelCreateAction).not.toHaveBeenCalled();
@@ -212,7 +214,10 @@ describe('runCli', () => {
       }),
     };
 
-    const exitCode = await runCli(commandRegistry, ['doctor'], META);
+    const exitCode = await runCli(commandRegistry, {
+      argv: ['doctor'],
+      meta: META,
+    });
 
     expect(exitCode).toBe(0);
     expect(doctorAction).toHaveBeenCalled();
@@ -221,7 +226,7 @@ describe('runCli', () => {
   it('should import only the command it runs', async () => {
     const { commandRegistry } = createCommandTree();
 
-    await runCli(commandRegistry, ['channel', 'create'], META);
+    await runCli(commandRegistry, { argv: ['channel', 'create'], meta: META });
 
     expect(commandRegistry['channel create']).toHaveBeenCalledOnce();
     expect(commandRegistry['channel list']).not.toHaveBeenCalled();
@@ -231,7 +236,10 @@ describe('runCli', () => {
   it('should pass the words after the command name as its arguments', async () => {
     const { commandRegistry, fingerprintDiffAction } = createCommandTree();
 
-    await runCli(commandRegistry, ['fingerprint', 'diff', 'a1', 'b2'], META);
+    await runCli(commandRegistry, {
+      argv: ['fingerprint', 'diff', 'a1', 'b2'],
+      meta: META,
+    });
 
     expect(fingerprintDiffAction).toHaveBeenCalledWith(expect.any(Object), [
       'a1',
@@ -243,7 +251,10 @@ describe('runCli', () => {
     const { commandRegistry } = createCommandTree();
     const output = captureOutput();
 
-    const exitCode = await runCli(commandRegistry, ['login'], META);
+    const exitCode = await runCli(commandRegistry, {
+      argv: ['login'],
+      meta: META,
+    });
 
     expect(exitCode).toBe(2);
     expect(output.readDiagnostics()).toBe(
@@ -255,7 +266,7 @@ describe('runCli', () => {
     const { commandRegistry } = createCommandTree();
     const output = captureOutput();
 
-    await runCli(commandRegistry, ['login', '--json'], META);
+    await runCli(commandRegistry, { argv: ['login', '--json'], meta: META });
 
     expect(JSON.parse(output.readStdout())).toEqual({
       error: {
@@ -271,11 +282,10 @@ describe('runCli', () => {
     const { channelCreateAction, commandRegistry } = createCommandTree();
     const output = captureOutput();
 
-    const exitCode = await runCli(
-      commandRegistry,
-      ['channel', 'create', '--rollout-percent', '120', '--json'],
-      META,
-    );
+    const exitCode = await runCli(commandRegistry, {
+      argv: ['channel', 'create', '--rollout-percent', '120', '--json'],
+      meta: META,
+    });
 
     expect(exitCode).toBe(2);
     expect(JSON.parse(output.readStdout()).error.code).toBe(
@@ -288,11 +298,10 @@ describe('runCli', () => {
     const { commandRegistry } = createCommandTree();
     const output = captureOutput();
 
-    const exitCode = await runCli(
-      commandRegistry,
-      ['channel', 'create', '--colour'],
-      META,
-    );
+    const exitCode = await runCli(commandRegistry, {
+      argv: ['channel', 'create', '--colour'],
+      meta: META,
+    });
 
     expect(exitCode).toBe(2);
     expect(output.readDiagnostics()).toBe(
@@ -304,7 +313,10 @@ describe('runCli', () => {
     const { commandRegistry } = createCommandTree();
     const output = captureOutput();
 
-    const exitCode = await runCli(commandRegistry, ['chanel', 'create'], META);
+    const exitCode = await runCli(commandRegistry, {
+      argv: ['chanel', 'create'],
+      meta: META,
+    });
 
     expect(exitCode).toBe(1);
     expect(output.readDiagnostics()).toBe(
@@ -317,7 +329,7 @@ describe('runCli', () => {
     const output = captureOutput();
     const exit = stubExit();
 
-    await runCli(commandRegistry, ['channel'], META);
+    await runCli(commandRegistry, { argv: ['channel'], meta: META });
 
     expect(exit).toHaveBeenCalledWith(0);
     expect(output.readConsoleLog()).toContain('channel create');
@@ -330,7 +342,10 @@ describe('runCli', () => {
     const output = captureOutput();
     stubExit();
 
-    await runCli(commandRegistry, ['channel', 'create', '-h'], META);
+    await runCli(commandRegistry, {
+      argv: ['channel', 'create', '-h'],
+      meta: META,
+    });
 
     expect(output.readConsoleLog()).toMatch(
       /EXAMPLES\n+\s+hotcodepush channel create --name beta\n\s+hotcodepush channel create --json$/,
@@ -343,7 +358,7 @@ describe('runCli', () => {
     stubExit();
     vi.stubEnv('NO_COLOR', '1');
 
-    await runCli(commandRegistry, ['--help'], META);
+    await runCli(commandRegistry, { argv: ['--help'], meta: META });
 
     expect(output.readConsoleLog()).toContain('USAGE hotcodepush <command>');
     expect(output.readConsoleLog()).not.toContain('\x1b[');
@@ -355,7 +370,10 @@ describe('runCli', () => {
     stubExit();
     vi.stubEnv('NO_COLOR', '1');
 
-    await runCli(commandRegistry, ['channel', 'list', '--help'], META);
+    await runCli(commandRegistry, {
+      argv: ['channel', 'list', '--help'],
+      meta: META,
+    });
 
     expect(output.readConsoleLog()).toMatch(/--help, -h\s+Print this help\./);
     expect(output.readConsoleLog()).toMatch(
@@ -368,7 +386,10 @@ describe('runCli', () => {
     const output = captureOutput();
     const exit = stubExit();
 
-    await runCli(commandRegistry, ['channel', 'create', '--version'], META);
+    await runCli(commandRegistry, {
+      argv: ['channel', 'create', '--version'],
+      meta: META,
+    });
 
     expect(exit).toHaveBeenCalledWith(0);
     expect(output.readConsoleLog()).toBe('1.2.3');
@@ -379,11 +400,10 @@ describe('runCli', () => {
     const { commandRegistry } = createCommandTree();
     const output = captureOutput();
 
-    const exitCode = await runCli(
-      commandRegistry,
-      ['channel', 'create', '--colour', '--json'],
-      META,
-    );
+    const exitCode = await runCli(commandRegistry, {
+      argv: ['channel', 'create', '--colour', '--json'],
+      meta: META,
+    });
 
     expect(exitCode).toBe(2);
     expect(JSON.parse(output.readStdout())).toEqual({
@@ -399,7 +419,7 @@ describe('runCli', () => {
     const { commandRegistry } = createCommandTree();
     captureOutput();
 
-    await runCli(commandRegistry, ['login'], META);
+    await runCli(commandRegistry, { argv: ['login'], meta: META });
 
     expect(printTelemetryNotice).toHaveBeenCalled();
     expect(reportFinishedCommand).toHaveBeenCalledWith({
@@ -412,7 +432,7 @@ describe('runCli', () => {
   it('should report a command that succeeded without an error', async () => {
     const { commandRegistry } = createCommandTree();
 
-    await runCli(commandRegistry, ['channel', 'create'], META);
+    await runCli(commandRegistry, { argv: ['channel', 'create'], meta: META });
 
     expect(reportFinishedCommand).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -426,7 +446,7 @@ describe('runCli', () => {
     const { commandRegistry } = createCommandTree();
     captureOutput();
 
-    await runCli(commandRegistry, ['chanel', 'create'], META);
+    await runCli(commandRegistry, { argv: ['chanel', 'create'], meta: META });
 
     expect(reportFinishedCommand).not.toHaveBeenCalled();
   });
@@ -434,7 +454,7 @@ describe('runCli', () => {
   it('should check for a newer version beside the command and print its notice', async () => {
     const { commandRegistry } = createCommandTree();
 
-    await runCli(commandRegistry, ['channel', 'create'], META);
+    await runCli(commandRegistry, { argv: ['channel', 'create'], meta: META });
 
     expect(refreshLatestKnownVersion).toHaveBeenCalledOnce();
     expect(printUpdateNotice).toHaveBeenCalledOnce();
@@ -443,7 +463,10 @@ describe('runCli', () => {
   it('should send no telemetry and check for no newer version when completion runs as a shell starts', async () => {
     const { commandRegistry } = createCommandTree();
 
-    const exitCode = await runCli(commandRegistry, ['completion', 'zsh'], META);
+    const exitCode = await runCli(commandRegistry, {
+      argv: ['completion', 'zsh'],
+      meta: META,
+    });
 
     expect(exitCode).toBe(0);
     expect(printTelemetryNotice).not.toHaveBeenCalled();
@@ -456,11 +479,10 @@ describe('runCli', () => {
     const { commandRegistry } = createCommandTree();
     const output = captureOutput();
 
-    const exitCode = await runCli(
-      commandRegistry,
-      ['completion', '--colour'],
-      META,
-    );
+    const exitCode = await runCli(commandRegistry, {
+      argv: ['completion', '--colour'],
+      meta: META,
+    });
 
     expect(exitCode).toBe(2);
     expect(output.readDiagnostics()).toBe(
@@ -473,7 +495,7 @@ describe('runCli', () => {
     const output = captureOutput();
     const exit = stubExit();
 
-    await runCli(commandRegistry, ['-v'], META);
+    await runCli(commandRegistry, { argv: ['-v'], meta: META });
 
     expect(exit).toHaveBeenCalledWith(0);
     expect(output.readConsoleLog()).toBe('1.2.3');

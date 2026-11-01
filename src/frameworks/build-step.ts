@@ -86,18 +86,22 @@ export async function readBuildStep(
   const completeProjectConfig = assertProjectConfig(projectConfig);
   const platform =
     options.platform ??
-    (await promptSelect(
-      '--platform',
-      'Which platform?',
-      PLATFORMS.map(platform => ({ label: platform, value: platform })),
-      options,
-    ));
+    (await promptSelect(options, {
+      choices: PLATFORMS.map(platform => ({
+        label: platform,
+        value: platform,
+      })),
+      flag: '--platform',
+      message: 'Which platform?',
+    }));
   const framework = resolveFrameworkModule(detectFramework(directoryPath));
   const embeddedBundlePath = await readInputDirectoryPath(
     { ...options, path: options.embeddedBundlePath },
-    '--embedded-bundle-path',
-    directoryPath,
-    framework,
+    {
+      framework,
+      pathFlag: '--embedded-bundle-path',
+      projectDirectoryPath: directoryPath,
+    },
   );
   const embeddedFiles =
     framework.collectEmbeddedFiles === undefined
@@ -133,12 +137,12 @@ export function fetchBuildStepChannelId(
   hotCodePush: HotCodePush,
   { channelReference, projectConfig }: BuildStep,
 ): Promise<string> {
-  return fetchResourceId(
-    'channel',
-    channelReference.reference,
-    () => fetchChannels(hotCodePush, projectConfig.appId),
-    channelReference.source,
-  );
+  return fetchResourceId({
+    fetchResources: () => fetchChannels(hotCodePush, projectConfig.appId),
+    noun: 'channel',
+    reference: channelReference.reference,
+    source: channelReference.source,
+  });
 }
 
 export function resolveOfflineCause(): OfflineCause | undefined {
@@ -180,7 +184,7 @@ function assertProjectConfig(
   if (projectConfig?.appId === undefined) {
     throw new InvalidParameterError(
       'The project has no hotcodepush.json with an appId.',
-      'Run "hotcodepush init", or pass the file with --config.',
+      { fix: 'Run "hotcodepush init", or pass the file with --config.' },
     );
   }
   assertProjectConfigAppId(projectConfig.appId);

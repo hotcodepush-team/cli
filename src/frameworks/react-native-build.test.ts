@@ -350,7 +350,9 @@ describe('react-native-build', () => {
       ).rejects.toThrow(
         new InvalidParameterError(
           `The directory ${join(directoryPath, 'export')} from --path holds no index.android.bundle, the JavaScript the android app loads.`,
-          "Pass the android bundle's directory, with index.android.bundle in it, or leave out --path to bundle the project.",
+          {
+            fix: "Pass the android bundle's directory, with index.android.bundle in it, or leave out --path to bundle the project.",
+          },
         ),
       );
     });
@@ -370,7 +372,7 @@ describe('react-native-build', () => {
       ).rejects.toThrow(
         new InvalidParameterError(
           'A prepared bundle from --path serves one platform.',
-          'Name it with --platform ios or --platform android.',
+          { fix: 'Name it with --platform ios or --platform android.' },
         ),
       );
     });

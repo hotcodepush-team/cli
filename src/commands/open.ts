@@ -47,6 +47,6 @@ async function fetchConsolePageUrl(options: {
     assertProjectConfigAppId(projectConfig.appId);
     return `${consoleBaseUrl}/apps/${projectConfig.appId}`;
   }
-  const appId = await fetchAppId(createApiClient(), options, projectConfig);
+  const appId = await fetchAppId(createApiClient(), { options, projectConfig });
   return `${consoleBaseUrl}/apps/${appId}`;
 }

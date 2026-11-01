@@ -1,56 +1,43 @@
 import type { CompletionCommand, CompletionOption } from './command-tree.js';
+import type { CaseArmPosition } from './posix-case-arms.js';
 import { buildPosixCaseArms } from './posix-case-arms.js';
 import { quotePosixWord } from './posix-quote.js';
+
+const ARGUMENTS_FUNCTION_LINES = [
+  '# drops the command words, so _arguments reads the flags as the words of the command they belong to',
+  '_hotcodepush_arguments() {',
+  '  local command_word_count=$1',
+  '  shift',
+  '  shift $command_word_count words',
+  '  (( CURRENT -= command_word_count ))',
+  '  _arguments "$@"',
+  '}',
+];
+
+const REGISTRATION_LINES = [
+  'compdef _hotcodepush hotcodepush',
+  '',
+  '# under fpath this file is the body of _hotcodepush: its first run defines the function, then completes with it',
+  'if [ "$funcstack[1]" = "_hotcodepush" ]; then',
+  '  _hotcodepush "$@"',
+  'fi',
+];
 
 export function buildZshScript(commands: CompletionCommand[]): string {
   return [
     '#compdef hotcodepush',
     '',
-    '_hotcodepush() {',
-    '  local -a completions',
-    '  if (( CURRENT == 2 )); then',
-    ...buildDescribeLines('    ', 'hotcodepush command', commands),
-    '  fi',
-    '  if (( CURRENT == 3 )) && [[ ${words[CURRENT]} != -* ]]; then',
-    '    case ${words[2]} in',
-    ...commands
-      .filter(({ verbs }) => verbs.length > 0)
-      .flatMap(({ name, verbs }) => [
-        `      ${quotePosixWord(name)})`,
-        ...buildDescribeLines('        ', `${name} command`, verbs),
-        '        ;;',
-      ]),
-    '    esac',
-    '  fi',
-    '  case "${words[2]} ${words[3]}" in',
-    ...buildPosixCaseArms(commands, (pattern, command, commandWordCount) =>
-      buildArgumentsArm(pattern, commandWordCount, command),
-    ),
-    '  esac',
-    '}',
+    ...buildCompletionFunctionLines(commands),
     '',
-    '# drops the command words, so _arguments reads the flags as the words of the command they belong to',
-    '_hotcodepush_arguments() {',
-    '  local command_word_count=$1',
-    '  shift',
-    '  shift $command_word_count words',
-    '  (( CURRENT -= command_word_count ))',
-    '  _arguments "$@"',
-    '}',
+    ...ARGUMENTS_FUNCTION_LINES,
     '',
-    'compdef _hotcodepush hotcodepush',
-    '',
-    '# under fpath this file is the body of _hotcodepush: its first run defines the function, then completes with it',
-    'if [ "$funcstack[1]" = "_hotcodepush" ]; then',
-    '  _hotcodepush "$@"',
-    'fi',
+    ...REGISTRATION_LINES,
   ].join('\n');
 }
 
 function buildArgumentsArm(
-  pattern: string,
-  commandWordCount: number,
   { hasArguments, options }: CompletionCommand,
+  { commandWordCount, pattern }: CaseArmPosition,
 ): string[] {
   const specs = [
     ...options.map(buildOptionSpec),
@@ -64,10 +51,40 @@ function buildArgumentsArm(
   ];
 }
 
+function buildCompletionFunctionLines(commands: CompletionCommand[]): string[] {
+  return [
+    '_hotcodepush() {',
+    '  local -a completions',
+    '  if (( CURRENT == 2 )); then',
+    ...buildDescribeLines(commands, {
+      indentation: '    ',
+      tag: 'hotcodepush command',
+    }),
+    '  fi',
+    '  if (( CURRENT == 3 )) && [[ ${words[CURRENT]} != -* ]]; then',
+    '    case ${words[2]} in',
+    ...commands
+      .filter(({ verbs }) => verbs.length > 0)
+      .flatMap(({ name, verbs }) => [
+        `      ${quotePosixWord(name)})`,
+        ...buildDescribeLines(verbs, {
+          indentation: '        ',
+          tag: `${name} command`,
+        }),
+        '        ;;',
+      ]),
+    '    esac',
+    '  fi',
+    '  case "${words[2]} ${words[3]}" in',
+    ...buildPosixCaseArms(commands, buildArgumentsArm),
+    '  esac',
+    '}',
+  ];
+}
+
 function buildDescribeLines(
-  indentation: string,
-  tag: string,
   commands: CompletionCommand[],
+  { indentation, tag }: { indentation: string; tag: string },
 ): string[] {
   return [
     `${indentation}completions=(`,

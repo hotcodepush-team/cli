@@ -44,14 +44,18 @@ export async function readSigningKeyPair(
   if (publicKeys.length === 0) {
     throw new InvalidParameterError(
       `A private key is given from ${givenPrivateKey.source}, and ${PROJECT_CONFIG_FILE_NAME} lists no public key of the app.`,
-      `Add its public key to publicKeys in ${PROJECT_CONFIG_FILE_NAME}, as "hotcodepush signing-key list --json" prints it, or give no private key.`,
+      {
+        fix: `Add its public key to publicKeys in ${PROJECT_CONFIG_FILE_NAME}, as "hotcodepush signing-key list --json" prints it, or give no private key.`,
+      },
     );
   }
   const signingKeyPair = await resolveSigningKeyPair(givenPrivateKey);
   if (!publicKeys.includes(signingKeyPair.publicKey)) {
     throw new InvalidParameterError(
       `The private key from ${givenPrivateKey.source} belongs to no public key ${PROJECT_CONFIG_FILE_NAME} lists.`,
-      `Give the private key of a public key ${PROJECT_CONFIG_FILE_NAME} lists, or make a new pair with "hotcodepush signing-key create".`,
+      {
+        fix: `Give the private key of a public key ${PROJECT_CONFIG_FILE_NAME} lists, or make a new pair with "hotcodepush signing-key create".`,
+      },
     );
   }
   return signingKeyPair;
@@ -117,8 +121,10 @@ function readPrivateKeyFile(filePath: string): string {
   } catch (error) {
     throw new InvalidParameterError(
       `The file ${filePath} from --private-key-path cannot be read.`,
-      'Pass the path of the private key file, a PEM of PKCS #8 or PKCS #1.',
-      error,
+      {
+        cause: error,
+        fix: 'Pass the path of the private key file, a PEM of PKCS #8 or PKCS #1.',
+      },
     );
   }
 }
@@ -141,7 +147,9 @@ async function resolveSigningKeyPair({
   if (ENCRYPTED_KEY_PATTERN.test(text)) {
     throw new InvalidParameterError(
       `The private key from ${source} is encrypted, which is not supported.`,
-      'Remove its passphrase first, as "openssl pkey -in <file> -out <new file>" does.',
+      {
+        fix: 'Remove its passphrase first, as "openssl pkey -in <file> -out <new file>" does.',
+      },
     );
   }
   try {
@@ -155,8 +163,10 @@ async function resolveSigningKeyPair({
   } catch (error) {
     throw new InvalidParameterError(
       `The key from ${source} is not an RSA private key of ${SIGNING_KEY_BITS_MINIMUM} bits or more.`,
-      `Give an RSA private key of ${SIGNING_KEY_BITS_MINIMUM} bits or more, a PEM of PKCS #8 or PKCS #1.`,
-      error,
+      {
+        cause: error,
+        fix: `Give an RSA private key of ${SIGNING_KEY_BITS_MINIMUM} bits or more, a PEM of PKCS #8 or PKCS #1.`,
+      },
     );
   }
 }

@@ -14,11 +14,13 @@ export const memberOptionShape = {
 
 export async function fetchMember(
   hotCodePush: HotCodePush,
-  organizationId: string,
-  options: MemberOptions,
+  {
+    options,
+    organizationId,
+  }: { options: MemberOptions; organizationId: string },
 ): Promise<Member> {
   return hotCodePush.organizations.members.get({
-    memberId: await fetchMemberId(hotCodePush, organizationId, options),
+    memberId: await fetchMemberId(hotCodePush, { options, organizationId }),
     organizationId,
     relations: ['user', 'user.accounts'],
   });
@@ -43,13 +45,18 @@ export function resolveMemberRole(
 // A UUID is the id. Anything else is an email, matched among the members whose email contains it.
 async function fetchMemberId(
   hotCodePush: HotCodePush,
-  organizationId: string,
-  options: MemberOptions,
+  {
+    options,
+    organizationId,
+  }: { options: MemberOptions; organizationId: string },
 ): Promise<string> {
   return fetchOrPromptResourceId({
     fetchResources: async () =>
       resolveNamedMembers(
-        await fetchMembers(hotCodePush, organizationId, options.member),
+        await fetchMembers(hotCodePush, {
+          organizationId,
+          query: options.member,
+        }),
       ),
     noun: 'member',
     options,
@@ -59,8 +66,7 @@ async function fetchMemberId(
 
 function fetchMembers(
   hotCodePush: HotCodePush,
-  organizationId: string,
-  query?: string,
+  { organizationId, query }: { organizationId: string; query?: string },
 ): Promise<Member[]> {
   return fetchAllPages(page =>
     hotCodePush.organizations.members.list({

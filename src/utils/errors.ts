@@ -19,6 +19,13 @@ interface CliErrorOptions {
   message: string;
 }
 
+// The source is the flag or the file the name came from.
+interface NamedReference {
+  name: string;
+  noun: string;
+  source?: string;
+}
+
 export interface DeviceAuthorizationPrompt {
   userCode: string;
   verificationUrl: string;
@@ -40,7 +47,7 @@ export class CliError extends Error {
 
 // Organizations can share a name, and so can apps of different organizations.
 export class AmbiguousNameError extends CliError {
-  constructor(noun: string, name: string, source = `--${noun}`) {
+  constructor({ name, noun, source = `--${noun}` }: NamedReference) {
     super({
       code: 'invalid_parameter',
       exitCode: ExitCode.MissingOrInvalidParameter,
@@ -53,7 +60,15 @@ export class AmbiguousNameError extends CliError {
 // The message from the API carries its own fix.
 // A 401 means the token is no longer valid, so the exit code is 3.
 export class ApiError extends CliError {
-  constructor(code: string, message: string, status: number) {
+  constructor({
+    code,
+    message,
+    status,
+  }: {
+    code: string;
+    message: string;
+    status: number;
+  }) {
     super({
       code,
       exitCode: status === 401 ? ExitCode.NotLoggedIn : ExitCode.Error,
@@ -126,8 +141,10 @@ export class InvalidJsonError extends CliError {
 export class InvalidParameterError extends CliError {
   constructor(
     message: string,
-    fix = 'Run the command with --help to see its options.',
-    cause?: unknown,
+    {
+      cause,
+      fix = 'Run the command with --help to see its options.',
+    }: { cause?: unknown; fix?: string } = {},
   ) {
     super({
       cause,
@@ -270,15 +287,19 @@ export class UnexpectedResponseError extends CliError {
 export class XcodeProjectError extends CliError {
   constructor(
     message: string,
-    cause: unknown,
-    projectFilePath: string,
-    fix = `Add the build phase to the app target in ${projectFilePath} by hand.`,
+    {
+      cause,
+      fix,
+      projectFilePath,
+    }: { cause: unknown; fix?: string; projectFilePath: string },
   ) {
     super({
       cause,
       code: 'xcode_project',
       exitCode: ExitCode.Error,
-      fix,
+      fix:
+        fix ??
+        `Add the build phase to the app target in ${projectFilePath} by hand.`,
       message,
     });
   }
@@ -310,7 +331,7 @@ export class UnknownCommandError extends CliError {
 
 // An unknown id is the API's own `not_found` instead.
 export class UnknownNameError extends CliError {
-  constructor(noun: string, name: string, source = `--${noun}`) {
+  constructor({ name, noun, source = `--${noun}` }: NamedReference) {
     super({
       code: 'invalid_parameter',
       exitCode: ExitCode.MissingOrInvalidParameter,

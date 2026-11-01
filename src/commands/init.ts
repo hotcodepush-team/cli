@@ -269,11 +269,10 @@ async function fetchOrganizationScope(
   }
   const organizations = await fetchOrganizations(hotCodePush);
   if (options.organization !== undefined) {
-    const named = findResource(
-      'organization',
-      options.organization,
-      organizations,
-    );
+    const named = findResource(organizations, {
+      noun: 'organization',
+      reference: options.organization,
+    });
     if (named !== undefined) {
       return resolveUsedScope(named);
     }
@@ -299,11 +298,10 @@ async function fetchOrganizationScope(
   if (choice !== CREATE_CHOICE) {
     return resolveUsedScope(requireById(organizations, choice));
   }
-  const name = await promptText(
-    '--organization',
-    'What is the new organization called?',
-    options,
-  );
+  const name = await promptText(options, {
+    flag: '--organization',
+    message: 'What is the new organization called?',
+  });
   return resolveCreatedScope(await hotCodePush.organizations.create({ name }));
 }
 
@@ -329,12 +327,14 @@ async function fetchInitApp(
   ) {
     throw new InvalidParameterError(
       `The app ${projectConfig.appId} in ${filePath ?? PROJECT_CONFIG_FILE_NAME} does not exist.`,
-      `Pass --app with the app's id or name, or delete ${PROJECT_CONFIG_FILE_NAME} to create a new app.`,
+      {
+        fix: `Pass --app with the app's id or name, or delete ${PROJECT_CONFIG_FILE_NAME} to create a new app.`,
+      },
     );
   }
   const apps = await fetchApps(hotCodePush, organization.id);
   if (options.app !== undefined) {
-    const named = findResource('app', options.app, apps);
+    const named = findResource(apps, { noun: 'app', reference: options.app });
     if (named !== undefined) {
       return resolveUsed('app', named);
     }
@@ -357,7 +357,10 @@ async function fetchInitApp(
   if (choice !== CREATE_CHOICE) {
     return resolveUsed('app', requireById(apps, choice));
   }
-  const name = await promptText('--app', 'What is the app called?', options);
+  const name = await promptText(options, {
+    flag: '--app',
+    message: 'What is the app called?',
+  });
   return resolveCreated(
     'app',
     await hotCodePush.organizations.apps.create({
@@ -716,15 +719,14 @@ function promptCreateOrPick(
   resources: { id: string; name: string }[],
   options: InitOptions,
 ): Promise<string> {
-  return promptSelect(
-    `--${noun}`,
-    `Which ${noun}?`,
-    [
+  return promptSelect(options, {
+    choices: [
       ...resources.map(({ id, name }) => ({ label: name, value: id })),
       { label: `Create a new ${noun}`, value: CREATE_CHOICE },
     ],
-    options,
-  );
+    flag: `--${noun}`,
+    message: `Which ${noun}?`,
+  });
 }
 
 function requireById<TResource extends { id: string }>(

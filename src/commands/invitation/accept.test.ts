@@ -113,23 +113,24 @@ describe('invitation accept', () => {
 
   it("should pass the API's refusal of a used invitation through with its code in the docs link", async () => {
     harness.routes[`POST ${ACCEPT_PATH}`] = () =>
-      respondWithApiError(
-        410,
-        'invitation_invalid',
-        'The invitation is no longer valid.',
-      );
+      respondWithApiError(410, {
+        code: 'invitation_invalid',
+        message: 'The invitation is no longer valid.',
+      });
 
     const exitCode = await runCli(
       { 'invitation accept': () => import('./accept.js') },
-      [
-        'invitation',
-        'accept',
-        '--invitation',
-        PENDING_INVITATION.id,
-        '--token',
-        'token-1',
-      ],
-      PACKAGE_JSON,
+      {
+        argv: [
+          'invitation',
+          'accept',
+          '--invitation',
+          PENDING_INVITATION.id,
+          '--token',
+          'token-1',
+        ],
+        meta: PACKAGE_JSON,
+      },
     );
 
     expect(exitCode).toBe(1);

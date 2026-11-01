@@ -467,7 +467,10 @@ describe('binary create', () => {
 
     it('should write the resource file without a channel and create no binary when the API refuses to resolve the name, and fail only in CI', async () => {
       harness.routes[`GET ${CHANNELS_PATH}`] = () =>
-        respondWithApiError(403, 'forbidden', 'You are not a member.');
+        respondWithApiError(403, {
+          code: 'forbidden',
+          message: 'You are not a member.',
+        });
 
       await createIosBinary();
 
@@ -551,11 +554,11 @@ describe('binary create', () => {
 
   it('should warn and create no binary when it conflicts locally, and fail with the conflict in CI', async () => {
     harness.routes[`POST ${BINARIES_PATH}`] = () =>
-      respondWithApiError(
-        409,
-        'binary_conflict',
-        'A binary with this version and build carries another fingerprint or other files; a changed bundle under an unbumped build is a pipeline mistake, and `force` updates it deliberately.',
-      );
+      respondWithApiError(409, {
+        code: 'binary_conflict',
+        message:
+          'A binary with this version and build carries another fingerprint or other files; a changed bundle under an unbumped build is a pipeline mistake, and `force` updates it deliberately.',
+      });
     const options = {
       ...resolveBuildOptions('ios'),
       binaryBuild: '57',

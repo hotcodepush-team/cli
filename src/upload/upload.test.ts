@@ -40,11 +40,9 @@ const UPLOADS = [
     kind: 'file',
     path: `/v1/apps/${DEMO_APP.id}/files/${SHA256}`,
     upload: async (hotCodePush: HotCodePush, filePath: string) => {
-      await uploadMissingFiles(
-        hotCodePush,
-        DEMO_APP.id,
-        [SHA256],
-        new Map([
+      await uploadMissingFiles(hotCodePush, {
+        appId: DEMO_APP.id,
+        compressedFiles: new Map([
           [
             SHA256,
             {
@@ -54,19 +52,20 @@ const UPLOADS = [
             },
           ],
         ]),
-        { report: () => undefined },
-      );
+        missingSha256s: [SHA256],
+        reporter: { report: () => undefined },
+      });
     },
   },
   {
     kind: 'pack',
     path: `${BUNDLE_PATH}/pack`,
     upload: (hotCodePush: HotCodePush, packFilePath: string) =>
-      uploadPack(
-        hotCodePush,
-        { appId: DEMO_APP.id, bundleId: READY_BUNDLE.id },
+      uploadPack(hotCodePush, {
+        appId: DEMO_APP.id,
+        bundleId: READY_BUNDLE.id,
         packFilePath,
-      ),
+      }),
   },
 ];
 
@@ -161,11 +160,11 @@ describe('upload', () => {
       harness.routes[`POST ${path}/uploads`] = () =>
         Response.json({ uploadId: 'upload-1' }, { status: 201 });
       harness.routes[`PUT ${path}/uploads/upload-1/parts/1`] = () =>
-        respondWithApiError(
-          409,
-          'upload_incomplete',
-          'The parts cannot be assembled: every part but the last is at least five mebibytes and all of one size, and every part is named.',
-        );
+        respondWithApiError(409, {
+          code: 'upload_incomplete',
+          message:
+            'The parts cannot be assembled: every part but the last is at least five mebibytes and all of one size, and every part is named.',
+        });
       harness.routes[`DELETE ${path}/uploads/upload-1`] = () =>
         new Response(null, { status: 204 });
 

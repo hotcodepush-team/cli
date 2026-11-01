@@ -26,14 +26,16 @@ export async function fetchDeviceReference(
   hotCodePush: HotCodePush,
   options: DeviceOptions,
 ): Promise<{ appId: string; deviceId: string }> {
-  const appId = await fetchAppId(
-    hotCodePush,
+  const appId = await fetchAppId(hotCodePush, {
     options,
-    readProjectConfig(options.config),
-  );
+    projectConfig: readProjectConfig(options.config),
+  });
   const deviceId =
     options.device ??
-    (await promptText('--device', 'Which device id?', options));
+    (await promptText(options, {
+      flag: '--device',
+      message: 'Which device id?',
+    }));
   return { appId, deviceId };
 }
 

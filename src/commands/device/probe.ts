@@ -84,7 +84,7 @@ export default defineCommand({
   action: async options => {
     const hotCodePush = createApiClient();
     const projectConfig = readProjectConfig(options.config);
-    const appId = await fetchAppId(hotCodePush, options, projectConfig);
+    const appId = await fetchAppId(hotCodePush, { options, projectConfig });
     const fetchedDevice =
       options.device === undefined
         ? undefined
@@ -94,36 +94,40 @@ export default defineCommand({
           });
     const channel = await hotCodePush.apps.channels.get({
       appId,
-      channelId: await fetchChannelId(
-        hotCodePush,
+      channelId: await fetchChannelId(hotCodePush, {
         appId,
-        {
+        options: {
           ...options,
           channel: options.channel ?? fetchedDevice?.channelId ?? undefined,
         },
         projectConfig,
-      ),
+      }),
     });
     const platform =
       options.platform ??
       fetchedDevice?.platform ??
-      (await promptSelect<Platform>(
-        '--platform',
-        'Which platform?',
-        [
+      (await promptSelect<Platform>(options, {
+        choices: [
           { label: 'iOS', value: 'ios' },
           { label: 'Android', value: 'android' },
         ],
-        options,
-      ));
+        flag: '--platform',
+        message: 'Which platform?',
+      }));
     const binaryVersion =
       options.binaryVersion ??
       fetchedDevice?.binaryVersion ??
-      (await promptText('--binary-version', 'Which app version?', options));
+      (await promptText(options, {
+        flag: '--binary-version',
+        message: 'Which app version?',
+      }));
     const binaryBuild =
       options.binaryBuild ??
       fetchedDevice?.binaryBuild ??
-      (await promptText('--binary-build', 'Which build number?', options));
+      (await promptText(options, {
+        flag: '--binary-build',
+        message: 'Which build number?',
+      }));
     const binary = (
       await fetchAllPages(page =>
         hotCodePush.apps.binaries.list({ appId, ...page }),

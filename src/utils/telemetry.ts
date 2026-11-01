@@ -29,6 +29,15 @@ export interface FinishedCommand {
   durationMs: number;
 }
 
+interface SentryEvent {
+  event_id: string;
+  exception: { values: { type: string; value: string }[] };
+  platform: string;
+  release: string;
+  tags: { code: string; command: string };
+  timestamp: string;
+}
+
 const COMMAND_FINISHED_EVENT = 'cli.command_finished';
 
 // Matches `at <function> (<file>:<line>:<column>)`, or the same without the function and parentheses.
@@ -92,12 +101,44 @@ export function resolveScrubbedStack(stack: string): string {
     .join('\n');
 }
 
+function buildSentryEvent(
+  cliError: UnexpectedError | UnexpectedResponseError,
+  commandName: string,
+): SentryEvent {
+  const reportedError =
+    cliError.cause instanceof Error ? cliError.cause : cliError;
+  return {
+    event_id: randomUUID().replaceAll('-', ''),
+    exception: {
+      values: [
+        {
+          type: reportedError.name,
+          value: resolveScrubbedStack(reportedError.stack ?? ''),
+        },
+      ],
+    },
+    platform: 'node',
+    release: `${PACKAGE_JSON.name}@${PACKAGE_JSON.version}`,
+    tags: { code: cliError.code, command: commandName },
+    timestamp: new Date().toISOString(),
+  };
+}
+
 // Only the release build has keys, so every other build reports nothing.
 function isTelemetryEnabled(): boolean {
   return (
     (POSTHOG_PROJECT_KEY !== '' || SENTRY_DSN !== '') &&
     process.env.HOTCODEPUSH_TELEMETRY_DISABLED !== '1' &&
     process.env.DO_NOT_TRACK !== '1'
+  );
+}
+
+function isUnexpectedError(
+  cliError: CliError | undefined,
+): cliError is UnexpectedError | UnexpectedResponseError {
+  return (
+    cliError instanceof UnexpectedError ||
+    cliError instanceof UnexpectedResponseError
   );
 }
 
@@ -174,42 +215,14 @@ async function sendCommandFinishedEvent({
   });
 }
 
-// Only our own bugs reach Sentry. Every other error comes from user input or an API answer.
-async function sendUnexpectedErrorEvent({
-  cliError,
-  commandName,
-}: FinishedCommand): Promise<void> {
-  if (
-    SENTRY_DSN === '' ||
-    !(
-      cliError instanceof UnexpectedError ||
-      cliError instanceof UnexpectedResponseError
-    )
-  ) {
-    return;
-  }
-  const reportedError =
-    cliError.cause instanceof Error ? cliError.cause : cliError;
+async function sendSentryEnvelope(event: SentryEvent): Promise<void> {
   const { host, pathname, username: publicKey } = new URL(SENTRY_DSN);
-  const eventId = randomUUID().replaceAll('-', '');
-  const sentAt = new Date().toISOString();
-  const event = {
-    event_id: eventId,
-    exception: {
-      values: [
-        {
-          type: reportedError.name,
-          value: resolveScrubbedStack(reportedError.stack ?? ''),
-        },
-      ],
-    },
-    platform: 'node',
-    release: `${PACKAGE_JSON.name}@${PACKAGE_JSON.version}`,
-    tags: { code: cliError.code, command: commandName },
-    timestamp: sentAt,
-  };
   await fetch(`https://${host}/api${pathname}/envelope/`, {
-    body: [{ event_id: eventId, sent_at: sentAt }, { type: 'event' }, event]
+    body: [
+      { event_id: event.event_id, sent_at: event.timestamp },
+      { type: 'event' },
+      event,
+    ]
       .map(line => JSON.stringify(line))
       .join('\n'),
     headers: {
@@ -219,6 +232,17 @@ async function sendUnexpectedErrorEvent({
     method: 'POST',
     signal: AbortSignal.timeout(TELEMETRY_TIMEOUT_MS),
   });
+}
+
+// Only our own bugs reach Sentry. Every other error comes from user input or an API answer.
+async function sendUnexpectedErrorEvent({
+  cliError,
+  commandName,
+}: FinishedCommand): Promise<void> {
+  if (SENTRY_DSN === '' || !isUnexpectedError(cliError)) {
+    return;
+  }
+  await sendSentryEnvelope(buildSentryEvent(cliError, commandName));
 }
 
 async function waitAtMost(

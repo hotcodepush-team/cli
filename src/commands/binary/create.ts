@@ -228,16 +228,15 @@ async function createBinaryWithUploads(
     reporter.report(`Uploading ${missingSha256s.length} files the app lacks…`);
     const uploadedFiles = await withTemporaryDirectory(
       async temporaryDirectoryPath =>
-        uploadMissingFiles(
-          hotCodePush,
-          request.appId,
-          missingSha256s,
-          await compressFiles(
+        uploadMissingFiles(hotCodePush, {
+          appId: request.appId,
+          compressedFiles: await compressFiles(
             files.filter(({ sha256 }) => missingSha256s.includes(sha256)),
             temporaryDirectoryPath,
           ),
+          missingSha256s,
           reporter,
-        ),
+        }),
     );
     const binary = await hotCodePush.apps.binaries.create(createOptions);
     return { binary, upload: uploadedFiles };

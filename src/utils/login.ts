@@ -157,28 +157,28 @@ async function fetchSessionToken(
         break;
       case 'authorization_pending':
       case 'slow_down':
-        return fetchSessionTokenOnApproval(
-          authClient,
-          pendingDeviceAuthorization,
+        return fetchSessionTokenOnApproval(authClient, {
+          deviceAuthorization: pendingDeviceAuthorization,
           isLoginInteractive,
-        );
+        });
       default:
         throw resolveApiError(error);
     }
   }
   deletePendingDeviceAuthorization();
-  return fetchSessionTokenOnApproval(
-    authClient,
-    await fetchDeviceAuthorization(authClient),
+  return fetchSessionTokenOnApproval(authClient, {
+    deviceAuthorization: await fetchDeviceAuthorization(authClient),
     isLoginInteractive,
-  );
+  });
 }
 
 // The code is kept, so the next login redeems one that ended before the approval.
 async function fetchSessionTokenOnApproval(
   authClient: AuthClient,
-  deviceAuthorization: DeviceAuthorization,
-  isLoginInteractive: boolean,
+  {
+    deviceAuthorization,
+    isLoginInteractive,
+  }: { deviceAuthorization: DeviceAuthorization; isLoginInteractive: boolean },
 ): Promise<string> {
   writePendingDeviceAuthorization(deviceAuthorization);
   if (!isLoginInteractive) {

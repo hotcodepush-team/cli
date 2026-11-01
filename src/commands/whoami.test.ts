@@ -89,16 +89,15 @@ describe('whoami', () => {
   it("should pass the API's `unauthenticated` error through and exit 3 when the token no longer counts", async () => {
     useStoredSession();
     harness.routes[`GET ${USER_PATH}`] = () =>
-      respondWithApiError(
-        401,
-        'unauthenticated',
-        'The bearer token is missing, invalid or expired; sign in again or create a new token.',
-      );
+      respondWithApiError(401, {
+        code: 'unauthenticated',
+        message:
+          'The bearer token is missing, invalid or expired; sign in again or create a new token.',
+      });
 
     const exitCode = await runCli(
       { whoami: () => import('./whoami.js') },
-      ['whoami'],
-      PACKAGE_JSON,
+      { argv: ['whoami'], meta: PACKAGE_JSON },
     );
 
     expect(exitCode).toBe(3);

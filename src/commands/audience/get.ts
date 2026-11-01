@@ -40,11 +40,10 @@ export default defineCommand({
     const channel = await fetchChannel(hotCodePush, options);
     const rolloutPercent = options.rolloutPercent ?? 100;
     const audience = await hotCodePush.apps.channels.audience.get({
-      ...buildAudienceQuery(
-        options,
-        await readProjectFingerprint(options.config),
+      ...buildAudienceQuery(options, {
+        fingerprint: await readProjectFingerprint(options.config),
         rolloutPercent,
-      ),
+      }),
       appId: channel.appId,
       channelId: channel.id,
     });
@@ -53,11 +52,10 @@ export default defineCommand({
       printJson(audience);
       return;
     }
-    const audienceText = resolveAudienceText(
-      audience,
-      channel.name,
+    const audienceText = resolveAudienceText(audience, {
+      channelName: channel.name,
       rolloutPercent,
-    );
+    });
     console.log(
       `${audienceText.charAt(0).toUpperCase()}${audienceText.slice(1)}.`,
     );

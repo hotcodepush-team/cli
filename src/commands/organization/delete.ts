@@ -46,5 +46,5 @@ function resolveDeletionConsequence(
   const deletion = `deletes organization ${organizationName}`;
   return appCount === 0
     ? deletion
-    : `${deletion} and its ${resolveQuantityText(appCount, 'app')}`;
+    : `${deletion} and its ${resolveQuantityText(appCount, { noun: 'app' })}`;
 }

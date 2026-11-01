@@ -264,12 +264,12 @@ async function checkApp(
   try {
     const [app, channel] = await Promise.all([
       hotCodePush.apps.get({ appId }),
-      fetchResourceId(
-        'channel',
-        resolveProjectChannel(projectConfig),
-        () => fetchChannels(hotCodePush, appId),
-        PROJECT_CONFIG_FILE_NAME,
-      ).then(channelId => hotCodePush.apps.channels.get({ appId, channelId })),
+      fetchResourceId({
+        fetchResources: () => fetchChannels(hotCodePush, appId),
+        noun: 'channel',
+        reference: resolveProjectChannel(projectConfig),
+        source: PROJECT_CONFIG_FILE_NAME,
+      }).then(channelId => hotCodePush.apps.channels.get({ appId, channelId })),
     ]);
     return {
       app,
@@ -325,7 +325,7 @@ async function checkSigningKey(
         code: 'public_key_unregistered',
         manualStep:
           'Run "hotcodepush signing-key list --json" and keep in publicKeys only the keys it prints.',
-        message: `The file ${PROJECT_CONFIG_FILE_NAME} lists ${resolveQuantityText(unregisteredKeyCount, 'public key')} the app has not registered.`,
+        message: `The file ${PROJECT_CONFIG_FILE_NAME} lists ${resolveQuantityText(unregisteredKeyCount, { noun: 'public key' })} the app has not registered.`,
         status: 'failed',
       };
     }

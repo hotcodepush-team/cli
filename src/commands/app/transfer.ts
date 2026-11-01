@@ -31,11 +31,10 @@ export default defineCommand({
   action: async options => {
     const hotCodePush = createApiClient();
     // Here `--organization` names the target, so the app name is looked up in every organization of the user.
-    const appId = await fetchAppId(
-      hotCodePush,
-      { ...options, organization: undefined },
-      readProjectConfig(options.config),
-    );
+    const appId = await fetchAppId(hotCodePush, {
+      options: { ...options, organization: undefined },
+      projectConfig: readProjectConfig(options.config),
+    });
     const [fetchedApp, fetchedOrganizations] = await Promise.all([
       hotCodePush.apps.get({ appId }),
       fetchOrganizations(hotCodePush),
@@ -80,17 +79,16 @@ function pickTargetOrganizationId(
   options: TargetOrganizationOptions,
 ): Promise<string> {
   if (options.organization === undefined) {
-    return promptResourceId(
-      'organization',
-      organizations.filter(({ id }) => id !== app.organizationId),
-      options,
-    );
+    return promptResourceId(options, {
+      noun: 'organization',
+      resources: organizations.filter(({ id }) => id !== app.organizationId),
+    });
   }
-  return fetchResourceId(
-    'organization',
-    options.organization,
-    async () => organizations,
-  );
+  return fetchResourceId({
+    fetchResources: async () => organizations,
+    noun: 'organization',
+    reference: options.organization,
+  });
 }
 
 // Falls back to the id when the organizations of the user do not include it.

@@ -44,9 +44,15 @@ export function detectFramework(projectDirectoryPath: string): Framework {
 
 export async function readInputDirectoryPath(
   options: InputDirectoryOptions,
-  pathFlag: string,
-  projectDirectoryPath: string,
-  framework: Pick<FrameworkModule, 'readBuildDirectory'>,
+  {
+    framework,
+    pathFlag,
+    projectDirectoryPath,
+  }: {
+    framework: Pick<FrameworkModule, 'readBuildDirectory'>;
+    pathFlag: string;
+    projectDirectoryPath: string;
+  },
 ): Promise<string> {
   if (options.path !== undefined) {
     return resolve(options.path);
@@ -62,7 +68,10 @@ export async function readInputDirectoryPath(
     );
   }
   return resolve(
-    await promptText(pathFlag, 'Where is the web build?', options),
+    await promptText(options, {
+      flag: pathFlag,
+      message: 'Where is the web build?',
+    }),
   );
 }
 

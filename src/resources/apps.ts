@@ -16,8 +16,10 @@ export interface AppOptions extends OrganizationOptions {
 // A name is looked up in `--organization` when given, otherwise in every organization of the user.
 export async function fetchAppId(
   hotCodePush: HotCodePush,
-  options: AppOptions,
-  projectConfig: ProjectConfig | undefined,
+  {
+    options,
+    projectConfig,
+  }: { options: AppOptions; projectConfig: ProjectConfig | undefined },
 ): Promise<string> {
   if (options.app === undefined && projectConfig?.appId !== undefined) {
     assertProjectConfigAppId(projectConfig.appId);
@@ -55,9 +57,11 @@ async function fetchAppsInScope(
     organization === undefined
       ? (await fetchOrganizations(hotCodePush)).map(({ id }) => id)
       : [
-          await fetchResourceId('organization', organization, () =>
-            fetchOrganizations(hotCodePush),
-          ),
+          await fetchResourceId({
+            fetchResources: () => fetchOrganizations(hotCodePush),
+            noun: 'organization',
+            reference: organization,
+          }),
         ];
   const fetchedApps = await Promise.all(
     organizationIds.map(organizationId =>

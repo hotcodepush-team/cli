@@ -35,15 +35,20 @@ export default defineCommand({
     const organizationId = await fetchOrganizationId(hotCodePush, options);
     const name =
       options.name ??
-      (await promptText('--name', 'What is the app called?', options));
+      (await promptText(options, {
+        flag: '--name',
+        message: 'What is the app called?',
+      }));
     const framework =
       options.framework ??
-      (await promptSelect(
-        '--framework',
-        'Which framework does the app use?',
-        FRAMEWORKS.map(framework => ({ label: framework, value: framework })),
-        options,
-      ));
+      (await promptSelect(options, {
+        choices: FRAMEWORKS.map(framework => ({
+          label: framework,
+          value: framework,
+        })),
+        flag: '--framework',
+        message: 'Which framework does the app use?',
+      }));
     const createdApp = await hotCodePush.organizations.apps.create({
       framework,
       name,

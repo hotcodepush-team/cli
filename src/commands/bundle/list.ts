@@ -38,11 +38,10 @@ export default defineCommand({
     const hotCodePush = createApiClient();
     const source = options.source ?? 'upload';
     const listedBundles = await hotCodePush.apps.bundles.list({
-      appId: await fetchAppId(
-        hotCodePush,
+      appId: await fetchAppId(hotCodePush, {
         options,
-        readProjectConfig(options.config),
-      ),
+        projectConfig: readProjectConfig(options.config),
+      }),
       limit: options.limit,
       offset: options.offset,
       source: source === 'all' ? undefined : source,

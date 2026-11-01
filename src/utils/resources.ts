@@ -13,6 +13,17 @@ interface NamedResource {
   name: string;
 }
 
+interface NameLookup {
+  name: string;
+  noun: string;
+  source?: string;
+}
+
+interface ReferenceLookup {
+  noun: string;
+  reference: string;
+}
+
 // Without a reference, a person picks from the list, and a pipeline fails on the missing flag.
 export async function fetchOrPromptResourceId({
   fetchResources,
@@ -26,89 +37,90 @@ export async function fetchOrPromptResourceId({
   reference: string | undefined;
 }): Promise<string> {
   if (reference !== undefined) {
-    return fetchResourceId(noun, reference, fetchResources);
+    return fetchResourceId({ fetchResources, noun, reference });
   }
   if (!isInteractive(options)) {
     throw new MissingParameterError(`--${noun}`);
   }
-  return promptResourceId(noun, await fetchResources(), options);
+  return promptResourceId(options, {
+    noun,
+    resources: await fetchResources(),
+  });
 }
 
 // A UUID is an id, and anything else is a name looked up in the list.
-export async function fetchResourceId(
-  noun: string,
-  reference: string,
-  fetchResources: () => Promise<NamedResource[]>,
-  source = `--${noun}`,
-): Promise<string> {
+export async function fetchResourceId({
+  fetchResources,
+  noun,
+  reference,
+  source,
+}: ReferenceLookup & {
+  fetchResources: () => Promise<NamedResource[]>;
+  source?: string;
+}): Promise<string> {
   if (isId(reference)) {
     return reference;
   }
-  return resolveNamedResource(noun, reference, await fetchResources(), source)
-    .id;
+  return resolveNamedResource(await fetchResources(), {
+    name: reference,
+    noun,
+    source,
+  }).id;
 }
 
 export function promptResourceId(
-  noun: string,
-  resources: NamedResource[],
   options: InteractivityOptions,
+  { noun, resources }: { noun: string; resources: NamedResource[] },
 ): Promise<string> {
-  return promptSelect(
-    `--${noun}`,
-    `Which ${noun}?`,
-    resources.map(({ id, name }) => ({ label: name, value: id })),
-    options,
-  );
+  return promptSelect(options, {
+    choices: resources.map(({ id, name }) => ({ label: name, value: id })),
+    flag: `--${noun}`,
+    message: `Which ${noun}?`,
+  });
 }
 
 // A UUID is an id and anything else a name, both looked up in the list.
 export function findResource<TResource extends NamedResource>(
-  noun: string,
-  reference: string,
   resources: TResource[],
+  { noun, reference }: ReferenceLookup,
 ): TResource | undefined {
   return isId(reference)
     ? resources.find(({ id }) => id === reference)
-    : findNamedResource(noun, reference, resources, `--${noun}`);
+    : findNamedResource(resources, { name: reference, noun });
 }
 
 export function resolveNamedResource<TResource extends NamedResource>(
-  noun: string,
-  name: string,
   resources: TResource[],
-  source = `--${noun}`,
+  lookup: NameLookup,
 ): TResource {
-  const namedResource = findNamedResource(noun, name, resources, source);
+  const namedResource = findNamedResource(resources, lookup);
   if (namedResource === undefined) {
-    throw new UnknownNameError(noun, name, source);
+    throw new UnknownNameError(lookup);
   }
   return namedResource;
 }
 
 export function resolveResource<TResource extends NamedResource>(
-  noun: string,
-  reference: string,
   resources: TResource[],
+  { noun, reference }: ReferenceLookup,
 ): TResource {
-  const resource = findResource(noun, reference, resources);
+  const resource = findResource(resources, { noun, reference });
   if (resource === undefined) {
-    throw new UnknownNameError(noun, reference);
+    throw new UnknownNameError({ name: reference, noun });
   }
   return resource;
 }
 
 // Case-insensitive, as the API keeps app and channel names unique that way.
 function findNamedResource<TResource extends NamedResource>(
-  noun: string,
-  name: string,
   resources: TResource[],
-  source: string,
+  lookup: NameLookup,
 ): TResource | undefined {
   const namedResources = resources.filter(
-    resource => resource.name.toLowerCase() === name.toLowerCase(),
+    resource => resource.name.toLowerCase() === lookup.name.toLowerCase(),
   );
   if (namedResources.length > 1) {
-    throw new AmbiguousNameError(noun, name, source);
+    throw new AmbiguousNameError(lookup);
   }
   return namedResources[0];
 }

@@ -21,11 +21,10 @@ export default defineCommand({
   action: async options => {
     const hotCodePush = createApiClient();
     const organizationId = await fetchOrganizationId(hotCodePush, options);
-    const fetchedMember = await fetchMember(
-      hotCodePush,
-      organizationId,
+    const fetchedMember = await fetchMember(hotCodePush, {
       options,
-    );
+      organizationId,
+    });
     const email = resolveMemberEmail(fetchedMember);
     const isConfirmed = await confirmConsequence(
       `removes member ${email} from the organization`,

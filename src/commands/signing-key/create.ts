@@ -39,11 +39,10 @@ export default defineCommand({
     assertNewFilePath(privateKeyPath);
     const hotCodePush = createApiClient();
     const projectConfigLocation = locateProjectConfig(options.config);
-    const appId = await fetchAppId(
-      hotCodePush,
+    const appId = await fetchAppId(hotCodePush, {
       options,
-      projectConfigLocation.projectConfig,
-    );
+      projectConfig: projectConfigLocation.projectConfig,
+    });
     const { privateKey, publicKey } = await generateSigningKeyPair();
     // Written before the public key is registered, since a registered key without its private key could sign nothing.
     writeSigningPrivateKeyFile(privateKeyPath, privateKey);
@@ -54,11 +53,10 @@ export default defineCommand({
         rmSync(privateKeyPath);
         throw error;
       });
-    const isConfigured = addPublicKeyToProjectConfig(
-      projectConfigLocation,
+    const isConfigured = addPublicKeyToProjectConfig(projectConfigLocation, {
       appId,
       publicKey,
-    );
+    });
     if (options.json) {
       printJson({ ...createdSigningKey, privateKeyPath });
       return;
@@ -80,14 +78,16 @@ function assertNewFilePath(filePath: string): void {
   if (existsSync(filePath)) {
     throw new InvalidParameterError(
       `The file ${filePath} from --private-key-path already exists.`,
-      'Pass a path where no file is, since signing-key create never overwrites a private key.',
+      {
+        fix: 'Pass a path where no file is, since signing-key create never overwrites a private key.',
+      },
     );
   }
   const directoryPath = dirname(filePath);
   if (!statSync(directoryPath, { throwIfNoEntry: false })?.isDirectory()) {
     throw new InvalidParameterError(
       `The folder ${directoryPath} from --private-key-path does not exist.`,
-      'Create the folder first, or pass a path in an existing one.',
+      { fix: 'Create the folder first, or pass a path in an existing one.' },
     );
   }
 }

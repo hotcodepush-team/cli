@@ -47,7 +47,10 @@ export default defineCommand({
     const targetRelease =
       options.toRelease === undefined
         ? resolvePreviousRelease(releases)
-        : resolveReleaseInLog(releases, options.toRelease, '--to-release');
+        : resolveReleaseInLog(releases, {
+            flag: '--to-release',
+            reference: options.toRelease,
+          });
     const bundleLabel = resolveReleaseBundleLabel(targetRelease);
     const isMandatory = options.mandatory ?? true;
     const { deviceCount } = await hotCodePush.apps.statistics.fleet.get({
@@ -67,15 +70,17 @@ export default defineCommand({
       isMandatory,
       toReleaseId: targetRelease.id,
     });
-    const liveRelease = await waitUntilLive(
-      hotCodePush,
-      fetchedChannel.appId,
-      createdRelease.id,
-    );
+    const liveRelease = await waitUntilLive(hotCodePush, {
+      appId: fetchedChannel.appId,
+      releaseId: createdRelease.id,
+    });
     if (options.json) {
       printJson(liveRelease);
     } else {
-      printReleasedLine(liveRelease, fetchedChannel.name, bundleLabel);
+      printReleasedLine(liveRelease, {
+        bundleLabel,
+        channelName: fetchedChannel.name,
+      });
     }
   },
 });
@@ -95,7 +100,7 @@ function resolvePreviousRelease(releases: Release[]): Release {
   if (previousRelease === undefined) {
     throw new InvalidParameterError(
       'The channel has no earlier release to roll back to.',
-      'Name one with --to-release.',
+      { fix: 'Name one with --to-release.' },
     );
   }
   return previousRelease;

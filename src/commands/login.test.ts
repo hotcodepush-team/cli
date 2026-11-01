@@ -78,8 +78,7 @@ function respondWithDeviceError(error: string): Response {
 function runLogin(flags: string[]) {
   return runCli(
     { login: () => import('./login.js') },
-    ['login', ...flags],
-    PACKAGE_JSON,
+    { argv: ['login', ...flags], meta: PACKAGE_JSON },
   );
 }
 

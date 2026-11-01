@@ -17,17 +17,16 @@ export default defineCommand({
   options: defineCommandOptions({}),
   action: async options => {
     const hotCodePush = createApiClient();
-    const appId = await fetchAppId(
-      hotCodePush,
+    const appId = await fetchAppId(hotCodePush, {
       options,
-      readProjectConfig(options.config),
-    );
+      projectConfig: readProjectConfig(options.config),
+    });
     const [fetchedApp, fetchedChannels] = await Promise.all([
       hotCodePush.apps.get({ appId }),
       fetchChannels(hotCodePush, appId),
     ]);
     const isConfirmed = await confirmConsequence(
-      `deletes app ${fetchedApp.name} and its ${resolveQuantityText(fetchedChannels.length, 'channel')}`,
+      `deletes app ${fetchedApp.name} and its ${resolveQuantityText(fetchedChannels.length, { noun: 'channel' })}`,
       options,
     );
     if (!isConfirmed) {

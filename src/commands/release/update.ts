@@ -130,6 +130,9 @@ function resolveReleaseChanges(options: ReleaseUpdateOptions): ReleaseChanges {
   return {
     ...resolveFailurePolicy(options),
     isMandatory: options.mandatory,
-    notes: resolveNullableField(options.notes, options.clearNotes, 'notes'),
+    notes: resolveNullableField(options.notes, {
+      flagName: 'notes',
+      isCleared: options.clearNotes,
+    }),
   };
 }

@@ -58,7 +58,9 @@ describe('webhook get', () => {
         { organization: ACME_ORGANIZATION.id, webhook: 'deploys' },
         undefined,
       ),
-    ).rejects.toThrow(new UnknownNameError('webhook', 'deploys'));
+    ).rejects.toThrow(
+      new UnknownNameError({ name: 'deploys', noun: 'webhook' }),
+    );
   });
 
   it('should throw `missing_parameter` naming --webhook when none is given and nobody can be asked', async () => {

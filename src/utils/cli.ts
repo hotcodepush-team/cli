@@ -27,11 +27,10 @@ interface CommandLineRun {
 
 export async function runCli(
   commandRegistry: CommandRegistry,
-  argv: string[],
-  meta: CliMeta,
+  { argv, meta }: { argv: string[]; meta: CliMeta },
 ): Promise<ExitCode> {
   if (isShellStartup(argv)) {
-    const { cliError } = await runCommandLine(commandRegistry, argv, meta);
+    const { cliError } = await runCommandLine(commandRegistry, { argv, meta });
     printCommandLineError(cliError, argv);
     return cliError?.exitCode ?? ExitCode.Success;
   }
@@ -39,11 +38,10 @@ export async function runCli(
   printTelemetryNotice();
   // The check runs beside the command, so the notice after it never waits long on the registry.
   const latestKnownVersionRefresh = refreshLatestKnownVersion();
-  const { cliError, commandName } = await runCommandLine(
-    commandRegistry,
+  const { cliError, commandName } = await runCommandLine(commandRegistry, {
     argv,
     meta,
-  );
+  });
   printCommandLineError(cliError, argv);
   if (commandName !== undefined) {
     await reportFinishedCommand({
@@ -76,8 +74,7 @@ function printCommandLineError(
 
 async function runCommandLine(
   commandRegistry: CommandRegistry,
-  argv: string[],
-  meta: CliMeta,
+  { argv, meta }: { argv: string[]; meta: CliMeta },
 ): Promise<CommandLineRun> {
   let commandName: string | undefined;
   try {

@@ -76,18 +76,16 @@ export default defineCommand({
     const hotCodePush = createApiClient();
     const type =
       options.type ??
-      (await promptSelect(
-        '--type',
-        'Which statistics?',
-        STATISTICS_TYPES.map(value => ({ label: value, value })),
-        options,
-      ));
+      (await promptSelect(options, {
+        choices: STATISTICS_TYPES.map(value => ({ label: value, value })),
+        flag: '--type',
+        message: 'Which statistics?',
+      }));
     assertFlagsOfType(type, options);
-    const appId = await fetchAppId(
-      hotCodePush,
+    const appId = await fetchAppId(hotCodePush, {
       options,
-      readProjectConfig(options.config),
-    );
+      projectConfig: readProjectConfig(options.config),
+    });
     const query: StatisticsQuery = {
       appId,
       channelId: await fetchChannelFilterId(hotCodePush, {

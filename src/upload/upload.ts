@@ -20,6 +20,11 @@ export type Platform = 'android' | 'ios';
 
 export const PLATFORMS: Platform[] = ['android', 'ios'];
 
+interface BundleIds {
+  appId: string;
+  bundleId: string;
+}
+
 export interface UploadBundleOptions {
   appId: string;
   bundleVersion: string;
@@ -70,7 +75,7 @@ export async function collectUploadFiles({
   const omittedFileCount = collectedFiles.length - files.length;
   if (omittedFileCount > 0) {
     reporter.report(
-      `Left out ${resolveQuantityText(omittedFileCount, 'file')} of the native glue the binary carries: ${nativeGluePaths.join(', ')}.`,
+      `Left out ${resolveQuantityText(omittedFileCount, { noun: 'file' })} of the native glue the binary carries: ${nativeGluePaths.join(', ')}.`,
     );
   }
   return files;
@@ -78,76 +83,31 @@ export async function collectUploadFiles({
 
 export async function uploadBundle(
   hotCodePush: HotCodePush,
-  {
-    appId,
-    bundleVersion,
-    directoryPath,
-    fingerprint,
-    gitProvenance,
-    nativeGluePaths,
-    platforms,
-    reporter,
-    signingPrivateKey,
-  }: UploadBundleOptions,
+  options: UploadBundleOptions,
 ): Promise<UploadedBundle> {
-  reporter.report(`Hashing the files under ${directoryPath}…`);
-  const files = await collectUploadFiles({
-    directoryPath,
-    nativeGluePaths,
-    reporter,
-  });
+  options.reporter.report(`Hashing the files under ${options.directoryPath}…`);
+  const files = await collectUploadFiles(options);
   assertWithinBundleBytesLimit(files);
   return withTemporaryDirectory(async temporaryDirectoryPath => {
     const compressedFiles = await compressFiles(files, temporaryDirectoryPath);
-    const manifest = buildManifestToSign({
-      appId,
-      bundleVersion,
+    const createdBundle = await createSignedBundle(hotCodePush, {
+      ...options,
       files,
-      fingerprint,
-      platforms,
     });
-    const signature =
-      signingPrivateKey === null
-        ? null
-        : (await signManifest(manifest, signingPrivateKey)).signature;
-    if (signature !== null) {
-      reporter.report(`Signed the manifest with key ${signature.keyId}.`);
-    }
-    const createdBundle = await hotCodePush.apps.bundles.create({
-      appId,
-      files: manifest.files,
-      fingerprint,
-      platforms: manifest.platforms,
-      signature,
-      version: bundleVersion,
-      ...gitProvenance,
-    });
-    const missingSha256s = await fetchMissingSha256s(hotCodePush, {
-      appId,
-      bundleId: createdBundle.id,
-    });
-    reporter.report(
-      `Uploading ${missingSha256s.length} of ${files.length} files the app lacks…`,
-    );
-    const uploadedFiles = await uploadMissingFiles(
-      hotCodePush,
-      appId,
-      missingSha256s,
+    const bundleIds = { appId: options.appId, bundleId: createdBundle.id };
+    const uploadedFiles = await uploadFilesTheAppLacks(hotCodePush, {
+      bundleIds,
       compressedFiles,
-      reporter,
-    );
-    const packFilePath = join(temporaryDirectoryPath, 'pack');
-    await writePack([...compressedFiles.values()], packFilePath);
-    reporter.report('Uploading the full pack…');
-    await uploadPack(
-      hotCodePush,
-      { appId, bundleId: createdBundle.id },
-      packFilePath,
-    );
-    const completedBundle = await hotCodePush.apps.bundles.complete({
-      appId,
-      bundleId: createdBundle.id,
+      fileCount: files.length,
+      reporter: options.reporter,
     });
+    await uploadFullPack(hotCodePush, {
+      bundleIds,
+      compressedFiles,
+      reporter: options.reporter,
+      temporaryDirectoryPath,
+    });
+    const completedBundle = await hotCodePush.apps.bundles.complete(bundleIds);
     return { bundle: completedBundle, upload: uploadedFiles };
   });
 }
@@ -179,10 +139,17 @@ export function buildManifestToSign({
 
 export async function uploadMissingFiles(
   hotCodePush: HotCodePush,
-  appId: string,
-  missingSha256s: string[],
-  compressedFiles: Map<string, CompressedFile>,
-  reporter: Reporter,
+  {
+    appId,
+    compressedFiles,
+    missingSha256s,
+    reporter,
+  }: {
+    appId: string;
+    compressedFiles: Map<string, CompressedFile>;
+    missingSha256s: string[];
+    reporter: Reporter;
+  },
 ): Promise<UploadedFiles> {
   let sizeBytes = 0;
   for (const [index, sha256] of missingSha256s.entries()) {
@@ -193,7 +160,7 @@ export async function uploadMissingFiles(
     reporter.report(
       `  ${index + 1}/${missingSha256s.length} ${sha256.slice(0, 12)} (${resolveByteText(compressedFile.sizeBytes)})`,
     );
-    await uploadFile(hotCodePush, appId, compressedFile);
+    await uploadFile(hotCodePush, { appId, compressedFile });
     sizeBytes += compressedFile.sizeBytes;
   }
   return { fileCount: missingSha256s.length, sizeBytes };
@@ -201,11 +168,10 @@ export async function uploadMissingFiles(
 
 export async function uploadPack(
   hotCodePush: HotCodePush,
-  pathParameters: { appId: string; bundleId: string },
-  packFilePath: string,
+  { packFilePath, ...bundleIds }: BundleIds & { packFilePath: string },
 ): Promise<void> {
   await hotCodePush.apps.bundles.pack.upload({
-    ...pathParameters,
+    ...bundleIds,
     body: await openAsBlob(packFilePath),
   });
 }
@@ -234,15 +200,53 @@ function compareCodeUnits(left: string, right: string): number {
   return left < right ? -1 : 1;
 }
 
+async function createSignedBundle(
+  hotCodePush: HotCodePush,
+  {
+    appId,
+    bundleVersion,
+    files,
+    fingerprint,
+    gitProvenance,
+    platforms,
+    reporter,
+    signingPrivateKey,
+  }: UploadBundleOptions & { files: BundleFile[] },
+): Promise<Bundle> {
+  const manifest = buildManifestToSign({
+    appId,
+    bundleVersion,
+    files,
+    fingerprint,
+    platforms,
+  });
+  const signature =
+    signingPrivateKey === null
+      ? null
+      : (await signManifest(manifest, signingPrivateKey)).signature;
+  if (signature !== null) {
+    reporter.report(`Signed the manifest with key ${signature.keyId}.`);
+  }
+  return hotCodePush.apps.bundles.create({
+    appId,
+    files: manifest.files,
+    fingerprint,
+    platforms: manifest.platforms,
+    signature,
+    version: bundleVersion,
+    ...gitProvenance,
+  });
+}
+
 // Several paths can share a hash, so each is listed once.
 async function fetchMissingSha256s(
   hotCodePush: HotCodePush,
-  pathParameters: { appId: string; bundleId: string },
+  bundleIds: BundleIds,
 ): Promise<string[]> {
   const missingFiles = await fetchAllPages(
     page =>
       hotCodePush.apps.bundles.files.list({
-        ...pathParameters,
+        ...bundleIds,
         isStored: false,
         ...page,
       }),
@@ -253,12 +257,60 @@ async function fetchMissingSha256s(
 
 async function uploadFile(
   hotCodePush: HotCodePush,
-  appId: string,
-  { compressedFilePath, sha256 }: CompressedFile,
+  {
+    appId,
+    compressedFile: { compressedFilePath, sha256 },
+  }: { appId: string; compressedFile: CompressedFile },
 ): Promise<void> {
   await hotCodePush.apps.files.upload({
     appId,
     body: await openAsBlob(compressedFilePath),
     sha256,
   });
+}
+
+async function uploadFilesTheAppLacks(
+  hotCodePush: HotCodePush,
+  {
+    bundleIds,
+    compressedFiles,
+    fileCount,
+    reporter,
+  }: {
+    bundleIds: BundleIds;
+    compressedFiles: Map<string, CompressedFile>;
+    fileCount: number;
+    reporter: Reporter;
+  },
+): Promise<UploadedFiles> {
+  const missingSha256s = await fetchMissingSha256s(hotCodePush, bundleIds);
+  reporter.report(
+    `Uploading ${missingSha256s.length} of ${fileCount} files the app lacks…`,
+  );
+  return uploadMissingFiles(hotCodePush, {
+    appId: bundleIds.appId,
+    compressedFiles,
+    missingSha256s,
+    reporter,
+  });
+}
+
+async function uploadFullPack(
+  hotCodePush: HotCodePush,
+  {
+    bundleIds,
+    compressedFiles,
+    reporter,
+    temporaryDirectoryPath,
+  }: {
+    bundleIds: BundleIds;
+    compressedFiles: Map<string, CompressedFile>;
+    reporter: Reporter;
+    temporaryDirectoryPath: string;
+  },
+): Promise<void> {
+  const packFilePath = join(temporaryDirectoryPath, 'pack');
+  await writePack([...compressedFiles.values()], packFilePath);
+  reporter.report('Uploading the full pack…');
+  await uploadPack(hotCodePush, { ...bundleIds, packFilePath });
 }

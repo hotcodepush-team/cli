@@ -17,11 +17,10 @@ export default defineCommand({
   action: async options => {
     const hotCodePush = createApiClient();
     const listedSigningKeys = await hotCodePush.apps.signingKeys.list({
-      appId: await fetchAppId(
-        hotCodePush,
+      appId: await fetchAppId(hotCodePush, {
         options,
-        readProjectConfig(options.config),
-      ),
+        projectConfig: readProjectConfig(options.config),
+      }),
       limit: options.limit,
       offset: options.offset,
     });

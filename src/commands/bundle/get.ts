@@ -22,12 +22,11 @@ export default defineCommand({
   options: defineCommandOptions(bundleOptionShape),
   action: async options => {
     const hotCodePush = createApiClient();
-    const appId = await fetchAppId(
-      hotCodePush,
+    const appId = await fetchAppId(hotCodePush, {
       options,
-      readProjectConfig(options.config),
-    );
-    const fetchedBundle = await fetchBundle(hotCodePush, appId, options);
+      projectConfig: readProjectConfig(options.config),
+    });
+    const fetchedBundle = await fetchBundle(hotCodePush, { appId, options });
     const fetchedDeltas = await fetchAllPages(page =>
       hotCodePush.apps.bundles.deltas.list({
         ...page,
@@ -79,5 +78,5 @@ function resolveDeltaText({
   if (patchCount === null || sizeBytes === null) {
     return `${baseText}: ${status}`;
   }
-  return `${baseText}: ${resolveByteText(sizeBytes)}, ${resolveQuantityText(patchCount, 'patch', 'patches')}, ${status}`;
+  return `${baseText}: ${resolveByteText(sizeBytes)}, ${resolveQuantityText(patchCount, { noun: 'patch', pluralNoun: 'patches' })}, ${status}`;
 }

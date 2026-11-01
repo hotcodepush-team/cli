@@ -20,11 +20,10 @@ export default defineCommand({
   options: defineCommandOptions(paginationShape),
   action: async options => {
     const hotCodePush = createApiClient();
-    const appId = await fetchAppId(
-      hotCodePush,
+    const appId = await fetchAppId(hotCodePush, {
       options,
-      readProjectConfig(options.config),
-    );
+      projectConfig: readProjectConfig(options.config),
+    });
     const listedBinaries = await hotCodePush.apps.binaries.list({
       appId,
       limit: options.limit,

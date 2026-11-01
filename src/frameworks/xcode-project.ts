@@ -107,9 +107,7 @@ export async function addBinaryCreatePhase(
   if (anchorPhaseIndex === -1) {
     throw new XcodeProjectError(
       `The Xcode project ${projectFilePath} has no "${phase.anchorPhaseName}" phase to run the build step after.`,
-      undefined,
-      projectFilePath,
-      phase.fix,
+      { cause: undefined, fix: phase.fix, projectFilePath },
     );
   }
   const { buildPhase } = project.addBuildPhase(
@@ -182,7 +180,7 @@ async function resolveAppTarget(
     if (namedTarget === undefined) {
       throw new InvalidParameterError(
         `No app target is named ${options.xcodeTarget}. The targets are ${appTargets.map(({ name }) => name).join(', ')}.`,
-        'Pass one of them with --xcode-target.',
+        { fix: 'Pass one of them with --xcode-target.' },
       );
     }
     return namedTarget;
@@ -191,12 +189,11 @@ async function resolveAppTarget(
   if (onlyTarget !== undefined && appTargets.length === 1) {
     return onlyTarget;
   }
-  const targetKey = await promptSelect(
-    '--xcode-target',
-    'Which app target?',
-    appTargets.map(({ key, name }) => ({ label: name, value: key })),
-    options,
-  );
+  const targetKey = await promptSelect(options, {
+    choices: appTargets.map(({ key, name }) => ({ label: name, value: key })),
+    flag: '--xcode-target',
+    message: 'Which app target?',
+  });
   const selectedTarget = appTargets.find(({ key }) => key === targetKey);
   if (selectedTarget === undefined) {
     throw new MissingParameterError('--xcode-target');
@@ -273,9 +270,7 @@ function parseProject(projectFilePath: string, fix?: string): EditableProject {
   } catch (error) {
     throw new XcodeProjectError(
       `The Xcode project ${projectFilePath} could not be parsed.`,
-      error,
-      projectFilePath,
-      fix,
+      { cause: error, fix, projectFilePath },
     );
   }
 }

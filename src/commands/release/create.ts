@@ -42,7 +42,7 @@ import {
 import type { BundleUploadOptions } from '../../upload/bundle-upload.js';
 import {
   bundleUploadOptionShape,
-  fetchUploadBundleOptions,
+  buildBundleUploads,
 } from '../../upload/bundle-upload.js';
 import { withTemporaryDirectory } from '../../upload/compressed-files.js';
 import type { UploadBundleOptions } from '../../upload/upload.js';
@@ -212,19 +212,17 @@ async function createReleases(
         appId: bundle.appId,
         channelId: channel.id,
       });
-      const liveRelease = await waitUntilLive(
-        hotCodePush,
-        bundle.appId,
-        createdRelease.id,
-        ['bundle', 'channel'],
-      );
+      const liveRelease = await waitUntilLive(hotCodePush, {
+        appId: bundle.appId,
+        relations: ['bundle', 'channel'],
+        releaseId: createdRelease.id,
+      });
       releases.push(liveRelease);
       if (!options.json) {
-        printReleasedLine(
-          liveRelease,
-          channel.name,
-          resolveBundleLabel(bundle),
-        );
+        printReleasedLine(liveRelease, {
+          bundleLabel: resolveBundleLabel(bundle),
+          channelName: channel.name,
+        });
       }
     }
   }
@@ -241,7 +239,10 @@ function resolveReleaseConsequence(
 ): string {
   const audienceText = channelAudiences
     .map(({ audience, channel }) =>
-      resolveAudienceText(audience, channel.name, rolloutPercent),
+      resolveAudienceText(audience, {
+        channelName: channel.name,
+        rolloutPercent,
+      }),
     )
     .join(' and ');
   const progressionText =
@@ -263,22 +264,20 @@ async function fetchChannelAudiences(
     options.channel === undefined || options.channel.length === 0
       ? [undefined]
       : options.channel;
-  const audienceQuery = buildAudienceQuery(
-    options,
+  const audienceQuery = buildAudienceQuery(options, {
     fingerprint,
     rolloutPercent,
-  );
+  });
   const projectConfig = readProjectConfig(options.config);
   return Promise.all(
     channelReferences.map(async channelReference => {
       const channel = await hotCodePush.apps.channels.get({
         appId,
-        channelId: await fetchChannelId(
-          hotCodePush,
+        channelId: await fetchChannelId(hotCodePush, {
           appId,
-          { ...options, channel: channelReference },
+          options: { ...options, channel: channelReference },
           projectConfig,
-        ),
+        }),
       });
       const audience = await hotCodePush.apps.channels.audience.get({
         ...audienceQuery,
@@ -298,12 +297,12 @@ async function fetchSourceRelease(
 ): Promise<{ bundle: Bundle; sourceChannel: Channel; sourceRelease: Release }> {
   const sourceChannel = await hotCodePush.apps.channels.get({
     appId,
-    channelId: await fetchResourceId(
-      'channel',
+    channelId: await fetchResourceId({
+      fetchResources: () => fetchChannels(hotCodePush, appId),
+      noun: 'channel',
       reference,
-      () => fetchChannels(hotCodePush, appId),
-      '--from-channel',
-    ),
+      source: '--from-channel',
+    }),
   });
   const sourceRelease = (
     await fetchReleaseLog(hotCodePush, sourceChannel)
@@ -368,24 +367,24 @@ async function fetchBundleSource(
   if (sourceFlags.length > 1) {
     throw new InvalidParameterError(
       `The flags ${sourceFlags.join(' and ')} were passed together.`,
-      'Pass one of them: the bundle to release, the channel to release from or the build to upload.',
+      {
+        fix: 'Pass one of them: the bundle to release, the channel to release from or the build to upload.',
+      },
     );
   }
   if (options.bundle === undefined && options.fromChannel === undefined) {
-    return fetchUploadBundleOptions(
-      hotCodePush,
+    return buildBundleUploads(hotCodePush, {
+      isDryRun: options.dryRun,
       options,
       packagingDirectoryPath,
-      { isDryRun: options.dryRun },
-    );
+    });
   }
-  const appId = await fetchAppId(
-    hotCodePush,
+  const appId = await fetchAppId(hotCodePush, {
     options,
-    readProjectConfig(options.config),
-  );
+    projectConfig: readProjectConfig(options.config),
+  });
   return options.fromChannel === undefined
-    ? { bundle: await fetchBundle(hotCodePush, appId, options) }
+    ? { bundle: await fetchBundle(hotCodePush, { appId, options }) }
     : fetchSourceRelease(hotCodePush, appId, options.fromChannel);
 }
 

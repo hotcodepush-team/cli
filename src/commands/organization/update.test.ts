@@ -152,7 +152,10 @@ describe('organization update', () => {
   it("should pass the API's `validation` error through without asking when the cap is the one in force", async () => {
     respondWithGlobex();
     harness.routes[`PATCH ${GLOBEX_PATH}`] = () =>
-      respondWithApiError(400, 'validation', 'The request changes nothing.');
+      respondWithApiError(400, {
+        code: 'validation',
+        message: 'The request changes nothing.',
+      });
 
     await expect(
       organizationUpdateCommand.action(

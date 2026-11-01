@@ -90,7 +90,7 @@ export function packageReactNativeBundles(
     if (platform === undefined || platforms.length > 1) {
       throw new InvalidParameterError(
         'A prepared bundle from --path serves one platform.',
-        'Name it with --platform ios or --platform android.',
+        { fix: 'Name it with --platform ios or --platform android.' },
       );
     }
     const directoryPath = resolve(path);
@@ -98,7 +98,9 @@ export function packageReactNativeBundles(
     if (!existsSync(join(directoryPath, bundleFileName))) {
       throw new InvalidParameterError(
         `The directory ${directoryPath} from --path holds no ${bundleFileName}, the JavaScript the ${platform} app loads.`,
-        `Pass the ${platform} bundle's directory, with ${bundleFileName} in it, or leave out --path to bundle the project.`,
+        {
+          fix: `Pass the ${platform} bundle's directory, with ${bundleFileName} in it, or leave out --path to bundle the project.`,
+        },
       );
     }
     return Promise.resolve([{ directoryPath, platforms }]);
@@ -249,7 +251,9 @@ function resolveHermescFilePath(
   if (hermescFilePath === undefined) {
     throw new InvalidParameterError(
       "Hermes' compiler was not found in the project's react-native.",
-      'Install the dependencies, or pass --path with a bundle directory prepared for one --platform.',
+      {
+        fix: 'Install the dependencies, or pass --path with a bundle directory prepared for one --platform.',
+      },
     );
   }
   return hermescFilePath;

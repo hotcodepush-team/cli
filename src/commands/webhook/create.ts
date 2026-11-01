@@ -48,25 +48,33 @@ export default defineCommand({
     const organizationId = await fetchOrganizationId(hotCodePush, options);
     const name =
       options.name ??
-      (await promptText('--name', 'What is the webhook called?', options));
+      (await promptText(options, {
+        flag: '--name',
+        message: 'What is the webhook called?',
+      }));
     const url =
       options.url ??
-      (await promptText('--url', 'Which URL receives the events?', options));
+      (await promptText(options, {
+        flag: '--url',
+        message: 'Which URL receives the events?',
+      }));
     const format = options.format ?? (await promptFormat(options));
     const events = options.event?.length
       ? options.event
       : [
-          await promptText(
-            '--event',
-            'Which event type, such as release.created?',
-            options,
-          ),
+          await promptText(options, {
+            flag: '--event',
+            message: 'Which event type, such as release.created?',
+          }),
         ];
     const createdWebhook = await hotCodePush.organizations.webhooks.create({
       appId:
         options.app === undefined
           ? undefined
-          : await fetchWebhookAppId(hotCodePush, organizationId, options.app),
+          : await fetchWebhookAppId(hotCodePush, {
+              app: options.app,
+              organizationId,
+            }),
       events: resolveWebhookEventTypes(events),
       format,
       name,
@@ -93,10 +101,9 @@ function printCreatedWebhook(webhook: CreatedWebhook): void {
 }
 
 function promptFormat(options: InteractivityOptions): Promise<WebhookFormat> {
-  return promptSelect(
-    '--format',
-    'Which format?',
-    WEBHOOK_FORMATS.map(format => ({ label: format, value: format })),
-    options,
-  );
+  return promptSelect(options, {
+    choices: WEBHOOK_FORMATS.map(format => ({ label: format, value: format })),
+    flag: '--format',
+    message: 'Which format?',
+  });
 }

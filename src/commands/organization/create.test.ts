@@ -78,16 +78,14 @@ describe('organization create', () => {
 
   it("should pass the API's error through with its code in the docs link", async () => {
     harness.routes['POST /v1/organizations'] = () =>
-      respondWithApiError(
-        400,
-        'validation',
-        'The json field name is invalid: Too small.',
-      );
+      respondWithApiError(400, {
+        code: 'validation',
+        message: 'The json field name is invalid: Too small.',
+      });
 
     const exitCode = await runCli(
       { 'organization create': () => import('./create.js') },
-      ['organization', 'create', '--name', ' '],
-      PACKAGE_JSON,
+      { argv: ['organization', 'create', '--name', ' '], meta: PACKAGE_JSON },
     );
 
     expect(exitCode).toBe(1);

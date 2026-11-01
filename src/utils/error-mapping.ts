@@ -89,11 +89,11 @@ export function resolveApiError({
   if (receivedCode === undefined) {
     return new UnexpectedResponseError(status);
   }
-  return new ApiError(
-    receivedCode,
-    message ?? error_description ?? statusText,
+  return new ApiError({
+    code: receivedCode,
+    message: message ?? error_description ?? statusText,
     status,
-  );
+  });
 }
 
 export function resolveCliError(error: unknown): CliError {
@@ -103,20 +103,21 @@ export function resolveCliError(error: unknown): CliError {
   if (error instanceof HotCodePushError) {
     return error.code === UNEXPECTED_RESPONSE_CODE
       ? new UnexpectedResponseError(error.status, error)
-      : new ApiError(error.code, error.message, error.status);
+      : new ApiError({
+          code: error.code,
+          message: error.message,
+          status: error.status,
+        });
   }
   if (error instanceof ZodError) {
-    return new InvalidParameterError(
-      resolveZodErrorMessage(error),
-      undefined,
-      error,
-    );
+    return new InvalidParameterError(resolveZodErrorMessage(error), {
+      cause: error,
+    });
   }
   if (error instanceof ZodlineError) {
     return new InvalidParameterError(
       resolveSentence(stripVTControlCharacters(error.message)),
-      undefined,
-      error,
+      { cause: error },
     );
   }
   return new UnexpectedError(error);

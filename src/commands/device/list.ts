@@ -63,11 +63,10 @@ export default defineCommand({
   }),
   action: async options => {
     const hotCodePush = createApiClient();
-    const appId = await fetchAppId(
-      hotCodePush,
+    const appId = await fetchAppId(hotCodePush, {
       options,
-      readProjectConfig(options.config),
-    );
+      projectConfig: readProjectConfig(options.config),
+    });
     const listedDevices = await hotCodePush.apps.devices.list({
       appId,
       attribute: options.attribute,

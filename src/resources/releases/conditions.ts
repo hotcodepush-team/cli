@@ -46,8 +46,10 @@ export const conditionOptionShape = {
 // A release of a bundle carries its fingerprint beside the conditions.
 export function buildAudienceQuery(
   options: ConditionOptions,
-  fingerprint: string | null,
-  rolloutPercent: number,
+  {
+    fingerprint,
+    rolloutPercent,
+  }: { fingerprint: string | null; rolloutPercent: number },
 ): AudienceQuery {
   return {
     attribute: resolveAttributePairs(options.attribute).map(
@@ -114,7 +116,9 @@ export function resolveAttributePairs(
     ) {
       throw new InvalidParameterError(
         `The value "${pair}" of --attribute is not a key=value pair.`,
-        'Pass key=value. The key takes letters, digits, _, - and . up to 64 characters, the value printable characters up to 256.',
+        {
+          fix: 'Pass key=value. The key takes letters, digits, _, - and . up to 64 characters, the value printable characters up to 256.',
+        },
       );
     }
     return { key, value };

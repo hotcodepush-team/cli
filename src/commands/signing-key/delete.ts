@@ -28,12 +28,11 @@ export default defineCommand({
   action: async options => {
     const hotCodePush = createApiClient();
     const projectConfigLocation = locateProjectConfig(options.config);
-    const appId = await fetchAppId(
-      hotCodePush,
+    const appId = await fetchAppId(hotCodePush, {
       options,
-      projectConfigLocation.projectConfig,
-    );
-    const signingKey = await fetchSigningKey(hotCodePush, appId, options);
+      projectConfig: projectConfigLocation.projectConfig,
+    });
+    const signingKey = await fetchSigningKey(hotCodePush, { appId, options });
     const isConfirmed = await confirmConsequence(
       `unregisters signing key ${signingKey.keyId}: an upload signed with it is refused from then on`,
       options,

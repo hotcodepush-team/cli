@@ -37,14 +37,16 @@ export async function resolveNativeProjects(
   }
   return {
     android: resolve(
-      await promptText(
-        '--android-path',
-        'Where is the Android project?',
-        options,
-      ),
+      await promptText(options, {
+        flag: '--android-path',
+        message: 'Where is the Android project?',
+      }),
     ),
     ios: resolve(
-      await promptText('--ios-path', 'Where is the iOS project?', options),
+      await promptText(options, {
+        flag: '--ios-path',
+        message: 'Where is the iOS project?',
+      }),
     ),
     missingError: undefined,
   };

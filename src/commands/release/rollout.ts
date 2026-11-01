@@ -79,11 +79,10 @@ export default defineCommand({
 async function promptRolloutPercent(
   options: InteractivityOptions,
 ): Promise<number> {
-  const answer = await promptText(
-    '--rollout-percent',
-    'Which share of devices should the release reach, 0 to 100?',
-    options,
-  );
+  const answer = await promptText(options, {
+    flag: '--rollout-percent',
+    message: 'Which share of devices should the release reach, 0 to 100?',
+  });
   return z
     .object({ rolloutPercent: rolloutPercentSchema })
     .parse({ rolloutPercent: answer }).rolloutPercent;

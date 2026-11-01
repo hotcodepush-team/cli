@@ -37,11 +37,10 @@ describe('channel create', () => {
 
   function respondWithNameTaken(): void {
     harness.routes[CHANNELS_ROUTE] = () =>
-      respondWithApiError(
-        409,
-        'channel_name_taken',
-        'A channel of that name exists in the app.',
-      );
+      respondWithApiError(409, {
+        code: 'channel_name_taken',
+        message: 'A channel of that name exists in the app.',
+      });
   }
 
   it("should create the channel with the flags as the API's fields", async () => {
@@ -121,8 +120,10 @@ describe('channel create', () => {
 
     const exitCode = await runCli(
       { 'channel create': () => import('./create.js') },
-      ['channel', 'create', '--app', DEMO_APP.id, '--name', 'staging'],
-      PACKAGE_JSON,
+      {
+        argv: ['channel', 'create', '--app', DEMO_APP.id, '--name', 'staging'],
+        meta: PACKAGE_JSON,
+      },
     );
 
     expect(exitCode).toBe(1);
@@ -152,20 +153,22 @@ describe('channel create', () => {
 
     await runCli(
       { 'channel create': () => import('./create.js') },
-      [
-        'channel',
-        'create',
-        '--app',
-        DEMO_APP.id,
-        '--name',
-        'staging',
-        '--protected',
-        'false',
-        '--discoverable',
-        '--expires-in',
-        '12h',
-      ],
-      PACKAGE_JSON,
+      {
+        argv: [
+          'channel',
+          'create',
+          '--app',
+          DEMO_APP.id,
+          '--name',
+          'staging',
+          '--protected',
+          'false',
+          '--discoverable',
+          '--expires-in',
+          '12h',
+        ],
+        meta: PACKAGE_JSON,
+      },
     );
 
     expect(await harness.requests[0]?.json()).toEqual({

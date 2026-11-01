@@ -165,14 +165,14 @@ async function fetchRevocations(
   if (formFlags.length > 1) {
     throw new InvalidParameterError(
       `The flags ${formFlags.join(' and ')} were passed together.`,
-      'Pass one of them.',
+      { fix: 'Pass one of them.' },
     );
   }
   if (options.bundle !== undefined) {
     if (options.channel !== undefined) {
       throw new InvalidParameterError(
         "With --bundle, the bundle's releases are revoked in every channel, so --channel does not apply.",
-        'Pass --bundle alone.',
+        { fix: 'Pass --bundle alone.' },
       );
     }
     return fetchBundleRevocations(hotCodePush, options);
@@ -211,12 +211,11 @@ async function fetchBundleRevocations(
   hotCodePush: HotCodePush,
   options: ReleaseRevokeOptions,
 ): Promise<ChannelRevocation[]> {
-  const appId = await fetchAppId(
-    hotCodePush,
+  const appId = await fetchAppId(hotCodePush, {
     options,
-    readProjectConfig(options.config),
-  );
-  const bundle = await fetchBundle(hotCodePush, appId, options);
+    projectConfig: readProjectConfig(options.config),
+  });
+  const bundle = await fetchBundle(hotCodePush, { appId, options });
   const pendingReleases = (
     await fetchAllPages(page =>
       hotCodePush.apps.releases.list({
@@ -290,7 +289,7 @@ function resolveMovesText(
   const channelText = isChannelNamed ? ` in ${revocation.channel.name}` : '';
   return moves
     .map(({ deviceCount, targetRelease }) => {
-      const devicesText = resolveQuantityText(deviceCount, 'device');
+      const devicesText = resolveQuantityText(deviceCount, { noun: 'device' });
       return targetRelease === undefined
         ? `${devicesText} return to the embedded bundle${channelText}`
         : `${devicesText} move to release #${targetRelease.number}${channelText}`;
@@ -391,7 +390,7 @@ function resolveReleasesText(releases: Release[]): string {
     return `release ${numberTexts[0]}`;
   }
   if (numberTexts.length > 3) {
-    return resolveQuantityText(numberTexts.length, 'release');
+    return resolveQuantityText(numberTexts.length, { noun: 'release' });
   }
   return `releases ${numberTexts.slice(0, -1).join(', ')} and ${numberTexts.at(-1)}`;
 }

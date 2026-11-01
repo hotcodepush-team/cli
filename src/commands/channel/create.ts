@@ -39,14 +39,16 @@ export default defineCommand({
   }),
   action: async options => {
     const hotCodePush = createApiClient();
-    const appId = await fetchAppId(
-      hotCodePush,
+    const appId = await fetchAppId(hotCodePush, {
       options,
-      readProjectConfig(options.config),
-    );
+      projectConfig: readProjectConfig(options.config),
+    });
     const name =
       options.name ??
-      (await promptText('--name', 'What is the channel called?', options));
+      (await promptText(options, {
+        flag: '--name',
+        message: 'What is the channel called?',
+      }));
     try {
       const createdChannel = await hotCodePush.apps.channels.create({
         ...resolveChannelFields(options),
@@ -59,11 +61,10 @@ export default defineCommand({
         throw error;
       }
       printChannel(
-        resolveNamedResource(
-          'channel',
+        resolveNamedResource(await fetchChannels(hotCodePush, appId), {
           name,
-          await fetchChannels(hotCodePush, appId),
-        ),
+          noun: 'channel',
+        }),
         'Found the existing channel',
         options.json,
       );

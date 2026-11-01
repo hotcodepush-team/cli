@@ -236,20 +236,22 @@ describe('release update', () => {
 
     const exitCode = await runCli(
       { 'release update': () => import('./update.js') },
-      [
-        'release',
-        'update',
-        '--app',
-        DEMO_APP.id,
-        '--channel',
-        STAGING_CHANNEL.id,
-        '--release',
-        '43',
-        '--failure-action',
-        'none',
-        '--yes',
-      ],
-      PACKAGE_JSON,
+      {
+        argv: [
+          'release',
+          'update',
+          '--app',
+          DEMO_APP.id,
+          '--channel',
+          STAGING_CHANNEL.id,
+          '--release',
+          '43',
+          '--failure-action',
+          'none',
+          '--yes',
+        ],
+        meta: PACKAGE_JSON,
+      },
     );
 
     expect(exitCode).toBe(0);
@@ -262,19 +264,21 @@ describe('release update', () => {
 
     const exitCode = await runCli(
       { 'release update': () => import('./update.js') },
-      [
-        'release',
-        'update',
-        '--app',
-        DEMO_APP.id,
-        '--channel',
-        STAGING_CHANNEL.id,
-        '--release',
-        '43',
-        '--clear-notes',
-        '--yes',
-      ],
-      PACKAGE_JSON,
+      {
+        argv: [
+          'release',
+          'update',
+          '--app',
+          DEMO_APP.id,
+          '--channel',
+          STAGING_CHANNEL.id,
+          '--release',
+          '43',
+          '--clear-notes',
+          '--yes',
+        ],
+        meta: PACKAGE_JSON,
+      },
     );
 
     expect(exitCode).toBe(0);

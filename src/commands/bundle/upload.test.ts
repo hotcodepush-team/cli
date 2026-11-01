@@ -27,7 +27,7 @@ import {
   SIGNING_PRIVATE_KEY,
 } from '../../../test/fixtures.js';
 import { PACKAGE_JSON } from '../../config/consts.js';
-import { fetchUploadBundleOptions } from '../../upload/bundle-upload.js';
+import { buildBundleUploads } from '../../upload/bundle-upload.js';
 import { writeSigningPrivateKeyFile } from '../../upload/signing-private-key.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { runCli } from '../../utils/cli.js';
@@ -465,12 +465,11 @@ describe('bundle upload', () => {
   });
 
   it('should resolve a dry run without a private key when hotcodepush.json lists a public key', async () => {
-    const { bundleUploads } = await fetchUploadBundleOptions(
-      createApiClient(),
-      { config: listPublicKey(), noGit: true },
-      projectDirectoryPath,
-      { isDryRun: true },
-    );
+    const { bundleUploads } = await buildBundleUploads(createApiClient(), {
+      isDryRun: true,
+      options: { config: listPublicKey(), noGit: true },
+      packagingDirectoryPath: projectDirectoryPath,
+    });
 
     expect(bundleUploads[0]?.signingPrivateKey).toBeNull();
     expect(harness.requests).toHaveLength(0);
@@ -478,16 +477,15 @@ describe('bundle upload', () => {
 
   it('should check the private key a dry run is given', async () => {
     await expect(
-      fetchUploadBundleOptions(
-        createApiClient(),
-        {
+      buildBundleUploads(createApiClient(), {
+        isDryRun: true,
+        options: {
           config: listPublicKey(),
           noGit: true,
           privateKeyPath: join(projectDirectoryPath, 'missing-key.pem'),
         },
-        projectDirectoryPath,
-        { isDryRun: true },
-      ),
+        packagingDirectoryPath: projectDirectoryPath,
+      }),
     ).rejects.toMatchObject({
       code: 'invalid_parameter',
       message: expect.stringMatching(
@@ -523,15 +521,17 @@ describe('bundle upload', () => {
   it('should name --platform when a platform is not ios or android', async () => {
     const exitCode = await runCli(
       { 'bundle upload': () => import('./upload.js') },
-      [
-        'bundle',
-        'upload',
-        '--platform',
-        'web',
-        '--config',
-        join(projectDirectoryPath, 'hotcodepush.json'),
-      ],
-      PACKAGE_JSON,
+      {
+        argv: [
+          'bundle',
+          'upload',
+          '--platform',
+          'web',
+          '--config',
+          join(projectDirectoryPath, 'hotcodepush.json'),
+        ],
+        meta: PACKAGE_JSON,
+      },
     );
 
     expect(exitCode).toBe(2);

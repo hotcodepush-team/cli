@@ -36,15 +36,17 @@ export default defineCommand({
     const organizationId = await fetchOrganizationId(hotCodePush, options);
     const email =
       options.email ??
-      (await promptText('--email', 'Which address do you invite?', options));
+      (await promptText(options, {
+        flag: '--email',
+        message: 'Which address do you invite?',
+      }));
     const role =
       options.role ??
-      (await promptSelect(
-        '--role',
-        'Which role does the invitee get?',
-        INVITATION_ROLES.map(role => ({ label: role, value: role })),
-        options,
-      ));
+      (await promptSelect(options, {
+        choices: INVITATION_ROLES.map(role => ({ label: role, value: role })),
+        flag: '--role',
+        message: 'Which role does the invitee get?',
+      }));
     const fetchedOrganization = await hotCodePush.organizations.get({
       organizationId,
     });

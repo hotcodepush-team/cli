@@ -35,11 +35,10 @@ export default defineCommand({
     const name =
       options.name ??
       (spendingCapCents === undefined
-        ? await promptText(
-            '--name',
-            'What is the organization called now?',
-            options,
-          )
+        ? await promptText(options, {
+            flag: '--name',
+            message: 'What is the organization called now?',
+          })
         : undefined);
     if (spendingCapCents !== undefined) {
       const fetchedOrganization = await hotCodePush.organizations.get({

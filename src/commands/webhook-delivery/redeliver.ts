@@ -29,7 +29,10 @@ export default defineCommand({
     // A delivery has no name to pick from, so a missing one is asked for as text.
     const deliveryId =
       options.delivery ??
-      (await promptText('--delivery', 'Which delivery id?', options));
+      (await promptText(options, {
+        flag: '--delivery',
+        message: 'Which delivery id?',
+      }));
     const isConfirmed = await confirmConsequence(
       `sends the event of delivery ${deliveryId} to ${fetchedWebhook.url} again`,
       options,

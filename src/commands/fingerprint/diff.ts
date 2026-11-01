@@ -68,20 +68,19 @@ export default defineCommand({
     const beforeFile = await readFingerprintFile(
       '<file-a>',
       args[0] ??
-        (await promptText(
-          '<file-a>',
-          "Which file holds the earlier fingerprint, the store build's?",
-          options,
-        )),
+        (await promptText(options, {
+          flag: '<file-a>',
+          message:
+            "Which file holds the earlier fingerprint, the store build's?",
+        })),
     );
     const afterFile = await readFingerprintFile(
       '<file-b>',
       args[1] ??
-        (await promptText(
-          '<file-b>',
-          'Which file holds the later fingerprint?',
-          options,
-        )),
+        (await promptText(options, {
+          flag: '<file-b>',
+          message: 'Which file holds the later fingerprint?',
+        })),
     );
     const diff = resolveFingerprintDiff(beforeFile, afterFile);
     if (options.json) {
@@ -124,16 +123,14 @@ async function readFingerprintFile(
   const text = await readFile(filePath, 'utf8').catch((error: unknown) => {
     throw new InvalidParameterError(
       `The file ${filePath} from ${argumentName} cannot be read.`,
-      FINGERPRINT_FILE_FIX,
-      error,
+      { cause: error, fix: FINGERPRINT_FILE_FIX },
     );
   });
   const parsedFile = FingerprintFileSchema.safeParse(parseJson(text));
   if (!parsedFile.success) {
     throw new InvalidParameterError(
       `The file ${filePath} from ${argumentName} is not a fingerprint written by fingerprint --json.`,
-      FINGERPRINT_FILE_FIX,
-      parsedFile.error,
+      { cause: parsedFile.error, fix: FINGERPRINT_FILE_FIX },
     );
   }
   return parsedFile.data;

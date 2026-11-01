@@ -25,7 +25,7 @@ import {
 } from '../../../test/release-routes.js';
 import { collectBundleFiles } from '../../upload/bundle-files.js';
 import type * as bundleUploadModule from '../../upload/bundle-upload.js';
-import { fetchUploadBundleOptions } from '../../upload/bundle-upload.js';
+import { buildBundleUploads } from '../../upload/bundle-upload.js';
 import type * as uploadModule from '../../upload/upload.js';
 import type { UploadBundleOptions } from '../../upload/upload.js';
 import { uploadBundle } from '../../upload/upload.js';
@@ -44,7 +44,7 @@ vi.mock('@clack/prompts', () =>
 );
 vi.mock('../../upload/bundle-upload.js', async importOriginal => ({
   ...(await importOriginal<typeof bundleUploadModule>()),
-  fetchUploadBundleOptions: vi.fn(),
+  buildBundleUploads: vi.fn(),
 }));
 vi.mock('../../upload/bundle-files.js');
 vi.mock('../../upload/upload.js', async importOriginal => ({
@@ -147,7 +147,7 @@ describe('release create', () => {
   }
 
   function stubWebBuildUpload(): void {
-    vi.mocked(fetchUploadBundleOptions).mockResolvedValue({
+    vi.mocked(buildBundleUploads).mockResolvedValue({
       appId: DEMO_APP.id,
       bundleUploads: [UPLOAD_BUNDLE_OPTIONS],
     });
@@ -263,12 +263,11 @@ describe('release create', () => {
       undefined,
     );
 
-    expect(fetchUploadBundleOptions).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({ path: 'dist' }),
-      expect.any(String),
-      { isDryRun: undefined },
-    );
+    expect(buildBundleUploads).toHaveBeenCalledWith(expect.anything(), {
+      isDryRun: undefined,
+      options: expect.objectContaining({ path: 'dist' }),
+      packagingDirectoryPath: expect.any(String),
+    });
     expect(uploadBundle).toHaveBeenCalledWith(
       expect.anything(),
       UPLOAD_BUNDLE_OPTIONS,
@@ -634,12 +633,11 @@ describe('release create', () => {
         undefined,
       );
 
-      expect(fetchUploadBundleOptions).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({ path: 'dist' }),
-        expect.any(String),
-        { isDryRun: true },
-      );
+      expect(buildBundleUploads).toHaveBeenCalledWith(expect.anything(), {
+        isDryRun: true,
+        options: expect.objectContaining({ path: 'dist' }),
+        packagingDirectoryPath: expect.any(String),
+      });
       expect(collectBundleFiles).toHaveBeenCalledWith(
         UPLOAD_BUNDLE_OPTIONS.directoryPath,
       );
@@ -794,7 +792,7 @@ describe('release create', () => {
     const OPTIONS = { app: DEMO_APP.id, channel: [STAGING_CHANNEL.id] };
 
     function stubPlatformBundleUploads(): void {
-      vi.mocked(fetchUploadBundleOptions).mockResolvedValue({
+      vi.mocked(buildBundleUploads).mockResolvedValue({
         appId: DEMO_APP.id,
         bundleUploads: [
           { ...UPLOAD_BUNDLE_OPTIONS, platforms: ['android'] },

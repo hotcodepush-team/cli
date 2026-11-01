@@ -10,8 +10,10 @@ interface InvitationOptions extends InteractivityOptions {
 // Invitations have no read by id, and only a pending one is unique by its email.
 export async function fetchPendingInvitation(
   hotCodePush: HotCodePush,
-  organizationId: string,
-  options: InvitationOptions,
+  {
+    options,
+    organizationId,
+  }: { options: InvitationOptions; organizationId: string },
 ): Promise<Invitation> {
   const pendingInvitations = await fetchAllPages(page =>
     hotCodePush.organizations.invitations.list({
@@ -26,6 +28,9 @@ export async function fetchPendingInvitation(
   }));
   const reference =
     options.invitation ??
-    (await promptResourceId('invitation', namedInvitations, options));
-  return resolveResource('invitation', reference, namedInvitations);
+    (await promptResourceId(options, {
+      noun: 'invitation',
+      resources: namedInvitations,
+    }));
+  return resolveResource(namedInvitations, { noun: 'invitation', reference });
 }

@@ -15,11 +15,10 @@ export default defineCommand({
   action: async options => {
     const hotCodePush = createApiClient();
     const fetchedApp = await hotCodePush.apps.get({
-      appId: await fetchAppId(
-        hotCodePush,
+      appId: await fetchAppId(hotCodePush, {
         options,
-        readProjectConfig(options.config),
-      ),
+        projectConfig: readProjectConfig(options.config),
+      }),
     });
     if (options.json) {
       printJson(fetchedApp);
