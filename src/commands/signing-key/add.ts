@@ -60,7 +60,7 @@ export default defineCommand({
     console.log(
       `Added signing key ${createdSigningKey.keyId} (${createdSigningKey.id}).`,
     );
-    console.log(resolvePublicKeyListingText(isConfigured, publicKey));
+    console.log(resolvePublicKeyListingText({ isConfigured, publicKey }));
     console.log(UPLOAD_SIGNING_TEXT);
   },
 });

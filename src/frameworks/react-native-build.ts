@@ -245,10 +245,10 @@ function resolveBundlePaths({
 }): BundlePaths {
   const bundleFileName = BUNDLE_FILE_NAMES[platform];
   const bundleFilePath = join(outputDirectoryPath, bundleFileName);
-  const sourceMapFileName = resolvePackagerSourceMapFileName(
+  const sourceMapFileName = resolvePackagerSourceMapFileName({
+    isHermesEnabled: hermescFilePath !== undefined,
     platform,
-    hermescFilePath !== undefined,
-  );
+  });
   return {
     bundleFilePath,
     javaScriptFilePath:
@@ -317,15 +317,18 @@ function resolvePackageDirectoryPath(
 
 // The JavaScript ends with a comment naming its source map, so the name must match React Native's release build.
 // Gradle always writes one, and Xcode none by default.
-function resolvePackagerSourceMapFileName(
-  platform: Platform,
-  isHermesEnabledForPlatform: boolean,
-): string | undefined {
+function resolvePackagerSourceMapFileName({
+  isHermesEnabled,
+  platform,
+}: {
+  isHermesEnabled: boolean;
+  platform: Platform;
+}): string | undefined {
   if (platform === 'ios') {
     return undefined;
   }
   const bundleFileName = BUNDLE_FILE_NAMES[platform];
-  return isHermesEnabledForPlatform
+  return isHermesEnabled
     ? `${bundleFileName}.packager.map`
     : `${bundleFileName}.map`;
 }

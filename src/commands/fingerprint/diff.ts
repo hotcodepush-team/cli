@@ -117,10 +117,13 @@ function printFingerprintDiff(diff: FingerprintDiff): void {
   }
 }
 
-async function readFingerprintFile(
-  argumentName: string,
-  filePath: string,
-): Promise<FingerprintFile> {
+async function readFingerprintFile({
+  argumentName,
+  filePath,
+}: {
+  argumentName: string;
+  filePath: string;
+}): Promise<FingerprintFile> {
   const text = await readFile(filePath, 'utf8').catch((error: unknown) => {
     throw new InvalidParameterError(
       `The file ${filePath} from ${argumentName} cannot be read.`,
@@ -141,22 +144,24 @@ async function readFingerprintFiles(
   options: InteractivityOptions,
   [beforeFilePath, afterFilePath]: string[],
 ): Promise<{ afterFile: FingerprintFile; beforeFile: FingerprintFile }> {
-  const beforeFile = await readFingerprintFile(
-    '<file-a>',
-    beforeFilePath ??
+  const beforeFile = await readFingerprintFile({
+    argumentName: '<file-a>',
+    filePath:
+      beforeFilePath ??
       (await promptText(options, {
         flag: '<file-a>',
         message: "Which file holds the earlier fingerprint, the store build's?",
       })),
-  );
-  const afterFile = await readFingerprintFile(
-    '<file-b>',
-    afterFilePath ??
+  });
+  const afterFile = await readFingerprintFile({
+    argumentName: '<file-b>',
+    filePath:
+      afterFilePath ??
       (await promptText(options, {
         flag: '<file-b>',
         message: 'Which file holds the later fingerprint?',
       })),
-  );
+  });
   return { afterFile, beforeFile };
 }
 

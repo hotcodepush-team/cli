@@ -67,10 +67,13 @@ export function fetchSigningKeys(
   );
 }
 
-export function resolvePublicKeyListingText(
-  isConfigured: boolean,
-  publicKey: string,
-): string {
+export function resolvePublicKeyListingText({
+  isConfigured,
+  publicKey,
+}: {
+  isConfigured: boolean;
+  publicKey: string;
+}): string {
   return isConfigured
     ? `Added to publicKeys in ${PROJECT_CONFIG_FILE_NAME}.`
     : `Add it to publicKeys in the app's ${PROJECT_CONFIG_FILE_NAME}: ${publicKey}`;

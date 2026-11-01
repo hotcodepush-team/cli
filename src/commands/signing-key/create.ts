@@ -64,7 +64,7 @@ export default defineCommand({
     console.log(
       `Created signing key ${createdSigningKey.keyId} (${createdSigningKey.id}).`,
     );
-    console.log(resolvePublicKeyListingText(isConfigured, publicKey));
+    console.log(resolvePublicKeyListingText({ isConfigured, publicKey }));
     console.log(`Wrote the private key to ${privateKeyPath}.`);
     console.log(
       "Keep the file out of version control: whoever holds it can sign the app's bundles.",
