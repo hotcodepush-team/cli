@@ -12,6 +12,7 @@ import { collectBundleFiles, computeFileSha256 } from '../bundle-files.js';
 import { InvalidParameterError } from '../errors.js';
 import { runCommandLineVisibly } from '../package-manager.js';
 import type { Platform } from '../upload.js';
+import { PLATFORMS } from '../upload.js';
 import type {
   BuildDirectory,
   NativeProjectPaths,
@@ -42,8 +43,6 @@ const HERMESC_DIRECTORY_NAMES: Partial<Record<NodeJS.Platform, string>> = {
   linux: 'linux64-bin',
   win32: 'win64-bin',
 };
-
-const PLATFORMS: Platform[] = ['android', 'ios'];
 
 // The iOS app holds far more than the bundle, so only the JavaScript and `assets/` are taken.
 // A debug build that Metro serves has no bundle and gives the build step nothing to hash.

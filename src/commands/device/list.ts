@@ -1,7 +1,7 @@
-import type { Device } from '@hotcodepush/node';
 import { z } from 'zod';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
+import { resolveBinaryText } from '../../utils/device-output.js';
 import { resolveTimeBound } from '../../utils/duration.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson, printTable, resolveDate } from '../../utils/output.js';
@@ -9,9 +9,9 @@ import { paginationShape, resolveNextOffset } from '../../utils/pagination.js';
 import { readProjectConfig } from '../../utils/project-config.js';
 import {
   fetchAppId,
-  fetchChannels,
-  fetchResourceId,
+  fetchChannelFilterId,
 } from '../../utils/resource-resolution.js';
+import { PLATFORMS } from '../../utils/upload.js';
 
 export default defineCommand({
   description:
@@ -55,7 +55,7 @@ export default defineCommand({
         'The latest last report, inclusive: an ISO 8601 timestamp or a duration ago such as 2h or 7d.',
       ),
     platform: z
-      .enum(['android', 'ios'])
+      .enum(PLATFORMS)
       .optional()
       .describe('The platform, ios or android.'),
     sdkVersion: z
@@ -75,12 +75,10 @@ export default defineCommand({
       attribute: options.attribute,
       binaryBuild: options.binaryBuild,
       binaryVersion: options.binaryVersion,
-      channelId:
-        options.channel === undefined
-          ? undefined
-          : await fetchResourceId('channel', options.channel, () =>
-              fetchChannels(hotCodePush, appId),
-            ),
+      channelId: await fetchChannelFilterId(hotCodePush, {
+        appId,
+        channel: options.channel,
+      }),
       fingerprint: options.fingerprint,
       lastSeenSince: resolveTimeBound(options.lastSeenSince),
       lastSeenUntil: resolveTimeBound(options.lastSeenUntil),
@@ -110,10 +108,3 @@ export default defineCommand({
     });
   },
 });
-
-export function resolveBinaryText({
-  binaryBuild,
-  binaryVersion,
-}: Pick<Device, 'binaryBuild' | 'binaryVersion'>): string {
-  return `${binaryVersion} (${binaryBuild})`;
-}

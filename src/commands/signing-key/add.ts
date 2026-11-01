@@ -7,12 +7,12 @@ import { printJson } from '../../utils/output.js';
 import { locateProjectConfig } from '../../utils/project-config.js';
 import { promptText } from '../../utils/prompts.js';
 import { fetchAppId } from '../../utils/resource-resolution.js';
-import { readSigningKeyPairFile } from '../../utils/signing-private-key.js';
 import {
   addPublicKeyToProjectConfig,
   resolvePublicKeyListingText,
   UPLOAD_SIGNING_TEXT,
-} from './create.js';
+} from '../../utils/signing-key.js';
+import { readSigningKeyPairFile } from '../../utils/signing-private-key.js';
 
 export default defineCommand({
   description:

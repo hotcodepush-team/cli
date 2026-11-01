@@ -18,11 +18,11 @@ import { fetchAllPages } from './pagination.js';
 import type { ProjectConfig } from './project-config.js';
 import {
   assertProjectConfigAppId,
-  ID_SCHEMA,
   readProjectConfig,
   resolveProjectChannel,
 } from './project-config.js';
 import { promptSelect } from './prompts.js';
+import { isId } from './reference.js';
 
 interface AppOptions extends OrganizationOptions {
   app?: string;
@@ -42,6 +42,10 @@ interface OrganizationOptions extends InteractivityOptions {
   organization?: string;
 }
 
+interface SigningKeyOptions extends InteractivityOptions {
+  signingKey?: string;
+}
+
 export const channelOptionShape = {
   channel: z
     .string()
@@ -57,24 +61,23 @@ export async function fetchAppId(
   options: AppOptions,
   projectConfig: ProjectConfig | undefined,
 ): Promise<string> {
-  if (options.app !== undefined) {
-    return fetchResourceId('app', options.app, () =>
-      fetchAppsInScope(hotCodePush, options.organization),
-    );
-  }
-  if (projectConfig?.appId !== undefined) {
+  if (options.app === undefined && projectConfig?.appId !== undefined) {
     assertProjectConfigAppId(projectConfig.appId);
     return projectConfig.appId;
   }
-  if (!isInteractive(options)) {
-    throw new MissingParameterError('--app');
-  }
-  const organizationId = await fetchOrganizationId(hotCodePush, options);
-  return promptResourceId(
-    'app',
-    await fetchApps(hotCodePush, organizationId),
+  return fetchOrPromptResourceId({
+    fetchResources:
+      options.app === undefined
+        ? async () =>
+            fetchApps(
+              hotCodePush,
+              await fetchOrganizationId(hotCodePush, options),
+            )
+        : () => fetchAppsInScope(hotCodePush, options.organization),
+    noun: 'app',
     options,
-  );
+    reference: options.app,
+  });
 }
 
 export function fetchApps(
@@ -101,6 +104,18 @@ export async function fetchChannel(
   return hotCodePush.apps.channels.get({ appId, channelId });
 }
 
+// A list filtered by channel takes no default from hotcodepush.json, since no flag means every channel.
+export async function fetchChannelFilterId(
+  hotCodePush: HotCodePush,
+  { appId, channel }: { appId: string; channel: string | undefined },
+): Promise<string | undefined> {
+  return channel === undefined
+    ? undefined
+    : fetchResourceId('channel', channel, () =>
+        fetchChannels(hotCodePush, appId),
+      );
+}
+
 // The channel of hotcodepush.json counts only when the app is the one of the file too.
 export async function fetchChannelId(
   hotCodePush: HotCodePush,
@@ -108,12 +123,7 @@ export async function fetchChannelId(
   options: ChannelOptions,
   projectConfig: ProjectConfig | undefined,
 ): Promise<string> {
-  if (options.channel !== undefined) {
-    return fetchResourceId('channel', options.channel, () =>
-      fetchChannels(hotCodePush, appId),
-    );
-  }
-  if (projectConfig !== undefined && projectConfig.appId === appId) {
+  if (options.channel === undefined && projectConfig?.appId === appId) {
     return fetchResourceId(
       'channel',
       resolveProjectChannel(projectConfig),
@@ -121,14 +131,12 @@ export async function fetchChannelId(
       PROJECT_CONFIG_FILE_NAME,
     );
   }
-  if (!isInteractive(options)) {
-    throw new MissingParameterError('--channel');
-  }
-  return promptResourceId(
-    'channel',
-    await fetchChannels(hotCodePush, appId),
+  return fetchOrPromptResourceId({
+    fetchResources: () => fetchChannels(hotCodePush, appId),
+    noun: 'channel',
     options,
-  );
+    reference: options.channel,
+  });
 }
 
 export function fetchChannels(
@@ -163,6 +171,27 @@ export function fetchOrganizations(
   return fetchAllPages(page => hotCodePush.organizations.list(page));
 }
 
+// Without a reference, a person picks from the list, and a pipeline fails on the missing flag.
+export async function fetchOrPromptResourceId({
+  fetchResources,
+  noun,
+  options,
+  reference,
+}: {
+  fetchResources: () => Promise<NamedResource[]>;
+  noun: string;
+  options: InteractivityOptions;
+  reference: string | undefined;
+}): Promise<string> {
+  if (reference !== undefined) {
+    return fetchResourceId(noun, reference, fetchResources);
+  }
+  if (!isInteractive(options)) {
+    throw new MissingParameterError(`--${noun}`);
+  }
+  return promptResourceId(noun, await fetchResources(), options);
+}
+
 // A UUID is an id, and anything else is a name looked up in the list.
 export async function fetchResourceId(
   noun: string,
@@ -170,7 +199,7 @@ export async function fetchResourceId(
   fetchResources: () => Promise<NamedResource[]>,
   source = `--${noun}`,
 ): Promise<string> {
-  if (ID_SCHEMA.safeParse(reference).success) {
+  if (isId(reference)) {
     return reference;
   }
   return resolveNamedResource(noun, reference, await fetchResources(), source)
@@ -184,6 +213,21 @@ export async function fetchHasSigningKey(
 ): Promise<boolean> {
   const { count } = await hotCodePush.apps.signingKeys.count({ appId });
   return count > 0;
+}
+
+// A signing key is named by its key id.
+export async function fetchSigningKey(
+  hotCodePush: HotCodePush,
+  appId: string,
+  options: SigningKeyOptions,
+): Promise<SigningKey> {
+  const namedSigningKeys = (await fetchSigningKeys(hotCodePush, appId)).map(
+    signingKey => ({ ...signingKey, name: signingKey.keyId }),
+  );
+  const reference =
+    options.signingKey ??
+    (await promptResourceId('signing-key', namedSigningKeys, options));
+  return resolveResource('signing-key', reference, namedSigningKeys);
 }
 
 export function fetchSigningKeys(
@@ -208,24 +252,40 @@ export function promptResourceId(
   );
 }
 
-// Case-insensitive, as the API keeps app and channel names unique that way.
+// A UUID is an id and anything else a name, both looked up in the list.
+export function findResource<TResource extends NamedResource>(
+  noun: string,
+  reference: string,
+  resources: TResource[],
+): TResource | undefined {
+  return isId(reference)
+    ? resources.find(({ id }) => id === reference)
+    : findNamedResource(noun, reference, resources, `--${noun}`);
+}
+
 export function resolveNamedResource<TResource extends NamedResource>(
   noun: string,
   name: string,
   resources: TResource[],
   source = `--${noun}`,
 ): TResource {
-  const namedResources = resources.filter(
-    resource => resource.name.toLowerCase() === name.toLowerCase(),
-  );
-  const [namedResource] = namedResources;
+  const namedResource = findNamedResource(noun, name, resources, source);
   if (namedResource === undefined) {
     throw new UnknownNameError(noun, name, source);
   }
-  if (namedResources.length > 1) {
-    throw new AmbiguousNameError(noun, name, source);
-  }
   return namedResource;
+}
+
+export function resolveResource<TResource extends NamedResource>(
+  noun: string,
+  reference: string,
+  resources: TResource[],
+): TResource {
+  const resource = findResource(noun, reference, resources);
+  if (resource === undefined) {
+    throw new UnknownNameError(noun, reference);
+  }
+  return resource;
 }
 
 async function fetchAppsInScope(
@@ -246,4 +306,20 @@ async function fetchAppsInScope(
     ),
   );
   return fetchedApps.flat();
+}
+
+// Case-insensitive, as the API keeps app and channel names unique that way.
+function findNamedResource<TResource extends NamedResource>(
+  noun: string,
+  name: string,
+  resources: TResource[],
+  source: string,
+): TResource | undefined {
+  const namedResources = resources.filter(
+    resource => resource.name.toLowerCase() === name.toLowerCase(),
+  );
+  if (namedResources.length > 1) {
+    throw new AmbiguousNameError(noun, name, source);
+  }
+  return namedResources[0];
 }

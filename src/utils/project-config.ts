@@ -1,10 +1,11 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { ProjectConfigurationSchema } from '@hotcodepush/protocol';
-import { z } from 'zod';
+import type { z } from 'zod';
 import { PROJECT_CONFIG_FILE_NAME } from '../config/consts.js';
 import { InvalidParameterError } from './errors.js';
 import { readJsonFile, stringifyLikeSource } from './json-file.js';
+import { isId } from './reference.js';
 
 // `init` completes a partial file, so every key is optional.
 export type ProjectConfig = Partial<z.input<typeof ProjectConfigurationSchema>>;
@@ -19,11 +20,9 @@ export interface ProjectConfigLocation extends ProjectConfigFileLocation {
   projectConfig: ProjectConfig | undefined;
 }
 
-export const ID_SCHEMA = z.guid();
-
 // The file comes with the repository, and the id reaches console URLs, the browser and the resource file.
 export function assertProjectConfigAppId(appId: string): void {
-  if (!ID_SCHEMA.safeParse(appId).success) {
+  if (!isId(appId)) {
     throw new InvalidParameterError(
       `The appId in ${PROJECT_CONFIG_FILE_NAME} is not an id.`,
       'Set appId to the id "hotcodepush app list" prints.',

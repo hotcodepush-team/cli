@@ -45,12 +45,13 @@ interface CapacitorConfig {
 
 const BINARY_CREATE_SCRIPT_PATH = `node_modules/${CAPACITOR_PACKAGE_NAME}/scripts/binary-create-xcode.sh`;
 
-export const CAPACITOR_CONFIG_FILE_NAMES = [
+const CAPACITOR_CONFIG_FILE_NAMES = [
   'capacitor.config.json',
   'capacitor.config.ts',
 ];
 
 export const capacitorFramework: FrameworkModule = {
+  detectionPackageName: '@capacitor/core',
   nativeGluePaths: NATIVE_GLUE_PATHS,
   packageName: CAPACITOR_PACKAGE_NAME,
   versionedPackageNames: ['@capacitor/core', CAPACITOR_PACKAGE_NAME],
@@ -62,6 +63,10 @@ export const capacitorFramework: FrameworkModule = {
       CAPACITOR_PACKAGE_NAME,
     ),
   ],
+  hasConfigFile: projectDirectoryPath =>
+    CAPACITOR_CONFIG_FILE_NAMES.some(fileName =>
+      existsSync(join(projectDirectoryPath, fileName)),
+    ),
   readBuildDirectory: readWebDir,
   resolveWiring,
 };

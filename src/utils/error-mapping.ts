@@ -55,7 +55,6 @@ export function resolveErrorDocsUrl({ code }: CliError): string {
   return `${ERRORS_DOCS_URL}#${code}`;
 }
 
-// An API error message says what to do itself, so it has no fix.
 export function resolveErrorSentences({ fix, message }: CliError): string[] {
   return fix === null ? [message] : [resolveSentence(message), fix];
 }

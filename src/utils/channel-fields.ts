@@ -55,7 +55,7 @@ type FailurePolicyValues = {
 };
 
 // The plan pins these defaults. The API and the console carry the same constant.
-export const FAILURE_POLICY_DEFAULTS: FailurePolicyValues = {
+const FAILURE_POLICY_DEFAULTS: FailurePolicyValues = {
   failureAction: 'pause',
   failureMinimumUpdateCount: 50,
   failureThresholdPercent: 5,

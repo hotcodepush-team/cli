@@ -48,6 +48,7 @@ const PLUGIN_ADD_COMMAND_LINE: CommandLine = {
 const WEB_DIRECTORY = 'www';
 
 export const cordovaFramework: FrameworkModule = {
+  detectionPackageName: 'cordova',
   nativeGluePaths: NATIVE_GLUE_PATHS,
   packageName: CORDOVA_PACKAGE_NAME,
   versionedPackageNames: [
@@ -61,6 +62,8 @@ export const cordovaFramework: FrameworkModule = {
     checkHook(project),
     checkInsecureFileMode(project),
   ],
+  hasConfigFile: projectDirectoryPath =>
+    existsSync(join(projectDirectoryPath, CONFIG_FILE_NAME)),
   // The start page in `config.xml` is a page inside `www`, which the app serves as its root.
   readBuildDirectory: () => ({ path: WEB_DIRECTORY }),
   resolveWiring: project => Promise.resolve(resolveWiring(project)),

@@ -7,7 +7,11 @@ import {
   memberOptionShape,
   resolveMemberEmail,
 } from '../../utils/member-resolution.js';
-import { printDetails, printJson } from '../../utils/output.js';
+import {
+  printDetails,
+  printJson,
+  resolveYesNoText,
+} from '../../utils/output.js';
 import { fetchOrganizationId } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
@@ -34,8 +38,8 @@ export default defineCommand({
       ['Name', fetchedMember.user?.name ?? ''],
       ['Email', resolveMemberEmail(fetchedMember)],
       ['Role', fetchedMember.role],
-      ['Password', hasPasswordAccount(fetchedMember) ? 'yes' : 'no'],
-      ['Two-factor', fetchedMember.user?.twoFactorEnabled ? 'yes' : 'no'],
+      ['Password', resolveYesNoText(hasPasswordAccount(fetchedMember))],
+      ['Two-factor', resolveYesNoText(fetchedMember.user?.twoFactorEnabled)],
       ['Last seen', fetchedMember.lastSeenAt ?? 'never'],
       ['Joined', fetchedMember.createdAt],
     ]);

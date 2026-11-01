@@ -8,14 +8,17 @@ import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { InvalidParameterError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printDetails, printJson, printTable } from '../../utils/output.js';
-import { resolveByteText } from '../../utils/progress.js';
+import {
+  printDetails,
+  printJson,
+  printTable,
+  resolveByteText,
+} from '../../utils/output.js';
 import { readProjectConfig } from '../../utils/project-config.js';
 import { promptSelect } from '../../utils/prompts.js';
 import {
   fetchAppId,
-  fetchChannels,
-  fetchResourceId,
+  fetchChannelFilterId,
 } from '../../utils/resource-resolution.js';
 
 type StatisticsType = 'fleet' | 'updates' | 'usage';
@@ -89,12 +92,10 @@ export default defineCommand({
     );
     const query: StatisticsQuery = {
       appId,
-      channelId:
-        options.channel === undefined
-          ? undefined
-          : await fetchResourceId('channel', options.channel, () =>
-              fetchChannels(hotCodePush, appId),
-            ),
+      channelId: await fetchChannelFilterId(hotCodePush, {
+        appId,
+        channel: options.channel,
+      }),
       periodSince: options.periodSince,
       periodUntil: options.periodUntil,
     };

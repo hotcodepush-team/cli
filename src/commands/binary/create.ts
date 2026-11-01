@@ -4,7 +4,7 @@ import { createApiClient } from '../../utils/api-client.js';
 import type { BuildStep, OfflineCause } from '../../utils/build-step.js';
 import {
   buildStepShape,
-  fetchChannelId,
+  fetchBuildStepChannelId,
   readBuildStep,
   resolveChannelIdByShape,
   resolveFailureText,
@@ -22,8 +22,8 @@ import { isCi } from '../../utils/environment.js';
 import { CliError, PipelineNotLoggedInError } from '../../utils/errors.js';
 import { assertMissingParameter } from '../../utils/framework.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson } from '../../utils/output.js';
-import { createReporter, resolveByteText } from '../../utils/progress.js';
+import { printJson, resolveByteText } from '../../utils/output.js';
+import { createReporter } from '../../utils/progress.js';
 import type { Platform, UploadedFiles } from '../../utils/upload.js';
 import {
   assertWithinBundleBytesLimit,
@@ -164,7 +164,8 @@ async function createBuildBinary(
   let channelId: string;
   try {
     channelId =
-      channelIdByShape ?? (await fetchChannelId(hotCodePush, buildStep));
+      channelIdByShape ??
+      (await fetchBuildStepChannelId(hotCodePush, buildStep));
   } catch (error) {
     if (error instanceof CliError) {
       throw error;

@@ -2,7 +2,7 @@ import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import {
   deviceOptionShape,
-  resolveDeviceReference,
+  fetchDeviceReference,
 } from '../../utils/device-resolution.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
@@ -18,7 +18,7 @@ export default defineCommand({
   options: defineCommandOptions(deviceOptionShape),
   action: async options => {
     const hotCodePush = createApiClient();
-    const { appId, deviceId } = await resolveDeviceReference(
+    const { appId, deviceId } = await fetchDeviceReference(
       hotCodePush,
       options,
     );

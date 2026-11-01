@@ -3,14 +3,12 @@ import { z } from 'zod';
 import type { InteractivityOptions } from './environment.js';
 import { InvalidParameterError } from './errors.js';
 import { fetchAllPages } from './pagination.js';
-import { ID_SCHEMA } from './project-config.js';
 import { promptSelect } from './prompts.js';
+import { isId, isNumber } from './reference.js';
 
 export interface BundleOptions extends InteractivityOptions {
   bundle?: string;
 }
-
-const NUMBER_PATTERN = /^\d+$/;
 
 export const bundleOptionShape = {
   bundle: z.string().optional().describe('The bundle, by its number or id.'),
@@ -23,16 +21,6 @@ export async function fetchBundle(
 ): Promise<Bundle> {
   const bundleId = await fetchBundleId(hotCodePush, appId, options);
   return hotCodePush.apps.bundles.get({ appId, bundleId });
-}
-
-// A bundle that a binary ships is never in this list.
-export function fetchUploadedBundles(
-  hotCodePush: HotCodePush,
-  appId: string,
-): Promise<Bundle[]> {
-  return fetchAllPages(page =>
-    hotCodePush.apps.bundles.list({ appId, ...page, source: 'upload' }),
-  );
 }
 
 // A bundle that a binary ships has no number, so it reads `embedded · 1.4.2`.
@@ -60,10 +48,10 @@ async function fetchBundleId(
       options,
     );
   }
-  if (ID_SCHEMA.safeParse(options.bundle).success) {
+  if (isId(options.bundle)) {
     return options.bundle;
   }
-  if (!NUMBER_PATTERN.test(options.bundle)) {
+  if (!isNumber(options.bundle)) {
     throw new InvalidParameterError(
       `The value "${options.bundle}" of --bundle is neither a number nor an id.`,
     );
@@ -89,4 +77,14 @@ async function fetchBundleIdByNumber(
     );
   }
   return numberedBundle.id;
+}
+
+// A bundle that a binary ships is never in this list.
+function fetchUploadedBundles(
+  hotCodePush: HotCodePush,
+  appId: string,
+): Promise<Bundle[]> {
+  return fetchAllPages(page =>
+    hotCodePush.apps.bundles.list({ appId, ...page, source: 'upload' }),
+  );
 }

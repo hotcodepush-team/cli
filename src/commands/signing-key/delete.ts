@@ -1,8 +1,6 @@
-import type { SigningKey } from '@hotcodepush/node';
 import { z } from 'zod';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
-import { InvalidParameterError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
 import type { ProjectConfigLocation } from '../../utils/project-config.js';
@@ -10,10 +8,10 @@ import {
   locateProjectConfig,
   writeProjectConfig,
 } from '../../utils/project-config.js';
-import { confirmConsequence, promptSelect } from '../../utils/prompts.js';
+import { confirmConsequence } from '../../utils/prompts.js';
 import {
   fetchAppId,
-  fetchSigningKeys,
+  fetchSigningKey,
 } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
@@ -37,20 +35,7 @@ export default defineCommand({
       options,
       projectConfigLocation.projectConfig,
     );
-    const signingKeys = await fetchSigningKeys(hotCodePush, appId);
-    const signingKey = resolveSigningKey(
-      signingKeys,
-      options.signingKey ??
-        (await promptSelect(
-          '--signing-key',
-          'Which signing key?',
-          signingKeys.map(({ id, keyId }) => ({
-            label: keyId,
-            value: id,
-          })),
-          options,
-        )),
-    );
+    const signingKey = await fetchSigningKey(hotCodePush, appId, options);
     const isConfirmed = await confirmConsequence(
       `unregisters signing key ${signingKey.keyId}: an upload signed with it is refused from then on`,
       options,
@@ -96,20 +81,4 @@ function removePublicKeyFromProjectConfig(
       listedPublicKey => listedPublicKey !== publicKey,
     ),
   });
-}
-
-function resolveSigningKey(
-  signingKeys: SigningKey[],
-  reference: string,
-): SigningKey {
-  const signingKey = signingKeys.find(
-    ({ id, keyId }) => id === reference || keyId === reference,
-  );
-  if (signingKey === undefined) {
-    throw new InvalidParameterError(
-      `The app has no signing key ${reference} from --signing-key.`,
-      'Run "hotcodepush signing-key list" for the ids and key ids.',
-    );
-  }
-  return signingKey;
 }

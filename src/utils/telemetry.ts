@@ -40,15 +40,6 @@ const TELEMETRY_NOTICE =
 // The longest telemetry may delay the exit, requests included.
 const TELEMETRY_TIMEOUT_MS = 1500;
 
-// Only the release build has keys, so every other build reports nothing.
-export function isTelemetryEnabled(): boolean {
-  return (
-    (POSTHOG_PROJECT_KEY !== '' || SENTRY_DSN !== '') &&
-    process.env.HOTCODEPUSH_TELEMETRY_DISABLED !== '1' &&
-    process.env.DO_NOT_TRACK !== '1'
-  );
-}
-
 export function printTelemetryNotice(): void {
   if (!isTelemetryEnabled()) {
     return;
@@ -101,6 +92,29 @@ export function resolveScrubbedStack(stack: string): string {
     .join('\n');
 }
 
+// Only the release build has keys, so every other build reports nothing.
+function isTelemetryEnabled(): boolean {
+  return (
+    (POSTHOG_PROJECT_KEY !== '' || SENTRY_DSN !== '') &&
+    process.env.HOTCODEPUSH_TELEMETRY_DISABLED !== '1' &&
+    process.env.DO_NOT_TRACK !== '1'
+  );
+}
+
+// Imported lazily, since the framework modules load native-project parsers that a build without telemetry never needs.
+async function readProjectFramework(): Promise<Framework | null> {
+  try {
+    const [{ detectFramework }, { locateProjectConfigFile }] =
+      await Promise.all([
+        import('./framework.js'),
+        import('./project-config.js'),
+      ]);
+    return detectFramework(locateProjectConfigFile(undefined).directoryPath);
+  } catch {
+    return null;
+  }
+}
+
 // A local path never leaves the machine: a package file keeps the part from `node_modules` on, any other only its name.
 function resolveFramePath(filePath: string): string {
   const normalizedPath = filePath
@@ -118,20 +132,6 @@ function resolveFramePath(filePath: string): string {
 // The host name is hashed, so it is never sent as it is.
 function resolveMachineId(): string {
   return createHash('sha256').update(hostname()).digest('hex');
-}
-
-// Imported lazily, since the framework modules load native-project parsers that a build without telemetry never needs.
-async function resolveProjectFramework(): Promise<Framework | null> {
-  try {
-    const [{ detectFramework }, { locateProjectConfigFile }] =
-      await Promise.all([
-        import('./framework.js'),
-        import('./project-config.js'),
-      ]);
-    return detectFramework(locateProjectConfigFile(undefined).directoryPath);
-  } catch {
-    return null;
-  }
 }
 
 // The event carries only these properties: no argument, no path and no project name.
@@ -155,7 +155,7 @@ async function sendCommandFinishedEvent({
         cli_version: PACKAGE_JSON.version,
         command: commandName,
         duration_ms: Math.round(durationMs),
-        framework: await resolveProjectFramework(),
+        framework: await readProjectFramework(),
         is_ci: isCi(),
         outcome: cliError === undefined ? 'succeeded' : 'failed',
         source: 'cli',

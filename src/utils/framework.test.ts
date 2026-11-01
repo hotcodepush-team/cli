@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { detectFramework, resolveInputDirectoryPath } from './framework.js';
+import { detectFramework, readInputDirectoryPath } from './framework.js';
 import { resolveFrameworkModule } from './frameworks/index.js';
 
 const CAPACITOR = resolveFrameworkModule('capacitor');
@@ -63,7 +63,7 @@ describe('framework', () => {
 
   it('should keep an absolute --path and resolve a relative one against the working directory', async () => {
     expect(
-      await resolveInputDirectoryPath(
+      await readInputDirectoryPath(
         { path: '/abs/dist' },
         '--path',
         projectDirectoryPath,
@@ -71,7 +71,7 @@ describe('framework', () => {
       ),
     ).toBe(resolve('/abs/dist'));
     expect(
-      await resolveInputDirectoryPath(
+      await readInputDirectoryPath(
         { path: '../dist' },
         '--path',
         projectDirectoryPath,
@@ -87,7 +87,7 @@ describe('framework', () => {
     );
 
     expect(
-      await resolveInputDirectoryPath(
+      await readInputDirectoryPath(
         {},
         '--path',
         projectDirectoryPath,
@@ -98,7 +98,7 @@ describe('framework', () => {
 
   it("should resolve Cordova's www against the project root", async () => {
     expect(
-      await resolveInputDirectoryPath(
+      await readInputDirectoryPath(
         {},
         '--path',
         projectDirectoryPath,
@@ -109,7 +109,7 @@ describe('framework', () => {
 
   it('should require --path with the reason when there is no capacitor.config and nobody can be asked', async () => {
     await expect(
-      resolveInputDirectoryPath(
+      readInputDirectoryPath(
         { json: true },
         '--path',
         projectDirectoryPath,
@@ -129,7 +129,7 @@ describe('framework', () => {
     );
 
     await expect(
-      resolveInputDirectoryPath(
+      readInputDirectoryPath(
         { json: true },
         '--path',
         projectDirectoryPath,

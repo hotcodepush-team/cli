@@ -9,17 +9,6 @@ export function readJsonFile(filePath: string): unknown {
   return parseJsonFileText(filePath, readFileSync(filePath, 'utf8'));
 }
 
-export function parseJsonFileText(filePath: string, text: string): unknown {
-  try {
-    return JSON.parse(text);
-  } catch (error) {
-    if (!(error instanceof SyntaxError)) {
-      throw error;
-    }
-    throw new InvalidJsonError(filePath, resolveJsonSyntaxProblem(error));
-  }
-}
-
 // Keeps the indentation and final newline of the file, so the diff is only the edited line.
 export function stringifyLikeSource(
   value: unknown,
@@ -28,6 +17,17 @@ export function stringifyLikeSource(
   const indent = /^(\s+)"/m.exec(sourceText)?.[1] ?? '  ';
   const newline = sourceText.endsWith('\n') ? '\n' : '';
   return `${JSON.stringify(value, null, indent)}${newline}`;
+}
+
+function parseJsonFileText(filePath: string, text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    if (!(error instanceof SyntaxError)) {
+      throw error;
+    }
+    throw new InvalidJsonError(filePath, resolveJsonSyntaxProblem(error));
+  }
 }
 
 function resolveJsonSyntaxProblem({ message }: SyntaxError): string {

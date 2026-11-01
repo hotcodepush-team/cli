@@ -4,6 +4,7 @@ import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import type { InteractivityOptions } from '../../utils/environment.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
+import { printOrganizationDetails } from '../../utils/organization-output.js';
 import { printJson } from '../../utils/output.js';
 import { confirmConsequence, promptText } from '../../utils/prompts.js';
 import { fetchOrganizationId } from '../../utils/resource-resolution.js';
@@ -12,7 +13,6 @@ import {
   resolveDollarText,
   spendingCapShape,
 } from '../../utils/spending-cap.js';
-import { printOrganizationDetails } from './get.js';
 
 export default defineCommand({
   description:

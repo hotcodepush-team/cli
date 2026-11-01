@@ -12,7 +12,7 @@ import { readFingerprint } from './fingerprint.js';
 import {
   assertMissingParameter,
   detectFramework,
-  resolveInputDirectoryPath,
+  readInputDirectoryPath,
 } from './framework.js';
 import { resolveFrameworkModule } from './frameworks/index.js';
 import { omitNativeGlue } from './frameworks/native-glue.js';
@@ -20,16 +20,17 @@ import { resolveDeviceHosts } from './hosts.js';
 import type { ProjectConfig } from './project-config.js';
 import {
   assertProjectConfigAppId,
-  ID_SCHEMA,
   locateProjectConfig,
   resolveProjectChannel,
 } from './project-config.js';
 import { promptSelect } from './prompts.js';
+import { isId } from './reference.js';
 import type { EmbeddedBundle } from './resource-file.js';
 import { buildResourceFile, writeResourceFile } from './resource-file.js';
 import { fetchChannels, fetchResourceId } from './resource-resolution.js';
 import { readToken } from './token-store.js';
 import type { Platform } from './upload.js';
+import { PLATFORMS } from './upload.js';
 import { readApiUrl } from './user-config.js';
 
 export interface BuildStep {
@@ -54,8 +55,6 @@ export interface ChannelReference {
 }
 
 export type OfflineCause = 'no-token' | 'offline-switch';
-
-const PLATFORMS = ['android', 'ios'] as const;
 
 export const buildStepShape = {
   embeddedBundlePath: z
@@ -90,7 +89,7 @@ export async function readBuildStep(
       options,
     ));
   const framework = resolveFrameworkModule(detectFramework(directoryPath));
-  const embeddedBundlePath = await resolveInputDirectoryPath(
+  const embeddedBundlePath = await readInputDirectoryPath(
     { ...options, path: options.embeddedBundlePath },
     '--embedded-bundle-path',
     directoryPath,
@@ -123,12 +122,10 @@ export async function readBuildStep(
 export function resolveChannelIdByShape(
   channelReference: ChannelReference,
 ): string | null {
-  return ID_SCHEMA.safeParse(channelReference.reference).success
-    ? channelReference.reference
-    : null;
+  return isId(channelReference.reference) ? channelReference.reference : null;
 }
 
-export function fetchChannelId(
+export function fetchBuildStepChannelId(
   hotCodePush: HotCodePush,
   { channelReference, projectConfig }: BuildStep,
 ): Promise<string> {

@@ -1,10 +1,9 @@
-import type { Organization } from '@hotcodepush/node';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printDetails, printJson } from '../../utils/output.js';
+import { printOrganizationDetails } from '../../utils/organization-output.js';
+import { printJson } from '../../utils/output.js';
 import { fetchOrganizationId } from '../../utils/resource-resolution.js';
-import { resolveDollarText } from '../../utils/spending-cap.js';
 
 export default defineCommand({
   description: 'Print an organization with its plan, spending cap and region.',
@@ -25,17 +24,3 @@ export default defineCommand({
     printOrganizationDetails(fetchedOrganization);
   },
 });
-
-export function printOrganizationDetails(organization: Organization): void {
-  printDetails([
-    ['ID', organization.id],
-    ['Name', organization.name],
-    ['Plan', organization.plan],
-    [
-      'Spending cap',
-      `${resolveDollarText(organization.spendingCapCents)} a month`,
-    ],
-    ['Region', organization.region],
-    ['Created', organization.createdAt],
-  ]);
-}

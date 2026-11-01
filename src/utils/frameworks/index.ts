@@ -30,6 +30,8 @@ export type FrameworkCheck =
     };
 
 export interface FrameworkModule {
+  // The package whose dependency marks a project as this framework's.
+  detectionPackageName: string;
   // Files the platform copies beside the web build. They stay out of the embedded manifest and of an upload alike.
   nativeGluePaths?: readonly string[];
   packageName: string;
@@ -41,6 +43,8 @@ export interface FrameworkModule {
     platform: Platform,
     inputDirectoryPath: string,
   ) => Promise<BundleFile[] | undefined>;
+  // Breaks a tie when a project depends on several frameworks' packages.
+  hasConfigFile: (projectDirectoryPath: string) => boolean;
   // Bundles the JavaScript per platform during the upload, so `init` runs no build.
   // Without this member, the build output is one bundle for every platform.
   packageBundles?: (request: PackagingRequest) => Promise<PackagedBundle[]>;
@@ -91,7 +95,8 @@ export interface WiringOptions extends InteractivityOptions {
   xcodeTarget?: string;
 }
 
-const FRAMEWORK_MODULES: Record<Framework, FrameworkModule> = {
+// The order is the detection order, so Expo wins over React Native, which every Expo app depends on too.
+export const FRAMEWORK_MODULES: Record<Framework, FrameworkModule> = {
   capacitor: capacitorFramework,
   cordova: cordovaFramework,
   expo: expoFramework,

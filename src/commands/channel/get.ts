@@ -6,7 +6,11 @@ import {
 import { defineCommand } from '../../utils/command.js';
 import { resolveReleaseDeviceCount } from '../../utils/fleet.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printDetails, printJson } from '../../utils/output.js';
+import {
+  printDetails,
+  printJson,
+  resolveYesNoText,
+} from '../../utils/output.js';
 import {
   channelOptionShape,
   fetchChannel,
@@ -40,8 +44,8 @@ export default defineCommand({
           ? 'running'
           : `paused since ${fetchedChannel.pausedAt}`,
       ],
-      ['Protected', fetchedChannel.isProtected ? 'yes' : 'no'],
-      ['Discoverable', fetchedChannel.isDiscoverable ? 'yes' : 'no'],
+      ['Protected', resolveYesNoText(fetchedChannel.isProtected)],
+      ['Discoverable', resolveYesNoText(fetchedChannel.isDiscoverable)],
       ['Expires', fetchedChannel.expiresAt ?? 'never'],
       ...resolveFailurePolicyDetails(
         resolveEffectiveFailurePolicy(fetchedChannel),

@@ -4,7 +4,7 @@ import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
 import { fetchOrganizationId } from '../../utils/resource-resolution.js';
-import { printProviderDetails } from './get.js';
+import { printProviderDetails } from '../../utils/sso-provider-output.js';
 
 export default defineCommand({
   description:

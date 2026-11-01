@@ -11,13 +11,14 @@ import { compressFiles, withTemporaryDirectory } from './compressed-files.js';
 import { BundleTooLargeError } from './errors.js';
 import { omitNativeGlue } from './frameworks/native-glue.js';
 import type { GitProvenance } from './git-provenance.js';
-import { resolveQuantityText } from './output.js';
+import { resolveQuantityText, resolveByteText } from './output.js';
 import { writePack } from './pack.js';
 import { fetchAllPages } from './pagination.js';
 import type { Reporter } from './progress.js';
-import { resolveByteText } from './progress.js';
 
 export type Platform = 'android' | 'ios';
+
+export const PLATFORMS: Platform[] = ['android', 'ios'];
 
 export interface UploadBundleOptions {
   appId: string;
@@ -48,14 +49,11 @@ const BUNDLE_FILE_PAGE_LIMIT = 1000;
 export function assertWithinBundleBytesLimit(files: BundleFile[]): void {
   const largeFile = files.find(file => file.sizeBytes > BUNDLE_BYTES_LIMIT);
   if (largeFile !== undefined) {
-    throw new BundleTooLargeError(
-      `The file ${largeFile.path}`,
-      BUNDLE_BYTES_LIMIT,
-    );
+    throw new BundleTooLargeError(`The file ${largeFile.path}`);
   }
   const totalBytes = files.reduce((sum, file) => sum + file.sizeBytes, 0);
   if (totalBytes > BUNDLE_BYTES_LIMIT) {
-    throw new BundleTooLargeError('The bundle', BUNDLE_BYTES_LIMIT);
+    throw new BundleTooLargeError('The bundle');
   }
 }
 

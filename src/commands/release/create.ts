@@ -14,6 +14,11 @@ import {
   fetchBundle,
   resolveBundleLabel,
 } from '../../utils/bundle-resolution.js';
+import type { BundleUploadOptions } from '../../utils/bundle-upload.js';
+import {
+  bundleUploadOptionShape,
+  fetchUploadBundleOptions,
+} from '../../utils/bundle-upload.js';
 import type { FailurePolicyOptions } from '../../utils/channel-fields.js';
 import {
   failurePolicyShape,
@@ -58,18 +63,13 @@ import {
   collectUploadFiles,
   uploadBundle,
 } from '../../utils/upload.js';
-import type { BundleUploadOptions } from '../bundle/upload.js';
-import {
-  bundleUploadOptionShape,
-  resolveUploadBundleOptions,
-} from '../bundle/upload.js';
 
-export type BundleSource =
+type BundleSource =
   | { bundle: Bundle }
   | { bundle: Bundle; sourceChannel: Channel; sourceRelease: Release }
   | { appId: string; bundleUploads: UploadBundleOptions[] };
 
-export interface ChannelAudience {
+interface ChannelAudience {
   audience: Audience;
   channel: Channel;
 }
@@ -94,7 +94,7 @@ interface ReleaseCreateOptions
   rolloutPercent?: number;
 }
 
-export interface ReleaseRollout {
+interface ReleaseRollout {
   isMandatory: boolean;
   progression: Progression | null;
   rolloutPercent: number;
@@ -166,7 +166,7 @@ async function createReleases(
 ): Promise<void> {
   const hotCodePush = createApiClient();
   const progression = resolveProgression(options);
-  const bundleSource = await resolveBundleSource(
+  const bundleSource = await fetchBundleSource(
     hotCodePush,
     options,
     packagingDirectoryPath,
@@ -197,10 +197,7 @@ async function createReleases(
     return;
   }
   const releases: Release[] = [];
-  for (const bundle of await resolveReleasedBundles(
-    hotCodePush,
-    bundleSource,
-  )) {
+  for (const bundle of await uploadReleasedBundles(hotCodePush, bundleSource)) {
     const releaseBody: ReleaseBody = {
       ...('sourceChannel' in bundleSource
         ? { fromChannelId: bundleSource.sourceChannel.id }
@@ -240,7 +237,7 @@ async function createReleases(
   }
 }
 
-export function resolveReleaseConsequence(
+function resolveReleaseConsequence(
   bundleSource: BundleSource,
   channelAudiences: ChannelAudience[],
   { isMandatory, progression, rolloutPercent }: ReleaseRollout,
@@ -361,7 +358,7 @@ function printAudienceWarnings(channelAudiences: ChannelAudience[]): void {
 }
 
 // The upload runs only once the release is confirmed.
-async function resolveBundleSource(
+async function fetchBundleSource(
   hotCodePush: HotCodePush,
   options: ReleaseCreateOptions,
   packagingDirectoryPath: string,
@@ -378,7 +375,7 @@ async function resolveBundleSource(
     );
   }
   if (options.bundle === undefined && options.fromChannel === undefined) {
-    return resolveUploadBundleOptions(
+    return fetchUploadBundleOptions(
       hotCodePush,
       options,
       packagingDirectoryPath,
@@ -395,7 +392,7 @@ async function resolveBundleSource(
     : fetchSourceRelease(hotCodePush, appId, options.fromChannel);
 }
 
-async function resolveReleasedBundles(
+async function uploadReleasedBundles(
   hotCodePush: HotCodePush,
   bundleSource: BundleSource,
 ): Promise<Bundle[]> {

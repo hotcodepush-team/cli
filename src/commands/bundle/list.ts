@@ -2,9 +2,13 @@ import { z } from 'zod';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson, printTable, resolveDate } from '../../utils/output.js';
+import {
+  printJson,
+  printTable,
+  resolveDate,
+  resolveByteText,
+} from '../../utils/output.js';
 import { paginationShape, resolveNextOffset } from '../../utils/pagination.js';
-import { resolveByteText } from '../../utils/progress.js';
 import { readProjectConfig } from '../../utils/project-config.js';
 import { fetchAppId } from '../../utils/resource-resolution.js';
 

@@ -54,7 +54,6 @@ import type {
   ProjectConfigLocation,
 } from '../utils/project-config.js';
 import {
-  ID_SCHEMA,
   locateProjectConfig,
   resolveProjectChannel,
 } from '../utils/project-config.js';
@@ -64,10 +63,12 @@ import {
   promptText,
   promptYesNo,
 } from '../utils/prompts.js';
+import { isId } from '../utils/reference.js';
 import {
   fetchApps,
   fetchHasSigningKey,
   fetchOrganizations,
+  findResource,
 } from '../utils/resource-resolution.js';
 import { isEnvironmentToken, readToken } from '../utils/token-store.js';
 import { readApiUrl } from '../utils/user-config.js';
@@ -141,13 +142,17 @@ export default defineCommand({
     const scope = await run.run(
       'organization',
       () =>
-        resolveOrganization(requireValue(hotCodePush), projectConfig, options),
+        fetchOrganizationScope(
+          requireValue(hotCodePush),
+          projectConfig,
+          options,
+        ),
       { dependsOn: ['sign_in'] },
     );
     const app = await run.run(
       'app',
       () =>
-        resolveApp(
+        fetchInitApp(
           requireValue(hotCodePush),
           requireValue(scope),
           projectConfigLocation,
@@ -245,7 +250,7 @@ async function signIn(options: InitOptions): Promise<StepOutcome<HotCodePush>> {
 }
 
 // Without `--organization`, a person picks or creates one. Non-interactively the only one is used.
-async function resolveOrganization(
+async function fetchOrganizationScope(
   hotCodePush: HotCodePush,
   projectConfig: ProjectConfig | undefined,
   options: InitOptions,
@@ -266,7 +271,11 @@ async function resolveOrganization(
   }
   const organizations = await fetchOrganizations(hotCodePush);
   if (options.organization !== undefined) {
-    const named = findNamed(organizations, options.organization);
+    const named = findResource(
+      'organization',
+      options.organization,
+      organizations,
+    );
     if (named !== undefined) {
       return resolveUsedScope(named);
     }
@@ -301,7 +310,7 @@ async function resolveOrganization(
 }
 
 // An app in the file that the API lacks is refused non-interactively. A person picks or creates another.
-async function resolveApp(
+async function fetchInitApp(
   hotCodePush: HotCodePush,
   { app, organization }: Scope,
   { filePath, projectConfig }: ProjectConfigLocation,
@@ -327,7 +336,7 @@ async function resolveApp(
   }
   const apps = await fetchApps(hotCodePush, organization.id);
   if (options.app !== undefined) {
-    const named = findNamed(apps, options.app);
+    const named = findResource('app', options.app, apps);
     if (named !== undefined) {
       return resolveUsed('app', named);
     }
@@ -661,7 +670,7 @@ function printFinish(
 }
 
 function assertName(flag: string, reference: string): void {
-  if (ID_SCHEMA.safeParse(reference).success) {
+  if (isId(reference)) {
     throw new InvalidParameterError(
       `Nothing has the id ${reference} from ${flag}.`,
     );
@@ -695,17 +704,6 @@ async function fetchExistingApp(
     }
     throw error;
   }
-}
-
-function findNamed<TResource extends { id: string; name: string }>(
-  resources: TResource[],
-  reference: string,
-): TResource | undefined {
-  return ID_SCHEMA.safeParse(reference).success
-    ? resources.find(({ id }) => id === reference)
-    : resources.find(
-        ({ name }) => name.toLowerCase() === reference.toLowerCase(),
-      );
 }
 
 function isConfigurationComplete(

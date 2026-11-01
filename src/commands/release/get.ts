@@ -7,7 +7,11 @@ import {
 import { defineCommand } from '../../utils/command.js';
 import { resolveReleaseDeviceCount } from '../../utils/fleet.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printDetails, printJson } from '../../utils/output.js';
+import {
+  printDetails,
+  printJson,
+  resolveYesNoText,
+} from '../../utils/output.js';
 import {
   resolveProgressionStepText,
   resolveProgressionText,
@@ -55,7 +59,7 @@ export default defineCommand({
       ...resolveFailurePolicyDetails(
         resolveEffectiveFailurePolicy(release, channel),
       ),
-      ['Mandatory', release.isMandatory ? 'yes' : 'no'],
+      ['Mandatory', resolveYesNoText(release.isMandatory)],
       ['Notes', release.notes ?? 'none'],
       ['Rolled back from', release.rolledBackFromReleaseId ?? 'nothing'],
       ['Live', release.liveAt ?? 'not yet'],
