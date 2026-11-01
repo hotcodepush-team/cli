@@ -1,7 +1,7 @@
 {
   "name": "hotcodepush",
   "description": "The HotCodePush CLI: set up, release and manage over-the-air (OTA) updates from the terminal and CI",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": false,
   "license": "MIT",
   "homepage": "https://hotcodepush.com",
@@ -40,6 +40,7 @@
     "build": "tsc --project tsconfig.build.json && node scripts/generate-completion.mjs",
     "fmt": "prettier --write .",
     "lint": "eslint .",
+    "prepublishOnly": "npm run build",
     "test": "vitest run",
     "typecheck": "tsc --noEmit --project tsconfig.json"
   },
