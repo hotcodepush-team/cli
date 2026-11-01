@@ -61,6 +61,7 @@ const JSON_APP_CONFIG_FILE_NAMES = ['app.config.json', APP_JSON_FILE_NAME];
 
 // The config plugin wires the native projects at prebuild, so `init` only adds one entry to the app config.
 export const expoFramework: FrameworkModule = {
+  detectionPackageName: 'expo',
   packageName: EXPO_PACKAGE_NAME,
   versionedPackageNames: ['expo', 'react-native', EXPO_PACKAGE_NAME],
   versionedSdkDependencyNames: [REACT_NATIVE_PACKAGE_NAME],
@@ -69,6 +70,7 @@ export const expoFramework: FrameworkModule = {
     checkPluginEntry(project),
   ],
   collectEmbeddedFiles,
+  hasConfigFile: hasExpoAppJson,
   packageBundles: request =>
     packageReactNativeBundles(request, () => BUNDLER_ARGS),
   readBuildDirectory,
@@ -246,4 +248,17 @@ async function wirePluginEntry(
     status: 'done',
     value: undefined,
   };
+}
+
+function hasExpoAppJson(projectDirectoryPath: string): boolean {
+  const appJsonPath = join(projectDirectoryPath, APP_JSON_FILE_NAME);
+  if (!existsSync(appJsonPath)) {
+    return false;
+  }
+  try {
+    const appJson: unknown = JSON.parse(readFileSync(appJsonPath, 'utf8'));
+    return typeof appJson === 'object' && appJson !== null && 'expo' in appJson;
+  } catch {
+    return false;
+  }
 }

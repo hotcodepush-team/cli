@@ -67,6 +67,7 @@ const POD_NAME = 'HotcodepushReactNativeCodePush';
 
 // The project has no build output: the native build and the upload each bundle the JavaScript when needed.
 export const reactNativeFramework: FrameworkModule = {
+  detectionPackageName: 'react-native',
   packageName: REACT_NATIVE_PACKAGE_NAME,
   versionedPackageNames: ['react-native', REACT_NATIVE_PACKAGE_NAME],
   checkWiring: project => [
@@ -79,6 +80,7 @@ export const reactNativeFramework: FrameworkModule = {
     checkBundleWiring(project),
   ],
   collectEmbeddedFiles,
+  hasConfigFile: () => false,
   packageBundles: request =>
     packageReactNativeBundles(request, resolveBundlerArgs),
   readBuildDirectory,

@@ -79,7 +79,7 @@ Release-please keeps a release pull request open on `main`, and merging it tags 
 
 ## Adding a framework
 
-1. `src/utils/frameworks/<framework>.ts` exports a `FrameworkModule`: the build output, read when the upload runs, or the reason there is none, the optional `nativeGluePaths` left out of the embedded manifest and of an upload, what `init` installs and wires,
+1. `src/utils/frameworks/<framework>.ts` exports a `FrameworkModule`: the package that detects it and whether its config file is there, which breaks a tie, the build output, read when the upload runs, or the reason there is none, the optional `nativeGluePaths` left out of the embedded manifest and of an upload, what `init` installs and wires,
    what `doctor` checks.
 2. One line joins the registry in `src/utils/frameworks/index.ts`.
 3. Nothing outside the module names the framework: a command asks the module, never a config file or a path of its own.
