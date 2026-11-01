@@ -65,7 +65,8 @@ Run `npm run fmt` before every commit; lint, typecheck, test and build must pass
 A test of a POSIX file mode is skipped on Windows, which has none: a file there is protected by the access list of its folder, the user profile's for `config.json` and the project's own for a private key file.
 `node dist/index.js --help` runs the build locally.
 `ci.yml`'s `preview` job publishes every push to `main` and every pull request to pkg.pr.new, and consumers pin one build by its short commit hash: `npm install --save-dev https://pkg.pr.new/hotcodepush-team/cli/hotcodepush@<sha>`.
-The owner publishes to npm by hand from a clean `main`; `prepublishOnly` runs the build first, since the package ships `dist/` alone. Release-please and npm provenance arrive with a release workflow.
+Release-please keeps a release pull request open on `main`, and merging it tags the release.
+`release.yml` then sets the telemetry keys from the repository variables and publishes to npm with provenance over OIDC, `prepublishOnly` building a clean `dist/` first.
 
 ## Adding a command
 
