@@ -79,8 +79,8 @@ describe('channel update', () => {
       { failureMinimumUpdateCount: null },
     ],
     [
-      '--clear-failure-threshold',
-      { clearFailureThreshold: true },
+      '--clear-failure-threshold-percent',
+      { clearFailureThresholdPercent: true },
       { failureThresholdPercent: null },
     ],
   ])(
@@ -108,8 +108,8 @@ describe('channel update', () => {
       { clearFailureMinimumUpdateCount: true, failureMinimumUpdateCount: 20 },
     ],
     [
-      'failure-threshold',
-      { clearFailureThreshold: true, failureThreshold: 10 },
+      'failure-threshold-percent',
+      { clearFailureThresholdPercent: true, failureThresholdPercent: 10 },
     ],
   ] as const)(
     'should refuse --%s together with its --clear- flag',
@@ -172,7 +172,7 @@ describe('channel update', () => {
     });
   });
 
-  it('should refuse a --failure-threshold that is no whole number', async () => {
+  it('should refuse a --failure-threshold-percent that is no whole number', async () => {
     const stderrWrite = vi
       .spyOn(process.stderr, 'write')
       .mockImplementation(() => true);
@@ -186,7 +186,7 @@ describe('channel update', () => {
         DEMO_APP.id,
         '--channel',
         STAGING_CHANNEL.id,
-        '--failure-threshold',
+        '--failure-threshold-percent',
         '12.5',
       ],
       PACKAGE_JSON,
@@ -194,7 +194,9 @@ describe('channel update', () => {
 
     expect(exitCode).toBe(2);
     expect(stderrWrite).toHaveBeenCalledWith(
-      expect.stringContaining('The value of --failure-threshold is invalid.'),
+      expect.stringContaining(
+        'The value of --failure-threshold-percent is invalid.',
+      ),
     );
     expect(harness.requests).toEqual([]);
   });

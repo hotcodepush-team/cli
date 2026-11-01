@@ -18,7 +18,7 @@ const STUB_COMMANDS: Record<string, Command> = {
         .enum(['none', 'pause'])
         .optional()
         .describe('What auto-pause does.'),
-      failureThreshold: z.coerce
+      failureThresholdPercent: z.coerce
         .number()
         .optional()
         .describe('The failure percentage.'),
@@ -125,7 +125,7 @@ describe('resolveCommandTree', () => {
         description: 'The failure percentage.',
         hasValue: true,
         isRepeatable: false,
-        name: 'failure-threshold',
+        name: 'failure-threshold-percent',
       },
       {
         choices: ['android', 'ios'],
