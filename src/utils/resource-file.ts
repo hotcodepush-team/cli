@@ -4,7 +4,7 @@ import { dirname } from 'node:path';
 import type { Configuration, DevicePublicKey } from '@hotcodepush/protocol';
 import {
   ConfigurationSchema,
-  resolveSigningKeyFingerprint,
+  resolveSigningKeyId,
   SIGNING_KEY_BITS_MINIMUM,
   SigningPublicKeySchema,
 } from '@hotcodepush/protocol';
@@ -115,7 +115,7 @@ function resolveDevicePublicKey(
     der: keyObject
       .export({ format: 'der', type: platform === 'ios' ? 'pkcs1' : 'spki' })
       .toString('base64'),
-    keyId: resolveSigningKeyFingerprint(publicKey),
+    keyId: resolveSigningKeyId(publicKey),
   };
 }
 

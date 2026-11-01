@@ -6,14 +6,14 @@ export function printReleasedLine(
   bundleLabel: string,
 ): void {
   console.log(
-    `Released bundle ${bundleLabel} to ${channelName} as release #${release.number} at ${release.rolloutPercentage} percent${resolveProgressingText(release)}${resolveLiveText(release)}.`,
+    `Released bundle ${bundleLabel} to ${channelName} as release #${release.number} at ${release.rolloutPercent} percent${resolveProgressingText(release)}${resolveLiveText(release)}.`,
   );
 }
 
 export function resolveProgressingText({ progression }: Release): string {
   return progression === null
     ? ''
-    : `, progressing through ${progression.percentages.join(', ')} percent`;
+    : `, progressing through ${progression.rolloutPercents.join(', ')} percent`;
 }
 
 function resolveLiveText(release: Release): string {

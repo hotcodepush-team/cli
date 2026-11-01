@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import type { PutSsoProviderOptions } from '@hotcodepush/node';
+import type { SetSsoProviderOptions } from '@hotcodepush/node';
 import { z } from 'zod';
 import { defineCommand } from 'zodline';
 import { createApiClient } from '../../utils/api-client.js';
@@ -113,7 +113,7 @@ export default defineCommand({
         ],
         options,
       ));
-    const updatedProvider = await hotCodePush.organizations.ssoProvider.put({
+    const updatedProvider = await hotCodePush.organizations.ssoProvider.set({
       domain,
       organizationId,
       ...(providerType === 'oidc'
@@ -133,7 +133,7 @@ export default defineCommand({
 
 async function promptOidcBlock(
   options: OidcOptions,
-): Promise<NonNullable<PutSsoProviderOptions['oidc']>> {
+): Promise<NonNullable<SetSsoProviderOptions['oidc']>> {
   const issuer =
     options.oidcIssuer ??
     (await promptText(
@@ -163,7 +163,7 @@ async function promptOidcBlock(
 // The metadata and the certificate are sent as text and never parsed, since the API reads them.
 async function promptSamlBlock(
   options: SamlOptions,
-): Promise<NonNullable<PutSsoProviderOptions['saml']>> {
+): Promise<NonNullable<SetSsoProviderOptions['saml']>> {
   const entryPoint =
     options.samlEntryPoint ??
     (await promptText(

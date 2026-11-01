@@ -224,12 +224,12 @@ export const LIVE_RELEASE: Release = {
   progressionStepStartedAt: null,
   purgedAt: '2026-09-07T08:00:06.000Z',
   rolledBackFromReleaseId: null,
-  rolloutPercentage: 100,
+  rolloutPercent: 100,
   status: 'active',
   stepStartAppliedUpdateCount: 0,
   updatedAt: '2026-09-07T08:00:06.000Z',
   windowStartAppliedUpdateCount: 0,
-  windowStartFailureCount: 0,
+  windowStartFailedUpdateCount: 0,
 };
 
 export const PREVIOUS_RELEASE: Release = {
@@ -292,12 +292,12 @@ export const FLEET: FleetStatistics = {
 export const PROGRESSING_RELEASE: Release = {
   ...LIVE_RELEASE,
   progression: {
-    percentages: [10, 50, 100],
+    rolloutPercents: [10, 50, 100],
     stepMinimumSeconds: 3600,
     stepMinimumUpdateCount: 50,
   },
   progressionStepStartedAt: LIVE_RELEASE.liveAt,
-  rolloutPercentage: 10,
+  rolloutPercent: 10,
   stepStartAppliedUpdateCount: 88,
 };
 
@@ -347,7 +347,7 @@ export const RUNNER_USER_WITH_MEMBERS: User = {
 };
 
 interface ProtocolSigningKey {
-  fingerprint: string;
+  keyId: string;
   name: string;
   privateKey: string;
   publicKey: string;
@@ -376,8 +376,8 @@ const SIGNING_KEY_PAIR = resolveProtocolSigningKey('rsa-4096-a');
 export const SIGNING_KEY: SigningKey = {
   appId: DEMO_APP.id,
   createdAt: '2026-09-09T08:00:00.000Z',
-  fingerprint: SIGNING_KEY_PAIR.fingerprint,
   id: '3b1f8e7a-5c2d-4f6b-9a0e-7d4c1b2a3f5e',
+  keyId: SIGNING_KEY_PAIR.keyId,
   publicKey: SIGNING_KEY_PAIR.publicKey,
   updatedAt: '2026-09-09T08:00:00.000Z',
 };
@@ -406,17 +406,17 @@ export const DEVICE: Device = {
 
 export const AUDIT_LOG: AuditLog = {
   actorType: 'user',
-  address: '203.0.113.7',
-  apiKeyId: null,
   appId: DEMO_APP.id,
   country: 'DE',
   createdAt: '2026-09-10T08:00:00.000Z',
   dispatchedAt: null,
   id: '1e4d7a2b-9c3f-4b8e-a6d5-0f2c7b9e4a13',
+  ipAddress: '203.0.113.7',
   objectId: STAGING_CHANNEL.id,
   organizationId: ACME_ORGANIZATION.id,
   sessionId: 'a8c3e5f1-2b7d-4e9a-8c6f-3d1b5e7a9c24',
   snapshot: { name: STAGING_CHANNEL.name },
+  tokenId: null,
   type: 'channel.created',
   updatedAt: '2026-09-10T08:00:00.000Z',
   userAgent: 'hotcodepush/0.0.0',

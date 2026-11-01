@@ -5,7 +5,7 @@ import { RELEASE_COUNTERS } from '../../test/release-routes.js';
 import { resolveProgressionStep } from './progression.js';
 
 const SCHEDULE = {
-  percentages: [10, 50, 100],
+  rolloutPercents: [10, 50, 100],
   stepMinimumSeconds: 3600,
   stepMinimumUpdateCount: 50,
 };
@@ -22,7 +22,7 @@ function buildProgressingRelease(
     progression: SCHEDULE,
     progressionStepStartedAt: STEP_STARTED_AT,
     releaseCounters: { ...RELEASE_COUNTERS, appliedUpdateCount },
-    rolloutPercentage: 10,
+    rolloutPercent: 10,
     stepStartAppliedUpdateCount: 120,
     ...fields,
   };
@@ -54,7 +54,7 @@ describe('resolveProgressionStep', () => {
   it('should answer null once the rollout reached the last step', () => {
     expect(
       resolveProgressionStep(
-        buildProgressingRelease(200, { rolloutPercentage: 100 }),
+        buildProgressingRelease(200, { rolloutPercent: 100 }),
       ),
     ).toBeNull();
   });
@@ -98,7 +98,7 @@ describe('resolveProgressionStep', () => {
   it('should gate the widening from a rollout below the first step', () => {
     expect(
       resolveProgressionStep(
-        buildProgressingRelease(130, { rolloutPercentage: 5 }),
+        buildProgressingRelease(130, { rolloutPercent: 5 }),
       ),
     ).toEqual({
       gate: {
@@ -113,7 +113,7 @@ describe('resolveProgressionStep', () => {
   it('should gate the widening to the last step', () => {
     expect(
       resolveProgressionStep(
-        buildProgressingRelease(170, { rolloutPercentage: 50 }),
+        buildProgressingRelease(170, { rolloutPercent: 50 }),
       ),
     ).toEqual({
       gate: { readyAt: '2026-10-10T15:00:00.000Z', type: 'time' },
@@ -124,7 +124,7 @@ describe('resolveProgressionStep', () => {
   it('should count the steps at or below a percentage set between them', () => {
     expect(
       resolveProgressionStep(
-        buildProgressingRelease(132, { rolloutPercentage: 30 }),
+        buildProgressingRelease(132, { rolloutPercent: 30 }),
       )?.number,
     ).toBe(1);
   });

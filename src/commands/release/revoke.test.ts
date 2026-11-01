@@ -17,6 +17,7 @@ import {
 import {
   CHANNEL_PATH,
   FLEET_PATH,
+  RELEASE_LOG,
   RELEASES_PATH,
   respondWithStagingReleases,
 } from '../../../test/release-routes.js';
@@ -130,7 +131,7 @@ describe('release revoke', () => {
   });
 
   it('should say the devices return to the embedded bundle when no older active release exists', async () => {
-    harness.routes[`GET ${CHANNEL_PATH}/releases`] = () =>
+    harness.routes[`GET ${RELEASES_PATH}`] = () =>
       Response.json([
         { ...LIVE_RELEASE, bundle: READY_BUNDLE },
         { ...PREVIOUS_RELEASE, bundle: PREVIOUS_BUNDLE, status: 'revoked' },
@@ -165,7 +166,7 @@ describe('release revoke', () => {
   });
 
   it('should warn when the release the devices would land on is paused, and name the one further back', async () => {
-    harness.routes[`GET ${CHANNEL_PATH}/releases`] = () =>
+    harness.routes[`GET ${RELEASES_PATH}`] = () =>
       Response.json([
         { ...LIVE_RELEASE, bundle: READY_BUNDLE },
         { ...PREVIOUS_RELEASE, bundle: PREVIOUS_BUNDLE, status: 'paused' },
@@ -189,7 +190,7 @@ describe('release revoke', () => {
 
   it('should send the ids of the releases from the number --release-from names, inclusive, to the bulk route without asking, and print the releases as JSON when --yes and --json are passed', async () => {
     respondWithBulkRevocation(CHANNEL_PATH);
-    harness.routes[`GET ${CHANNEL_PATH}/releases`] = () =>
+    harness.routes[`GET ${RELEASES_PATH}`] = () =>
       Response.json([
         { ...LIVE_RELEASE, bundle: READY_BUNDLE },
         { ...PREVIOUS_RELEASE, bundle: PREVIOUS_BUNDLE },
@@ -252,7 +253,7 @@ describe('release revoke', () => {
       id: `00000000-0000-4000-8000-${String(101 - index).padStart(12, '0')}`,
       number: 101 - index,
     }));
-    harness.routes[`GET ${CHANNEL_PATH}/releases`] = ({ url }) => {
+    harness.routes[`GET ${RELEASES_PATH}`] = ({ url }) => {
       const { searchParams } = new URL(url);
       const offset = Number(searchParams.get('offset'));
       return Response.json(
@@ -302,21 +303,28 @@ describe('release revoke', () => {
       Response.json([READY_BUNDLE, PREVIOUS_BUNDLE]);
     harness.routes[`GET /v1/apps/${DEMO_APP.id}/bundles/${READY_BUNDLE.id}`] =
       () => Response.json(READY_BUNDLE);
-    harness.routes[`GET ${RELEASES_PATH}`] = () =>
-      Response.json([
-        PRODUCTION_RELEASE,
-        { ...LIVE_RELEASE, bundle: READY_BUNDLE, channel: STAGING_CHANNEL },
-        {
-          ...LIVE_RELEASE,
-          bundle: READY_BUNDLE,
-          channel: STAGING_CHANNEL,
-          id: 'f6a7b8c9-d0e1-4f2a-9b3c-4d5e6f7a8b9c',
-          number: 40,
-          status: 'revoked',
-        },
-      ]);
-    harness.routes[`GET ${PRODUCTION_CHANNEL_PATH}/releases`] = () =>
-      Response.json([PRODUCTION_RELEASE]);
+    const bundleReleases = [
+      PRODUCTION_RELEASE,
+      { ...LIVE_RELEASE, bundle: READY_BUNDLE, channel: STAGING_CHANNEL },
+      {
+        ...LIVE_RELEASE,
+        bundle: READY_BUNDLE,
+        channel: STAGING_CHANNEL,
+        id: 'f6a7b8c9-d0e1-4f2a-9b3c-4d5e6f7a8b9c',
+        number: 40,
+        status: 'revoked',
+      },
+    ];
+    const releaseLogsByChannelId: Record<string, unknown[]> = {
+      [PRODUCTION_CHANNEL.id]: [PRODUCTION_RELEASE],
+      [STAGING_CHANNEL.id]: RELEASE_LOG,
+    };
+    harness.routes[`GET ${RELEASES_PATH}`] = ({ url }) => {
+      const channelId = new URL(url).searchParams.get('channelId');
+      return Response.json(
+        channelId === null ? bundleReleases : releaseLogsByChannelId[channelId],
+      );
+    };
     harness.routes[`POST ${PRODUCTION_CHANNEL_PATH}/releases/revoke`] = () =>
       Response.json([{ ...PRODUCTION_RELEASE, status: 'revoked' }]);
     harness.routes[`POST ${CHANNEL_PATH}/releases/revoke`] = () =>

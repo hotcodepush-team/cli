@@ -54,7 +54,7 @@ describe('audience get', () => {
         channel: STAGING_CHANNEL.name,
         device: [DEVICE_ID],
         osVersion: '>=17',
-        rolloutPercentage: 10,
+        rolloutPercent: 10,
       },
       undefined,
     );
@@ -64,7 +64,7 @@ describe('audience get', () => {
       binary: '>=2.3.0',
       device: DEVICE_ID,
       os: '>=17',
-      rolloutPercentage: '10',
+      rolloutPercent: '10',
     });
     expect(harness.readLines()).toEqual([
       'Reaches 100 of 120 active devices in staging; about 10 at a 10 percent rollout.',
@@ -89,7 +89,7 @@ describe('audience get', () => {
 
     expect(Object.fromEntries(readAudienceUrl()?.searchParams ?? [])).toEqual({
       fingerprint: CAPACITOR_FINGERPRINT,
-      rolloutPercentage: '100',
+      rolloutPercent: '100',
     });
   });
 
@@ -97,9 +97,9 @@ describe('audience get', () => {
     harness.routes[`GET ${CHANNEL_PATH}/audience`] = () =>
       Response.json({
         ...STAGING_AUDIENCE,
-        byBinaryVersion: [],
-        byPlatform: [],
+        binaryVersion: [],
         estimatedDeviceCount: 0,
+        platform: [],
         reachedDeviceCount: 0,
       });
 

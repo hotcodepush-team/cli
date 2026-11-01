@@ -58,7 +58,7 @@ const UPDATE_STATISTICS: UpdateStatistics = {
       activeDeviceCount: 70,
       confirmedUpdateCount: 9,
       day: '2026-09-01',
-      failureCount: 1,
+      failedUpdateCount: 1,
       rolledBackUpdateCount: 0,
     },
   ],

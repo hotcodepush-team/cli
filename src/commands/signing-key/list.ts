@@ -8,7 +8,7 @@ import { fetchAppId } from '../../utils/resource-resolution.js';
 
 export default defineCommand({
   description:
-    "List the app's signing keys, newest first, with the fingerprint a signature names.",
+    "List the app's signing keys, newest first, with the key id a signature names.",
   examples: [
     'hotcodepush signing-key list',
     'hotcodepush signing-key list --app "My App" --json',
@@ -32,11 +32,11 @@ export default defineCommand({
     }
     printTable({
       emptyText: 'No signing keys; signing-key create enables code signing.',
-      headers: ['ID', 'FINGERPRINT', 'CREATED'],
+      headers: ['ID', 'KEY ID', 'CREATED'],
       nextOffset,
-      rows: listedSigningKeys.map(({ createdAt, fingerprint, id }) => [
+      rows: listedSigningKeys.map(({ createdAt, id, keyId }) => [
         id,
-        fingerprint,
+        keyId,
         resolveDate(createdAt),
       ]),
     });

@@ -19,13 +19,13 @@ export default defineCommand({
   description:
     "Preview the devices a release's conditions would reach in a channel, before it exists, the project's fingerprint among them; what release create --dry-run prints.",
   examples: [
-    'hotcodepush audience get --binary-version ">=2.3.0" --rollout-percentage 10',
+    'hotcodepush audience get --binary-version ">=2.3.0" --rollout-percent 10',
     'hotcodepush audience get --channel production --attribute tier=beta --device 6b1e9d37-2f5c-4a80-9c46-d8e3a1f7b259 --json',
   ],
   options: defineCommandOptions({
     ...channelOptionShape,
     ...conditionOptionShape,
-    rolloutPercentage: z.coerce
+    rolloutPercent: z.coerce
       .number()
       .int()
       .min(0)
@@ -38,12 +38,12 @@ export default defineCommand({
   action: async options => {
     const hotCodePush = createApiClient();
     const channel = await fetchChannel(hotCodePush, options);
-    const rolloutPercentage = options.rolloutPercentage ?? 100;
+    const rolloutPercent = options.rolloutPercent ?? 100;
     const audience = await hotCodePush.apps.channels.audience.get({
       ...buildAudienceQuery(
         options,
         await readProjectFingerprint(options.config),
-        rolloutPercentage,
+        rolloutPercent,
       ),
       appId: channel.appId,
       channelId: channel.id,
@@ -56,7 +56,7 @@ export default defineCommand({
     const audienceText = resolveAudienceText(
       audience,
       channel.name,
-      rolloutPercentage,
+      rolloutPercent,
     );
     console.log(
       `${audienceText.charAt(0).toUpperCase()}${audienceText.slice(1)}.`,
@@ -65,8 +65,8 @@ export default defineCommand({
       return;
     }
     for (const [header, deviceCounts] of [
-      ['PLATFORM', audience.byPlatform],
-      ['BINARY VERSION', audience.byBinaryVersion],
+      ['PLATFORM', audience.platform],
+      ['BINARY VERSION', audience.binaryVersion],
     ] as const) {
       printTable({
         emptyText: '',

@@ -112,7 +112,7 @@ describe('release rollback', () => {
       id: 'e5f6a7b8-c9d0-4e1f-8a2b-3c4d5e6f7a8b',
       number: 40,
     };
-    harness.routes[`GET ${CHANNEL_PATH}/releases`] = () =>
+    harness.routes[`GET ${RELEASES_PATH}`] = () =>
       Response.json([
         { ...LIVE_RELEASE, bundle: READY_BUNDLE },
         { ...PREVIOUS_RELEASE, bundle: PREVIOUS_BUNDLE, status: 'revoked' },
@@ -161,7 +161,7 @@ describe('release rollback', () => {
 
   it('should refuse when the channel has no earlier release to roll back to', async () => {
     respondWithRollback();
-    harness.routes[`GET ${CHANNEL_PATH}/releases`] = () =>
+    harness.routes[`GET ${RELEASES_PATH}`] = () =>
       Response.json([{ ...LIVE_RELEASE, bundle: READY_BUNDLE }]);
 
     await expect(

@@ -17,7 +17,7 @@ export default defineCommand({
   options: defineCommandOptions({ ...monthOptionShape, ...paginationShape }),
   action: async options => {
     const hotCodePush = createApiClient();
-    const listedApps = await hotCodePush.organizations.usage.listApps({
+    const listedApps = await hotCodePush.organizations.usage.apps.list({
       limit: options.limit,
       month: options.month,
       offset: options.offset,

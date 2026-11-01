@@ -17,7 +17,7 @@ export interface FingerprintFixture {
 export interface EvaluationFixture {
   device: DeviceInfo;
   expected: {
-    condition?: string;
+    conditionType?: string;
     isMandatory?: boolean;
     reason?: string;
     releaseId: string | null;

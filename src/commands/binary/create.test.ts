@@ -411,7 +411,7 @@ describe('binary create', () => {
       const [iosPublicKey] = ConfigurationSchema.parse(
         readResourceFile('build/ios/hotcodepush.json'),
       ).publicKeys;
-      expect(iosPublicKey?.keyId).toBe(SIGNING_KEY.fingerprint);
+      expect(iosPublicKey?.keyId).toBe(SIGNING_KEY.keyId);
       // PKCS #1 is the key inside the SPKI wrapper, so it is the shorter tail of the same bytes.
       expect(Buffer.from(spkiDer, 'base64').subarray(-64).toString('hex')).toBe(
         Buffer.from(iosPublicKey?.der ?? '', 'base64')
@@ -423,7 +423,7 @@ describe('binary create', () => {
         ConfigurationSchema.parse(
           readResourceFile('build/android/hotcodepush.json'),
         ).publicKeys,
-      ).toEqual([{ der: spkiDer, keyId: SIGNING_KEY.fingerprint }]);
+      ).toEqual([{ der: spkiDer, keyId: SIGNING_KEY.keyId }]);
     });
 
     it('should keep a channel given by id under HOTCODEPUSH_OFFLINE', async () => {

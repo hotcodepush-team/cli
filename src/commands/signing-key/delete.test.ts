@@ -36,7 +36,7 @@ describe('signing-key delete', () => {
       new Response(null, { status: 204 });
   }
 
-  it('should unregister the key named by its fingerprint once confirmed and take it out of publicKeys in hotcodepush.json', async () => {
+  it('should unregister the key named by its key id once confirmed and take it out of publicKeys in hotcodepush.json', async () => {
     stubInteractiveTerminal();
     vi.mocked(confirm).mockResolvedValue(true);
     respondWithSigningKey();
@@ -46,13 +46,13 @@ describe('signing-key delete', () => {
     });
 
     await signingKeyDeleteCommand.action(
-      { config: configPath, signingKey: SIGNING_KEY.fingerprint },
+      { config: configPath, signingKey: SIGNING_KEY.keyId },
       undefined,
     );
 
     expect(confirm).toHaveBeenCalledWith({
       initialValue: false,
-      message: `This unregisters signing key ${SIGNING_KEY.fingerprint}: an upload signed with it is refused from then on. Continue?`,
+      message: `This unregisters signing key ${SIGNING_KEY.keyId}: an upload signed with it is refused from then on. Continue?`,
     });
     expect(readDeleteRequests()).toHaveLength(1);
     expect(JSON.parse(readFileSync(configPath, 'utf8'))).toEqual({
@@ -60,11 +60,11 @@ describe('signing-key delete', () => {
       publicKeys: [OTHER_PUBLIC_KEY],
     });
     expect(harness.readLines()).toEqual([
-      `Deleted signing key ${SIGNING_KEY.fingerprint} (${SIGNING_KEY.id}).`,
+      `Deleted signing key ${SIGNING_KEY.keyId} (${SIGNING_KEY.id}).`,
     ]);
   });
 
-  it('should print the id and the fingerprint as the name, the shape of every delete, as JSON under --yes', async () => {
+  it('should print the id and the key id as the name, the shape of every delete, as JSON under --yes', async () => {
     respondWithSigningKey();
 
     await signingKeyDeleteCommand.action(
@@ -74,7 +74,7 @@ describe('signing-key delete', () => {
 
     expect(harness.readJson()).toEqual({
       id: SIGNING_KEY.id,
-      name: SIGNING_KEY.fingerprint,
+      name: SIGNING_KEY.keyId,
     });
   });
 
@@ -91,7 +91,7 @@ describe('signing-key delete', () => {
     expect(readDeleteRequests()).toHaveLength(0);
   });
 
-  it('should name --signing-key when the app has no key of that id or fingerprint', async () => {
+  it('should name --signing-key when the app has no key of that id or key id', async () => {
     respondWithSigningKey();
 
     await expect(

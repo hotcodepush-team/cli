@@ -190,7 +190,7 @@ describe('release create', () => {
       conditions: [],
       isMandatory: false,
       notes: null,
-      rolloutPercentage: 100,
+      rolloutPercent: 100,
     });
     expect(
       harness.requests.filter(
@@ -258,7 +258,7 @@ describe('release create', () => {
         mandatory: true,
         notes: 'cart fix',
         path: 'dist',
-        rolloutPercentage: 10,
+        rolloutPercent: 10,
         yes: true,
       },
       undefined,
@@ -281,7 +281,7 @@ describe('release create', () => {
       conditions: [{ fingerprint: CAPACITOR_FINGERPRINT, type: 'fingerprint' }],
       isMandatory: true,
       notes: 'cart fix',
-      rolloutPercentage: 10,
+      rolloutPercent: 10,
     });
     expect(harness.readJson()).toEqual([
       buildReleaseWithRelations(LIVE_RELEASE, STAGING_CHANNEL),
@@ -388,7 +388,7 @@ describe('release create', () => {
         device: DEVICE_ID,
         fingerprint: CAPACITOR_FINGERPRINT,
         os: '>=17',
-        rolloutPercentage: '100',
+        rolloutPercent: '100',
       });
     });
 
@@ -459,24 +459,24 @@ describe('release create', () => {
         message:
           'This releases bundle #17 · 1.4.2 at 10 percent, progressing through 10, 50, 100 percent, each step at least 3600 seconds and 50 applied updates: reaches 100 of 120 active devices in staging; about 100 at a 10 percent rollout. Continue?',
       });
-      expect(readAudienceUrls()[0]?.searchParams.get('rolloutPercentage')).toBe(
+      expect(readAudienceUrls()[0]?.searchParams.get('rolloutPercent')).toBe(
         '10',
       );
       const [createRequest] = readCreateRequests();
       expect(await createRequest?.json()).toMatchObject({
         progression: {
-          percentages: [10, 50, 100],
+          rolloutPercents: [10, 50, 100],
           stepMinimumSeconds: 3600,
           stepMinimumUpdateCount: 50,
         },
-        rolloutPercentage: 10,
+        rolloutPercent: 10,
       });
       expect(harness.readLines()).toEqual([
         `Released bundle #17 · 1.4.2 to staging as release #43 at 10 percent, progressing through 10, 50, 100 percent, live since ${LIVE_RELEASE.liveAt}.`,
       ]);
     });
 
-    it('should send the schedule its flags override from the percentage --rollout-percentage names', async () => {
+    it('should send the schedule its flags override from the percentage --rollout-percent names', async () => {
       await releaseCreateCommand.action(
         {
           app: DEMO_APP.id,
@@ -486,8 +486,8 @@ describe('release create', () => {
           progression: true,
           progressionMinimumSeconds: 600,
           progressionMinimumUpdateCount: 20,
-          progressionPercentages: [25, 100],
-          rolloutPercentage: 5,
+          progressionRolloutPercents: [25, 100],
+          rolloutPercent: 5,
           yes: true,
         },
         undefined,
@@ -496,11 +496,11 @@ describe('release create', () => {
       const [createRequest] = readCreateRequests();
       expect(await createRequest?.json()).toMatchObject({
         progression: {
-          percentages: [25, 100],
+          rolloutPercents: [25, 100],
           stepMinimumSeconds: 600,
           stepMinimumUpdateCount: 20,
         },
-        rolloutPercentage: 5,
+        rolloutPercent: 5,
       });
       expect(harness.readJson()).toEqual([
         buildReleaseWithRelations(PROGRESSING_RELEASE, STAGING_CHANNEL),
@@ -542,7 +542,7 @@ describe('release create', () => {
     });
 
     it("should release what that channel's newest active release serves, naming it in the confirmation", async () => {
-      harness.routes[`GET ${PRODUCTION_CHANNEL_PATH}/releases`] = () =>
+      harness.routes[`GET ${RELEASES_PATH}`] = () =>
         Response.json([
           { ...LIVE_RELEASE, number: 9, status: 'revoked' },
           { ...PREVIOUS_RELEASE, bundle: PREVIOUS_BUNDLE, number: 8 },
@@ -563,13 +563,12 @@ describe('release create', () => {
         fromChannelId: PRODUCTION_CHANNEL.id,
         isMandatory: false,
         notes: null,
-        rolloutPercentage: 100,
+        rolloutPercent: 100,
       });
     });
 
     it('should fail with `invalid_parameter` when that channel serves no active release', async () => {
-      harness.routes[`GET ${PRODUCTION_CHANNEL_PATH}/releases`] = () =>
-        Response.json([]);
+      harness.routes[`GET ${RELEASES_PATH}`] = () => Response.json([]);
 
       await expect(
         releaseCreateCommand.action({ ...OPTIONS, yes: true }, undefined),
@@ -588,7 +587,7 @@ describe('release create', () => {
       bundle: READY_BUNDLE.id,
       channel: [STAGING_CHANNEL.id],
       dryRun: true,
-      rolloutPercentage: 5,
+      rolloutPercent: 5,
     };
 
     beforeEach(() => {
@@ -912,7 +911,7 @@ describe('release create', () => {
             channel: PRODUCTION_CHANNEL,
           },
         ],
-        { isMandatory: true, progression: null, rolloutPercentage: 5 },
+        { isMandatory: true, progression: null, rolloutPercent: 5 },
       ),
     ).toBe(
       'releases bundle #17 · 1.4.2 at 5 percent, mandatory: reaches 100 of 120 active devices in staging; about 6 at a 5 percent rollout and reaches 9,995 of 10,000 active devices in production; about 500 at a 5 percent rollout',

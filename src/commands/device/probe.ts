@@ -210,11 +210,11 @@ export default defineCommand({
         nextOffset: null,
         rows: evaluation.verdicts.map(verdict => [
           `#${verdict.release.number}`,
-          `${verdict.release.rolloutPercentage}%`,
+          `${verdict.release.rolloutPercent}%`,
           resolveConditionsText(verdict, unknownFacts),
           verdict.isEligible
             ? 'eligible'
-            : `${verdict.reason ?? 'skipped'}${verdict.condition === undefined ? '' : ` (${verdict.condition})`}`,
+            : `${verdict.reason ?? 'skipped'}${verdict.conditionType === undefined ? '' : ` (${verdict.conditionType})`}`,
         ]),
       });
     }
@@ -282,9 +282,9 @@ function evaluateKnownFacts(
       conditions: release.conditions.filter(
         ({ type }) => !(unknownFacts as string[]).includes(type),
       ),
-      rolloutPercentage: unknownFacts.includes('rollout')
+      rolloutPercent: unknownFacts.includes('rollout')
         ? 100
-        : release.rolloutPercentage,
+        : release.rolloutPercent,
     })),
   };
   const { outcome, verdicts } = evaluateChannelIndex(knownIndex, device);
@@ -340,7 +340,7 @@ function resolveOutcomeText({ outcome }: ChannelIndexEvaluation): string {
     case 'available':
       return `available, ${releaseText}${outcome.isMandatory ? ', mandatory' : ''}`;
     case 'skipped':
-      return `skipped, ${outcome.reason}${outcome.condition === undefined ? '' : ` (${outcome.condition})`}, ${releaseText}`;
+      return `skipped, ${outcome.reason}${outcome.conditionType === undefined ? '' : ` (${outcome.conditionType})`}, ${releaseText}`;
     case 'up_to_date':
       return `up_to_date, ${releaseText}`;
   }

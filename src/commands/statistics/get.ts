@@ -210,10 +210,15 @@ function printUpdateStatistics(
     headers: ['DAY', 'CONFIRMED', 'FAILED', 'ROLLED BACK'],
     nextOffset: null,
     rows: statistics.days.map(
-      ({ confirmedUpdateCount, day, failureCount, rolledBackUpdateCount }) => [
+      ({
+        confirmedUpdateCount,
+        day,
+        failedUpdateCount,
+        rolledBackUpdateCount,
+      }) => [
         day,
         String(confirmedUpdateCount),
-        String(failureCount),
+        String(failedUpdateCount),
         String(rolledBackUpdateCount),
       ],
     ),

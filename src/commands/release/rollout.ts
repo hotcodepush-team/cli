@@ -19,20 +19,20 @@ import {
 } from '../../utils/release-resolution.js';
 import { channelOptionShape } from '../../utils/resource-resolution.js';
 
-const rolloutPercentageSchema = z.coerce.number().int().min(0).max(100);
+const rolloutPercentSchema = z.coerce.number().int().min(0).max(100);
 
 export default defineCommand({
   description:
     "Set a release's rollout percentage in either direction, or widen it step by step with --progression; a device that has the release keeps it.",
   examples: [
-    'hotcodepush release rollout --release 43 --rollout-percentage 50',
-    'hotcodepush release rollout --channel staging --release 43 --rollout-percentage 10 --progression --yes',
+    'hotcodepush release rollout --release 43 --rollout-percent 50',
+    'hotcodepush release rollout --channel staging --release 43 --rollout-percent 10 --progression --yes',
   ],
   options: defineCommandOptions({
     ...channelOptionShape,
     ...progressionShape,
     ...releaseOptionShape,
-    rolloutPercentage: rolloutPercentageSchema
+    rolloutPercent: rolloutPercentSchema
       .optional()
       .describe(
         "The share of devices the release reaches from now on, 0 to 100; with --progression where the schedule starts, the release's own percentage by default.",
@@ -41,11 +41,9 @@ export default defineCommand({
   action: async options => {
     const hotCodePush = createApiClient();
     const progression = resolveProgression(options);
-    const rolloutPercentage =
-      options.rolloutPercentage ??
-      (progression === null
-        ? await promptRolloutPercentage(options)
-        : undefined);
+    const rolloutPercent =
+      options.rolloutPercent ??
+      (progression === null ? await promptRolloutPercent(options) : undefined);
     const { channel, release } = await fetchReleaseInChannel(
       hotCodePush,
       options,
@@ -54,7 +52,7 @@ export default defineCommand({
       resolveRolloutConsequence(
         release,
         channel.name,
-        rolloutPercentage ?? release.rolloutPercentage,
+        rolloutPercent ?? release.rolloutPercent,
         progression,
       ),
       options,
@@ -66,42 +64,42 @@ export default defineCommand({
       appId: channel.appId,
       progression: progression ?? undefined,
       releaseId: release.id,
-      rolloutPercentage,
+      rolloutPercent,
     });
     if (options.json) {
       printJson(updatedRelease);
     } else {
       console.log(
-        `Set release #${updatedRelease.number} of ${channel.name} to ${updatedRelease.rolloutPercentage} percent${resolveProgressingText(updatedRelease)}.`,
+        `Set release #${updatedRelease.number} of ${channel.name} to ${updatedRelease.rolloutPercent} percent${resolveProgressingText(updatedRelease)}.`,
       );
     }
   },
 });
 
-async function promptRolloutPercentage(
+async function promptRolloutPercent(
   options: InteractivityOptions,
 ): Promise<number> {
   const answer = await promptText(
-    '--rollout-percentage',
+    '--rollout-percent',
     'Which share of devices should the release reach, 0 to 100?',
     options,
   );
   return z
-    .object({ rolloutPercentage: rolloutPercentageSchema })
-    .parse({ rolloutPercentage: answer }).rolloutPercentage;
+    .object({ rolloutPercent: rolloutPercentSchema })
+    .parse({ rolloutPercent: answer }).rolloutPercent;
 }
 
 function resolveRolloutConsequence(
   release: Release,
   channelName: string,
-  rolloutPercentage: number,
+  rolloutPercent: number,
   progression: Progression | null,
 ): string {
   const releaseText = `release #${release.number} of ${channelName}`;
   if (progression !== null) {
-    return `progresses ${releaseText} from ${rolloutPercentage} percent through ${resolveProgressionText(progression)}: devices already on it keep it`;
+    return `progresses ${releaseText} from ${rolloutPercent} percent through ${resolveProgressionText(progression)}: devices already on it keep it`;
   }
   const progressionEndText =
     release.progression === null ? '' : '; its progression ends';
-  return `sets ${releaseText} to ${rolloutPercentage} percent: devices already on it keep it, and no new device above ${rolloutPercentage} percent gets it${progressionEndText}`;
+  return `sets ${releaseText} to ${rolloutPercent} percent: devices already on it keep it, and no new device above ${rolloutPercent} percent gets it${progressionEndText}`;
 }

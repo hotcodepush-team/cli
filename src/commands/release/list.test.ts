@@ -8,10 +8,10 @@ import {
   STAGING_CHANNEL,
 } from '../../../test/fixtures.js';
 import {
-  CHANNEL_PATH,
   FLEET_PATH,
   RELEASE_COUNTERS,
   RELEASE_LOG,
+  RELEASES_PATH,
   respondWithStagingReleases,
 } from '../../../test/release-routes.js';
 import releaseListCommand from './list.js';
@@ -60,7 +60,7 @@ describe('release list', () => {
 
   it('should print the page as JSON with the next offset when --json and --limit are passed', async () => {
     respondWithStagingReleases(harness);
-    harness.routes[`GET ${CHANNEL_PATH}/releases`] = () =>
+    harness.routes[`GET ${RELEASES_PATH}`] = () =>
       Response.json(RELEASE_LOG.slice(0, 1));
 
     await releaseListCommand.action(
@@ -81,7 +81,7 @@ describe('release list', () => {
 
   it('should print the schedule with the step reached and its gate when a release progresses', async () => {
     respondWithStagingReleases(harness);
-    harness.routes[`GET ${CHANNEL_PATH}/releases`] = () =>
+    harness.routes[`GET ${RELEASES_PATH}`] = () =>
       Response.json([
         {
           ...PROGRESSING_RELEASE,
@@ -98,7 +98,7 @@ describe('release list', () => {
     expect(
       harness.requests
         .map(({ url }) => new URL(url))
-        .find(({ pathname }) => pathname === `${CHANNEL_PATH}/releases`)
+        .find(({ pathname }) => pathname === RELEASES_PATH)
         ?.searchParams.get('relations'),
     ).toBe('bundle,releaseCounters');
     expect(harness.readLines()[1]).toBe(

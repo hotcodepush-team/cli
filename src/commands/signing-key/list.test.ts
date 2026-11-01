@@ -6,15 +6,15 @@ import signingKeyListCommand from './list.js';
 describe('signing-key list', () => {
   const harness = useCommandHarness();
 
-  it('should list the keys with their fingerprint and day', async () => {
+  it('should list the keys with their key id and day', async () => {
     harness.routes[`GET /v1/apps/${DEMO_APP.id}/signing-keys`] = () =>
       Response.json([SIGNING_KEY]);
 
     await signingKeyListCommand.action({ app: DEMO_APP.id }, undefined);
 
     expect(harness.readLines()).toEqual([
-      `${'ID'.padEnd(SIGNING_KEY.id.length)}  ${'FINGERPRINT'.padEnd(SIGNING_KEY.fingerprint.length)}  CREATED`,
-      `${SIGNING_KEY.id}  ${SIGNING_KEY.fingerprint}  2026-09-09`,
+      `${'ID'.padEnd(SIGNING_KEY.id.length)}  ${'KEY ID'.padEnd(SIGNING_KEY.keyId.length)}  CREATED`,
+      `${SIGNING_KEY.id}  ${SIGNING_KEY.keyId}  2026-09-09`,
     ]);
   });
 

@@ -91,13 +91,13 @@ interface ReleaseCreateOptions
   fromChannel?: string;
   mandatory?: boolean;
   notes?: string;
-  rolloutPercentage?: number;
+  rolloutPercent?: number;
 }
 
 export interface ReleaseRollout {
   isMandatory: boolean;
   progression: Progression | null;
-  rolloutPercentage: number;
+  rolloutPercent: number;
 }
 
 export default defineCommand({
@@ -143,7 +143,7 @@ export default defineCommand({
       .string()
       .optional()
       .describe('The release notes; they ride the public index.'),
-    rolloutPercentage: z.coerce
+    rolloutPercent: z.coerce
       .number()
       .int()
       .min(0)
@@ -173,8 +173,8 @@ async function createReleases(
   );
   const fingerprint = resolveSourceFingerprint(bundleSource);
   const isMandatory = options.mandatory ?? false;
-  const rolloutPercentage =
-    options.rolloutPercentage ?? progression?.percentages[0] ?? 100;
+  const rolloutPercent =
+    options.rolloutPercent ?? progression?.rolloutPercents[0] ?? 100;
   const appId =
     'bundle' in bundleSource ? bundleSource.bundle.appId : bundleSource.appId;
   const channelAudiences = await fetchChannelAudiences(
@@ -182,12 +182,12 @@ async function createReleases(
     appId,
     options,
     fingerprint,
-    rolloutPercentage,
+    rolloutPercent,
   );
   const consequence = resolveReleaseConsequence(
     bundleSource,
     channelAudiences,
-    { isMandatory, progression, rolloutPercentage },
+    { isMandatory, progression, rolloutPercent },
   );
   if (options.dryRun) {
     await printDryRun(bundleSource, channelAudiences, consequence, options);
@@ -210,7 +210,7 @@ async function createReleases(
       isMandatory,
       notes: options.notes ?? null,
       progression: progression ?? undefined,
-      rolloutPercentage,
+      rolloutPercent,
     };
     for (const { channel } of channelAudiences) {
       const createdRelease = await hotCodePush.apps.channels.releases.create({
@@ -243,18 +243,18 @@ async function createReleases(
 export function resolveReleaseConsequence(
   bundleSource: BundleSource,
   channelAudiences: ChannelAudience[],
-  { isMandatory, progression, rolloutPercentage }: ReleaseRollout,
+  { isMandatory, progression, rolloutPercent }: ReleaseRollout,
 ): string {
   const audienceText = channelAudiences
     .map(({ audience, channel }) =>
-      resolveAudienceText(audience, channel.name, rolloutPercentage),
+      resolveAudienceText(audience, channel.name, rolloutPercent),
     )
     .join(' and ');
   const progressionText =
     progression === null
       ? ''
       : `, progressing through ${resolveProgressionText(progression)}`;
-  return `${resolveReleaseText(bundleSource)} at ${rolloutPercentage} percent${progressionText}${isMandatory ? ', mandatory' : ''}: ${audienceText}`;
+  return `${resolveReleaseText(bundleSource)} at ${rolloutPercent} percent${progressionText}${isMandatory ? ', mandatory' : ''}: ${audienceText}`;
 }
 
 // The audience preview checks the conditions before anything is uploaded.
@@ -263,7 +263,7 @@ async function fetchChannelAudiences(
   appId: string,
   options: ReleaseCreateOptions,
   fingerprint: string | null,
-  rolloutPercentage: number,
+  rolloutPercent: number,
 ): Promise<ChannelAudience[]> {
   const channelReferences =
     options.channel === undefined || options.channel.length === 0
@@ -272,7 +272,7 @@ async function fetchChannelAudiences(
   const audienceQuery = buildAudienceQuery(
     options,
     fingerprint,
-    rolloutPercentage,
+    rolloutPercent,
   );
   const projectConfig = readProjectConfig(options.config);
   return Promise.all(
