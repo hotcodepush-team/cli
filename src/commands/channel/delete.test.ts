@@ -60,6 +60,29 @@ describe('channel delete', () => {
     ]);
   });
 
+  it.each([
+    [
+      3,
+      `Deleted channel staging (${STAGING_CHANNEL.id}). 3 devices were on it.`,
+    ],
+    [0, `Deleted channel staging (${STAGING_CHANNEL.id}).`],
+  ])(
+    'should end the result line with the device count when %i devices were on the channel',
+    async (count, expectedLine) => {
+      respondWithChannels([STAGING_CHANNEL]);
+      harness.routes[
+        `GET /v1/apps/${DEMO_APP.id}/devices/count?channelId=${STAGING_CHANNEL.id}`
+      ] = () => Response.json({ count });
+
+      await channelDeleteCommand.action(
+        { app: DEMO_APP.id, channel: 'staging', yes: true },
+        undefined,
+      );
+
+      expect(harness.readLines()).toEqual([expectedLine]);
+    },
+  );
+
   it('should throw `confirmation_required` and delete nothing when nobody can be asked', async () => {
     respondWithChannels([STAGING_CHANNEL]);
 
