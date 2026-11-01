@@ -1,3 +1,4 @@
+import { BUNDLE_BYTES_LIMIT } from '@hotcodepush/protocol';
 import { ISSUES_URL, PROJECT_CONFIG_FILE_NAME } from '../config/consts.js';
 
 export const ExitCode = {
@@ -64,12 +65,12 @@ export class ApiError extends CliError {
 
 // Checked before any upload, so no upload is wasted on a refusal from the API.
 export class BundleTooLargeError extends CliError {
-  constructor(what: string, bundleBytesLimit: number) {
+  constructor(what: string) {
     super({
       code: 'bundle_too_large',
       exitCode: ExitCode.Error,
-      fix: 'A file or a bundle is at most 512 MB. Move large media out of the web build.',
-      message: `${what} is above the limit of ${bundleBytesLimit} bytes.`,
+      fix: `A file or a bundle is at most ${BUNDLE_BYTES_LIMIT / 1_000_000} MB. Move large media out of the web build.`,
+      message: `${what} is above the limit of ${BUNDLE_BYTES_LIMIT} bytes.`,
     });
   }
 }

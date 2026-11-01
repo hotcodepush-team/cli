@@ -49,14 +49,11 @@ const BUNDLE_FILE_PAGE_LIMIT = 1000;
 export function assertWithinBundleBytesLimit(files: BundleFile[]): void {
   const largeFile = files.find(file => file.sizeBytes > BUNDLE_BYTES_LIMIT);
   if (largeFile !== undefined) {
-    throw new BundleTooLargeError(
-      `The file ${largeFile.path}`,
-      BUNDLE_BYTES_LIMIT,
-    );
+    throw new BundleTooLargeError(`The file ${largeFile.path}`);
   }
   const totalBytes = files.reduce((sum, file) => sum + file.sizeBytes, 0);
   if (totalBytes > BUNDLE_BYTES_LIMIT) {
-    throw new BundleTooLargeError('The bundle', BUNDLE_BYTES_LIMIT);
+    throw new BundleTooLargeError('The bundle');
   }
 }
 
