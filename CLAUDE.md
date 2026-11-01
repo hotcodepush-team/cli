@@ -17,7 +17,7 @@ src/
   commands/    a folder per noun and a file per verb, channel/create.ts, resource-file/write.ts; the standalone commands flat, login.ts, logout.ts, whoami.ts, doctor.ts, init.ts, open.ts, fingerprint.ts, completion.ts
   utils/       the runner, command resolution and did-you-mean, the CLI's `defineCommand` and the authentication gate, the error catalog and its one mapping, the diagnostics on stderr,
                the global options, environment detection, config.json, the token store,
-               the auth client, the login flow, the API client, hotcodepush.json and its directory, the JSON files a person edits read as `invalid_json` when they do not parse, a reference told apart as an id or a number, a resource by id or name,
+               the auth client, the login flow, the signed-in user and its credential line, the API client, hotcodepush.json and its directory, the JSON files a person edits read as `invalid_json` when they do not parse, a reference told apart as an id or a number, a resource by id or name,
                the project's fingerprint through the protocol's recipe,
                a bundle by number or id, a release by number or id in its channel with the wait until it is live,
                the released line, the details of an organization, an SSO provider, a device binary and a settled webhook delivery that several commands print,
@@ -29,7 +29,7 @@ src/
                the files of a build hashed, their gzip copies,
                the pack writer, the git provenance, the device hosts derived from the API URL,
                the upload flow, the flags of a bundle upload read into its options, the private key an upload is given, read into the pair that signs, and the writer of its file, a public key listed in hotcodepush.json,
-               the progression schedule from its flags, the spending cap in whole dollars, a member or an invitation by id or email, a webhook by id or name,
+               the progression schedule from its flags, the spending cap in whole dollars, the usage month, the fleet's device counts per binary and release, a member or an invitation by id or email, a webhook by id or name,
                the native glue the Capacitor and Cordova modules name, one constant in `frameworks/native-glue.ts`,
                the build step both commands share, the resource file,
                the progress lines, the browser opener, the JSON, tables and details output, the telemetry, the update notice,
@@ -103,7 +103,7 @@ A project with an app config that is code, or with a JSON one that does not pars
   Every text a person reads, descriptions, warnings, notices and empty-list lines included, is whole sentences: no semicolon joins two clauses, and a default reads `Defaults to X.`
 - **Diagnostics go through `utils/diagnostics.ts`**, clack's log on stderr: `printError`, `printWarning`, `printNotice`, `printSuccess`; nothing else writes a symbol or a `Warning:` prefix, and nothing imports clack's log directly.
   stdout stays plain `console.log` and `printJson`, so a piped result carries no gutter.
-- **API errors pass through verbatim**, their code, message and fix as received and never re-mapped; the CLI's catalog covers only what happens before or without the API.
+- **API errors pass through verbatim**, their code and message as received, never re-mapped and with no fix; the CLI's catalog covers only what happens before or without the API.
 - **Exit codes**: `0` done, `1` an error, `2` a missing or invalid parameter, `3` not logged in, `4` a confirmation required without `--yes`.
 - **Parameters are the API's field names**, `--rollout-percent`, `--channel`: nothing is renamed between the console, the API and the terminal.
   The one exception is a version: `--version` is the CLI's own flag, so a bundle's `version` is `--bundle-version` and a binary's `version` and `build` are `--binary-version` and `--binary-build`, the names a device's `binaryVersion` and `binaryBuild` already carry.
