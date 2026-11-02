@@ -263,7 +263,7 @@ describe('init', () => {
     );
   });
 
-  it('should name the SDK import as the last manual step when no file under src/ imports it, leaving the file alone', async () => {
+  it('should name the SDK import as a notice before the build advice when no file under src/ imports it, leaving the file alone', async () => {
     const directoryPath = writeProject({
       isPackageInstalled: true,
       projectConfig: {
@@ -282,12 +282,13 @@ describe('init', () => {
       undefined,
     );
 
-    expect(harness.readLines().slice(10, 14)).toEqual([
-      '',
-      "Add \"import '@hotcodepush/capacitor-live-updates';\" to the app's entry file, such as src/main.ts.",
-      '',
-      'Build the app natively once and run it, then publish the first release as shown above.',
-    ]);
+    expect(harness.readDiagnostics()).toBe(
+      [
+        "Add \"import '@hotcodepush/capacitor-live-updates';\" to the app's entry file, such as src/main.ts.",
+        'Build the app natively once and run it, then publish the first release as shown above.',
+        '',
+      ].join('\n'),
+    );
     expect(readFileSync(entryFilePath, 'utf8')).toBe("console.log('demo');\n");
   });
 

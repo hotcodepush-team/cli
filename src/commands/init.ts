@@ -321,8 +321,7 @@ function printRun(
   console.log('');
   printOutcomeRows(resolveStepRows(run.steps));
   if (appImportStep !== undefined) {
-    console.log('');
-    console.log(appImportStep);
+    printNotice(appImportStep);
   }
   if (app !== undefined && status === 'complete') {
     printFinish(app, { isReleased, privateKeyPath });
