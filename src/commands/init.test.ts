@@ -11,6 +11,7 @@ import { confirm, select } from '@clack/prompts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   CAPACITOR_APP_GRADLE_FILE_PATH,
+  CAPACITOR_ENTRY_FILE_PATH,
   CAPACITOR_XCODE_PROJECT_FILE_PATH,
   readJsonFile,
   wireCapacitorProject,
@@ -256,6 +257,34 @@ describe('init', () => {
       `Console: http://localhost:4300/apps/${DEMO_APP.id}`,
       'Docs: https://hotcodepush.com/docs',
     ]);
+  });
+
+  it('should name the SDK import as the last manual step when no file under src/ imports it, leaving the file alone', async () => {
+    const directoryPath = writeProject({
+      isPackageInstalled: true,
+      projectConfig: {
+        appId: DEMO_APP.id,
+        channel: PRODUCTION_CHANNEL.name,
+      },
+    });
+    await wireCapacitorProject(directoryPath);
+    const entryFilePath = join(directoryPath, CAPACITOR_ENTRY_FILE_PATH);
+    writeFileSync(entryFilePath, "console.log('demo');\n");
+    respondWithSession([ACME_ORGANIZATION]);
+    respondWithConfiguredApp();
+
+    await initCommand.action(
+      { config: join(directoryPath, 'hotcodepush.json'), yes: true },
+      undefined,
+    );
+
+    expect(harness.readLines().slice(10, 14)).toEqual([
+      '',
+      "Add \"import '@hotcodepush/capacitor-live-updates';\" to the app's entry file, such as src/main.ts.",
+      '',
+      'Build the app natively once and run it, then publish the first release as shown above.',
+    ]);
+    expect(readFileSync(entryFilePath, 'utf8')).toBe("console.log('demo');\n");
   });
 
   it('should complete a hotcodepush.json that names its channel by id without naming another channel', async () => {
