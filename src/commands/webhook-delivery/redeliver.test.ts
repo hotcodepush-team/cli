@@ -1,4 +1,4 @@
-import { confirm } from '@clack/prompts';
+import { S_SUCCESS, confirm } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
@@ -67,7 +67,11 @@ describe('webhook-delivery redeliver', () => {
     });
     expect(readRedeliverRequests()).toHaveLength(1);
     expect(harness.readLines()).toEqual([
-      'Sent release.created to webhook releases: succeeded, HTTP 200.',
+      `${S_SUCCESS}  Sent release.created to webhook releases.`,
+      `   ID        ${REDELIVERED_DELIVERY.id}`,
+      '   Status    succeeded',
+      '   Response  HTTP 200',
+      '',
     ]);
   });
 

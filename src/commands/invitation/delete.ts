@@ -4,7 +4,7 @@ import { fetchOrganizationId } from '../../resources/organizations.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson } from '../../utils/output.js';
+import { printJson, printResult } from '../../utils/output.js';
 import { confirmConsequence } from '../../utils/prompts.js';
 
 export default defineCommand({
@@ -41,9 +41,10 @@ export default defineCommand({
     if (options.json) {
       printJson({ id: invitation.id, name: invitation.email });
     } else {
-      console.log(
-        `Withdrew the invitation to ${invitation.email} (${invitation.id}).`,
-      );
+      printResult({
+        rows: [['ID', invitation.id]],
+        sentence: `Withdrew the invitation to ${invitation.email}.`,
+      });
     }
   },
 });

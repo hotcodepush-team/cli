@@ -243,7 +243,10 @@ describe('bundle upload', () => {
     expect([...packEntries.keys()]).toEqual([APP_JS_SHA256, INDEX_SHA256]);
     expect(readRequest('POST', '/complete')).toBeDefined();
     expect(harness.readLines()).toEqual([
-      `Uploaded bundle #17 · 1.4.2 (${READY_BUNDLE.id}): 1 files moved, 34 B.`,
+      'Uploaded bundle #17 · 1.4.2.',
+      `ID         ${READY_BUNDLE.id}`,
+      'Platforms  android, ios',
+      'Uploaded   1 files moved, 34 B',
     ]);
   });
 

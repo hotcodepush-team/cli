@@ -23,7 +23,11 @@ import { defineCommand } from '../../utils/command.js';
 import { printWarning } from '../../utils/diagnostics.js';
 import { InvalidParameterError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson, resolveQuantityText } from '../../utils/output.js';
+import {
+  printJson,
+  printResult,
+  resolveQuantityText,
+} from '../../utils/output.js';
 import { fetchAllPages } from '../../utils/pagination.js';
 import { readProjectConfig } from '../../utils/project-config.js';
 import { confirmConsequence } from '../../utils/prompts.js';
@@ -117,7 +121,7 @@ export default defineCommand({
       printJson(revokedChannels.flatMap(({ releases }) => releases));
       return;
     }
-    printRevokedLines(revokedChannels);
+    printRevokedReleases(revokedChannels);
   },
 });
 
@@ -233,11 +237,14 @@ function printNothingToRevoke(isJson: boolean | undefined): void {
   console.log('Nothing to revoke: no release named is active or paused.');
 }
 
-function printRevokedLines(revokedChannels: RevokedChannel[]): void {
+function printRevokedReleases(revokedChannels: RevokedChannel[]): void {
   for (const { channel, releases } of revokedChannels) {
-    console.log(
-      `Revoked ${resolveReleasesText(releases)} of ${channel.name}${releases.length === 1 ? ` (${releases[0]?.id})` : ''}.`,
-    );
+    for (const release of releases) {
+      printResult({
+        rows: [['ID', release.id]],
+        sentence: `Revoked release #${release.number} of ${channel.name}.`,
+      });
+    }
   }
 }
 

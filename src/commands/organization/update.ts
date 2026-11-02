@@ -2,7 +2,7 @@ import type { Organization } from '@hotcodepush/node';
 import { z } from 'zod';
 import {
   fetchOrganizationId,
-  printOrganizationDetails,
+  resolveOrganizationDetails,
   resolveCents,
   resolveDollarText,
   spendingCapShape,
@@ -11,7 +11,7 @@ import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import type { InteractivityOptions } from '../../utils/environment.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson } from '../../utils/output.js';
+import { printJson, printResult } from '../../utils/output.js';
 import { confirmConsequence, promptText } from '../../utils/prompts.js';
 
 export default defineCommand({
@@ -57,13 +57,23 @@ export default defineCommand({
       organizationId,
       spendingCapCents,
     });
-    if (options.json) {
-      printJson(updatedOrganization);
-    } else {
-      printOrganizationDetails(updatedOrganization);
-    }
+    printUpdatedOrganization(updatedOrganization, { isJson: options.json });
   },
 });
+
+function printUpdatedOrganization(
+  organization: Organization,
+  { isJson }: { isJson: boolean | undefined },
+): void {
+  if (isJson) {
+    printJson(organization);
+    return;
+  }
+  printResult({
+    rows: resolveOrganizationDetails(organization),
+    sentence: `Updated organization ${organization.name}.`,
+  });
+}
 
 // An unchanged cap needs no confirmation, since the API answers it with `no_change`.
 async function confirmSpendingCapChange(

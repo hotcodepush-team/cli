@@ -3,7 +3,7 @@ import { fetchAppId } from '../../resources/apps.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson } from '../../utils/output.js';
+import { printJson, printResult } from '../../utils/output.js';
 import { readProjectConfig } from '../../utils/project-config.js';
 import { promptText } from '../../utils/prompts.js';
 
@@ -35,7 +35,10 @@ export default defineCommand({
     if (options.json) {
       printJson(updatedApp);
     } else {
-      console.log(`Updated app ${updatedApp.name} (${updatedApp.id}).`);
+      printResult({
+        rows: [['ID', updatedApp.id]],
+        sentence: `Updated app ${updatedApp.name}.`,
+      });
     }
   },
 });

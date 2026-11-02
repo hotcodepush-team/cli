@@ -14,7 +14,7 @@ import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { printWarning } from '../../utils/diagnostics.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson, resolveByteText } from '../../utils/output.js';
+import { printJson, printResult, resolveByteText } from '../../utils/output.js';
 
 const FINGERPRINT_UNKNOWN_TEXT =
   'No binary of the app carries this fingerprint.';
@@ -87,7 +87,15 @@ function resolveUploadedBundleJson({ bundle, upload }: UploadedBundle): object {
 }
 
 function printUploadedBundle({ bundle, upload }: UploadedBundle): void {
-  console.log(
-    `Uploaded bundle ${resolveBundleLabel(bundle)} (${bundle.id}): ${upload.fileCount} files moved, ${resolveByteText(upload.sizeBytes)}.`,
-  );
+  printResult({
+    rows: [
+      ['ID', bundle.id],
+      ['Platforms', bundle.platforms.join(', ')],
+      [
+        'Uploaded',
+        `${upload.fileCount} files moved, ${resolveByteText(upload.sizeBytes)}`,
+      ],
+    ],
+    sentence: `Uploaded bundle ${resolveBundleLabel(bundle)}.`,
+  });
 }

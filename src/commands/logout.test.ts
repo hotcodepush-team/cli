@@ -2,6 +2,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { resolveDiagnosticText } from '../../test/diagnostics.js';
 import { NotLoggedInError } from '../utils/errors.js';
 import { readUserConfig, writeUserConfig } from '../utils/user-config.js';
 import logoutCommand from './logout.js';
@@ -28,6 +29,11 @@ const SESSION = {
 describe('logout', () => {
   let configHomePath: string;
   const fetchMock = vi.fn<typeof fetch>();
+  let stderrChunks: string[] = [];
+
+  function readDiagnostics(): string {
+    return resolveDiagnosticText(stderrChunks.join(''));
+  }
 
   function readRequests(): Request[] {
     return fetchMock.mock.calls.map(
@@ -45,6 +51,11 @@ describe('logout', () => {
     keyring.getPassword.mockReset().mockReturnValue('session-token-1');
     fetchMock.mockReset();
     vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    stderrChunks = [];
+    vi.spyOn(process.stderr, 'write').mockImplementation(chunk => {
+      stderrChunks.push(String(chunk));
+      return true;
+    });
     writeUserConfig({ apiUrl: API_URL, sessionId: 'session-1' });
   });
 
@@ -164,9 +175,8 @@ describe('logout', () => {
     );
     expect(await revokeRequest?.json()).toEqual({ token: 'session-token-1' });
     expect(keyring.deletePassword).toHaveBeenCalled();
-    expect(console.log).toHaveBeenCalledWith(
-      'Logged out Anna Example. HOTCODEPUSH_TOKEN still authenticates.',
-    );
+    expect(console.log).toHaveBeenCalledWith('Logged out Anna Example.');
+    expect(readDiagnostics()).toBe('HOTCODEPUSH_TOKEN still authenticates.\n');
   });
 
   it('should end nothing when only HOTCODEPUSH_TOKEN is set, and say so', async () => {
@@ -177,9 +187,8 @@ describe('logout', () => {
 
     expect(fetchMock).not.toHaveBeenCalled();
     expect(keyring.deletePassword).not.toHaveBeenCalled();
-    expect(console.log).toHaveBeenCalledWith(
-      'No stored session to end. HOTCODEPUSH_TOKEN still authenticates.',
-    );
+    expect(console.log).toHaveBeenCalledWith('No stored session to end.');
+    expect(readDiagnostics()).toBe('HOTCODEPUSH_TOKEN still authenticates.\n');
   });
 
   it('should throw `not_logged_in` when no token is stored', async () => {

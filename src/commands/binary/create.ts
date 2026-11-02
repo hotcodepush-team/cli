@@ -8,6 +8,7 @@ import type { BuildStep, OfflineCause } from '../../frameworks/build-step.js';
 import {
   buildStepShape,
   fetchBuildStepChannelId,
+  printWrittenResourceFile,
   readBuildStep,
   resolveChannelIdByShape,
   resolveFailureText,
@@ -32,7 +33,7 @@ import { printNotice, printWarning } from '../../utils/diagnostics.js';
 import { isCi } from '../../utils/environment.js';
 import { CliError, PipelineNotLoggedInError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson, resolveByteText } from '../../utils/output.js';
+import { printJson, printResult, resolveByteText } from '../../utils/output.js';
 import type { Reporter } from '../../utils/progress.js';
 import { createReporter } from '../../utils/progress.js';
 
@@ -242,12 +243,43 @@ function printBinaryCreation(
     });
     return;
   }
-  console.log(`Wrote ${resourceFilePath} for ${platform}.`);
-  if (binaryCreation.binary !== null) {
-    console.log(
-      `Created the binary ${platform} ${identity.binaryVersion} (${identity.binaryBuild}): ${binaryCreation.upload.fileCount} files uploaded, ${resolveByteText(binaryCreation.upload.sizeBytes)}.`,
-    );
+  if (binaryCreation.binary === null) {
+    printWrittenResourceFile(resourceFilePath, { platform });
+    return;
   }
+  printCreatedBinary(binaryCreation.binary, {
+    identity,
+    resourceFilePath,
+    upload: binaryCreation.upload,
+  });
+}
+
+function printCreatedBinary(
+  binary: Binary,
+  {
+    identity,
+    resourceFilePath,
+    upload,
+  }: {
+    identity: BinaryIdentity;
+    resourceFilePath: string;
+    upload: UploadedFiles;
+  },
+): void {
+  printResult({
+    rows: [
+      ['ID', binary.id],
+      ['Version', identity.binaryVersion],
+      ['Build', identity.binaryBuild],
+      ['Bundle', binary.bundleId],
+      ['Resource file', resourceFilePath],
+      [
+        'Uploaded',
+        `${upload.fileCount} files, ${resolveByteText(upload.sizeBytes)}`,
+      ],
+    ],
+    sentence: `Created the ${binary.platform} binary.`,
+  });
 }
 
 // The CLI reads no project file for the identity.

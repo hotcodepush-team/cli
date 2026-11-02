@@ -1,4 +1,4 @@
-import type { Member } from '@hotcodepush/node';
+import type { Member, MemberRow } from '@hotcodepush/node';
 import { z } from 'zod';
 import {
   fetchMember,
@@ -9,7 +9,7 @@ import { fetchOrganizationId } from '../../resources/organizations.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson } from '../../utils/output.js';
+import { printJson, printResult } from '../../utils/output.js';
 import { confirmConsequence, promptSelect } from '../../utils/prompts.js';
 
 const MEMBER_ROLES = [
@@ -64,12 +64,23 @@ export default defineCommand({
       organizationId,
       role,
     });
-    if (options.json) {
-      printJson(updatedMember);
-    } else {
-      console.log(
-        `Updated member ${email} (${updatedMember.id}) to role ${updatedMember.role}.`,
-      );
-    }
+    printUpdatedMember(updatedMember, { email, isJson: options.json });
   },
 });
+
+function printUpdatedMember(
+  member: MemberRow,
+  { email, isJson }: { email: string; isJson: boolean | undefined },
+): void {
+  if (isJson) {
+    printJson(member);
+    return;
+  }
+  printResult({
+    rows: [
+      ['ID', member.id],
+      ['Role', member.role],
+    ],
+    sentence: `Updated member ${email}.`,
+  });
+}

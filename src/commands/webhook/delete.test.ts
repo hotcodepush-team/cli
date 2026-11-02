@@ -1,4 +1,4 @@
-import { confirm } from '@clack/prompts';
+import { S_SUCCESS, confirm } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
@@ -46,7 +46,9 @@ describe('webhook delete', () => {
     });
     expect(readDeleteRequests()).toHaveLength(1);
     expect(harness.readLines()).toEqual([
-      `Deleted webhook releases (${WEBHOOK.id}).`,
+      `${S_SUCCESS}  Deleted webhook releases.`,
+      `   ID  ${WEBHOOK.id}`,
+      '',
     ]);
   });
 

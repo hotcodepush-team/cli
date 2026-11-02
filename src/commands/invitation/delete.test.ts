@@ -1,4 +1,4 @@
-import { confirm, select } from '@clack/prompts';
+import { S_SUCCESS, confirm, select } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   API_URL,
@@ -64,7 +64,9 @@ describe('invitation delete', () => {
     });
     expect(readDeleteRequests()).toHaveLength(1);
     expect(harness.readLines()).toEqual([
-      `Withdrew the invitation to carol@example.com (${PENDING_INVITATION.id}).`,
+      `${S_SUCCESS}  Withdrew the invitation to carol@example.com.`,
+      `   ID  ${PENDING_INVITATION.id}`,
+      '',
     ]);
   });
 

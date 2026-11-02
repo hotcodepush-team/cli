@@ -43,7 +43,10 @@ describe('app create', () => {
     expect(harness.requests.at(-1)?.headers.get('Idempotency-Key')).toEqual(
       expect.any(String),
     );
-    expect(harness.readLines()).toEqual([`Created app Demo (${DEMO_APP.id}).`]);
+    expect(harness.readLines()).toEqual([
+      'Created app Demo.',
+      `ID  ${DEMO_APP.id}`,
+    ]);
   });
 
   it('should create the app in the organization --organization names and print it as JSON', async () => {

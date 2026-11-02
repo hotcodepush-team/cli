@@ -43,7 +43,8 @@ describe('channel update', () => {
       name: 'beta',
     });
     expect(harness.readLines()).toEqual([
-      `Updated channel beta (${STAGING_CHANNEL.id}).`,
+      'Updated channel beta.',
+      `ID  ${STAGING_CHANNEL.id}`,
     ]);
   });
 

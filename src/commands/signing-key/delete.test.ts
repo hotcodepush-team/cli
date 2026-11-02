@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { confirm } from '@clack/prompts';
+import { S_SUCCESS, confirm } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
@@ -61,7 +61,10 @@ describe('signing-key delete', () => {
       publicKeys: [OTHER_PUBLIC_KEY],
     });
     expect(harness.readLines()).toEqual([
-      `Deleted signing key ${SIGNING_KEY.keyId} (${SIGNING_KEY.id}).`,
+      `${S_SUCCESS}  Deleted the signing key.`,
+      `   ID      ${SIGNING_KEY.id}`,
+      `   Key ID  ${SIGNING_KEY.keyId}`,
+      '',
     ]);
   });
 

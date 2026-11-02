@@ -2,6 +2,7 @@ import type { BuildStep, OfflineCause } from '../../frameworks/build-step.js';
 import {
   buildStepShape,
   fetchBuildStepChannelId,
+  printWrittenResourceFile,
   readBuildStep,
   resolveChannelIdByShape,
   resolveFailureText,
@@ -65,7 +66,7 @@ export default defineCommand({
       printJson({ resourceFilePath });
       return;
     }
-    console.log(`Wrote ${resourceFilePath} for ${platform}.`);
+    printWrittenResourceFile(resourceFilePath, { platform });
   },
 });
 

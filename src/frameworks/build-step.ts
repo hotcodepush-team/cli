@@ -18,6 +18,7 @@ import type { InteractivityOptions } from '../utils/environment.js';
 import { isOfflineBuild } from '../utils/environment.js';
 import { InvalidParameterError } from '../utils/errors.js';
 import { resolveDeviceHosts } from '../utils/hosts.js';
+import { printResult } from '../utils/output.js';
 import type { ProjectConfig } from '../utils/project-config.js';
 import {
   assertProjectConfigAppId,
@@ -139,6 +140,16 @@ export function resolveFailureText(error: unknown): string {
     return `${error.code} ${error.message}`;
   }
   return error instanceof Error ? error.message : String(error);
+}
+
+export function printWrittenResourceFile(
+  resourceFilePath: string,
+  { platform }: { platform: BuildStep['platform'] },
+): void {
+  printResult({
+    rows: [['Path', resourceFilePath]],
+    sentence: `Wrote the resource file for ${platform}.`,
+  });
 }
 
 export function writeBuildResourceFile(

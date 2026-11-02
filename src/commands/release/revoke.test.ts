@@ -1,4 +1,4 @@
-import { confirm } from '@clack/prompts';
+import { S_SUCCESS, confirm } from '@clack/prompts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
@@ -100,7 +100,9 @@ describe('release revoke', () => {
       readRevokeRequests().map(({ url }) => new URL(url).pathname),
     ).toEqual([`${RELEASES_PATH}/${LIVE_RELEASE.id}/revoke`]);
     expect(harness.readLines()).toEqual([
-      `Revoked release #43 of staging (${LIVE_RELEASE.id}).`,
+      `${S_SUCCESS}  Revoked release #43 of staging.`,
+      `   ID  ${LIVE_RELEASE.id}`,
+      '',
     ]);
   });
 
@@ -243,7 +245,12 @@ describe('release revoke', () => {
       releaseIds: [PREVIOUS_RELEASE.id, LIVE_RELEASE.id],
     });
     expect(harness.readLines()).toEqual([
-      'Revoked releases #43 and #42 of staging.',
+      `${S_SUCCESS}  Revoked release #43 of staging.`,
+      `   ID  ${LIVE_RELEASE.id}`,
+      '',
+      `${S_SUCCESS}  Revoked release #42 of staging.`,
+      `   ID  ${PREVIOUS_RELEASE.id}`,
+      '',
     ]);
   });
 

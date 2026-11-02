@@ -1,4 +1,5 @@
 import type { HotCodePush, SigningKey } from '@hotcodepush/node';
+import { z } from 'zod';
 import { PROJECT_CONFIG_FILE_NAME } from '../config/consts.js';
 import { printNotice } from '../utils/diagnostics.js';
 import type { InteractivityOptions } from '../utils/environment.js';
@@ -11,6 +12,13 @@ import { promptResourceId, resolveResource } from '../utils/resources.js';
 interface SigningKeyOptions extends InteractivityOptions {
   signingKey?: string;
 }
+
+export const signingKeyOptionShape = {
+  signingKey: z
+    .string()
+    .optional()
+    .describe('The signing key, by id or key id.'),
+};
 
 // Keys already listed stay, so the next builds keep trusting them.
 // A file of another app, or no file, is left alone.

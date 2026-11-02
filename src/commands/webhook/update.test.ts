@@ -50,7 +50,8 @@ describe('webhook update', () => {
       name: 'deploys',
     });
     expect(harness.readLines()).toEqual([
-      `Updated webhook deploys (${WEBHOOK.id}).`,
+      'Updated webhook deploys.',
+      `ID  ${WEBHOOK.id}`,
     ]);
   });
 

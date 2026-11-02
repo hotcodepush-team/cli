@@ -1,10 +1,11 @@
 import type { AuthClient } from '../utils/auth-client.js';
 import { createApiAuthClient } from '../utils/auth-client.js';
 import { defineCommand } from '../utils/command.js';
+import { printNotice } from '../utils/diagnostics.js';
 import { resolveApiError } from '../utils/error-mapping.js';
 import { NotLoggedInError } from '../utils/errors.js';
 import { defineCommandOptions } from '../utils/global-options.js';
-import { printJson } from '../utils/output.js';
+import { printJson, printResult } from '../utils/output.js';
 import { deleteToken, readStoredToken } from '../utils/token-store.js';
 import { readUserConfig, writeUserConfig } from '../utils/user-config.js';
 
@@ -82,15 +83,21 @@ function printEnded(
     printJson(endedSession);
     return;
   }
-  const variableText = process.env.HOTCODEPUSH_TOKEN
-    ? ' HOTCODEPUSH_TOKEN still authenticates.'
-    : '';
+  printResult({
+    rows: endedSession.id === null ? [] : [['ID', endedSession.id]],
+    sentence: resolveEndedText(endedSession),
+  });
+  if (process.env.HOTCODEPUSH_TOKEN) {
+    printNotice('HOTCODEPUSH_TOKEN still authenticates.');
+  }
+}
+
+function resolveEndedText(endedSession: EndedSession): string {
   if (endedSession.id === null && endedSession.name === null) {
-    console.log(`No stored session to end.${variableText}`);
-    return;
+    return 'No stored session to end.';
   }
   const nameText = endedSession.name === null ? '' : ` ${endedSession.name}`;
-  console.log(`Logged out${nameText}.${variableText}`);
+  return `Logged out${nameText}.`;
 }
 
 // A bearer can be signed, `<token>.<signature>`, but revoke-session looks up the token alone.

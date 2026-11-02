@@ -8,9 +8,11 @@ import {
 } from '../../resources/channels/fetch.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
+import { printNotice } from '../../utils/diagnostics.js';
 import { UnknownNameError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson, resolveQuantityText } from '../../utils/output.js';
+import type { Detail } from '../../utils/output.js';
+import { printJson, printResult } from '../../utils/output.js';
 import { confirmConsequence } from '../../utils/prompts.js';
 import { isId } from '../../utils/reference.js';
 
@@ -41,7 +43,8 @@ export default defineCommand({
       if (options.json) {
         printJson(resolveAbsentChannel(options.channel));
       } else {
-        console.log('The channel does not exist. There is nothing to delete.');
+        printResult({ rows: [], sentence: 'The channel does not exist.' });
+        printNotice('There is nothing to delete.');
       }
     }
   },
@@ -70,7 +73,10 @@ async function deleteChannel(
   if (options.json) {
     printJson({ id: fetchedChannel.id, name: fetchedChannel.name });
   } else {
-    console.log(resolveDeletedChannelText(fetchedChannel, { deviceCount }));
+    printResult({
+      rows: [['ID', fetchedChannel.id], ...resolveDeviceRows(deviceCount)],
+      sentence: `Deleted channel ${fetchedChannel.name}.`,
+    });
   }
 }
 
@@ -90,16 +96,8 @@ async function fetchChannelDeviceCount(
   }
 }
 
-function resolveDeletedChannelText(
-  channel: Channel,
-  { deviceCount }: { deviceCount: number | null },
-): string {
-  const deletedText = `Deleted channel ${channel.name} (${channel.id}).`;
-  if (deviceCount === null || deviceCount === 0) {
-    return deletedText;
-  }
-  const verb = deviceCount === 1 ? 'was' : 'were';
-  return `${deletedText} ${resolveQuantityText(deviceCount, { noun: 'device' })} ${verb} on it.`;
+function resolveDeviceRows(deviceCount: number | null): Detail[] {
+  return deviceCount === null ? [] : [['Devices', String(deviceCount)]];
 }
 
 // A deleted app has no channels either.

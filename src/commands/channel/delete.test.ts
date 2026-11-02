@@ -1,4 +1,4 @@
-import { confirm } from '@clack/prompts';
+import { S_SUCCESS, confirm } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
@@ -56,19 +56,15 @@ describe('channel delete', () => {
     });
     expect(readDeleteRequests()).toHaveLength(1);
     expect(harness.readLines()).toEqual([
-      `Deleted channel staging (${STAGING_CHANNEL.id}).`,
+      `${S_SUCCESS}  Deleted channel staging.`,
+      `   ID  ${STAGING_CHANNEL.id}`,
+      '',
     ]);
   });
 
-  it.each([
-    [
-      3,
-      `Deleted channel staging (${STAGING_CHANNEL.id}). 3 devices were on it.`,
-    ],
-    [0, `Deleted channel staging (${STAGING_CHANNEL.id}).`],
-  ])(
-    'should end the result line with the device count when %i devices were on the channel',
-    async (count, expectedLine) => {
+  it.each([3, 0])(
+    'should add a devices row when %i devices were on the channel',
+    async count => {
       respondWithChannels([STAGING_CHANNEL]);
       harness.routes[
         `GET /v1/apps/${DEMO_APP.id}/devices/count?channelId=${STAGING_CHANNEL.id}`
@@ -79,7 +75,11 @@ describe('channel delete', () => {
         undefined,
       );
 
-      expect(harness.readLines()).toEqual([expectedLine]);
+      expect(harness.readLines()).toEqual([
+        'Deleted channel staging.',
+        `ID       ${STAGING_CHANNEL.id}`,
+        `Devices  ${count}`,
+      ]);
     },
   );
 
@@ -119,9 +119,8 @@ describe('channel delete', () => {
     );
 
     expect(readDeleteRequests()).toEqual([]);
-    expect(harness.readLines()).toEqual([
-      'The channel does not exist. There is nothing to delete.',
-    ]);
+    expect(harness.readLines()).toEqual(['The channel does not exist.']);
+    expect(harness.readDiagnostics()).toBe('There is nothing to delete.\n');
   });
 
   it('should print the id given with a null name when --ignore-not-found and --json are passed and the API does not know the id', async () => {

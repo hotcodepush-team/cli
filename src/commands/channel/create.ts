@@ -10,7 +10,7 @@ import {
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson } from '../../utils/output.js';
+import { printJson, printResult } from '../../utils/output.js';
 import { readProjectConfig } from '../../utils/project-config.js';
 import { promptText } from '../../utils/prompts.js';
 import { resolveNamedResource } from '../../utils/resources.js';
@@ -90,6 +90,9 @@ function printChannel(
   if (isJson) {
     printJson(channel);
   } else {
-    console.log(`${sentencePrefix} ${channel.name} (${channel.id}).`);
+    printResult({
+      rows: [['ID', channel.id]],
+      sentence: `${sentencePrefix} ${channel.name}.`,
+    });
   }
 }
