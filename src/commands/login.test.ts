@@ -387,7 +387,7 @@ describe('login', () => {
       const stdout = captureStdout();
       fetchMock.mockResolvedValueOnce(Response.json(DEVICE_AUTHORIZATION));
 
-      const exitCode = await runLogin(['--json']);
+      const exitCode = await runLogin(['--json', '--no-input']);
 
       expect(exitCode).toBe(3);
       expect(JSON.parse(stdout.read())).toEqual({
@@ -426,13 +426,13 @@ describe('login', () => {
     it('should log in with the kept code on the next login once it is approved', async () => {
       const stdout = captureStdout();
       fetchMock.mockResolvedValueOnce(Response.json(DEVICE_AUTHORIZATION));
-      await runLogin(['--json']);
+      await runLogin(['--json', '--no-input']);
       fetchMock
         .mockResolvedValueOnce(Response.json(TOKEN))
         .mockResolvedValueOnce(Response.json(SESSION));
       stdout.clear();
 
-      const exitCode = await runLogin(['--json']);
+      const exitCode = await runLogin(['--json', '--no-input']);
 
       expect(exitCode).toBe(0);
       expect(JSON.parse(stdout.read())).toEqual({ user: SESSION.user });
@@ -478,7 +478,7 @@ describe('login', () => {
           .mockResolvedValueOnce(respondWithDeviceError(error))
           .mockResolvedValueOnce(Response.json(DEVICE_AUTHORIZATION));
 
-        const exitCode = await runLogin(['--json']);
+        const exitCode = await runLogin(['--json', '--no-input']);
 
         expect(exitCode).toBe(3);
         expect(readRequests().map(request => request.url)).toEqual([
@@ -497,7 +497,7 @@ describe('login', () => {
       writeKeptCode(new Date(Date.now() - 1));
       fetchMock.mockResolvedValueOnce(Response.json(DEVICE_AUTHORIZATION));
 
-      await runLogin(['--json']);
+      await runLogin(['--json', '--no-input']);
 
       expect(readRequests().map(request => request.url)).toEqual([
         `${API_URL}/v1/auth/device/code`,
@@ -511,7 +511,7 @@ describe('login', () => {
         respondWithDeviceError('authorization_pending'),
       );
 
-      const exitCode = await runLogin(['--json']);
+      const exitCode = await runLogin(['--json', '--no-input']);
 
       expect(exitCode).toBe(3);
       expect(JSON.parse(stdout.read())).toEqual({

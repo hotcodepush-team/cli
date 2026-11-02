@@ -1034,6 +1034,42 @@ describe('init', () => {
     );
   });
 
+  it('should skip the signing key and the first release under --json at a terminal, so stdout stays one document', async () => {
+    stubInteractiveTerminal();
+    answerConfirmations({
+      changeFiles: true,
+      createSigningKey: true,
+      publishFirstRelease: true,
+    });
+    const directoryPath = writeProject({
+      isPackageInstalled: true,
+      projectConfig: {
+        appId: DEMO_APP.id,
+        channel: PRODUCTION_CHANNEL.name,
+      },
+    });
+    respondWithSession([ACME_ORGANIZATION]);
+    respondWithConfiguredApp();
+    respondWithSigningKeyCount(0);
+
+    await initCommand.action(
+      { config: join(directoryPath, 'hotcodepush.json'), json: true },
+      undefined,
+    );
+
+    const { steps } = harness.readJson() as InitResult;
+    expect(
+      steps.filter(({ step }) => step === 'signing_key' || step === 'release'),
+    ).toEqual([
+      {
+        message: 'Run "hotcodepush signing-key create" to enable code signing.',
+        status: 'skipped',
+        step: 'signing_key',
+      },
+      expect.objectContaining({ status: 'skipped', step: 'release' }),
+    ]);
+  });
+
   it('should skip the signing key for an app that has one', async () => {
     const directoryPath = writeProject({
       isPackageInstalled: true,

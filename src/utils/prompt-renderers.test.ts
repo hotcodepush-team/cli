@@ -45,6 +45,30 @@ beforeEach(() => {
   vi.stubEnv('NO_COLOR', '1');
 });
 
+it('should write to stderr when no output stream is given, so stdout stays the result', async () => {
+  const stderrWrite = vi
+    .spyOn(process.stderr, 'write')
+    .mockImplementation(() => true);
+  const stdoutWrite = vi
+    .spyOn(process.stdout, 'write')
+    .mockImplementation(() => true);
+  const terminal = createTerminal();
+
+  const answer = confirm({
+    initialValue: true,
+    input: terminal.input,
+    message: 'Log in now?',
+  });
+  await terminal.type(RETURN_KEY);
+  await answer;
+
+  expect(
+    stderrWrite.mock.calls.map(([chunk]) => String(chunk)).join(''),
+  ).toContain('Log in now?');
+  expect(stdoutWrite).not.toHaveBeenCalled();
+  vi.restoreAllMocks();
+});
+
 describe('confirm', () => {
   it('should draw the question and both choices on one line while open', async () => {
     const terminal = createTerminal();

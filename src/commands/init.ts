@@ -196,6 +196,14 @@ export default defineCommand({
   },
 });
 
+// A nested command would print its own JSON into init's one document, so the step that runs one is skipped under --json.
+async function isNestedCommandWanted(
+  message: string,
+  options: InitOptions,
+): Promise<boolean> {
+  return !options.json && (await promptYesNo(message, options));
+}
+
 function locateInitProject(options: InitOptions): InitProject {
   const location = locateProjectConfig(options.config);
   const framework =
@@ -279,7 +287,7 @@ async function runReleaseSteps(
 ): Promise<boolean> {
   const isReleaseWanted =
     run.stoppedCode === undefined &&
-    (await promptYesNo('Publish a first release now?', options));
+    (await isNestedCommandWanted('Publish a first release now?', options));
   const isBuilt = await run.run('build', {
     perform: () => runBuildScript(projectFiles, { isReleaseWanted }),
   });
@@ -679,7 +687,7 @@ async function createSigningKey(
   }
   if (
     app === undefined ||
-    !(await promptYesNo('Generate a signing key pair?', options))
+    !(await isNestedCommandWanted('Generate a signing key pair?', options))
   ) {
     return SIGNING_KEY_DECLINED_OUTCOME;
   }

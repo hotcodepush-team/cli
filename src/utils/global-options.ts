@@ -20,7 +20,13 @@ const globalOptionsShape = {
   json: z
     .boolean()
     .optional()
-    .describe('Print machine output as JSON on stdout and ask nothing.'),
+    .describe('Print machine output as JSON on stdout.'),
+  noInput: z
+    .boolean()
+    .optional()
+    .describe(
+      'Ask nothing: a missing value is an error and a change that needs a confirmation is refused.',
+    ),
   organization: z
     .string()
     .optional()

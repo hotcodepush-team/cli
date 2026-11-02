@@ -21,7 +21,7 @@ export interface Choice<TValue extends string> {
   value: TValue;
 }
 
-// A run reads the terminal; a test passes the streams it drives.
+// A run reads the terminal and answers on stderr, so stdout stays the result; a test passes the streams it drives.
 interface Question {
   input?: Readable;
   message: string;
@@ -57,7 +57,7 @@ export function confirm({
   initialValue,
   input,
   message,
-  output,
+  output = process.stderr,
 }: ConfirmQuestion): Promise<boolean | symbol | undefined> {
   return new ConfirmPrompt({
     active: YES,
@@ -74,7 +74,7 @@ export function confirm({
         resolveChoiceText(YES, { isActive: this.value === true }),
         resolveChoiceText(NO, { isActive: this.value !== true }),
       ];
-      return `${resolveQuestionLine(this.state, { message })} ${choices.join(` ${styleStdout('dim', '/')} `)}`;
+      return `${resolveQuestionLine(this.state, { message })} ${choices.join(` ${styleStderr('dim', '/')} `)}`;
     },
   }).prompt();
 }
@@ -82,7 +82,7 @@ export function confirm({
 export function password({
   input,
   message,
-  output,
+  output = process.stderr,
   validate,
 }: InputQuestion): Promise<string | symbol | undefined> {
   return new PasswordPrompt({
@@ -106,7 +106,7 @@ export function select<TValue extends string>({
   input,
   message,
   options,
-  output,
+  output = process.stderr,
 }: SelectQuestion<TValue>): Promise<TValue | symbol | undefined> {
   return new SelectPrompt({
     input,
@@ -136,7 +136,7 @@ export function select<TValue extends string>({
 export function text({
   input,
   message,
-  output,
+  output = process.stderr,
   validate,
 }: InputQuestion): Promise<string | symbol | undefined> {
   return new TextPrompt({
@@ -163,8 +163,8 @@ function resolveChoiceText(
   { isActive }: { isActive: boolean },
 ): string {
   return isActive
-    ? `${styleStdout('green', S_RADIO_ACTIVE)} ${label}`
-    : styleStdout('dim', `${S_RADIO_INACTIVE} ${label}`);
+    ? `${styleStderr('green', S_RADIO_ACTIVE)} ${label}`
+    : styleStderr('dim', `${S_RADIO_INACTIVE} ${label}`);
 }
 
 function resolveInputFrame(
@@ -176,7 +176,7 @@ function resolveInputFrame(
   }
   const inputLine = `${resolveQuestionLine(state, { message })} ${input}`;
   return state === 'error'
-    ? `${inputLine}\n${CONTINUATION_INDENT}${styleStdout('yellow', error)}`
+    ? `${inputLine}\n${CONTINUATION_INDENT}${styleStderr('yellow', error)}`
     : inputLine;
 }
 
@@ -192,11 +192,11 @@ function resolveSettledLine(
   { answer, message }: { answer: string; message: string },
 ): string {
   const format: Format = state === 'cancel' ? ['strikethrough', 'dim'] : 'dim';
-  return `${resolveQuestionLine(state, { message })} ${styleStdout(format, answer)}`;
+  return `${resolveQuestionLine(state, { message })} ${styleStderr(format, answer)}`;
 }
 
-function styleStdout(format: Format, text: string): string {
-  return isColorEnabled(process.stdout)
+function styleStderr(format: Format, text: string): string {
+  return isColorEnabled(process.stderr)
     ? styleText(format, text, { validateStream: false })
     : text;
 }
