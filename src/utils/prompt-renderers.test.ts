@@ -19,9 +19,9 @@ const RETURN_KEY = '\r';
 const DOWN_KEY = '\x1b[B';
 
 // Each frame clack writes, control sequences stripped, so a test reads what the terminal would show.
-function createTerminal() {
+function createTerminal({ rows }: { rows?: number } = {}) {
   const input = new PassThrough();
-  const output = new PassThrough();
+  const output = Object.assign(new PassThrough(), { rows });
   const frames: string[] = [];
   output.on('data', (chunk: Buffer) => {
     const frame = stripVTControlCharacters(chunk.toString()).trim();
@@ -30,6 +30,7 @@ function createTerminal() {
     }
   });
   return {
+    frames,
     input,
     output,
     lastFrame: () => frames.at(-1),
@@ -40,11 +41,11 @@ function createTerminal() {
   };
 }
 
-describe('confirm', () => {
-  beforeEach(() => {
-    vi.stubEnv('NO_COLOR', '1');
-  });
+beforeEach(() => {
+  vi.stubEnv('NO_COLOR', '1');
+});
 
+describe('confirm', () => {
   it('should draw the question and both choices on one line while open', async () => {
     const terminal = createTerminal();
 
@@ -56,7 +57,9 @@ describe('confirm', () => {
     await terminal.type(RETURN_KEY);
     await answer;
 
-    expect(terminal.lastFrame()).toBe(`${S_STEP_SUBMIT}  Log in now? Yes`);
+    expect(terminal.frames[0]).toBe(
+      `${S_STEP_ACTIVE}  Log in now? ${S_RADIO_ACTIVE} Yes / ${S_RADIO_INACTIVE} No`,
+    );
   });
 
   it('should keep the answer on the question line once submitted', async () => {
@@ -89,19 +92,8 @@ describe('confirm', () => {
 });
 
 describe('select', () => {
-  beforeEach(() => {
-    vi.stubEnv('NO_COLOR', '1');
-  });
-
   it('should list the choices under the question and keep the chosen one on its line', async () => {
     const terminal = createTerminal();
-    const frames: string[] = [];
-    terminal.output.on('data', () => {
-      const frame = terminal.lastFrame();
-      if (frame !== undefined) {
-        frames.push(frame);
-      }
-    });
 
     const answer = select({
       ...terminal,
@@ -115,7 +107,7 @@ describe('select', () => {
     await terminal.type(RETURN_KEY);
 
     expect(await answer).toBe('expo');
-    expect(frames[0]).toBe(
+    expect(terminal.frames[0]).toBe(
       [
         `${S_STEP_ACTIVE}  Which framework?`,
         `   ${S_RADIO_ACTIVE} Capacitor`,
@@ -126,13 +118,35 @@ describe('select', () => {
       `${S_STEP_SUBMIT}  Which framework? Expo`,
     );
   });
+
+  it('should show a window of the choices with an ellipsis when the terminal has fewer rows', async () => {
+    const terminal = createTerminal({ rows: 9 });
+
+    const answer = select({
+      ...terminal,
+      message: 'Which bundle?',
+      options: Array.from({ length: 12 }, (_, index) => ({
+        label: `#${12 - index}`,
+        value: `bundle-${index}`,
+      })),
+    });
+    await terminal.type(RETURN_KEY);
+    await answer;
+
+    expect(terminal.frames[0]).toBe(
+      [
+        `${S_STEP_ACTIVE}  Which bundle?`,
+        `   ${S_RADIO_ACTIVE} #12`,
+        `   ${S_RADIO_INACTIVE} #11`,
+        `   ${S_RADIO_INACTIVE} #10`,
+        `   ${S_RADIO_INACTIVE} #9`,
+        '   ...',
+      ].join('\n'),
+    );
+  });
 });
 
 describe('text', () => {
-  beforeEach(() => {
-    vi.stubEnv('NO_COLOR', '1');
-  });
-
   it('should keep the typed value on the question line once submitted', async () => {
     const terminal = createTerminal();
 
@@ -162,7 +176,7 @@ describe('text', () => {
 
     expect(terminal.lastFrame()).toBe(
       [
-        `${S_STEP_ERROR}  What is the channel called? \u2588`,
+        `${S_STEP_ERROR}  What is the channel called? █`,
         '   Enter a value.',
       ].join('\n'),
     );
@@ -173,22 +187,21 @@ describe('text', () => {
 });
 
 describe('password', () => {
-  beforeEach(() => {
-    vi.stubEnv('NO_COLOR', '1');
-  });
-
-  it('should show the mask and never the secret, once submitted too', async () => {
+  it('should show the mask and never the secret in any frame', async () => {
     const terminal = createTerminal();
 
     const answer = password({
       ...terminal,
       message: 'Token?',
-      validate: () => undefined,
+      validate: value => (value === 'ab' ? 'Too short.' : undefined),
     });
-    await terminal.type('abc');
+    await terminal.type('ab');
+    await terminal.type(RETURN_KEY);
+    await terminal.type('c');
     await terminal.type(RETURN_KEY);
 
     expect(await answer).toBe('abc');
+    expect(terminal.frames.join('\n')).not.toContain('ab');
     expect(terminal.lastFrame()).toBe(
       `${S_STEP_SUBMIT}  Token? ${S_PASSWORD_MASK.repeat(3)}`,
     );

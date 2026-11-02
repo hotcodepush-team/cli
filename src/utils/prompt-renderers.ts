@@ -8,6 +8,7 @@ import {
   TextPrompt,
 } from '@clack/core';
 import {
+  limitOptions,
   S_PASSWORD_MASK,
   S_RADIO_ACTIVE,
   S_RADIO_INACTIVE,
@@ -49,8 +50,9 @@ interface InputFrame {
 type Format = Parameters<typeof styleText>[0];
 
 const CONTINUATION_INDENT = '   ';
+const NO = 'No';
+const YES = 'Yes';
 
-// A prompt is one line, the symbol of its state and the question, with the answer after it once given, so it reads like the diagnostics around it.
 export function confirm({
   initialValue,
   input,
@@ -58,21 +60,21 @@ export function confirm({
   output,
 }: ConfirmQuestion): Promise<boolean | symbol | undefined> {
   return new ConfirmPrompt({
-    active: 'Yes',
-    inactive: 'No',
+    active: YES,
+    inactive: NO,
     initialValue,
     input,
     output,
     render() {
-      const answer = this.value ? 'Yes' : 'No';
-      if (isAnswered(this.state)) {
-        return resolveAnsweredLine(this.state, { answer, message });
+      const answer = this.value ? YES : NO;
+      if (isSettled(this.state)) {
+        return resolveSettledLine(this.state, { answer, message });
       }
       const choices = [
-        resolveChoiceText('Yes', { isActive: this.value === true }),
-        resolveChoiceText('No', { isActive: this.value !== true }),
+        resolveChoiceText(YES, { isActive: this.value === true }),
+        resolveChoiceText(NO, { isActive: this.value !== true }),
       ];
-      return `${resolveQuestionLine(this.state, message)} ${choices.join(` ${style('dim', '/')} `)}`;
+      return `${resolveQuestionLine(this.state, { message })} ${choices.join(` ${styleStdout('dim', '/')} `)}`;
     },
   }).prompt();
 }
@@ -87,7 +89,6 @@ export function password({
     input,
     mask: S_PASSWORD_MASK,
     output,
-    validate,
     render() {
       return resolveInputFrame(this.state, {
         answer: this.masked,
@@ -96,9 +97,11 @@ export function password({
         message,
       });
     },
+    validate,
   }).prompt();
 }
 
+// The choices are the window clack fits into the terminal's rows, scrolled with the cursor and cut with a dimmed ellipsis.
 export function select<TValue extends string>({
   input,
   message,
@@ -110,20 +113,22 @@ export function select<TValue extends string>({
     options,
     output,
     render() {
-      const activeChoice = this.options[this.cursor];
-      if (isAnswered(this.state)) {
-        return resolveAnsweredLine(this.state, {
-          answer: activeChoice?.label ?? '',
+      if (isSettled(this.state)) {
+        return resolveSettledLine(this.state, {
+          answer: this.options[this.cursor]?.label ?? '',
           message,
         });
       }
-      const choiceLines = this.options.map(
-        ({ label }, index) =>
-          `${CONTINUATION_INDENT}${resolveChoiceText(label, { isActive: index === this.cursor })}`,
-      );
-      return [resolveQuestionLine(this.state, message), ...choiceLines].join(
-        '\n',
-      );
+      const choiceLines = limitOptions({
+        cursor: this.cursor,
+        options: this.options,
+        output,
+        style: ({ label }, isActive) => resolveChoiceText(label, { isActive }),
+      }).map(line => `${CONTINUATION_INDENT}${line}`);
+      return [
+        resolveQuestionLine(this.state, { message }),
+        ...choiceLines,
+      ].join('\n');
     },
   }).prompt();
 }
@@ -137,7 +142,6 @@ export function text({
   return new TextPrompt({
     input,
     output,
-    validate,
     render() {
       return resolveInputFrame(this.state, {
         answer: this.value ?? '',
@@ -146,20 +150,12 @@ export function text({
         message,
       });
     },
+    validate,
   }).prompt();
 }
 
-function isAnswered(state: State): boolean {
+function isSettled(state: State): boolean {
   return state === 'submit' || state === 'cancel';
-}
-
-// The answer is dimmed once given and struck through when the prompt was cancelled.
-function resolveAnsweredLine(
-  state: State,
-  { answer, message }: { answer: string; message: string },
-): string {
-  const format: Format = state === 'cancel' ? ['strikethrough', 'dim'] : 'dim';
-  return `${resolveQuestionLine(state, message)} ${style(format, answer)}`;
 }
 
 function resolveChoiceText(
@@ -167,29 +163,39 @@ function resolveChoiceText(
   { isActive }: { isActive: boolean },
 ): string {
   return isActive
-    ? `${style('green', S_RADIO_ACTIVE)} ${label}`
-    : style('dim', `${S_RADIO_INACTIVE} ${label}`);
+    ? `${styleStdout('green', S_RADIO_ACTIVE)} ${label}`
+    : styleStdout('dim', `${S_RADIO_INACTIVE} ${label}`);
 }
 
-// The validation message takes the line below the input, the symbol marking the error.
 function resolveInputFrame(
   state: State,
   { answer, error, input, message }: InputFrame,
 ): string {
-  if (isAnswered(state)) {
-    return resolveAnsweredLine(state, { answer, message });
+  if (isSettled(state)) {
+    return resolveSettledLine(state, { answer, message });
   }
-  const inputLine = `${resolveQuestionLine(state, message)} ${input}`;
+  const inputLine = `${resolveQuestionLine(state, { message })} ${input}`;
   return state === 'error'
-    ? `${inputLine}\n${CONTINUATION_INDENT}${style('yellow', error)}`
+    ? `${inputLine}\n${CONTINUATION_INDENT}${styleStdout('yellow', error)}`
     : inputLine;
 }
 
-function resolveQuestionLine(state: State, message: string): string {
+function resolveQuestionLine(
+  state: State,
+  { message }: { message: string },
+): string {
   return `${symbol(state)}  ${message}`;
 }
 
-function style(format: Format, text: string): string {
+function resolveSettledLine(
+  state: State,
+  { answer, message }: { answer: string; message: string },
+): string {
+  const format: Format = state === 'cancel' ? ['strikethrough', 'dim'] : 'dim';
+  return `${resolveQuestionLine(state, { message })} ${styleStdout(format, answer)}`;
+}
+
+function styleStdout(format: Format, text: string): string {
   return isColorEnabled(process.stdout)
     ? styleText(format, text, { validateStream: false })
     : text;
