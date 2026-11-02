@@ -23,6 +23,10 @@ export class InitRun {
   readonly steps: InitStep[] = [];
   private readonly unmetSteps = new Set<string>();
 
+  get status(): 'complete' | 'incomplete' {
+    return this.stoppedCode === undefined ? 'complete' : 'incomplete';
+  }
+
   get stoppedCode(): string | undefined {
     return this.steps.find(({ status }) => status === 'stopped')?.code;
   }

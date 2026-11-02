@@ -27,13 +27,15 @@ describe('credential', () => {
   });
 
   it('should say logged in for the stored session', () => {
-    expect(resolveCredentialText(RUNNER_USER, false)).toBe(
-      'Logged in as Anna Example (anna@example.com).',
-    );
+    expect(
+      resolveCredentialText(RUNNER_USER, { isEnvironmentToken: false }),
+    ).toBe('Logged in as Anna Example (anna@example.com).');
   });
 
   it('should name HOTCODEPUSH_TOKEN when the token variable authenticates', () => {
-    expect(resolveCredentialText(RUNNER_USER, true)).toBe(
+    expect(
+      resolveCredentialText(RUNNER_USER, { isEnvironmentToken: true }),
+    ).toBe(
       'Authenticated with HOTCODEPUSH_TOKEN as Anna Example (anna@example.com).',
     );
   });

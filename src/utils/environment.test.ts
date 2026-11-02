@@ -4,7 +4,7 @@ import { isColorEnabled, isInteractive } from './environment.js';
 const originalStdinIsTty = process.stdin.isTTY;
 const originalStdoutIsTty = process.stdout.isTTY;
 
-function stubIsTty(isTty: boolean): void {
+function stubTty({ isTty }: { isTty: boolean }): void {
   process.stdin.isTTY = isTty;
   process.stdout.isTTY = isTty;
 }
@@ -17,42 +17,42 @@ describe('environment', () => {
 
   describe('isInteractive', () => {
     it('should be interactive when on a TTY outside CI', () => {
-      stubIsTty(true);
+      stubTty({ isTty: true });
       vi.stubEnv('CI', undefined);
 
       expect(isInteractive({})).toBe(true);
     });
 
     it('should not be interactive when there is no TTY', () => {
-      stubIsTty(false);
+      stubTty({ isTty: false });
       vi.stubEnv('CI', undefined);
 
       expect(isInteractive({})).toBe(false);
     });
 
     it('should not be interactive when CI is set, even on a TTY', () => {
-      stubIsTty(true);
+      stubTty({ isTty: true });
       vi.stubEnv('CI', 'true');
 
       expect(isInteractive({})).toBe(false);
     });
 
     it('should stay interactive when --json is passed', () => {
-      stubIsTty(true);
+      stubTty({ isTty: true });
       vi.stubEnv('CI', undefined);
 
       expect(isInteractive({ json: true })).toBe(true);
     });
 
     it('should not be interactive when --no-input is passed', () => {
-      stubIsTty(true);
+      stubTty({ isTty: true });
       vi.stubEnv('CI', undefined);
 
       expect(isInteractive({ noInput: true })).toBe(false);
     });
 
     it('should not be interactive when --yes is passed', () => {
-      stubIsTty(true);
+      stubTty({ isTty: true });
       vi.stubEnv('CI', undefined);
 
       expect(isInteractive({ yes: true })).toBe(false);
@@ -61,7 +61,7 @@ describe('environment', () => {
 
   describe('isColorEnabled', () => {
     it('should enable colour when the stream is a TTY', () => {
-      stubIsTty(true);
+      stubTty({ isTty: true });
       vi.stubEnv('NO_COLOR', undefined);
       vi.stubEnv('TERM', 'xterm-256color');
 
@@ -69,7 +69,7 @@ describe('environment', () => {
     });
 
     it('should disable colour when the stream is not a TTY', () => {
-      stubIsTty(false);
+      stubTty({ isTty: false });
       vi.stubEnv('NO_COLOR', undefined);
       vi.stubEnv('TERM', 'xterm-256color');
 
@@ -77,7 +77,7 @@ describe('environment', () => {
     });
 
     it('should disable colour when NO_COLOR is set', () => {
-      stubIsTty(true);
+      stubTty({ isTty: true });
       vi.stubEnv('NO_COLOR', '1');
       vi.stubEnv('TERM', 'xterm-256color');
 
@@ -85,7 +85,7 @@ describe('environment', () => {
     });
 
     it('should enable colour when NO_COLOR is empty', () => {
-      stubIsTty(true);
+      stubTty({ isTty: true });
       vi.stubEnv('NO_COLOR', '');
       vi.stubEnv('TERM', 'xterm-256color');
 
@@ -93,7 +93,7 @@ describe('environment', () => {
     });
 
     it('should disable colour when TERM is dumb', () => {
-      stubIsTty(true);
+      stubTty({ isTty: true });
       vi.stubEnv('NO_COLOR', undefined);
       vi.stubEnv('TERM', 'dumb');
 

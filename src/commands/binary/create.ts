@@ -96,36 +96,26 @@ export default defineCommand({
     const buildStep = await readBuildStep(options);
     const { embeddedFiles, platform, resourceFilePath } = buildStep;
     if (embeddedFiles === undefined) {
-      writeDebugBuildResourceFile(buildStep, options);
+      writeDebugBuildResourceFile(buildStep);
+      if (options.json) {
+        printJson({ binary: null, resourceFilePath, upload: NO_UPLOAD });
+      }
       return;
     }
-    assertWithinBundleBytesLimit(embeddedFiles);
     const identity = resolveBinaryIdentity(options);
-    const binaryCreation = await createBuildBinary(buildStep, {
+    const binaryCreation = await runReleaseBuild(buildStep, {
       files: embeddedFiles,
+      identity,
+      isForced: options.force ?? false,
       reporter: createReporter(options),
-      request: resolveCreationRequest(buildStep, {
-        identity,
-        isForced: options.force ?? false,
-      }),
     });
-    writeBuildResourceFile(buildStep, {
-      channelId: binaryCreation.channelId,
-      embeddedBundle: {
-        bundleVersion: identity.binaryVersion,
-        files: embeddedFiles,
-        id: binaryCreation.binary?.bundleId ?? null,
-      },
-    });
-    if (binaryCreation.pipelineFailure !== undefined) {
-      throw binaryCreation.pipelineFailure;
-    }
-    if (binaryCreation.skippedReason !== null) {
-      printWarning(binaryCreation.skippedReason);
+    if (options.json) {
+      const { binary, upload } = binaryCreation;
+      printJson({ binary, resourceFilePath, upload });
+      return;
     }
     printBinaryCreation(binaryCreation, {
       identity,
-      options,
       platform,
       resourceFilePath,
     });
@@ -226,24 +216,14 @@ function printBinaryCreation(
   binaryCreation: BinaryCreation,
   {
     identity,
-    options,
     platform,
     resourceFilePath,
   }: {
     identity: BinaryIdentity;
-    options: { json?: boolean };
     platform: Platform;
     resourceFilePath: string;
   },
 ): void {
-  if (options.json) {
-    printJson({
-      binary: binaryCreation.binary,
-      resourceFilePath,
-      upload: binaryCreation.upload,
-    });
-    return;
-  }
   if (binaryCreation.binary === null) {
     printWrittenResourceFile(resourceFilePath, { platform });
     return;
@@ -375,6 +355,43 @@ function resolveOfflineText(
   return `${causeText}, so the build was made offline${consequenceText}${fixText}.`;
 }
 
+async function runReleaseBuild(
+  buildStep: BuildStep,
+  {
+    files,
+    identity,
+    isForced,
+    reporter,
+  }: {
+    files: BundleFile[];
+    identity: BinaryIdentity;
+    isForced: boolean;
+    reporter: Reporter;
+  },
+): Promise<BinaryCreation> {
+  assertWithinBundleBytesLimit(files);
+  const binaryCreation = await createBuildBinary(buildStep, {
+    files,
+    reporter,
+    request: resolveCreationRequest(buildStep, { identity, isForced }),
+  });
+  writeBuildResourceFile(buildStep, {
+    channelId: binaryCreation.channelId,
+    embeddedBundle: {
+      bundleVersion: identity.binaryVersion,
+      files,
+      id: binaryCreation.binary?.bundleId ?? null,
+    },
+  });
+  if (binaryCreation.pipelineFailure !== undefined) {
+    throw binaryCreation.pipelineFailure;
+  }
+  if (binaryCreation.skippedReason !== null) {
+    printWarning(binaryCreation.skippedReason);
+  }
+  return binaryCreation;
+}
+
 async function uploadFilesTheBinaryLacks(
   hotCodePush: HotCodePush,
   {
@@ -403,10 +420,7 @@ async function uploadFilesTheBinaryLacks(
   );
 }
 
-function writeDebugBuildResourceFile(
-  buildStep: BuildStep,
-  options: { json?: boolean },
-): void {
+function writeDebugBuildResourceFile(buildStep: BuildStep): void {
   const { platform, resourceFilePath } = buildStep;
   writeBuildResourceFile(buildStep, {
     channelId: resolveChannelIdByShape(buildStep.channelReference),
@@ -415,7 +429,4 @@ function writeDebugBuildResourceFile(
   printNotice(
     `No binary created: the ${platform} build bundled no JavaScript, as a debug build served by the development server does. Wrote ${resourceFilePath} without an embedded bundle: over-the-air (OTA) updates are off in this build.`,
   );
-  if (options.json) {
-    printJson({ binary: null, resourceFilePath, upload: NO_UPLOAD });
-  }
 }

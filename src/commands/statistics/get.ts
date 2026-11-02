@@ -22,6 +22,11 @@ import {
 import { readProjectConfig } from '../../utils/project-config.js';
 import { promptSelect } from '../../utils/prompts.js';
 
+type FetchedStatistics =
+  | { statistics: FleetStatistics; type: 'fleet' }
+  | { statistics: UpdateStatistics; type: 'updates' }
+  | { statistics: UsageStatistics; type: 'usage' };
+
 type StatisticsType = 'fleet' | 'updates' | 'usage';
 
 interface StatisticsOptions extends ChannelOptions {
@@ -85,31 +90,15 @@ export default defineCommand({
     const type = options.type ?? (await promptStatisticsType(options));
     assertFlagsOfType(type, options);
     const query = await fetchStatisticsQuery(hotCodePush, options);
-    const { appId } = query;
-    switch (type) {
-      case 'fleet':
-        return printFleetStatistics(
-          await hotCodePush.apps.statistics.fleet.get({
-            appId,
-            channelId: query.channelId,
-          }),
-          options,
-        );
-      case 'updates':
-        return printUpdateStatistics(
-          await hotCodePush.apps.statistics.updates.get(query),
-          options,
-        );
-      case 'usage':
-        return printUsageStatistics(
-          await hotCodePush.apps.statistics.usage.get({
-            appId,
-            periodSince: query.periodSince,
-            periodUntil: query.periodUntil,
-          }),
-          options,
-        );
+    const fetchedStatistics = await fetchStatistics(hotCodePush, {
+      query,
+      type,
+    });
+    if (options.json) {
+      printJson(fetchedStatistics.statistics);
+      return;
     }
+    printStatistics(fetchedStatistics);
   },
 });
 
@@ -131,6 +120,37 @@ function assertFlagsOfType(
     throw new InvalidParameterError(
       'The usage counts the whole app, never one channel, so --channel does not apply.',
     );
+  }
+}
+
+async function fetchStatistics(
+  hotCodePush: HotCodePush,
+  { query, type }: { query: StatisticsQuery; type: StatisticsType },
+): Promise<FetchedStatistics> {
+  const { appId, channelId, periodSince, periodUntil } = query;
+  switch (type) {
+    case 'fleet':
+      return {
+        statistics: await hotCodePush.apps.statistics.fleet.get({
+          appId,
+          channelId,
+        }),
+        type,
+      };
+    case 'updates':
+      return {
+        statistics: await hotCodePush.apps.statistics.updates.get(query),
+        type,
+      };
+    case 'usage':
+      return {
+        statistics: await hotCodePush.apps.statistics.usage.get({
+          appId,
+          periodSince,
+          periodUntil,
+        }),
+        type,
+      };
   }
 }
 
@@ -171,14 +191,7 @@ function printEventReasons(statistics: UpdateStatistics): void {
   }
 }
 
-function printFleetStatistics(
-  statistics: FleetStatistics,
-  { json }: InteractivityOptions,
-): void {
-  if (json) {
-    printJson(statistics);
-    return;
-  }
+function printFleetStatistics(statistics: FleetStatistics): void {
   printDetails([
     ['Active devices', String(statistics.deviceCount)],
     ['Current devices', String(statistics.currentDeviceCount)],
@@ -246,6 +259,17 @@ function printReleaseAdoption(statistics: UpdateStatistics): void {
   });
 }
 
+function printStatistics({ statistics, type }: FetchedStatistics): void {
+  switch (type) {
+    case 'fleet':
+      return printFleetStatistics(statistics);
+    case 'updates':
+      return printUpdateStatistics(statistics);
+    case 'usage':
+      return printUsageStatistics(statistics);
+  }
+}
+
 function printUpdateDays(statistics: UpdateStatistics): void {
   printTable({
     emptyText: 'No days in the period.',
@@ -267,28 +291,14 @@ function printUpdateDays(statistics: UpdateStatistics): void {
   });
 }
 
-function printUpdateStatistics(
-  statistics: UpdateStatistics,
-  { json }: InteractivityOptions,
-): void {
-  if (json) {
-    printJson(statistics);
-    return;
-  }
+function printUpdateStatistics(statistics: UpdateStatistics): void {
   printUpdateDays(statistics);
   console.log('');
   printReleaseAdoption(statistics);
   printEventReasons(statistics);
 }
 
-function printUsageStatistics(
-  statistics: UsageStatistics,
-  { json }: InteractivityOptions,
-): void {
-  if (json) {
-    printJson(statistics);
-    return;
-  }
+function printUsageStatistics(statistics: UsageStatistics): void {
   printTable({
     emptyText: 'No months in the period.',
     headers: ['MONTH', 'MAU', 'DATA TRANSFER'],

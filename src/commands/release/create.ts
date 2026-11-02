@@ -171,6 +171,18 @@ export default defineCommand({
     ),
 });
 
+// A dry run still hashes a web build and checks the size limit, but uploads nothing.
+async function assertBundlesWithinLimit(
+  bundleSource: BundleSource,
+): Promise<void> {
+  if (!('bundleUploads' in bundleSource)) {
+    return;
+  }
+  for (const bundleUpload of bundleSource.bundleUploads) {
+    assertWithinBundleBytesLimit(await collectUploadFiles(bundleUpload));
+  }
+}
+
 function buildReleaseBody(
   bundle: Bundle,
   {
@@ -235,7 +247,13 @@ async function createReleases(
     packagingDirectoryPath,
   });
   if (options.dryRun) {
-    await printDryRun(plan, options);
+    await assertBundlesWithinLimit(plan.bundleSource);
+    printAudienceWarnings(plan.channelAudiences);
+    if (options.json) {
+      printJson(resolveDryRunAudiences(plan.channelAudiences));
+    } else {
+      console.log(`Dry run, nothing published: this ${plan.consequence}.`);
+    }
     return;
   }
   if (!(await confirmConsequence(plan.consequence, options))) {
@@ -415,29 +433,6 @@ function printAudienceWarnings(channelAudiences: ChannelAudience[]): void {
   }
 }
 
-// A dry run still hashes a web build and checks the size limit, but uploads nothing.
-async function printDryRun(
-  { bundleSource, channelAudiences, consequence }: ReleasePlan,
-  options: ReleaseCreateOptions,
-): Promise<void> {
-  if ('bundleUploads' in bundleSource) {
-    for (const bundleUpload of bundleSource.bundleUploads) {
-      assertWithinBundleBytesLimit(await collectUploadFiles(bundleUpload));
-    }
-  }
-  printAudienceWarnings(channelAudiences);
-  if (options.json) {
-    printJson(
-      channelAudiences.map(({ audience, channel }) => ({
-        ...audience,
-        channelId: channel.id,
-      })),
-    );
-    return;
-  }
-  console.log(`Dry run, nothing published: this ${consequence}.`);
-}
-
 async function publishReleases(
   hotCodePush: HotCodePush,
   { options, plan }: { options: ReleaseCreateOptions; plan: ReleasePlan },
@@ -463,6 +458,15 @@ async function publishReleases(
     }
   }
   return releases;
+}
+
+function resolveDryRunAudiences(
+  channelAudiences: ChannelAudience[],
+): (Audience & { channelId: string })[] {
+  return channelAudiences.map(({ audience, channel }) => ({
+    ...audience,
+    channelId: channel.id,
+  }));
 }
 
 function resolveReleaseConsequence(

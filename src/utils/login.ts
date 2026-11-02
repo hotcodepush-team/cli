@@ -50,10 +50,9 @@ export async function logIn(
   options: InteractivityOptions,
 ): Promise<LoggedInUser> {
   const authClient = createApiAuthClient();
-  const sessionToken = await fetchSessionToken(
-    authClient,
-    isInteractive(options),
-  );
+  const sessionToken = await fetchSessionToken(authClient, {
+    isLoginInteractive: isInteractive(options),
+  });
   const { session, user } = await fetchSession(
     createApiAuthClient(sessionToken),
   );
@@ -136,7 +135,7 @@ function fetchDeviceToken(authClient: AuthClient, deviceCode: string) {
 // While pending it is shown again. Denied, expired or unknown, it gives way to a new one.
 async function fetchSessionToken(
   authClient: AuthClient,
-  isLoginInteractive: boolean,
+  { isLoginInteractive }: { isLoginInteractive: boolean },
 ): Promise<string> {
   const pendingDeviceAuthorization = readPendingDeviceAuthorization();
   if (
