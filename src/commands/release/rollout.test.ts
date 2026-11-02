@@ -1,4 +1,4 @@
-import { confirm, text } from '@clack/prompts';
+import { S_SUCCESS } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
@@ -15,11 +15,12 @@ import {
   RELEASES_PATH,
   respondWithStagingReleases,
 } from '../../../test/release-routes.js';
+import { confirm, text } from '../../utils/prompt-renderers.js';
 import releaseRolloutCommand from './rollout.js';
 
-vi.mock('@clack/prompts', () =>
-  import('../../../test/clack-prompts.js').then(
-    ({ clackPromptsMock }) => clackPromptsMock,
+vi.mock('../../utils/prompt-renderers.js', () =>
+  import('../../../test/prompt-renderers.js').then(
+    ({ promptRenderersMock }) => promptRenderersMock,
   ),
 );
 
@@ -68,7 +69,10 @@ describe('release rollout', () => {
     );
     expect(await updateRequest?.json()).toEqual({ rolloutPercent: 20 });
     expect(harness.readLines()).toEqual([
-      'Set release #43 of staging to 20 percent.',
+      `${S_SUCCESS}  Updated release #43 of staging.`,
+      `   ID       ${LIVE_RELEASE.id}`,
+      '   Rollout  20 percent',
+      '',
     ]);
   });
 
@@ -164,7 +168,10 @@ describe('release rollout', () => {
       rolloutPercent: 10,
     });
     expect(harness.readLines()).toEqual([
-      'Set release #43 of staging to 10 percent, progressing through 10, 50, 100 percent.',
+      `${S_SUCCESS}  Updated release #43 of staging.`,
+      `   ID       ${LIVE_RELEASE.id}`,
+      '   Rollout  10 percent, then 50 and 100',
+      '',
     ]);
   });
 

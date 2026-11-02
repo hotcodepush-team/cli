@@ -69,6 +69,8 @@ export function useCommandHarness(): CommandHarness {
     vi.stubEnv('HOTCODEPUSH_UPDATE_NOTICE_DISABLED', '1');
     vi.stubEnv('HOTCODEPUSH_SIGNING_KEY', undefined);
     vi.stubEnv('HOTCODEPUSH_TOKEN', TOKEN);
+    // A test on a terminal reads the symbols, never the colour codes around them.
+    vi.stubEnv('NO_COLOR', '1');
     vi.stubEnv('XDG_CONFIG_HOME', temporaryDirectoryPath);
     writeUserConfig({ apiUrl: API_URL });
     process.stdin.isTTY = false;

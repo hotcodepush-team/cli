@@ -177,6 +177,13 @@ export async function uploadPack(
 }
 
 // `upload_incomplete` names the missing hashes in its details.
+export function resolveUploadedFilesText({
+  fileCount,
+  sizeBytes,
+}: UploadedFiles): string {
+  return `${resolveQuantityText(fileCount, { noun: 'file' })}, ${resolveByteText(sizeBytes)}`;
+}
+
 export function resolveMissingSha256s(error: unknown): string[] | undefined {
   if (
     !(error instanceof HotCodePushError) ||

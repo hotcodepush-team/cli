@@ -1,4 +1,3 @@
-import { select } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
@@ -7,11 +6,12 @@ import {
 import { BINARY, DEMO_APP, FLEET } from '../../../test/fixtures.js';
 import { FLEET_PATH, respondWithFleet } from '../../../test/release-routes.js';
 import { MissingParameterError } from '../../utils/errors.js';
+import { select } from '../../utils/prompt-renderers.js';
 import binaryGetCommand from './get.js';
 
-vi.mock('@clack/prompts', () =>
-  import('../../../test/clack-prompts.js').then(
-    ({ clackPromptsMock }) => clackPromptsMock,
+vi.mock('../../utils/prompt-renderers.js', () =>
+  import('../../../test/prompt-renderers.js').then(
+    ({ promptRenderersMock }) => promptRenderersMock,
   ),
 );
 

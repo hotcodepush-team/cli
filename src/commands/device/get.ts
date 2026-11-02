@@ -38,6 +38,7 @@ export default defineCommand({
       return;
     }
     printDeviceDetails(fetchedDevice);
+    console.log('');
     printTable({
       emptyText: 'No outcomes yet: the device has not checked a release.',
       headers: ['RELEASE', 'OUTCOME', 'REASON', 'DATE'],

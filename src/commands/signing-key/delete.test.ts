@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { confirm } from '@clack/prompts';
+import { S_SUCCESS } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
@@ -11,11 +11,12 @@ import {
   SIGNING_KEY,
 } from '../../../test/fixtures.js';
 import { ConfirmationRequiredError } from '../../utils/errors.js';
+import { confirm } from '../../utils/prompt-renderers.js';
 import signingKeyDeleteCommand from './delete.js';
 
-vi.mock('@clack/prompts', () =>
-  import('../../../test/clack-prompts.js').then(
-    ({ clackPromptsMock }) => clackPromptsMock,
+vi.mock('../../utils/prompt-renderers.js', () =>
+  import('../../../test/prompt-renderers.js').then(
+    ({ promptRenderersMock }) => promptRenderersMock,
   ),
 );
 
@@ -61,7 +62,10 @@ describe('signing-key delete', () => {
       publicKeys: [OTHER_PUBLIC_KEY],
     });
     expect(harness.readLines()).toEqual([
-      `Deleted signing key ${SIGNING_KEY.keyId} (${SIGNING_KEY.id}).`,
+      `${S_SUCCESS}  Deleted the signing key.`,
+      `   ID      ${SIGNING_KEY.id}`,
+      `   Key ID  ${SIGNING_KEY.keyId}`,
+      '',
     ]);
   });
 

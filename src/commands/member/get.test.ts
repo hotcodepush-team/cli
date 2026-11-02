@@ -1,4 +1,3 @@
-import { select } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   API_URL,
@@ -11,11 +10,12 @@ import {
   OWNER_MEMBER,
 } from '../../../test/fixtures.js';
 import { MissingParameterError, UnknownNameError } from '../../utils/errors.js';
+import { select } from '../../utils/prompt-renderers.js';
 import memberGetCommand from './get.js';
 
-vi.mock('@clack/prompts', () =>
-  import('../../../test/clack-prompts.js').then(
-    ({ clackPromptsMock }) => clackPromptsMock,
+vi.mock('../../utils/prompt-renderers.js', () =>
+  import('../../../test/prompt-renderers.js').then(
+    ({ promptRenderersMock }) => promptRenderersMock,
   ),
 );
 

@@ -1,4 +1,4 @@
-import { confirm } from '@clack/prompts';
+import { S_SUCCESS } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
@@ -6,11 +6,12 @@ import {
 } from '../../../test/command-harness.js';
 import { ACME_ORGANIZATION, ADMIN_MEMBER } from '../../../test/fixtures.js';
 import { ConfirmationRequiredError } from '../../utils/errors.js';
+import { confirm } from '../../utils/prompt-renderers.js';
 import memberDeleteCommand from './delete.js';
 
-vi.mock('@clack/prompts', () =>
-  import('../../../test/clack-prompts.js').then(
-    ({ clackPromptsMock }) => clackPromptsMock,
+vi.mock('../../utils/prompt-renderers.js', () =>
+  import('../../../test/prompt-renderers.js').then(
+    ({ promptRenderersMock }) => promptRenderersMock,
   ),
 );
 
@@ -48,7 +49,9 @@ describe('member delete', () => {
     });
     expect(readDeleteRequests()).toHaveLength(1);
     expect(harness.readLines()).toEqual([
-      `Removed member bob@example.com (${ADMIN_MEMBER.id}).`,
+      `${S_SUCCESS}  Removed member bob@example.com.`,
+      `   ID  ${ADMIN_MEMBER.id}`,
+      '',
     ]);
   });
 

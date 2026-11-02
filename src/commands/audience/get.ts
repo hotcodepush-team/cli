@@ -78,6 +78,7 @@ function printAudience(
     ['PLATFORM', audience.platform],
     ['BINARY VERSION', audience.binaryVersion],
   ] as const) {
+    console.log('');
     printTable({
       emptyText: '',
       headers: [header, 'DEVICES'],

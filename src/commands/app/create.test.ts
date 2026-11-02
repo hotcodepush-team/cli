@@ -1,4 +1,3 @@
-import { select, text } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
@@ -10,11 +9,12 @@ import {
   GLOBEX_ORGANIZATION,
 } from '../../../test/fixtures.js';
 import { MissingParameterError } from '../../utils/errors.js';
+import { select, text } from '../../utils/prompt-renderers.js';
 import appCreateCommand from './create.js';
 
-vi.mock('@clack/prompts', () =>
-  import('../../../test/clack-prompts.js').then(
-    ({ clackPromptsMock }) => clackPromptsMock,
+vi.mock('../../utils/prompt-renderers.js', () =>
+  import('../../../test/prompt-renderers.js').then(
+    ({ promptRenderersMock }) => promptRenderersMock,
   ),
 );
 
@@ -43,7 +43,10 @@ describe('app create', () => {
     expect(harness.requests.at(-1)?.headers.get('Idempotency-Key')).toEqual(
       expect.any(String),
     );
-    expect(harness.readLines()).toEqual([`Created app Demo (${DEMO_APP.id}).`]);
+    expect(harness.readLines()).toEqual([
+      'Created app Demo.',
+      `ID  ${DEMO_APP.id}`,
+    ]);
   });
 
   it('should create the app in the organization --organization names and print it as JSON', async () => {

@@ -2,7 +2,7 @@ import { fetchWebhook, webhookOptionShape } from '../../resources/webhooks.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson } from '../../utils/output.js';
+import { printJson, printResult } from '../../utils/output.js';
 import { confirmConsequence } from '../../utils/prompts.js';
 
 export default defineCommand({
@@ -29,9 +29,10 @@ export default defineCommand({
     if (options.json) {
       printJson({ id: fetchedWebhook.id, name: fetchedWebhook.name });
     } else {
-      console.log(
-        `Deleted webhook ${fetchedWebhook.name} (${fetchedWebhook.id}).`,
-      );
+      printResult({
+        rows: [['ID', fetchedWebhook.id]],
+        sentence: `Deleted webhook ${fetchedWebhook.name}.`,
+      });
     }
   },
 });

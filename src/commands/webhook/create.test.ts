@@ -1,4 +1,3 @@
-import { select, text } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
@@ -10,11 +9,12 @@ import {
   WEBHOOK,
 } from '../../../test/fixtures.js';
 import { MissingParameterError } from '../../utils/errors.js';
+import { select, text } from '../../utils/prompt-renderers.js';
 import webhookCreateCommand from './create.js';
 
-vi.mock('@clack/prompts', () =>
-  import('../../../test/clack-prompts.js').then(
-    ({ clackPromptsMock }) => clackPromptsMock,
+vi.mock('../../utils/prompt-renderers.js', () =>
+  import('../../../test/prompt-renderers.js').then(
+    ({ promptRenderersMock }) => promptRenderersMock,
   ),
 );
 
@@ -55,10 +55,13 @@ describe('webhook create', () => {
       url: WEBHOOK.url,
     });
     expect(harness.readLines()).toEqual([
-      `Created webhook releases (${WEBHOOK.id}).`,
-      `Secret: ${SECRET}`,
-      'Store the secret now to verify the signature of every delivery. It is never shown again.',
+      'Created webhook releases.',
+      `ID      ${WEBHOOK.id}`,
+      `Secret  ${SECRET}`,
     ]);
+    expect(harness.readDiagnostics()).toBe(
+      'Store the secret now to verify the signature of every delivery. It is never shown again.\n',
+    );
   });
 
   it('should send the app filter by its id among the apps of the organization and print no secret for a chat format', async () => {
@@ -83,8 +86,10 @@ describe('webhook create', () => {
       format: 'slack',
     });
     expect(harness.readLines()).toEqual([
-      `Created webhook releases (${WEBHOOK.id}).`,
+      'Created webhook releases.',
+      `ID  ${WEBHOOK.id}`,
     ]);
+    expect(harness.readDiagnostics()).toBe('');
   });
 
   it('should print the created row with its secret as served when --json is passed', async () => {

@@ -2,16 +2,16 @@ import type { Organization } from '@hotcodepush/node';
 import { z } from 'zod';
 import {
   fetchOrganizationId,
-  printOrganizationDetails,
   resolveCents,
   resolveDollarText,
+  resolveOrganizationDetails,
   spendingCapShape,
 } from '../../resources/organizations.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import type { InteractivityOptions } from '../../utils/environment.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson } from '../../utils/output.js';
+import { printJson, printResult } from '../../utils/output.js';
 import { confirmConsequence, promptText } from '../../utils/prompts.js';
 
 export default defineCommand({
@@ -59,9 +59,9 @@ export default defineCommand({
     });
     if (options.json) {
       printJson(updatedOrganization);
-    } else {
-      printOrganizationDetails(updatedOrganization);
+      return;
     }
+    printUpdatedOrganization(updatedOrganization);
   },
 });
 
@@ -80,6 +80,13 @@ async function confirmSpendingCapChange(
       options,
     )
   );
+}
+
+function printUpdatedOrganization(organization: Organization): void {
+  printResult({
+    rows: resolveOrganizationDetails(organization),
+    sentence: `Updated organization ${organization.name}.`,
+  });
 }
 
 function resolveSpendingCapConsequence(

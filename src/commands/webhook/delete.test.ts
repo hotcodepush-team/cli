@@ -1,4 +1,4 @@
-import { confirm } from '@clack/prompts';
+import { S_SUCCESS } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
@@ -6,11 +6,12 @@ import {
 } from '../../../test/command-harness.js';
 import { ACME_ORGANIZATION, WEBHOOK } from '../../../test/fixtures.js';
 import { ConfirmationRequiredError } from '../../utils/errors.js';
+import { confirm } from '../../utils/prompt-renderers.js';
 import webhookDeleteCommand from './delete.js';
 
-vi.mock('@clack/prompts', () =>
-  import('../../../test/clack-prompts.js').then(
-    ({ clackPromptsMock }) => clackPromptsMock,
+vi.mock('../../utils/prompt-renderers.js', () =>
+  import('../../../test/prompt-renderers.js').then(
+    ({ promptRenderersMock }) => promptRenderersMock,
   ),
 );
 
@@ -46,7 +47,9 @@ describe('webhook delete', () => {
     });
     expect(readDeleteRequests()).toHaveLength(1);
     expect(harness.readLines()).toEqual([
-      `Deleted webhook releases (${WEBHOOK.id}).`,
+      `${S_SUCCESS}  Deleted webhook releases.`,
+      `   ID  ${WEBHOOK.id}`,
+      '',
     ]);
   });
 

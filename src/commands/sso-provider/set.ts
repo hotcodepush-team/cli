@@ -2,14 +2,14 @@ import { readFileSync } from 'node:fs';
 import type { SetSsoProviderOptions } from '@hotcodepush/node';
 import { z } from 'zod';
 import { fetchOrganizationId } from '../../resources/organizations.js';
-import { printProviderDetails } from '../../resources/sso-providers.js';
+import { resolveProviderDetails } from '../../resources/sso-providers.js';
 import type { SsoProviderType } from '../../resources/sso-providers.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import type { InteractivityOptions } from '../../utils/environment.js';
 import { InvalidParameterError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson } from '../../utils/output.js';
+import { printJson, printResult } from '../../utils/output.js';
 import { promptSecret, promptSelect, promptText } from '../../utils/prompts.js';
 
 interface OidcOptions extends InteractivityOptions {
@@ -122,10 +122,10 @@ export default defineCommand({
       printJson(updatedProvider);
       return;
     }
-    console.log(
-      `Set the ${providerType} provider for ${updatedProvider.domain}.`,
-    );
-    printProviderDetails(updatedProvider);
+    printResult({
+      rows: resolveProviderDetails(updatedProvider),
+      sentence: `Set the ${providerType} provider for ${updatedProvider.domain}.`,
+    });
   },
 });
 

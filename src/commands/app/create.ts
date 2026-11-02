@@ -4,7 +4,7 @@ import { fetchOrganizationId } from '../../resources/organizations.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson } from '../../utils/output.js';
+import { printJson, printResult } from '../../utils/output.js';
 import { promptSelect, promptText } from '../../utils/prompts.js';
 
 const FRAMEWORKS = [
@@ -57,7 +57,10 @@ export default defineCommand({
     if (options.json) {
       printJson(createdApp);
     } else {
-      console.log(`Created app ${createdApp.name} (${createdApp.id}).`);
+      printResult({
+        rows: [['ID', createdApp.id]],
+        sentence: `Created app ${createdApp.name}.`,
+      });
     }
   },
 });

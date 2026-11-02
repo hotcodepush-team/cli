@@ -158,6 +158,7 @@ function printEventReasons(statistics: UpdateStatistics): void {
     ['FAILURE REASON', statistics.failureReasons],
     ['SKIP REASON', statistics.skippedReasons],
   ] as const) {
+    console.log('');
     printTable({
       emptyText: `${header}: none in the period.`,
       headers: [header, 'EVENTS'],
@@ -182,6 +183,11 @@ function printFleetStatistics(
     ['Active devices', String(statistics.deviceCount)],
     ['Current devices', String(statistics.currentDeviceCount)],
   ]);
+  printFleetTables(statistics);
+}
+
+function printFleetTables(statistics: FleetStatistics): void {
+  console.log('');
   printFleetTable(
     ['RELEASE', 'DEVICES'],
     statistics.release.map(({ deviceCount, number }) => [
@@ -189,6 +195,7 @@ function printFleetStatistics(
       String(deviceCount),
     ]),
   );
+  console.log('');
   printFleetTable(
     ['BINARY', 'VERSION', 'PLATFORM', 'DEVICES'],
     statistics.binary.map(({ deviceCount, platform, value, version }) => [
@@ -199,6 +206,7 @@ function printFleetStatistics(
     ]),
   );
   for (const [header, dimension] of FLEET_DIMENSIONS) {
+    console.log('');
     printFleetTable(
       [header, 'DEVICES'],
       statistics[dimension].map(({ deviceCount, value }) => [
@@ -268,6 +276,7 @@ function printUpdateStatistics(
     return;
   }
   printUpdateDays(statistics);
+  console.log('');
   printReleaseAdoption(statistics);
   printEventReasons(statistics);
 }
@@ -292,6 +301,7 @@ function printUsageStatistics(
       ],
     ),
   });
+  console.log('');
   printTable({
     emptyText: 'No days in the period.',
     headers: ['DAY', 'CHECKS', 'DATA TRANSFER', 'DEVICE DOWNLOADS'],

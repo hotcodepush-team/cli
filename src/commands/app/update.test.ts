@@ -21,7 +21,8 @@ describe('app update', () => {
 
     expect(await harness.requests[0]?.json()).toEqual({ name: 'Demo 2' });
     expect(harness.readLines()).toEqual([
-      `Updated app Demo 2 (${DEMO_APP.id}).`,
+      'Updated app Demo 2.',
+      `ID  ${DEMO_APP.id}`,
     ]);
   });
 

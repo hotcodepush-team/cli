@@ -11,7 +11,7 @@ import {
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson } from '../../utils/output.js';
+import { printJson, printResult } from '../../utils/output.js';
 
 export default defineCommand({
   description:
@@ -44,9 +44,10 @@ export default defineCommand({
     if (options.json) {
       printJson(updatedChannel);
     } else {
-      console.log(
-        `Updated channel ${updatedChannel.name} (${updatedChannel.id}).`,
-      );
+      printResult({
+        rows: [['ID', updatedChannel.id]],
+        sentence: `Updated channel ${updatedChannel.name}.`,
+      });
     }
   },
 });

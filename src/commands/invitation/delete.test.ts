@@ -1,4 +1,4 @@
-import { confirm, select } from '@clack/prompts';
+import { S_SUCCESS } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   API_URL,
@@ -14,11 +14,12 @@ import {
   MissingParameterError,
   UnknownNameError,
 } from '../../utils/errors.js';
+import { confirm, select } from '../../utils/prompt-renderers.js';
 import invitationDeleteCommand from './delete.js';
 
-vi.mock('@clack/prompts', () =>
-  import('../../../test/clack-prompts.js').then(
-    ({ clackPromptsMock }) => clackPromptsMock,
+vi.mock('../../utils/prompt-renderers.js', () =>
+  import('../../../test/prompt-renderers.js').then(
+    ({ promptRenderersMock }) => promptRenderersMock,
   ),
 );
 
@@ -64,7 +65,9 @@ describe('invitation delete', () => {
     });
     expect(readDeleteRequests()).toHaveLength(1);
     expect(harness.readLines()).toEqual([
-      `Withdrew the invitation to carol@example.com (${PENDING_INVITATION.id}).`,
+      `${S_SUCCESS}  Withdrew the invitation to carol@example.com.`,
+      `   ID  ${PENDING_INVITATION.id}`,
+      '',
     ]);
   });
 

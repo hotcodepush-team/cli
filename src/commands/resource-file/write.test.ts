@@ -116,7 +116,10 @@ describe('resource-file write', () => {
       },
       fingerprint: CAPACITOR_FINGERPRINT,
     });
-    expect(harness.readLines()).toEqual([`Wrote ${resourceFilePath} for ios.`]);
+    expect(harness.readLines()).toEqual([
+      'Wrote the resource file for ios.',
+      `Path  ${resourceFilePath}`,
+    ]);
     expect(harness.readDiagnostics()).toBe('');
   });
 

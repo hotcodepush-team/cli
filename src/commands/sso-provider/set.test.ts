@@ -1,7 +1,6 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { password, select, text } from '@clack/prompts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
@@ -18,11 +17,12 @@ import {
   InvalidParameterError,
   MissingParameterError,
 } from '../../utils/errors.js';
+import { password, select, text } from '../../utils/prompt-renderers.js';
 import ssoProviderSetCommand from './set.js';
 
-vi.mock('@clack/prompts', () =>
-  import('../../../test/clack-prompts.js').then(
-    ({ clackPromptsMock }) => clackPromptsMock,
+vi.mock('../../utils/prompt-renderers.js', () =>
+  import('../../../test/prompt-renderers.js').then(
+    ({ promptRenderersMock }) => promptRenderersMock,
   ),
 );
 

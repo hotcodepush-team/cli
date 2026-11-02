@@ -9,12 +9,12 @@ import type {
   UploadBundleOptions,
   UploadedBundle,
 } from '../../upload/upload.js';
-import { uploadBundle } from '../../upload/upload.js';
+import { resolveUploadedFilesText, uploadBundle } from '../../upload/upload.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { printWarning } from '../../utils/diagnostics.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson, resolveByteText } from '../../utils/output.js';
+import { printJson, printResult, printResultGap } from '../../utils/output.js';
 
 const FINGERPRINT_UNKNOWN_TEXT =
   'No binary of the app carries this fingerprint.';
@@ -50,7 +50,17 @@ export default defineCommand({
         return bundles;
       },
     );
-    printUploadedBundles(uploadedBundles, options.json);
+    // `--json` always prints an array, as `release create` prints its releases.
+    if (options.json) {
+      printJson(uploadedBundles.map(resolveUploadedBundleJson));
+      return;
+    }
+    uploadedBundles.forEach((uploadedBundle, index) => {
+      if (index > 0) {
+        printResultGap();
+      }
+      printUploadedBundle(uploadedBundle);
+    });
   },
 });
 
@@ -70,24 +80,17 @@ async function fetchIsFingerprintUnknown(
   return binaryCount > 0;
 }
 
-// `--json` always prints an array, as `release create` prints its releases.
-function printUploadedBundles(
-  uploadedBundles: UploadedBundle[],
-  isJson: boolean | undefined,
-): void {
-  if (isJson) {
-    printJson(uploadedBundles.map(resolveUploadedBundleJson));
-  } else {
-    uploadedBundles.forEach(printUploadedBundle);
-  }
-}
-
 function resolveUploadedBundleJson({ bundle, upload }: UploadedBundle): object {
   return { ...bundle, upload };
 }
 
 function printUploadedBundle({ bundle, upload }: UploadedBundle): void {
-  console.log(
-    `Uploaded bundle ${resolveBundleLabel(bundle)} (${bundle.id}): ${upload.fileCount} files moved, ${resolveByteText(upload.sizeBytes)}.`,
-  );
+  printResult({
+    rows: [
+      ['ID', bundle.id],
+      ['Platforms', bundle.platforms.join(', ')],
+      ['Uploaded', resolveUploadedFilesText(upload)],
+    ],
+    sentence: `Uploaded bundle ${resolveBundleLabel(bundle)}.`,
+  });
 }

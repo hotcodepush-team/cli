@@ -1,4 +1,4 @@
-import { confirm } from '@clack/prompts';
+import { S_SUCCESS } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
@@ -13,11 +13,12 @@ import {
   ConfirmationRequiredError,
   MissingParameterError,
 } from '../../utils/errors.js';
+import { confirm } from '../../utils/prompt-renderers.js';
 import webhookDeliveryRedeliverCommand from './redeliver.js';
 
-vi.mock('@clack/prompts', () =>
-  import('../../../test/clack-prompts.js').then(
-    ({ clackPromptsMock }) => clackPromptsMock,
+vi.mock('../../utils/prompt-renderers.js', () =>
+  import('../../../test/prompt-renderers.js').then(
+    ({ promptRenderersMock }) => promptRenderersMock,
   ),
 );
 
@@ -67,7 +68,11 @@ describe('webhook-delivery redeliver', () => {
     });
     expect(readRedeliverRequests()).toHaveLength(1);
     expect(harness.readLines()).toEqual([
-      'Sent release.created to webhook releases: succeeded, HTTP 200.',
+      `${S_SUCCESS}  Sent release.created to webhook releases.`,
+      `   ID        ${REDELIVERED_DELIVERY.id}`,
+      '   Status    succeeded',
+      '   Response  HTTP 200',
+      '',
     ]);
   });
 

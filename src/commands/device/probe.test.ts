@@ -1,4 +1,3 @@
-import { select } from '@clack/prompts';
 import type { Binary, Device } from '@hotcodepush/node';
 import type { ChannelIndex } from '@hotcodepush/protocol';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -22,11 +21,12 @@ import {
 } from '../../../test/release-routes.js';
 import { PACKAGE_JSON } from '../../config/consts.js';
 import { runCli } from '../../utils/cli.js';
+import { select } from '../../utils/prompt-renderers.js';
 import deviceProbeCommand from './probe.js';
 
-vi.mock('@clack/prompts', () =>
-  import('../../../test/clack-prompts.js').then(
-    ({ clackPromptsMock }) => clackPromptsMock,
+vi.mock('../../utils/prompt-renderers.js', () =>
+  import('../../../test/prompt-renderers.js').then(
+    ({ promptRenderersMock }) => promptRenderersMock,
   ),
 );
 
@@ -219,10 +219,14 @@ describe('device probe', () => {
       'Channel  staging, ios',
       `Index    published ${INDEX_PUBLISHED_AT}`,
       'Outcome  available, release #43',
-      'Unknown  os, rollout, treated as passing. Pass --device for the facts of a real device.',
+      'Unknown  os, rollout, treated as passing',
+      '',
       'RELEASE  ROLLOUT  CONDITIONS                                 VERDICT',
       '#43      0%       binary pass, fingerprint pass, os unknown  eligible',
     ]);
+    expect(harness.readDiagnostics()).toBe(
+      'Pass --device for the facts of a real device.\n',
+    );
   });
 
   it('should mark the fingerprint unknown when no binary was created with the identity', async () => {
@@ -287,7 +291,7 @@ describe('device probe', () => {
       'Channel  staging, ios',
       `Index    none: HTTP 404 at ${API_URL}${INDEX_PATH}, so a device gets no release`,
       'Outcome  none',
-      'Unknown  os, rollout, treated as passing. Pass --device for the facts of a real device.',
+      'Unknown  os, rollout, treated as passing',
     ]);
   });
 

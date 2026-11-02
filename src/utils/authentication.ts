@@ -1,5 +1,5 @@
 import { createApiAuthClient, fetchSession } from './auth-client.js';
-import { printSuccess, printWarning } from './diagnostics.js';
+import { printBlockEnd, printSuccess, printWarning } from './diagnostics.js';
 import type { InteractivityOptions } from './environment.js';
 import { isInteractive } from './environment.js';
 import { CliError, ExitCode, NotLoggedInError } from './errors.js';
@@ -39,6 +39,7 @@ export async function ensureAuthentication(
   }
   const user = await logIn(options);
   printSuccess(`Logged in as ${user.name} (${user.email}).`);
+  printBlockEnd();
 }
 
 // `HOTCODEPUSH_TOKEN` is taken as it is. Its validity is the API's to judge.

@@ -9,7 +9,7 @@ import { defineCommand } from '../../utils/command.js';
 import type { InteractivityOptions } from '../../utils/environment.js';
 import { InvalidParameterError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson, printTable } from '../../utils/output.js';
+import { printDetails, printJson, printTable } from '../../utils/output.js';
 import { promptText } from '../../utils/prompts.js';
 
 interface ExtraFingerprintPathChange {
@@ -69,7 +69,8 @@ export default defineCommand({
       return;
     }
     if (diff.packages.length === 0 && diff.extraFingerprintPaths.length === 0) {
-      console.log(`Nothing moved: both files hold ${beforeFile.fingerprint}.`);
+      console.log('Nothing moved.');
+      printDetails([['Fingerprint', beforeFile.fingerprint]]);
       return;
     }
     printFingerprintDiff(diff);
@@ -104,6 +105,7 @@ function printFingerprintDiff(diff: FingerprintDiff): void {
     ]),
   });
   if (diff.extraFingerprintPaths.length > 0) {
+    console.log('');
     printTable({
       emptyText: '',
       headers: ['EXTRA FINGERPRINT PATH', 'BEFORE', 'AFTER'],

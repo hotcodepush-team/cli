@@ -24,8 +24,10 @@ describe('checkout create', () => {
     );
 
     expect(harness.readLines()).toEqual([
-      `Open the checkout to enable billing: ${CHECKOUT.url}`,
+      'Created the checkout.',
+      `URL  ${CHECKOUT.url}`,
     ]);
+    expect(harness.readDiagnostics()).toBe('Open the URL to enable billing.\n');
   });
 
   it("should print the API's checkout as JSON when --json is passed", async () => {

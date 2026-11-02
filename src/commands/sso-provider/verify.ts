@@ -1,10 +1,11 @@
 import type { SsoProvider } from '@hotcodepush/node';
 import { fetchOrganizationId } from '../../resources/organizations.js';
-import { printProviderDetails } from '../../resources/sso-providers.js';
+import { resolveProviderDetails } from '../../resources/sso-providers.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
+import { printNotice, printWarning } from '../../utils/diagnostics.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson } from '../../utils/output.js';
+import { printDetails, printJson, printResult } from '../../utils/output.js';
 
 export default defineCommand({
   description:
@@ -24,16 +25,17 @@ export default defineCommand({
       printJson(checkedProvider);
       return;
     }
-    console.log(resolveVerificationText(checkedProvider));
-    printProviderDetails(checkedProvider);
+    printVerification(checkedProvider);
   },
 });
 
-function resolveVerificationText({
-  domain,
-  domainVerified,
-}: SsoProvider): string {
-  return domainVerified
-    ? `Verified ${domain}.`
-    : `No TXT record verifies ${domain} yet. A new record can take a while to appear.`;
+function printVerification(provider: SsoProvider): void {
+  const rows = resolveProviderDetails(provider);
+  if (provider.domainVerified) {
+    printResult({ rows, sentence: `Verified ${provider.domain}.` });
+    return;
+  }
+  printDetails(rows);
+  printWarning(`No TXT record verifies ${provider.domain} yet.`);
+  printNotice('A new record can take a while to appear.');
 }

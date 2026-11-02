@@ -1,4 +1,4 @@
-import { confirm } from '@clack/prompts';
+import { S_SUCCESS } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
@@ -6,11 +6,12 @@ import {
 } from '../../../test/command-harness.js';
 import { DEMO_APP, DEVICE } from '../../../test/fixtures.js';
 import { ConfirmationRequiredError } from '../../utils/errors.js';
+import { confirm } from '../../utils/prompt-renderers.js';
 import deviceDeleteCommand from './delete.js';
 
-vi.mock('@clack/prompts', () =>
-  import('../../../test/clack-prompts.js').then(
-    ({ clackPromptsMock }) => clackPromptsMock,
+vi.mock('../../utils/prompt-renderers.js', () =>
+  import('../../../test/prompt-renderers.js').then(
+    ({ promptRenderersMock }) => promptRenderersMock,
   ),
 );
 
@@ -39,7 +40,11 @@ describe('device delete', () => {
       message: `This deletes device ${DEVICE.deviceId}'s record for good, the erasure request. The device reports again with its next check. Continue?`,
     });
     expect(readDeleteRequests()).toHaveLength(1);
-    expect(harness.readLines()).toEqual([`Deleted device ${DEVICE.deviceId}.`]);
+    expect(harness.readLines()).toEqual([
+      `${S_SUCCESS}  Deleted the device.`,
+      `   ID  ${DEVICE.deviceId}`,
+      '',
+    ]);
   });
 
   it('should print the id with a null name as JSON when --yes and --json are passed', async () => {

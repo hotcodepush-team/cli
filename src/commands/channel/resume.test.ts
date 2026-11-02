@@ -1,4 +1,4 @@
-import { confirm } from '@clack/prompts';
+import { S_SUCCESS } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
@@ -6,11 +6,12 @@ import {
 } from '../../../test/command-harness.js';
 import { DEMO_APP, STAGING_CHANNEL } from '../../../test/fixtures.js';
 import { ConfirmationRequiredError } from '../../utils/errors.js';
+import { confirm } from '../../utils/prompt-renderers.js';
 import channelResumeCommand from './resume.js';
 
-vi.mock('@clack/prompts', () =>
-  import('../../../test/clack-prompts.js').then(
-    ({ clackPromptsMock }) => clackPromptsMock,
+vi.mock('../../utils/prompt-renderers.js', () =>
+  import('../../../test/prompt-renderers.js').then(
+    ({ promptRenderersMock }) => promptRenderersMock,
   ),
 );
 
@@ -50,7 +51,9 @@ describe('channel resume', () => {
     });
     expect(readResumeRequests()).toHaveLength(1);
     expect(harness.readLines()).toEqual([
-      `Resumed channel staging (${STAGING_CHANNEL.id}).`,
+      `${S_SUCCESS}  Resumed channel staging.`,
+      `   ID  ${STAGING_CHANNEL.id}`,
+      '',
     ]);
   });
 

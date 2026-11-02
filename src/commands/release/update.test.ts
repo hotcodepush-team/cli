@@ -1,4 +1,4 @@
-import { confirm } from '@clack/prompts';
+import { S_SUCCESS } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
@@ -16,11 +16,12 @@ import {
 import { PACKAGE_JSON } from '../../config/consts.js';
 import { runCli } from '../../utils/cli.js';
 import { MissingParameterError } from '../../utils/errors.js';
+import { confirm } from '../../utils/prompt-renderers.js';
 import releaseUpdateCommand from './update.js';
 
-vi.mock('@clack/prompts', () =>
-  import('../../../test/clack-prompts.js').then(
-    ({ clackPromptsMock }) => clackPromptsMock,
+vi.mock('../../utils/prompt-renderers.js', () =>
+  import('../../../test/prompt-renderers.js').then(
+    ({ promptRenderersMock }) => promptRenderersMock,
   ),
 );
 
@@ -68,7 +69,9 @@ describe('release update', () => {
       notes: 'hotfix',
     });
     expect(harness.readLines()).toEqual([
-      `Updated release #43 of staging (${LIVE_RELEASE.id}).`,
+      `${S_SUCCESS}  Updated release #43 of staging.`,
+      `   ID  ${LIVE_RELEASE.id}`,
+      '',
     ]);
   });
 

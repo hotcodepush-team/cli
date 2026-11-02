@@ -29,6 +29,7 @@ import type { Platform } from '../../upload/upload.js';
 import { PLATFORMS } from '../../upload/upload.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
+import { printNotice } from '../../utils/diagnostics.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { resolveFilesBaseUrl } from '../../utils/hosts.js';
 import { printDetails, printJson, printTable } from '../../utils/output.js';
@@ -361,10 +362,11 @@ function printProbe({
       'Unknown',
       unknownFacts.length === 0
         ? 'nothing'
-        : `${unknownFacts.join(', ')}, treated as passing. Pass --device for the facts of a real device.`,
+        : `${unknownFacts.join(', ')}, treated as passing`,
     ],
   ]);
   if (evaluation !== null && servedIndex.index !== null) {
+    console.log('');
     printTable({
       emptyText: 'The index offers no release.',
       headers: ['RELEASE', 'ROLLOUT', 'CONDITIONS', 'VERDICT'],
@@ -376,6 +378,9 @@ function printProbe({
         resolveVerdictText(verdict),
       ]),
     });
+  }
+  if (unknownFacts.length > 0) {
+    printNotice('Pass --device for the facts of a real device.');
   }
 }
 

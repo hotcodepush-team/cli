@@ -10,7 +10,7 @@ import {
   resolveReleaseInLog,
   waitUntilLive,
 } from '../../resources/releases/fetch.js';
-import { printReleasedLine } from '../../resources/releases/output.js';
+import { printCreatedRelease } from '../../resources/releases/output.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { booleanFlagSchema } from '../../utils/boolean-flag.js';
 import { defineCommand } from '../../utils/command.js';
@@ -72,7 +72,7 @@ export default defineCommand({
     if (options.json) {
       printJson(liveRelease);
     } else {
-      printReleasedLine(liveRelease, {
+      printCreatedRelease(liveRelease, {
         bundleLabel,
         channelName: fetchedChannel.name,
       });

@@ -1,4 +1,4 @@
-import { confirm } from '@clack/prompts';
+import { S_SUCCESS } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
@@ -13,11 +13,12 @@ import {
   ConfirmationRequiredError,
   UnknownNameError,
 } from '../../utils/errors.js';
+import { confirm } from '../../utils/prompt-renderers.js';
 import channelDeleteCommand from './delete.js';
 
-vi.mock('@clack/prompts', () =>
-  import('../../../test/clack-prompts.js').then(
-    ({ clackPromptsMock }) => clackPromptsMock,
+vi.mock('../../utils/prompt-renderers.js', () =>
+  import('../../../test/prompt-renderers.js').then(
+    ({ promptRenderersMock }) => promptRenderersMock,
   ),
 );
 
@@ -56,32 +57,44 @@ describe('channel delete', () => {
     });
     expect(readDeleteRequests()).toHaveLength(1);
     expect(harness.readLines()).toEqual([
-      `Deleted channel staging (${STAGING_CHANNEL.id}).`,
+      `${S_SUCCESS}  Deleted channel staging.`,
+      `   ID  ${STAGING_CHANNEL.id}`,
+      '',
     ]);
   });
 
-  it.each([
-    [
-      3,
-      `Deleted channel staging (${STAGING_CHANNEL.id}). 3 devices were on it.`,
-    ],
-    [0, `Deleted channel staging (${STAGING_CHANNEL.id}).`],
-  ])(
-    'should end the result line with the device count when %i devices were on the channel',
-    async (count, expectedLine) => {
-      respondWithChannels([STAGING_CHANNEL]);
-      harness.routes[
-        `GET /v1/apps/${DEMO_APP.id}/devices/count?channelId=${STAGING_CHANNEL.id}`
-      ] = () => Response.json({ count });
+  it('should add a devices row when the count request answers', async () => {
+    respondWithChannels([STAGING_CHANNEL]);
+    harness.routes[
+      `GET /v1/apps/${DEMO_APP.id}/devices/count?channelId=${STAGING_CHANNEL.id}`
+    ] = () => Response.json({ count: 3 });
 
-      await channelDeleteCommand.action(
-        { app: DEMO_APP.id, channel: 'staging', yes: true },
-        undefined,
-      );
+    await channelDeleteCommand.action(
+      { app: DEMO_APP.id, channel: 'staging', yes: true },
+      undefined,
+    );
 
-      expect(harness.readLines()).toEqual([expectedLine]);
-    },
-  );
+    expect(harness.readLines()).toEqual([
+      'Deleted channel staging.',
+      `ID       ${STAGING_CHANNEL.id}`,
+      'Devices  3',
+    ]);
+  });
+
+  it('should delete the channel without a devices row when the count request fails', async () => {
+    respondWithChannels([STAGING_CHANNEL]);
+
+    await channelDeleteCommand.action(
+      { app: DEMO_APP.id, channel: 'staging', yes: true },
+      undefined,
+    );
+
+    expect(readDeleteRequests()).toHaveLength(1);
+    expect(harness.readLines()).toEqual([
+      'Deleted channel staging.',
+      `ID  ${STAGING_CHANNEL.id}`,
+    ]);
+  });
 
   it('should throw `confirmation_required` and delete nothing when nobody can be asked', async () => {
     respondWithChannels([STAGING_CHANNEL]);
@@ -119,9 +132,8 @@ describe('channel delete', () => {
     );
 
     expect(readDeleteRequests()).toEqual([]);
-    expect(harness.readLines()).toEqual([
-      'The channel does not exist. There is nothing to delete.',
-    ]);
+    expect(harness.readLines()).toEqual(['The channel does not exist.']);
+    expect(harness.readDiagnostics()).toBe('There is nothing to delete.\n');
   });
 
   it('should print the id given with a null name when --ignore-not-found and --json are passed and the API does not know the id', async () => {

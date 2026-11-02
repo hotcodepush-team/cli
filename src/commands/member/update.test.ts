@@ -1,4 +1,3 @@
-import { confirm, select } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   respondWithApiError,
@@ -9,12 +8,12 @@ import { ACME_ORGANIZATION, ADMIN_MEMBER } from '../../../test/fixtures.js';
 import { PACKAGE_JSON } from '../../config/consts.js';
 import { runCli } from '../../utils/cli.js';
 import { MissingParameterError } from '../../utils/errors.js';
+import { confirm, select } from '../../utils/prompt-renderers.js';
 import memberUpdateCommand from './update.js';
 
-// Keeps clack's `log` real, so the diagnostics reach stderr.
-vi.mock('@clack/prompts', () =>
-  import('../../../test/clack-prompts.js').then(
-    ({ clackPromptsMock }) => clackPromptsMock,
+vi.mock('../../utils/prompt-renderers.js', () =>
+  import('../../../test/prompt-renderers.js').then(
+    ({ promptRenderersMock }) => promptRenderersMock,
   ),
 );
 
@@ -47,7 +46,9 @@ describe('member update', () => {
 
     expect(await readPatchRequests()[0]?.json()).toEqual({ role: 'billing' });
     expect(harness.readLines()).toEqual([
-      `Updated member bob@example.com (${ADMIN_MEMBER.id}) to role billing.`,
+      'Updated member bob@example.com.',
+      `ID    ${ADMIN_MEMBER.id}`,
+      'Role  billing',
     ]);
   });
 

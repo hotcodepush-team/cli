@@ -1,4 +1,4 @@
-import { confirm } from '@clack/prompts';
+import { S_SUCCESS } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
@@ -6,11 +6,12 @@ import {
 } from '../../../test/command-harness.js';
 import { ACME_ORGANIZATION, DEMO_APP } from '../../../test/fixtures.js';
 import { ConfirmationRequiredError } from '../../utils/errors.js';
+import { confirm } from '../../utils/prompt-renderers.js';
 import organizationDeleteCommand from './delete.js';
 
-vi.mock('@clack/prompts', () =>
-  import('../../../test/clack-prompts.js').then(
-    ({ clackPromptsMock }) => clackPromptsMock,
+vi.mock('../../utils/prompt-renderers.js', () =>
+  import('../../../test/prompt-renderers.js').then(
+    ({ promptRenderersMock }) => promptRenderersMock,
   ),
 );
 
@@ -46,7 +47,9 @@ describe('organization delete', () => {
     });
     expect(readDeleteRequests()).toHaveLength(1);
     expect(harness.readLines()).toEqual([
-      `Deleted organization Acme (${ACME_ORGANIZATION.id}).`,
+      `${S_SUCCESS}  Deleted organization Acme.`,
+      `   ID  ${ACME_ORGANIZATION.id}`,
+      '',
     ]);
   });
 

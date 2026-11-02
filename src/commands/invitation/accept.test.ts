@@ -1,4 +1,3 @@
-import { select, text } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   respondWithApiError,
@@ -13,12 +12,12 @@ import {
 import { PACKAGE_JSON } from '../../config/consts.js';
 import { runCli } from '../../utils/cli.js';
 import { MissingParameterError } from '../../utils/errors.js';
+import { select, text } from '../../utils/prompt-renderers.js';
 import invitationAcceptCommand from './accept.js';
 
-// Keeps clack's `log` real, so the diagnostics reach stderr.
-vi.mock('@clack/prompts', () =>
-  import('../../../test/clack-prompts.js').then(
-    ({ clackPromptsMock }) => clackPromptsMock,
+vi.mock('../../utils/prompt-renderers.js', () =>
+  import('../../../test/prompt-renderers.js').then(
+    ({ promptRenderersMock }) => promptRenderersMock,
   ),
 );
 
@@ -58,7 +57,10 @@ describe('invitation accept', () => {
 
     expect(await harness.requests[0]?.json()).toEqual({ token: 'token-1' });
     expect(harness.readLines()).toEqual([
-      `Joined organization ${ACME_ORGANIZATION.id} with role member.`,
+      'Joined the organization.',
+      `ID               ${ADMIN_MEMBER.id}`,
+      `Organization ID  ${ACME_ORGANIZATION.id}`,
+      'Role             member',
     ]);
   });
 

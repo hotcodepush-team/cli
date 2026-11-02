@@ -23,7 +23,12 @@ import { defineCommand } from '../../utils/command.js';
 import { printWarning } from '../../utils/diagnostics.js';
 import { InvalidParameterError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson, resolveQuantityText } from '../../utils/output.js';
+import {
+  printJson,
+  printResult,
+  printResultGap,
+  resolveQuantityText,
+} from '../../utils/output.js';
 import { fetchAllPages } from '../../utils/pagination.js';
 import { readProjectConfig } from '../../utils/project-config.js';
 import { confirmConsequence } from '../../utils/prompts.js';
@@ -96,7 +101,11 @@ export default defineCommand({
       firstRevocation === undefined ||
       revocations.every(({ revokedReleases }) => revokedReleases.length === 0)
     ) {
-      printNothingToRevoke(options.json);
+      if (options.json) {
+        printJson([]);
+        return;
+      }
+      console.log('Nothing to revoke: no release named is active or paused.');
       return;
     }
     const fleet = await hotCodePush.apps.statistics.fleet.get({
@@ -117,7 +126,7 @@ export default defineCommand({
       printJson(revokedChannels.flatMap(({ releases }) => releases));
       return;
     }
-    printRevokedLines(revokedChannels);
+    printRevokedReleases(revokedChannels);
   },
 });
 
@@ -225,20 +234,19 @@ async function fetchRevocations(
   ];
 }
 
-function printNothingToRevoke(isJson: boolean | undefined): void {
-  if (isJson) {
-    printJson([]);
-    return;
-  }
-  console.log('Nothing to revoke: no release named is active or paused.');
-}
-
-function printRevokedLines(revokedChannels: RevokedChannel[]): void {
-  for (const { channel, releases } of revokedChannels) {
-    console.log(
-      `Revoked ${resolveReleasesText(releases)} of ${channel.name}${releases.length === 1 ? ` (${releases[0]?.id})` : ''}.`,
-    );
-  }
+function printRevokedReleases(revokedChannels: RevokedChannel[]): void {
+  const revokedReleases = revokedChannels.flatMap(({ channel, releases }) =>
+    releases.map(release => ({ channel, release })),
+  );
+  revokedReleases.forEach(({ channel, release }, index) => {
+    if (index > 0) {
+      printResultGap();
+    }
+    printResult({
+      rows: [['ID', release.id]],
+      sentence: `Revoked release #${release.number} of ${channel.name}.`,
+    });
+  });
 }
 
 // Mirrors the API: devices move to the newest active older release not revoked with it, or to the embedded bundle.

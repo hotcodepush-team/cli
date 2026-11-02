@@ -1,4 +1,4 @@
-import { confirm } from '@clack/prompts';
+import { S_SUCCESS } from '@clack/prompts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
@@ -22,12 +22,12 @@ import {
   respondWithStagingReleases,
 } from '../../../test/release-routes.js';
 import { ConfirmationRequiredError } from '../../utils/errors.js';
+import { confirm } from '../../utils/prompt-renderers.js';
 import releaseRevokeCommand from './revoke.js';
 
-// Keeps clack's `log` real, so the diagnostics reach stderr.
-vi.mock('@clack/prompts', () =>
-  import('../../../test/clack-prompts.js').then(
-    ({ clackPromptsMock }) => clackPromptsMock,
+vi.mock('../../utils/prompt-renderers.js', () =>
+  import('../../../test/prompt-renderers.js').then(
+    ({ promptRenderersMock }) => promptRenderersMock,
   ),
 );
 
@@ -100,7 +100,9 @@ describe('release revoke', () => {
       readRevokeRequests().map(({ url }) => new URL(url).pathname),
     ).toEqual([`${RELEASES_PATH}/${LIVE_RELEASE.id}/revoke`]);
     expect(harness.readLines()).toEqual([
-      `Revoked release #43 of staging (${LIVE_RELEASE.id}).`,
+      `${S_SUCCESS}  Revoked release #43 of staging.`,
+      `   ID  ${LIVE_RELEASE.id}`,
+      '',
     ]);
   });
 
@@ -243,7 +245,29 @@ describe('release revoke', () => {
       releaseIds: [PREVIOUS_RELEASE.id, LIVE_RELEASE.id],
     });
     expect(harness.readLines()).toEqual([
-      'Revoked releases #43 and #42 of staging.',
+      `${S_SUCCESS}  Revoked release #43 of staging.`,
+      `   ID  ${LIVE_RELEASE.id}`,
+      '',
+      `${S_SUCCESS}  Revoked release #42 of staging.`,
+      `   ID  ${PREVIOUS_RELEASE.id}`,
+      '',
+    ]);
+  });
+
+  it('should separate the revoked releases with a blank line when stdout is no terminal', async () => {
+    respondWithBulkRevocation(CHANNEL_PATH);
+
+    await releaseRevokeCommand.action(
+      { all: true, app: DEMO_APP.id, channel: STAGING_CHANNEL.id, yes: true },
+      undefined,
+    );
+
+    expect(harness.readLines()).toEqual([
+      'Revoked release #43 of staging.',
+      `ID  ${LIVE_RELEASE.id}`,
+      '',
+      'Revoked release #42 of staging.',
+      `ID  ${PREVIOUS_RELEASE.id}`,
     ]);
   });
 

@@ -3,7 +3,6 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gunzipSync } from 'node:zlib';
-import { text } from '@clack/prompts';
 import {
   readPack,
   stringifyCanonicalJson,
@@ -38,12 +37,12 @@ import {
 } from '../../utils/errors.js';
 import type * as packageManagerModule from '../../utils/package-manager.js';
 import { runCommandLineVisibly } from '../../utils/package-manager.js';
+import { text } from '../../utils/prompt-renderers.js';
 import bundleUploadCommand from './upload.js';
 
-// Keeps clack's `log` real, so the diagnostics reach stderr.
-vi.mock('@clack/prompts', () =>
-  import('../../../test/clack-prompts.js').then(
-    ({ clackPromptsMock }) => clackPromptsMock,
+vi.mock('../../utils/prompt-renderers.js', () =>
+  import('../../../test/prompt-renderers.js').then(
+    ({ promptRenderersMock }) => promptRenderersMock,
   ),
 );
 vi.mock('../../utils/package-manager.js', async importOriginal => ({
@@ -243,7 +242,10 @@ describe('bundle upload', () => {
     expect([...packEntries.keys()]).toEqual([APP_JS_SHA256, INDEX_SHA256]);
     expect(readRequest('POST', '/complete')).toBeDefined();
     expect(harness.readLines()).toEqual([
-      `Uploaded bundle #17 · 1.4.2 (${READY_BUNDLE.id}): 1 files moved, 34 B.`,
+      'Uploaded bundle #17 · 1.4.2.',
+      `ID         ${READY_BUNDLE.id}`,
+      'Platforms  android, ios',
+      'Uploaded   1 file, 34 B',
     ]);
   });
 

@@ -1,4 +1,4 @@
-import { confirm } from '@clack/prompts';
+import { S_SUCCESS } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
@@ -10,11 +10,12 @@ import {
   STAGING_CHANNEL,
 } from '../../../test/fixtures.js';
 import { ConfirmationRequiredError } from '../../utils/errors.js';
+import { confirm } from '../../utils/prompt-renderers.js';
 import appDeleteCommand from './delete.js';
 
-vi.mock('@clack/prompts', () =>
-  import('../../../test/clack-prompts.js').then(
-    ({ clackPromptsMock }) => clackPromptsMock,
+vi.mock('../../utils/prompt-renderers.js', () =>
+  import('../../../test/prompt-renderers.js').then(
+    ({ promptRenderersMock }) => promptRenderersMock,
   ),
 );
 
@@ -46,7 +47,11 @@ describe('app delete', () => {
       message: 'This deletes app Demo and its 2 channels. Continue?',
     });
     expect(readDeleteRequests()).toHaveLength(1);
-    expect(harness.readLines()).toEqual([`Deleted app Demo (${DEMO_APP.id}).`]);
+    expect(harness.readLines()).toEqual([
+      `${S_SUCCESS}  Deleted app Demo.`,
+      `   ID  ${DEMO_APP.id}`,
+      '',
+    ]);
   });
 
   it('should delete without asking and print the id and name of what went when --yes and --json are passed', async () => {

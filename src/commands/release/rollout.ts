@@ -5,7 +5,7 @@ import {
   fetchReleaseInChannel,
   releaseOptionShape,
 } from '../../resources/releases/fetch.js';
-import { resolveProgressingText } from '../../resources/releases/output.js';
+import { resolveRolloutText } from '../../resources/releases/output.js';
 import type { Progression } from '../../resources/releases/progression.js';
 import {
   progressionShape,
@@ -16,7 +16,7 @@ import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import type { InteractivityOptions } from '../../utils/environment.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson } from '../../utils/output.js';
+import { printJson, printResult } from '../../utils/output.js';
 import { confirmConsequence, promptText } from '../../utils/prompts.js';
 
 const rolloutPercentSchema = z.coerce.number().int().min(0).max(100);
@@ -68,9 +68,13 @@ export default defineCommand({
     if (options.json) {
       printJson(updatedRelease);
     } else {
-      console.log(
-        `Set release #${updatedRelease.number} of ${channel.name} to ${updatedRelease.rolloutPercent} percent${resolveProgressingText(updatedRelease)}.`,
-      );
+      printResult({
+        rows: [
+          ['ID', updatedRelease.id],
+          ['Rollout', resolveRolloutText(updatedRelease)],
+        ],
+        sentence: `Updated release #${updatedRelease.number} of ${channel.name}.`,
+      });
     }
   },
 });

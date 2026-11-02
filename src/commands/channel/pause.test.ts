@@ -1,4 +1,4 @@
-import { confirm } from '@clack/prompts';
+import { S_SUCCESS } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
@@ -7,11 +7,12 @@ import {
 import { DEMO_APP, STAGING_CHANNEL } from '../../../test/fixtures.js';
 import { respondWithChannels } from '../../../test/release-routes.js';
 import { ConfirmationRequiredError } from '../../utils/errors.js';
+import { confirm } from '../../utils/prompt-renderers.js';
 import channelPauseCommand from './pause.js';
 
-vi.mock('@clack/prompts', () =>
-  import('../../../test/clack-prompts.js').then(
-    ({ clackPromptsMock }) => clackPromptsMock,
+vi.mock('../../utils/prompt-renderers.js', () =>
+  import('../../../test/prompt-renderers.js').then(
+    ({ promptRenderersMock }) => promptRenderersMock,
   ),
 );
 
@@ -59,7 +60,9 @@ describe('channel pause', () => {
     });
     expect(readPauseRequests()).toHaveLength(1);
     expect(harness.readLines()).toEqual([
-      `Paused channel staging (${STAGING_CHANNEL.id}).`,
+      `${S_SUCCESS}  Paused channel staging.`,
+      `   ID  ${STAGING_CHANNEL.id}`,
+      '',
     ]);
   });
 

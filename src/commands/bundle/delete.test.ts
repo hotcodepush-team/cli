@@ -1,4 +1,4 @@
-import { confirm } from '@clack/prompts';
+import { S_SUCCESS } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   respondWithApiError,
@@ -7,11 +7,12 @@ import {
 } from '../../../test/command-harness.js';
 import { DEMO_APP, READY_BUNDLE } from '../../../test/fixtures.js';
 import { ConfirmationRequiredError } from '../../utils/errors.js';
+import { confirm } from '../../utils/prompt-renderers.js';
 import bundleDeleteCommand from './delete.js';
 
-vi.mock('@clack/prompts', () =>
-  import('../../../test/clack-prompts.js').then(
-    ({ clackPromptsMock }) => clackPromptsMock,
+vi.mock('../../utils/prompt-renderers.js', () =>
+  import('../../../test/prompt-renderers.js').then(
+    ({ promptRenderersMock }) => promptRenderersMock,
   ),
 );
 
@@ -41,7 +42,9 @@ describe('bundle delete', () => {
         'This deletes bundle #17 · 1.4.2 and its files now, not by retention. Continue?',
     });
     expect(harness.readLines()).toEqual([
-      `Deleted bundle #17 · 1.4.2 (${READY_BUNDLE.id}).`,
+      `${S_SUCCESS}  Deleted bundle #17 · 1.4.2.`,
+      `   ID  ${READY_BUNDLE.id}`,
+      '',
     ]);
   });
 
