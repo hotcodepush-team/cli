@@ -1,4 +1,4 @@
-import { confirm } from '@clack/prompts';
+import { S_SUCCESS, confirm } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
@@ -68,7 +68,9 @@ describe('release update', () => {
       notes: 'hotfix',
     });
     expect(harness.readLines()).toEqual([
-      `Updated release #43 of staging (${LIVE_RELEASE.id}).`,
+      `${S_SUCCESS}  Updated release #43 of staging.`,
+      `   ID  ${LIVE_RELEASE.id}`,
+      '',
     ]);
   });
 

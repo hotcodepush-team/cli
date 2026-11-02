@@ -1,4 +1,4 @@
-import { confirm } from '@clack/prompts';
+import { S_SUCCESS, confirm } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
@@ -59,7 +59,9 @@ describe('channel pause', () => {
     });
     expect(readPauseRequests()).toHaveLength(1);
     expect(harness.readLines()).toEqual([
-      `Paused channel staging (${STAGING_CHANNEL.id}).`,
+      `${S_SUCCESS}  Paused channel staging.`,
+      `   ID  ${STAGING_CHANNEL.id}`,
+      '',
     ]);
   });
 

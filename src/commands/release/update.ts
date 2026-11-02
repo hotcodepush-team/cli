@@ -17,7 +17,7 @@ import { defineCommand } from '../../utils/command.js';
 import { MissingParameterError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { resolveNullableField } from '../../utils/nullable-field.js';
-import { printJson } from '../../utils/output.js';
+import { printJson, printResult } from '../../utils/output.js';
 import { confirmConsequence } from '../../utils/prompts.js';
 
 type ReleaseChanges = Pick<
@@ -86,9 +86,10 @@ export default defineCommand({
     if (options.json) {
       printJson(updatedRelease);
     } else {
-      console.log(
-        `Updated release #${updatedRelease.number} of ${channel.name} (${updatedRelease.id}).`,
-      );
+      printResult({
+        rows: [['ID', updatedRelease.id]],
+        sentence: `Updated release #${updatedRelease.number} of ${channel.name}.`,
+      });
     }
   },
 });

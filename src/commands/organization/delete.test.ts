@@ -1,4 +1,4 @@
-import { confirm } from '@clack/prompts';
+import { S_SUCCESS, confirm } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
@@ -46,7 +46,9 @@ describe('organization delete', () => {
     });
     expect(readDeleteRequests()).toHaveLength(1);
     expect(harness.readLines()).toEqual([
-      `Deleted organization Acme (${ACME_ORGANIZATION.id}).`,
+      `${S_SUCCESS}  Deleted organization Acme.`,
+      `   ID  ${ACME_ORGANIZATION.id}`,
+      '',
     ]);
   });
 

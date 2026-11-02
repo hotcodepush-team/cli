@@ -4,7 +4,7 @@ import { fetchOrganizationId } from '../../resources/organizations.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson } from '../../utils/output.js';
+import { printJson, printResult } from '../../utils/output.js';
 import {
   confirmConsequence,
   promptSelect,
@@ -65,10 +65,24 @@ export default defineCommand({
       });
     if (options.json) {
       printJson(createdInvitation);
-    } else {
-      console.log(
-        `Invited ${createdInvitation.email} (${createdInvitation.id}) to organization ${fetchedOrganization.name} with role ${createdInvitation.role}.`,
-      );
+      return;
     }
+    printCreatedInvitation(createdInvitation, {
+      organizationName: fetchedOrganization.name,
+    });
   },
 });
+
+function printCreatedInvitation(
+  invitation: Invitation,
+  { organizationName }: { organizationName: string },
+): void {
+  printResult({
+    rows: [
+      ['ID', invitation.id],
+      ['Organization', organizationName],
+      ['Role', invitation.role],
+    ],
+    sentence: `Invited ${invitation.email}.`,
+  });
+}

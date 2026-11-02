@@ -58,7 +58,10 @@ describe('invitation accept', () => {
 
     expect(await harness.requests[0]?.json()).toEqual({ token: 'token-1' });
     expect(harness.readLines()).toEqual([
-      `Joined organization ${ACME_ORGANIZATION.id} with role member.`,
+      'Joined the organization.',
+      `ID               ${ADMIN_MEMBER.id}`,
+      `Organization ID  ${ACME_ORGANIZATION.id}`,
+      'Role             member',
     ]);
   });
 

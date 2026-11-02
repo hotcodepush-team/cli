@@ -1,12 +1,18 @@
 import type { WebhookDelivery } from '@hotcodepush/node';
+import { printResult } from '../utils/output.js';
 
 export function printSettledDelivery(
   delivery: WebhookDelivery,
   webhookName: string,
 ): void {
-  console.log(
-    `Sent ${delivery.type} to webhook ${webhookName}: ${delivery.status}, ${resolveResponseText(delivery)}.`,
-  );
+  printResult({
+    rows: [
+      ['ID', delivery.id],
+      ['Status', delivery.status],
+      ['Response', resolveResponseText(delivery)],
+    ],
+    sentence: `Sent ${delivery.type} to webhook ${webhookName}.`,
+  });
 }
 
 export function resolveResponseText({ responseCode }: WebhookDelivery): string {

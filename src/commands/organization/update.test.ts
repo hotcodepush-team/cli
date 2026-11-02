@@ -51,6 +51,7 @@ describe('organization update', () => {
 
     expect(await harness.requests[0]?.json()).toEqual({ name: 'Acme Inc' });
     expect(harness.readLines()).toEqual([
+      'Updated organization Acme Inc.',
       `ID            ${ACME_ORGANIZATION.id}`,
       'Name          Acme Inc',
       'Plan          free',
@@ -104,7 +105,7 @@ describe('organization update', () => {
     });
     const [updateRequest] = readUpdateRequests();
     expect(await updateRequest?.json()).toEqual({ spendingCapCents: 10_000 });
-    expect(harness.readLines()).toContain('Spending cap  $100 a month');
+    expect(harness.readLines()).toContain('   Spending cap  $100 a month');
   });
 
   it('should lower the cap without asking when --yes is passed', async () => {

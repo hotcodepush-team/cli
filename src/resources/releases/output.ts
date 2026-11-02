@@ -22,14 +22,11 @@ export function printCreatedRelease(
   }
 }
 
-export function resolveProgressingText({ progression }: Release): string {
-  return progression === null
-    ? ''
-    : `, progressing through ${progression.rolloutPercents.join(', ')} percent`;
-}
-
 // The steps still ahead of the release, since the schedule lists the current one too.
-function resolveRolloutText({ progression, rolloutPercent }: Release): string {
+export function resolveRolloutText({
+  progression,
+  rolloutPercent,
+}: Release): string {
   const nextPercents =
     progression?.rolloutPercents.filter(percent => percent > rolloutPercent) ??
     [];

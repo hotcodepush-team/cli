@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson } from '../../utils/output.js';
+import { printJson, printResult } from '../../utils/output.js';
 import { promptText } from '../../utils/prompts.js';
 
 export default defineCommand({
@@ -28,9 +28,10 @@ export default defineCommand({
     if (options.json) {
       printJson(createdOrganization);
     } else {
-      console.log(
-        `Created organization ${createdOrganization.name} (${createdOrganization.id}).`,
-      );
+      printResult({
+        rows: [['ID', createdOrganization.id]],
+        sentence: `Created organization ${createdOrganization.name}.`,
+      });
     }
   },
 });

@@ -186,8 +186,13 @@ describe('binary create', () => {
       updatesBaseUrl: 'https://api.example.com/updates',
     });
     expect(harness.readLines()).toEqual([
-      `Wrote ${join(projectDirectoryPath, 'build', 'ios', 'hotcodepush.json')} for ios.`,
-      `Created the binary ios 1.0 (1): 1 files uploaded, ${uploadedByteCount} B.`,
+      'Created the ios binary.',
+      `ID             ${BINARY.id}`,
+      'Version        1.0',
+      'Build          1',
+      `Bundle ID      ${BINARY.bundleId}`,
+      `Resource file  ${join(projectDirectoryPath, 'build', 'ios', 'hotcodepush.json')}`,
+      `Uploaded       1 file, ${uploadedByteCount} B`,
     ]);
   });
 

@@ -1,8 +1,9 @@
-import type { Channel } from '@hotcodepush/node';
+import type { Channel, HotCodePush } from '@hotcodepush/node';
 import { HotCodePushError } from '@hotcodepush/node';
 import { z } from 'zod';
 import { fetchAppId } from '../../resources/apps.js';
 import { fetchChannels } from '../../resources/channels/fetch.js';
+import type { ChannelFieldOptions } from '../../resources/channels/fields.js';
 import {
   channelFieldsShape,
   resolveChannelFields,
@@ -10,7 +11,7 @@ import {
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson } from '../../utils/output.js';
+import { printJson, printResult } from '../../utils/output.js';
 import { readProjectConfig } from '../../utils/project-config.js';
 import { promptText } from '../../utils/prompts.js';
 import { resolveNamedResource } from '../../utils/resources.js';
@@ -49,47 +50,56 @@ export default defineCommand({
         flag: '--name',
         message: 'What is the channel called?',
       }));
-    try {
-      const createdChannel = await hotCodePush.apps.channels.create({
-        ...resolveChannelFields(options),
-        appId,
-        name,
-      });
-      printChannel(createdChannel, {
-        isJson: options.json,
-        sentencePrefix: 'Created channel',
-      });
-    } catch (error) {
-      if (!options.ifNotExists || !isChannelNameTaken(error)) {
-        throw error;
-      }
-      printChannel(
-        resolveNamedResource(await fetchChannels(hotCodePush, appId), {
-          name,
-          noun: 'channel',
-        }),
-        { isJson: options.json, sentencePrefix: 'Found the existing channel' },
-      );
+    const { channel, isExisting } = await createOrFindChannel(hotCodePush, {
+      appId,
+      name,
+      options,
+    });
+    if (options.json) {
+      printJson(channel);
+      return;
     }
+    printResult({
+      rows: [['ID', channel.id]],
+      sentence: `${isExisting ? 'Found the existing channel' : 'Created channel'} ${channel.name}.`,
+    });
   },
 });
+
+// With `--if-not-exists`, a taken name answers the channel that holds it.
+async function createOrFindChannel(
+  hotCodePush: HotCodePush,
+  {
+    appId,
+    name,
+    options,
+  }: {
+    appId: string;
+    name: string;
+    options: ChannelFieldOptions & { ifNotExists?: boolean };
+  },
+): Promise<{ channel: Channel; isExisting: boolean }> {
+  try {
+    const createdChannel = await hotCodePush.apps.channels.create({
+      ...resolveChannelFields(options),
+      appId,
+      name,
+    });
+    return { channel: createdChannel, isExisting: false };
+  } catch (error) {
+    if (!options.ifNotExists || !isChannelNameTaken(error)) {
+      throw error;
+    }
+    const existingChannel = resolveNamedResource(
+      await fetchChannels(hotCodePush, appId),
+      { name, noun: 'channel' },
+    );
+    return { channel: existingChannel, isExisting: true };
+  }
+}
 
 function isChannelNameTaken(error: unknown): boolean {
   return (
     error instanceof HotCodePushError && error.code === 'channel_name_taken'
   );
-}
-
-function printChannel(
-  channel: Channel,
-  {
-    isJson,
-    sentencePrefix,
-  }: { isJson: boolean | undefined; sentencePrefix: string },
-): void {
-  if (isJson) {
-    printJson(channel);
-  } else {
-    console.log(`${sentencePrefix} ${channel.name} (${channel.id}).`);
-  }
 }

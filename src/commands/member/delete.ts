@@ -7,7 +7,7 @@ import { fetchOrganizationId } from '../../resources/organizations.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson } from '../../utils/output.js';
+import { printJson, printResult } from '../../utils/output.js';
 import { confirmConsequence } from '../../utils/prompts.js';
 
 export default defineCommand({
@@ -40,7 +40,10 @@ export default defineCommand({
     if (options.json) {
       printJson({ id: fetchedMember.id, name: email });
     } else {
-      console.log(`Removed member ${email} (${fetchedMember.id}).`);
+      printResult({
+        rows: [['ID', fetchedMember.id]],
+        sentence: `Removed member ${email}.`,
+      });
     }
   },
 });

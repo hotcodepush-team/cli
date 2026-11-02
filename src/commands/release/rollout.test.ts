@@ -1,4 +1,4 @@
-import { confirm, text } from '@clack/prompts';
+import { S_SUCCESS, confirm, text } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
@@ -68,7 +68,10 @@ describe('release rollout', () => {
     );
     expect(await updateRequest?.json()).toEqual({ rolloutPercent: 20 });
     expect(harness.readLines()).toEqual([
-      'Set release #43 of staging to 20 percent.',
+      `${S_SUCCESS}  Updated release #43 of staging.`,
+      `   ID       ${LIVE_RELEASE.id}`,
+      '   Rollout  20 percent',
+      '',
     ]);
   });
 
@@ -164,7 +167,10 @@ describe('release rollout', () => {
       rolloutPercent: 10,
     });
     expect(harness.readLines()).toEqual([
-      'Set release #43 of staging to 10 percent, progressing through 10, 50, 100 percent.',
+      `${S_SUCCESS}  Updated release #43 of staging.`,
+      `   ID       ${LIVE_RELEASE.id}`,
+      '   Rollout  10 percent, then 50 and 100',
+      '',
     ]);
   });
 
