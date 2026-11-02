@@ -60,6 +60,8 @@ export interface FrameworkProject {
 }
 
 export interface FrameworkWiring {
+  // The import the app's code lacks, which `init` names last, since it never edits the person's source files.
+  appImportStep?: string;
   isPackageInstalled: boolean;
   nativeFilePaths: string[];
   packageFilePaths: string[];

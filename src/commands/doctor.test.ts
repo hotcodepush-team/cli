@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   CAPACITOR_APP_GRADLE_FILE_PATH,
+  CAPACITOR_ENTRY_FILE_PATH,
   wireCapacitorProject,
   writeCapacitorProject,
 } from '../../test/capacitor-project.js';
@@ -120,6 +121,7 @@ describe('doctor', () => {
       'app:ok',
       'package:ok',
       'hook:ok',
+      'import:ok',
       'hosts:ok',
       'signing_key:skipped',
       'versions:ok',
@@ -127,6 +129,51 @@ describe('doctor', () => {
     expect(result.checks.at(-1)?.message).toMatch(
       /^The versions are hotcodepush \d+\.\d+\.\d+, node v\d+.*, @capacitor\/core 8\.0\.0, @hotcodepush\/capacitor-live-updates 8\.0\.0\.$/,
     );
+  });
+
+  it('should fail the import when no file under src/ imports the SDK, naming the line to add', async () => {
+    const directoryPath = await writeSetUpProject();
+    writeFileSync(
+      join(directoryPath, CAPACITOR_ENTRY_FILE_PATH),
+      "console.log('demo');\n",
+    );
+    respondWithSessionAndApp();
+
+    await expect(
+      doctorCommand.action(
+        { config: join(directoryPath, 'hotcodepush.json'), json: true },
+        undefined,
+      ),
+    ).rejects.toBeInstanceOf(ReportedFailureError);
+
+    const result = harness.readJson() as DoctorResult;
+    expect(result.checks.find(({ check }) => check === 'import')).toEqual({
+      check: 'import',
+      code: 'import_missing',
+      manualStep:
+        "Add \"import '@hotcodepush/capacitor-live-updates';\" to the app's entry file, such as src/main.ts.",
+      message:
+        'No file under src/ imports @hotcodepush/capacitor-live-updates, so the app confirms no update.',
+      status: 'failed',
+    });
+  });
+
+  it('should skip the import when the project has no src/ directory', async () => {
+    const directoryPath = await writeSetUpProject();
+    rmSync(join(directoryPath, 'src'), { force: true, recursive: true });
+    respondWithSessionAndApp();
+
+    await doctorCommand.action(
+      { config: join(directoryPath, 'hotcodepush.json'), json: true },
+      undefined,
+    );
+
+    const result = harness.readJson() as DoctorResult;
+    expect(result.checks.find(({ check }) => check === 'import')).toEqual({
+      check: 'import',
+      message: 'There is no src/ directory to look for the import in.',
+      status: 'skipped',
+    });
   });
 
   it('should check a Cordova project by its plugin and the build steps it wires', async () => {
@@ -212,6 +259,7 @@ describe('doctor', () => {
       '                 Run "hotcodepush init".',
       `✗ Hook           The wiring is missing from ${CAPACITOR_APP_GRADLE_FILE_PATH}.`,
       '                 Run "hotcodepush init".',
+      "✓ Import         The app's code imports @hotcodepush/capacitor-live-updates.",
       '✗ Hosts          The CLI cannot reach api (https://api.example.com/health).',
       '                 Check the network, the API URL in config.json and the HOTCODEPUSH_*_BASE_URL variables.',
       '– Signing key    Code signing is off. Run "hotcodepush signing-key create" to turn it on.',
@@ -241,6 +289,7 @@ describe('doctor', () => {
       'session',
       'package',
       'hook',
+      'import',
       'hosts',
       'signing_key',
       'versions',
@@ -253,7 +302,7 @@ describe('doctor', () => {
       message: 'The credential cannot be checked. fetch failed.',
       status: 'failed',
     });
-    expect(result.checks[4]).toMatchObject({
+    expect(result.checks.find(({ check }) => check === 'hosts')).toMatchObject({
       code: 'host_unreachable',
       status: 'failed',
     });
@@ -283,6 +332,7 @@ describe('doctor', () => {
       'app',
       'package',
       'hook',
+      'import',
       'hosts',
       'signing_key',
       'versions',

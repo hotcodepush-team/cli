@@ -183,7 +183,13 @@ export default defineCommand({
       privateKeyPath,
       projectFiles,
     });
-    printRun(run, { app: account.app, isReleased, options, privateKeyPath });
+    printRun(run, {
+      app: account.app,
+      appImportStep: projectFiles.wiring.appImportStep,
+      isReleased,
+      options,
+      privateKeyPath,
+    });
     if (run.stoppedCode !== undefined) {
       throw new ReportedFailureError(run.stoppedCode, run.stoppedStep);
     }
@@ -294,11 +300,13 @@ function printRun(
   run: InitRun,
   {
     app,
+    appImportStep,
     isReleased,
     options,
     privateKeyPath,
   }: {
     app: App | undefined;
+    appImportStep: string | undefined;
     isReleased: boolean;
     options: InitOptions;
     privateKeyPath: string | undefined;
@@ -312,6 +320,9 @@ function printRun(
   // A blank line separates the rows from the package manager and build output above them.
   console.log('');
   printOutcomeRows(resolveStepRows(run.steps));
+  if (appImportStep !== undefined) {
+    printNotice(appImportStep);
+  }
   if (app !== undefined && status === 'complete') {
     printFinish(app, { isReleased, privateKeyPath });
   }

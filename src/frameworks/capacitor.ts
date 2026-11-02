@@ -1,5 +1,5 @@
-import { existsSync, readFileSync } from 'node:fs';
-import { dirname, join, relative, sep } from 'node:path';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { dirname, extname, join, relative, sep } from 'node:path';
 import {
   CAPACITOR_PACKAGE_NAME,
   CAPACITOR_PACKAGE_SPEC,
@@ -33,6 +33,7 @@ import {
 } from './xcode-project.js';
 import type {
   BuildDirectory,
+  FrameworkCheck,
   FrameworkModule,
   FrameworkProject,
   FrameworkWiring,
@@ -64,6 +65,23 @@ const CAPACITOR_CONFIG_FILE_NAMES = [
   'capacitor.config.ts',
 ];
 
+// The import tells the SDK the app rendered. Without it, the SDK rolls every update back.
+const SDK_IMPORT_PATTERN = new RegExp(`['"]${CAPACITOR_PACKAGE_NAME}['"]`);
+
+const SDK_IMPORT_STEP = `Add "import '${CAPACITOR_PACKAGE_NAME}';" to the app's entry file, such as src/main.ts.`;
+
+const WEB_SOURCE_DIRECTORY_NAME = 'src';
+
+const WEB_SOURCE_FILE_EXTENSIONS = new Set([
+  '.js',
+  '.jsx',
+  '.mjs',
+  '.svelte',
+  '.ts',
+  '.tsx',
+  '.vue',
+]);
+
 export const capacitorFramework: FrameworkModule = {
   detectionPackageName: '@capacitor/core',
   nativeGluePaths: NATIVE_GLUE_PATHS,
@@ -75,6 +93,7 @@ export const capacitorFramework: FrameworkModule = {
       nativeProjectPaths: resolveNativeProjectPaths(project.directoryPath),
       packageName: CAPACITOR_PACKAGE_NAME,
     }),
+    checkSdkImport(project.directoryPath),
   ],
   hasConfigFile: projectDirectoryPath =>
     CAPACITOR_CONFIG_FILE_NAMES.some(fileName =>
@@ -83,6 +102,49 @@ export const capacitorFramework: FrameworkModule = {
   readBuildDirectory: readWebDir,
   resolveWiring,
 };
+
+function checkSdkImport(projectDirectoryPath: string): FrameworkCheck {
+  const sourceDirectoryPath = join(
+    projectDirectoryPath,
+    WEB_SOURCE_DIRECTORY_NAME,
+  );
+  if (!existsSync(sourceDirectoryPath)) {
+    return {
+      check: 'import',
+      message: `There is no ${WEB_SOURCE_DIRECTORY_NAME}/ directory to look for the import in.`,
+      status: 'skipped',
+    };
+  }
+  return isSdkImported(sourceDirectoryPath)
+    ? {
+        check: 'import',
+        message: `The app's code imports ${CAPACITOR_PACKAGE_NAME}.`,
+        status: 'ok',
+      }
+    : {
+        check: 'import',
+        code: 'import_missing',
+        manualStep: SDK_IMPORT_STEP,
+        message: `No file under ${WEB_SOURCE_DIRECTORY_NAME}/ imports ${CAPACITOR_PACKAGE_NAME}, so the app confirms no update.`,
+        status: 'failed',
+      };
+}
+
+function isSdkImported(sourceDirectoryPath: string): boolean {
+  return readdirSync(sourceDirectoryPath, {
+    recursive: true,
+    withFileTypes: true,
+  })
+    .filter(
+      entry =>
+        entry.isFile() && WEB_SOURCE_FILE_EXTENSIONS.has(extname(entry.name)),
+    )
+    .some(entry =>
+      SDK_IMPORT_PATTERN.test(
+        readFileSync(join(entry.parentPath, entry.name), 'utf8'),
+      ),
+    );
+}
 
 function readCapacitorConfig(
   projectDirectoryPath: string,
@@ -251,6 +313,7 @@ async function resolveWiring(
     CAPACITOR_PACKAGE_NAME,
   );
   return {
+    appImportStep: checkSdkImport(directoryPath).manualStep,
     isPackageInstalled,
     nativeFilePaths: resolveNativeFilePaths(located),
     packageFilePaths: isPackageInstalled ? [] : ['package.json'],

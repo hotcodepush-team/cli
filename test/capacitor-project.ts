@@ -39,6 +39,8 @@ export const CAPACITOR_APP_GRADLE_FILE_PATH = join(
   'build.gradle',
 );
 
+export const CAPACITOR_ENTRY_FILE_PATH = join('src', 'main.ts');
+
 export const CAPACITOR_XCODE_PROJECT_FILE_PATH = join(
   'ios',
   'App',
@@ -77,6 +79,11 @@ export function writeCapacitorProject({
   }
   mkdirSync(join(directoryPath, webDir));
   writeFileSync(join(directoryPath, webDir, 'index.html'), '<h1>v1</h1>');
+  mkdirSync(join(directoryPath, 'src'));
+  writeFileSync(
+    join(directoryPath, CAPACITOR_ENTRY_FILE_PATH),
+    "import '@hotcodepush/capacitor-live-updates';\n",
+  );
   const pbxprojPath = join(directoryPath, CAPACITOR_XCODE_PROJECT_FILE_PATH);
   mkdirSync(dirname(pbxprojPath), { recursive: true });
   writeFileSync(pbxprojPath, readFileSync(PBXPROJ_FIXTURE_PATH));
