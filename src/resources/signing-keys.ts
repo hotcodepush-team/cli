@@ -41,13 +41,13 @@ export async function fetchHasSigningKey(
   return count > 0;
 }
 
-// A signing key is named by its key id.
+// A signing key is named by its key id, and the key comes back as the API served it.
 export async function fetchSigningKey(
   hotCodePush: HotCodePush,
   { appId, options }: { appId: string; options: SigningKeyOptions },
 ): Promise<SigningKey> {
   const namedSigningKeys = (await fetchSigningKeys(hotCodePush, appId)).map(
-    signingKey => ({ ...signingKey, name: signingKey.keyId }),
+    signingKey => ({ id: signingKey.id, name: signingKey.keyId, signingKey }),
   );
   const reference =
     options.signingKey ??
@@ -55,7 +55,8 @@ export async function fetchSigningKey(
       noun: 'signing-key',
       resources: namedSigningKeys,
     }));
-  return resolveResource(namedSigningKeys, { noun: 'signing-key', reference });
+  return resolveResource(namedSigningKeys, { noun: 'signing-key', reference })
+    .signingKey;
 }
 
 export function fetchSigningKeys(
