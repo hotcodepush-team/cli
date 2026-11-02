@@ -78,15 +78,21 @@ describe('printBlockEnd', () => {
     process.stderr.isTTY = originalStderrIsTty;
   });
 
-  it('should write one blank line when stderr is a terminal and nothing when it is not', () => {
+  it('should write one blank line when stderr is a terminal', () => {
+    process.stderr.isTTY = true;
     const output = captureOutput();
 
-    process.stderr.isTTY = false;
     printBlockEnd();
-    expect(output.readStderr()).toBe('');
 
-    process.stderr.isTTY = true;
-    printBlockEnd();
     expect(output.readStderr()).toBe('\n');
+  });
+
+  it('should write nothing when stderr is no terminal', () => {
+    process.stderr.isTTY = false;
+    const output = captureOutput();
+
+    printBlockEnd();
+
+    expect(output.readStderr()).toBe('');
   });
 });

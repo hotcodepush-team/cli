@@ -102,8 +102,9 @@ A project with an app config that is code, or with a JSON one that does not pars
 - **Diagnostics go through `utils/diagnostics.ts`** on stderr: `printError`, `printWarning`, `printNotice`, `printSuccess`, each one symbol and its lines with no gutter around them; nothing else writes a symbol or a `Warning:` prefix. The prompts render one line each through `utils/prompt-renderers.ts`, our renderers on clack's core, the answer staying on the question's line.
   Advice, a next step or a hint, is a notice, never a line of the result.
 - **A result is a sentence and rows**, `printResult` in `utils/output.ts`: what the command did, then aligned label and value rows, the `ID` first and every long value, a key, a URL, a path or a secret, in a row of its own, never inside the sentence.
-  On a terminal the sentence carries the success symbol, the rows are indented and a blank line follows; piped, the same lines are plain, as colour already is.
-  A read prints `printDetails` rows or a `printTable`, and stacked blocks are one blank line apart.
+  On a terminal the sentence carries the success symbol, the rows are indented and a blank line follows; when stdout is no terminal, the same lines are plain.
+  A read prints `printDetails` rows or a `printTable`, and the caller separates stacked blocks with one blank line on every stream, `printResultGap` between two results, since a result's own blank line is terminal-only.
+  A non-event, nothing deleted, nothing to revoke, no session, a page only opened, is a plain sentence or plain rows, never a result, so the success symbol claims nothing.
 - **API errors pass through verbatim**, their code and message as received, never re-mapped and with no fix; the CLI's catalog covers only what happens before or without the API.
 - **Exit codes**: `0` done, `1` an error, `2` a missing or invalid parameter, `3` not logged in, `4` a confirmation required without `--yes`.
 - **Parameters are the API's field names**, `--rollout-percent`, `--channel`: nothing is renamed between the console, the API and the terminal.

@@ -8,7 +8,7 @@ import { openBrowser } from '../utils/browser.js';
 import { defineCommand } from '../utils/command.js';
 import { defineCommandOptions } from '../utils/global-options.js';
 import { resolveConsoleBaseUrl } from '../utils/hosts.js';
-import { printJson, printResult } from '../utils/output.js';
+import { printDetails, printJson } from '../utils/output.js';
 import {
   assertProjectConfigAppId,
   readProjectConfig,
@@ -26,10 +26,7 @@ export default defineCommand({
       printJson({ url });
       return;
     }
-    printResult({
-      rows: [['URL', url]],
-      sentence: 'Opening the console page in the browser.',
-    });
+    printDetails([['URL', url]]);
     await openBrowser(url);
   },
 });

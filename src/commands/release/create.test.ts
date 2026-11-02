@@ -722,6 +722,7 @@ describe('release create', () => {
         'Bundle   #17 · 1.4.2',
         'Rollout  100 percent',
         `Live     ${LIVE_RELEASE.liveAt}`,
+        '',
         'Created release #7 of production.',
         `ID       ${PRODUCTION_RELEASE.id}`,
         'Bundle   #17 · 1.4.2',

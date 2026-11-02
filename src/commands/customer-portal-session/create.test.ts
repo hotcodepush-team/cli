@@ -30,9 +30,12 @@ describe('customer-portal-session create', () => {
     await customerPortalSessionCreateCommand.action({}, undefined);
 
     expect(harness.readLines()).toEqual([
-      'Created a customer portal session. Open it for the invoices and the payment method.',
+      'Created a customer portal session.',
       `URL  ${CUSTOMER_PORTAL_SESSION.url}`,
     ]);
+    expect(harness.readDiagnostics()).toBe(
+      'Open the URL for the invoices and the payment method.\n',
+    );
   });
 
   it("should print the API's session as JSON when --json is passed", async () => {
