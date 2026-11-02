@@ -80,6 +80,7 @@ Release-please keeps a release pull request open on `main`, and merging it tags 
 1. `src/frameworks/<framework>.ts` exports a `FrameworkModule`: the package that detects it and whether its config file is there, which breaks a tie, the build output, read when the upload runs, or the reason there is none, the optional `nativeGluePaths` left out of the embedded manifest and of an upload, what `init` installs and wires,
    what `doctor` checks.
 2. One line joins the registry in `src/frameworks/index.ts`.
+   One subpath joins `exports` in `package.json`, `./frameworks/<framework>` with its `types` and `default`: the bridges' CI imports the module from the installed CLI to wire a fresh app as `init` does, and nothing else of `dist/` is exported.
 3. Nothing outside the module names the framework: a command asks the module, never a config file or a path of its own.
 
 Capacitor's module reads `capacitor.config` as text and no native file, `webDir` when the upload runs, and a config with no `webDir` readable as a quoted string makes `--path` required, `missing_parameter` naming the reason; Cordova's reads `config.xml` through `fast-xml-parser` for the file-mode preference alone. The store build's identity comes from the build on every framework, never from a project file: the hook script passes the version and the build number it read from the processed `Info.plist` or the variant. React Native and Capacitor are wired the same way, `init` adding the phase and the Gradle line; Expo's config plugin and Cordova's plugin wire themselves.
