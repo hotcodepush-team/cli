@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/hotcodepush-team/cli/compare/v0.2.0...v0.2.1) (2026-11-02)
+
+
+### Features
+
+* channel delete says how many devices were on the channel ([#104](https://github.com/hotcodepush-team/cli/issues/104)) ([b44eef7](https://github.com/hotcodepush-team/cli/commit/b44eef7c9063cf079dc36facaf004988deb0ed3c))
+
 ## [0.2.0](https://github.com/hotcodepush-team/cli/compare/v0.1.0...v0.2.0) (2026-11-01)
 
 
