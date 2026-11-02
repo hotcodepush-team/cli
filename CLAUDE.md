@@ -99,8 +99,12 @@ A project with an app config that is code, or with a JSON one that does not pars
 - **An error is three lines**: what happened, what to do, then the docs URL, the one place the code appears; an API error has no fix, so two; `--json` carries the code.
   The message and the fix each start with a capital letter and end with a full stop, in plain English; a stack trace only with `--verbose`.
   Every text a person reads, descriptions, warnings, notices and empty-list lines included, is whole sentences: no semicolon joins two clauses, and a default reads `Defaults to X.`
-- **Diagnostics go through `utils/diagnostics.ts`**, clack's log on stderr: `printError`, `printWarning`, `printNotice`, `printSuccess`; nothing else writes a symbol or a `Warning:` prefix, and nothing imports clack's log directly.
-  stdout stays plain `console.log` and `printJson`, so a piped result carries no gutter.
+- **Diagnostics go through `utils/diagnostics.ts`** on stderr: `printError`, `printWarning`, `printNotice`, `printSuccess`, each one symbol and its lines with no gutter around them; nothing else writes a symbol or a `Warning:` prefix, and only the prompts draw clack's bars.
+  Advice, a next step or a hint, is a notice, never a line of the result.
+- **A result is a sentence and rows**, `printResult` in `utils/output.ts`: what the command did, then aligned label and value rows, the `ID` first and every long value, a key, a URL, a path or a secret, in a row of its own, never inside the sentence.
+  On a terminal the sentence carries the success symbol, the rows are indented and a blank line follows; when stdout is no terminal, the same lines are plain.
+  A read prints `printDetails` rows or a `printTable`, and the caller separates stacked blocks with one blank line on every stream, `printResultGap` between two results, since a result's own blank line is terminal-only.
+  A non-event, nothing deleted, nothing to revoke, no session, a page only opened, is a plain sentence or plain rows, never a result, so the success symbol claims nothing.
 - **API errors pass through verbatim**, their code and message as received, never re-mapped and with no fix; the CLI's catalog covers only what happens before or without the API.
 - **Exit codes**: `0` done, `1` an error, `2` a missing or invalid parameter, `3` not logged in, `4` a confirmation required without `--yes`.
 - **Parameters are the API's field names**, `--rollout-percent`, `--channel`: nothing is renamed between the console, the API and the terminal.

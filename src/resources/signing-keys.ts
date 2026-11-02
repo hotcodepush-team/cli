@@ -1,6 +1,7 @@
 import type { HotCodePush, SigningKey } from '@hotcodepush/node';
 import { PROJECT_CONFIG_FILE_NAME } from '../config/consts.js';
 import type { InteractivityOptions } from '../utils/environment.js';
+import type { Detail } from '../utils/output.js';
 import { fetchAllPages } from '../utils/pagination.js';
 import type { ProjectConfigLocation } from '../utils/project-config.js';
 import { writeProjectConfig } from '../utils/project-config.js';
@@ -10,11 +11,13 @@ interface SigningKeyOptions extends InteractivityOptions {
   signingKey?: string;
 }
 
-export const UPLOAD_SIGNING_TEXT =
-  "Uploads sign with it through --private-key-path. In CI, set HOTCODEPUSH_SIGNING_KEY to the file's content.";
-
 // Keys already listed stay, so the next builds keep trusting them.
 // A file of another app, or no file, is left alone.
+export const PUBLIC_KEY_LISTING_NOTICE = `Add the public key to publicKeys in the app's ${PROJECT_CONFIG_FILE_NAME}.`;
+
+export const UPLOAD_SIGNING_NOTICE =
+  "Uploads sign with the private key through --private-key-path. In CI, set HOTCODEPUSH_SIGNING_KEY to the file's content.";
+
 export function addPublicKeyToProjectConfig(
   { filePath, projectConfig }: ProjectConfigLocation,
   { appId, publicKey }: { appId: string; publicKey: string },
@@ -67,14 +70,18 @@ export function fetchSigningKeys(
   );
 }
 
-export function resolvePublicKeyListingText({
+// The key itself is shown only where no project file of the app took it.
+export function resolvePublicKeyRow({
   isConfigured,
   publicKey,
 }: {
   isConfigured: boolean;
   publicKey: string;
-}): string {
-  return isConfigured
-    ? `Added to publicKeys in ${PROJECT_CONFIG_FILE_NAME}.`
-    : `Add it to publicKeys in the app's ${PROJECT_CONFIG_FILE_NAME}: ${publicKey}`;
+}): Detail {
+  return [
+    'Public key',
+    isConfigured
+      ? `added to publicKeys in ${PROJECT_CONFIG_FILE_NAME}`
+      : publicKey,
+  ];
 }

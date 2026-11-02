@@ -1,20 +1,23 @@
 import { existsSync, rmSync, statSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
+import type { SigningKey } from '@hotcodepush/node';
 import { generateSigningKeyPair } from '@hotcodepush/protocol';
 import { z } from 'zod';
 import { SIGNING_PRIVATE_KEY_FILE_NAME } from '../../config/consts.js';
 import { fetchAppId } from '../../resources/apps.js';
 import {
-  UPLOAD_SIGNING_TEXT,
   addPublicKeyToProjectConfig,
-  resolvePublicKeyListingText,
+  PUBLIC_KEY_LISTING_NOTICE,
+  UPLOAD_SIGNING_NOTICE,
+  resolvePublicKeyRow,
 } from '../../resources/signing-keys.js';
 import { writeSigningPrivateKeyFile } from '../../upload/signing-private-key.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
+import { printNotice, printWarning } from '../../utils/diagnostics.js';
 import { InvalidParameterError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson } from '../../utils/output.js';
+import { printJson, printResult } from '../../utils/output.js';
 import { locateProjectConfig } from '../../utils/project-config.js';
 
 export default defineCommand({
@@ -61,17 +64,34 @@ export default defineCommand({
       printJson({ ...createdSigningKey, privateKeyPath });
       return;
     }
-    console.log(
-      `Created signing key ${createdSigningKey.keyId} (${createdSigningKey.id}).`,
-    );
-    console.log(resolvePublicKeyListingText({ isConfigured, publicKey }));
-    console.log(`Wrote the private key to ${privateKeyPath}.`);
-    console.log(
-      "Keep the file out of version control: whoever holds it can sign the app's bundles.",
-    );
-    console.log(UPLOAD_SIGNING_TEXT);
+    printCreatedSigningKey(createdSigningKey, { isConfigured, privateKeyPath });
   },
 });
+
+function printCreatedSigningKey(
+  { id, keyId, publicKey }: SigningKey,
+  {
+    isConfigured,
+    privateKeyPath,
+  }: { isConfigured: boolean; privateKeyPath: string },
+): void {
+  printResult({
+    rows: [
+      ['ID', id],
+      ['Key ID', keyId],
+      ['Private key', privateKeyPath],
+      resolvePublicKeyRow({ isConfigured, publicKey }),
+    ],
+    sentence: 'Created a signing key.',
+  });
+  printWarning(
+    "Keep the private key file out of version control. Whoever holds it can sign the app's bundles.",
+  );
+  if (!isConfigured) {
+    printNotice(PUBLIC_KEY_LISTING_NOTICE);
+  }
+  printNotice(UPLOAD_SIGNING_NOTICE);
+}
 
 // An existing file may hold a key that a store build trusts, and no folder is made on the person's behalf.
 function assertNewFilePath(filePath: string): void {

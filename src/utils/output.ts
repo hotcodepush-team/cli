@@ -1,5 +1,15 @@
+import { styleText } from 'node:util';
+import { S_SUCCESS } from '@clack/prompts';
 import type { Audience } from '@hotcodepush/node';
 import { printWarning } from './diagnostics.js';
+import { isColorEnabled } from './environment.js';
+
+export type Detail = [label: string, value: string];
+
+interface Result {
+  rows: Detail[];
+  sentence: string;
+}
 
 interface Table {
   emptyText: string;
@@ -10,10 +20,9 @@ interface Table {
 
 type Warning = Audience['warnings'][number];
 
-export function printDetails(details: [label: string, value: string][]): void {
-  const labelWidth = Math.max(...details.map(([label]) => label.length));
-  for (const [label, value] of details) {
-    console.log(`${label.padEnd(labelWidth)}  ${value}`);
+export function printDetails(details: Detail[]): void {
+  for (const line of resolveDetailLines(details)) {
+    console.log(line);
   }
 }
 
@@ -25,6 +34,30 @@ export function printJson(data: unknown): void {
 export function printWarnings(warnings: Warning[]): void {
   for (const { message } of warnings) {
     printWarning(message);
+  }
+}
+
+// Decorated where a person reads it, plain where a program does.
+export function printResult({ rows, sentence }: Result): void {
+  if (!process.stdout.isTTY) {
+    console.log(sentence);
+    printDetails(rows);
+    return;
+  }
+  const symbol = isColorEnabled(process.stdout)
+    ? styleText('green', S_SUCCESS, { validateStream: false })
+    : S_SUCCESS;
+  console.log(`${symbol}  ${sentence}`);
+  for (const line of resolveDetailLines(rows)) {
+    console.log(`   ${line}`);
+  }
+  console.log('');
+}
+
+// Between two results: a terminal already has the first result's blank line, a pipe gets one here.
+export function printResultGap(): void {
+  if (!process.stdout.isTTY) {
+    console.log('');
   }
 }
 
@@ -70,6 +103,13 @@ export function resolveByteText(bytes: number): string {
 
 export function resolveDate(timestamp: string): string {
   return timestamp.slice(0, 10);
+}
+
+function resolveDetailLines(details: Detail[]): string[] {
+  const labelWidth = Math.max(...details.map(([label]) => label.length));
+  return details.map(
+    ([label, value]) => `${label.padEnd(labelWidth)}  ${value}`,
+  );
 }
 
 export function resolveQuantityText(

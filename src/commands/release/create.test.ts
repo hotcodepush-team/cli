@@ -1,4 +1,4 @@
-import { confirm, select } from '@clack/prompts';
+import { S_SUCCESS, confirm, select } from '@clack/prompts';
 import type { Audience, Channel, Release } from '@hotcodepush/node';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CAPACITOR_FINGERPRINT } from '../../../test/capacitor-project.js';
@@ -198,7 +198,12 @@ describe('release create', () => {
       ),
     ).toHaveLength(1);
     expect(harness.readLines()).toEqual([
-      `Released bundle #17 · 1.4.2 to staging as release #43 at 100 percent, live since ${LIVE_RELEASE.liveAt}.`,
+      `${S_SUCCESS}  Created release #43 of staging.`,
+      `   ID       ${LIVE_RELEASE.id}`,
+      '   Bundle   #17 · 1.4.2',
+      '   Rollout  100 percent',
+      `   Live     ${LIVE_RELEASE.liveAt}`,
+      '',
     ]);
   });
 
@@ -470,7 +475,12 @@ describe('release create', () => {
         rolloutPercent: 10,
       });
       expect(harness.readLines()).toEqual([
-        `Released bundle #17 · 1.4.2 to staging as release #43 at 10 percent, progressing through 10, 50, 100 percent, live since ${LIVE_RELEASE.liveAt}.`,
+        `${S_SUCCESS}  Created release #43 of staging.`,
+        `   ID       ${LIVE_RELEASE.id}`,
+        '   Bundle   #17 · 1.4.2',
+        '   Rollout  10 percent, then 50 and 100',
+        `   Live     ${LIVE_RELEASE.liveAt}`,
+        '',
       ]);
     });
 
@@ -707,8 +717,17 @@ describe('release create', () => {
 
       expect(readCreateRequests()).toHaveLength(2);
       expect(harness.readLines()).toEqual([
-        `Released bundle #17 · 1.4.2 to staging as release #43 at 100 percent, live since ${LIVE_RELEASE.liveAt}.`,
-        `Released bundle #17 · 1.4.2 to production as release #7 at 100 percent, live since ${LIVE_RELEASE.liveAt}.`,
+        'Created release #43 of staging.',
+        `ID       ${LIVE_RELEASE.id}`,
+        'Bundle   #17 · 1.4.2',
+        'Rollout  100 percent',
+        `Live     ${LIVE_RELEASE.liveAt}`,
+        '',
+        'Created release #7 of production.',
+        `ID       ${PRODUCTION_RELEASE.id}`,
+        'Bundle   #17 · 1.4.2',
+        'Rollout  100 percent',
+        `Live     ${PRODUCTION_RELEASE.liveAt}`,
       ]);
     });
 

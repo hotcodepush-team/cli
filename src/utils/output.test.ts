@@ -1,5 +1,12 @@
-import { describe, expect, it, vi } from 'vitest';
-import { printDetails, printTable, resolveQuantityText } from './output.js';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  printDetails,
+  printResult,
+  printTable,
+  resolveQuantityText,
+} from './output.js';
+
+const originalStdoutIsTty = process.stdout.isTTY;
 
 function captureLines() {
   const consoleLog = vi
@@ -41,6 +48,44 @@ describe('output', () => {
     });
 
     expect(readLines()).toEqual(['No channels.']);
+  });
+
+  afterEach(() => {
+    process.stdout.isTTY = originalStdoutIsTty;
+  });
+
+  it('should print a result as plain lines when stdout is no terminal', () => {
+    process.stdout.isTTY = false;
+    const readLines = captureLines();
+
+    printResult({
+      rows: [
+        ['ID', '1'],
+        ['Private key', '/tmp/key.pem'],
+      ],
+      sentence: 'Created a signing key.',
+    });
+
+    expect(readLines()).toEqual([
+      'Created a signing key.',
+      'ID           1',
+      'Private key  /tmp/key.pem',
+    ]);
+  });
+
+  it('should print a result behind the success symbol, its rows indented and a blank line after, when stdout is a terminal without colour', () => {
+    process.stdout.isTTY = true;
+    vi.stubEnv('NO_COLOR', '1');
+    const readLines = captureLines();
+
+    printResult({ rows: [['ID', '1']], sentence: 'Created a signing key.' });
+
+    expect(readLines()).toEqual([
+      expect.stringMatching(/^\S+ {2}Created a signing key\.$/),
+      '   ID  1',
+      '',
+    ]);
+    expect(readLines().join('\n')).not.toContain('\x1b[');
   });
 
   it('should print details with the labels aligned', () => {

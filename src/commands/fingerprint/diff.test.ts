@@ -219,6 +219,7 @@ describe('fingerprint diff', () => {
 
     expect(readTableRows()).toEqual([
       ['No package moved.'],
+      [''],
       ['EXTRA FINGERPRINT PATH', 'BEFORE', 'AFTER'],
       ...extraFingerprintPathsFixture.contributors.extraFingerprintPaths.map(
         ({ path, sha256 }) => [path, 'none', sha256],
@@ -242,7 +243,8 @@ describe('fingerprint diff', () => {
     );
 
     expect(harness.readLines()).toEqual([
-      `Nothing moved: both files hold ${npmFixture.fingerprint}.`,
+      'Nothing moved.',
+      `Fingerprint  ${npmFixture.fingerprint}`,
     ]);
   });
 

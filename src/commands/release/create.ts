@@ -32,7 +32,7 @@ import {
   fetchReleaseLog,
   waitUntilLive,
 } from '../../resources/releases/fetch.js';
-import { printReleasedLine } from '../../resources/releases/output.js';
+import { printCreatedRelease } from '../../resources/releases/output.js';
 import type {
   Progression,
   ProgressionOptions,
@@ -59,7 +59,11 @@ import { booleanFlagSchema } from '../../utils/boolean-flag.js';
 import { defineCommand } from '../../utils/command.js';
 import { InvalidParameterError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson, printWarnings } from '../../utils/output.js';
+import {
+  printJson,
+  printResultGap,
+  printWarnings,
+} from '../../utils/output.js';
 import { readProjectConfig } from '../../utils/project-config.js';
 import { confirmConsequence } from '../../utils/prompts.js';
 import { fetchResourceId } from '../../utils/resources.js';
@@ -212,7 +216,7 @@ async function createLiveRelease(
     releaseId: createdRelease.id,
   });
   if (!options.json) {
-    printReleasedLine(liveRelease, {
+    printCreatedRelease(liveRelease, {
       bundleLabel: resolveBundleLabel(bundle),
       channelName: channel.name,
     });
@@ -445,6 +449,9 @@ async function publishReleases(
   )) {
     const releaseBody = buildReleaseBody(bundle, { options, plan });
     for (const { channel } of plan.channelAudiences) {
+      if (!options.json && releases.length > 0) {
+        printResultGap();
+      }
       releases.push(
         await createLiveRelease(hotCodePush, {
           bundle,

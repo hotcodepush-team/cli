@@ -2,7 +2,7 @@ import { computeFingerprint } from '@hotcodepush/protocol/fingerprint';
 import { readProjectFingerprintContributors } from '../upload/fingerprint.js';
 import { defineCommand } from '../utils/command.js';
 import { defineCommandOptions } from '../utils/global-options.js';
-import { printJson, printTable } from '../utils/output.js';
+import { printDetails, printJson, printTable } from '../utils/output.js';
 import { locateProjectConfig } from '../utils/project-config.js';
 
 export default defineCommand({
@@ -27,7 +27,8 @@ export default defineCommand({
       printJson({ fingerprint, ...contributors });
       return;
     }
-    console.log(`Fingerprint ${fingerprint}`);
+    printDetails([['Fingerprint', fingerprint]]);
+    console.log('');
     printTable({
       emptyText: 'No installed package ships native code.',
       headers: ['PACKAGE', 'VERSION'],
@@ -35,6 +36,7 @@ export default defineCommand({
       rows: contributors.packages.map(({ name, version }) => [name, version]),
     });
     if (contributors.extraFingerprintPaths.length > 0) {
+      console.log('');
       printTable({
         emptyText: '',
         headers: ['EXTRA FINGERPRINT PATH', 'SHA-256'],
