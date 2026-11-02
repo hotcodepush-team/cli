@@ -156,6 +156,7 @@ describe('resolveCommandTree', () => {
         ['config', true],
         ['help', false],
         ['json', false],
+        ['no-input', false],
         ['organization', true],
         ['verbose', false],
         ['version', false],
