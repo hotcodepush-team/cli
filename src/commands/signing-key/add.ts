@@ -1,14 +1,17 @@
 import { resolve } from 'node:path';
+import type { SigningKey } from '@hotcodepush/node';
 import { z } from 'zod';
 import { fetchAppId } from '../../resources/apps.js';
 import {
   addPublicKeyToProjectConfig,
-  printSigningKeyAdvice,
+  PUBLIC_KEY_LISTING_NOTICE,
+  UPLOAD_SIGNING_NOTICE,
   resolvePublicKeyRow,
 } from '../../resources/signing-keys.js';
 import { readSigningKeyPairFile } from '../../upload/signing-private-key.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
+import { printNotice } from '../../utils/diagnostics.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson, printResult } from '../../utils/output.js';
 import { locateProjectConfig } from '../../utils/project-config.js';
@@ -57,14 +60,24 @@ export default defineCommand({
       printJson(createdSigningKey);
       return;
     }
-    printResult({
-      rows: [
-        ['ID', createdSigningKey.id],
-        ['Key ID', createdSigningKey.keyId],
-        resolvePublicKeyRow({ isConfigured, publicKey }),
-      ],
-      sentence: 'Added a signing key.',
-    });
-    printSigningKeyAdvice({ isConfigured });
+    printAddedSigningKey(createdSigningKey, { isConfigured });
   },
 });
+
+function printAddedSigningKey(
+  { id, keyId, publicKey }: SigningKey,
+  { isConfigured }: { isConfigured: boolean },
+): void {
+  printResult({
+    rows: [
+      ['ID', id],
+      ['Key ID', keyId],
+      resolvePublicKeyRow({ isConfigured, publicKey }),
+    ],
+    sentence: 'Added a signing key.',
+  });
+  if (!isConfigured) {
+    printNotice(PUBLIC_KEY_LISTING_NOTICE);
+  }
+  printNotice(UPLOAD_SIGNING_NOTICE);
+}

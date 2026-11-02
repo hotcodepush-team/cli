@@ -40,7 +40,7 @@ describe('sso-provider verify', () => {
     ]);
   });
 
-  it('should print the TXT record to set when the record is not found yet', async () => {
+  it('should warn and print the TXT record to set when the record is not found yet', async () => {
     respondWithCheckedProvider(SSO_PROVIDER);
 
     await ssoProviderVerifyCommand.action(
@@ -49,9 +49,9 @@ describe('sso-provider verify', () => {
     );
 
     const printedLines = harness.readLines();
-    expect(printedLines[0]).toBe('No TXT record verifies example.com yet.');
+    expect(printedLines[0]).toMatch(new RegExp(`^ID +${SSO_PROVIDER.id}$`));
     expect(harness.readDiagnostics()).toBe(
-      'A new record can take a while to appear.\n',
+      'No TXT record verifies example.com yet.\nA new record can take a while to appear.\n',
     );
     expect(printedLines.slice(-2)).toEqual([
       `TXT name      _hotcodepush-sso-${ACME_ORGANIZATION.id}.example.com`,

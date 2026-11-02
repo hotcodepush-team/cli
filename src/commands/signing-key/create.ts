@@ -7,13 +7,14 @@ import { SIGNING_PRIVATE_KEY_FILE_NAME } from '../../config/consts.js';
 import { fetchAppId } from '../../resources/apps.js';
 import {
   addPublicKeyToProjectConfig,
-  printSigningKeyAdvice,
+  PUBLIC_KEY_LISTING_NOTICE,
+  UPLOAD_SIGNING_NOTICE,
   resolvePublicKeyRow,
 } from '../../resources/signing-keys.js';
 import { writeSigningPrivateKeyFile } from '../../upload/signing-private-key.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
-import { printWarning } from '../../utils/diagnostics.js';
+import { printNotice, printWarning } from '../../utils/diagnostics.js';
 import { InvalidParameterError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson, printResult } from '../../utils/output.js';
@@ -86,7 +87,10 @@ function printCreatedSigningKey(
   printWarning(
     "Keep the private key file out of version control. Whoever holds it can sign the app's bundles.",
   );
-  printSigningKeyAdvice({ isConfigured });
+  if (!isConfigured) {
+    printNotice(PUBLIC_KEY_LISTING_NOTICE);
+  }
+  printNotice(UPLOAD_SIGNING_NOTICE);
 }
 
 // An existing file may hold a key that a store build trusts, and no folder is made on the person's behalf.
