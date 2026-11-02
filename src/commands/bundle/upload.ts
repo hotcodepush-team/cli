@@ -50,7 +50,12 @@ export default defineCommand({
         return bundles;
       },
     );
-    printUploadedBundles(uploadedBundles, options.json);
+    // `--json` always prints an array, as `release create` prints its releases.
+    if (options.json) {
+      printJson(uploadedBundles.map(resolveUploadedBundleJson));
+      return;
+    }
+    uploadedBundles.forEach(printUploadedBundle);
   },
 });
 
@@ -68,18 +73,6 @@ async function fetchIsFingerprintUnknown(
     appId,
   });
   return binaryCount > 0;
-}
-
-// `--json` always prints an array, as `release create` prints its releases.
-function printUploadedBundles(
-  uploadedBundles: UploadedBundle[],
-  isJson: boolean | undefined,
-): void {
-  if (isJson) {
-    printJson(uploadedBundles.map(resolveUploadedBundleJson));
-  } else {
-    uploadedBundles.forEach(printUploadedBundle);
-  }
 }
 
 function resolveUploadedBundleJson({ bundle, upload }: UploadedBundle): object {

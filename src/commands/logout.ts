@@ -23,34 +23,40 @@ export default defineCommand({
   examples: ['hotcodepush logout', 'hotcodepush logout --json'],
   options: defineCommandOptions({}),
   action: async options => {
-    const storedToken = readStoredToken();
-    if (storedToken === undefined) {
-      if (!process.env.HOTCODEPUSH_TOKEN) {
-        throw new NotLoggedInError();
-      }
-      printEnded({ id: null, name: null }, options.json);
+    const endedSession = await endStoredSession();
+    if (options.json) {
+      printJson(endedSession);
       return;
     }
-    const authClient = createApiAuthClient(storedToken);
-    const knownSession = await fetchKnownSession(authClient);
-    const { error } = await authClient.revokeSession({
-      token: resolveUnsignedToken(storedToken),
-    });
-    // A 401 means the session already ended, so only the stored copies are left to clear.
-    if (error !== null && error.status !== UNAUTHORIZED_STATUS) {
-      throw resolveApiError(error);
-    }
-    deleteToken();
-    const storedSessionId = deleteStoredSession();
-    printEnded(
-      {
-        id: knownSession?.session.id ?? storedSessionId ?? null,
-        name: knownSession?.user.name ?? null,
-      },
-      options.json,
-    );
+    printEnded(endedSession);
   },
 });
+
+// Without a stored session there is nothing to end, and the variable alone is no session.
+async function endStoredSession(): Promise<EndedSession> {
+  const storedToken = readStoredToken();
+  if (storedToken === undefined) {
+    if (!process.env.HOTCODEPUSH_TOKEN) {
+      throw new NotLoggedInError();
+    }
+    return { id: null, name: null };
+  }
+  const authClient = createApiAuthClient(storedToken);
+  const knownSession = await fetchKnownSession(authClient);
+  const { error } = await authClient.revokeSession({
+    token: resolveUnsignedToken(storedToken),
+  });
+  // A 401 means the session already ended, so only the stored copies are left to clear.
+  if (error !== null && error.status !== UNAUTHORIZED_STATUS) {
+    throw resolveApiError(error);
+  }
+  deleteToken();
+  const storedSessionId = deleteStoredSession();
+  return {
+    id: knownSession?.session.id ?? storedSessionId ?? null,
+    name: knownSession?.user.name ?? null,
+  };
+}
 
 function deleteStoredSession(): string | undefined {
   const userConfig = readUserConfig();
@@ -75,14 +81,7 @@ async function fetchKnownSession(authClient: AuthClient) {
   return data;
 }
 
-function printEnded(
-  endedSession: EndedSession,
-  isJson: boolean | undefined,
-): void {
-  if (isJson) {
-    printJson(endedSession);
-    return;
-  }
+function printEnded(endedSession: EndedSession): void {
   printResult({
     rows: endedSession.id === null ? [] : [['ID', endedSession.id]],
     sentence: resolveEndedText(endedSession),

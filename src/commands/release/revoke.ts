@@ -100,7 +100,11 @@ export default defineCommand({
       firstRevocation === undefined ||
       revocations.every(({ revokedReleases }) => revokedReleases.length === 0)
     ) {
-      printNothingToRevoke(options.json);
+      if (options.json) {
+        printJson([]);
+        return;
+      }
+      console.log('Nothing to revoke: no release named is active or paused.');
       return;
     }
     const fleet = await hotCodePush.apps.statistics.fleet.get({
@@ -227,14 +231,6 @@ async function fetchRevocations(
       revokedReleases: [release],
     },
   ];
-}
-
-function printNothingToRevoke(isJson: boolean | undefined): void {
-  if (isJson) {
-    printJson([]);
-    return;
-  }
-  console.log('Nothing to revoke: no release named is active or paused.');
 }
 
 function printRevokedReleases(revokedChannels: RevokedChannel[]): void {

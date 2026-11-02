@@ -63,8 +63,11 @@ export default defineCommand({
         organizationId,
         role,
       });
+    if (options.json) {
+      printJson(createdInvitation);
+      return;
+    }
     printCreatedInvitation(createdInvitation, {
-      isJson: options.json,
       organizationName: fetchedOrganization.name,
     });
   },
@@ -72,15 +75,8 @@ export default defineCommand({
 
 function printCreatedInvitation(
   invitation: Invitation,
-  {
-    isJson,
-    organizationName,
-  }: { isJson: boolean | undefined; organizationName: string },
+  { organizationName }: { organizationName: string },
 ): void {
-  if (isJson) {
-    printJson(invitation);
-    return;
-  }
   printResult({
     rows: [
       ['ID', invitation.id],

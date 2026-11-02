@@ -13,7 +13,7 @@ type ChannelFields = Omit<
   'appId' | 'idempotencyKey' | 'name'
 >;
 
-interface ChannelFieldOptions extends FailurePolicyOptions {
+export interface ChannelFieldOptions extends FailurePolicyOptions {
   clearExpiresAt?: boolean;
   discoverable?: boolean;
   expiresAt?: string;

@@ -64,18 +64,18 @@ export default defineCommand({
       organizationId,
       role,
     });
-    printUpdatedMember(updatedMember, { email, isJson: options.json });
+    if (options.json) {
+      printJson(updatedMember);
+      return;
+    }
+    printUpdatedMember(updatedMember, { email });
   },
 });
 
 function printUpdatedMember(
   member: MemberRow,
-  { email, isJson }: { email: string; isJson: boolean | undefined },
+  { email }: { email: string },
 ): void {
-  if (isJson) {
-    printJson(member);
-    return;
-  }
   printResult({
     rows: [
       ['ID', member.id],

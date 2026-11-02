@@ -57,18 +57,15 @@ export default defineCommand({
       organizationId,
       spendingCapCents,
     });
-    printUpdatedOrganization(updatedOrganization, { isJson: options.json });
+    if (options.json) {
+      printJson(updatedOrganization);
+      return;
+    }
+    printUpdatedOrganization(updatedOrganization);
   },
 });
 
-function printUpdatedOrganization(
-  organization: Organization,
-  { isJson }: { isJson: boolean | undefined },
-): void {
-  if (isJson) {
-    printJson(organization);
-    return;
-  }
+function printUpdatedOrganization(organization: Organization): void {
   printResult({
     rows: resolveOrganizationDetails(organization),
     sentence: `Updated organization ${organization.name}.`,
