@@ -1,3 +1,4 @@
+import { S_SUCCESS } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
@@ -46,7 +47,11 @@ describe('app delete', () => {
       message: 'This deletes app Demo and its 2 channels. Continue?',
     });
     expect(readDeleteRequests()).toHaveLength(1);
-    expect(harness.readLines()).toEqual([`Deleted app Demo (${DEMO_APP.id}).`]);
+    expect(harness.readLines()).toEqual([
+      `${S_SUCCESS}  Deleted app Demo.`,
+      `   ID  ${DEMO_APP.id}`,
+      '',
+    ]);
   });
 
   it('should delete without asking and print the id and name of what went when --yes and --json are passed', async () => {

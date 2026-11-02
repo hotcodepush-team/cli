@@ -1,3 +1,4 @@
+import { S_SUCCESS } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   respondWithApiError,
@@ -63,7 +64,11 @@ describe('invitation create', () => {
       role: 'member',
     });
     expect(harness.readLines()).toEqual([
-      `Invited carol@example.com (${PENDING_INVITATION.id}) to organization Acme with role member.`,
+      `${S_SUCCESS}  Invited carol@example.com.`,
+      `   ID            ${PENDING_INVITATION.id}`,
+      '   Organization  Acme',
+      '   Role          member',
+      '',
     ]);
   });
 

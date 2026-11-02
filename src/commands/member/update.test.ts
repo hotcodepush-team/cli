@@ -46,7 +46,9 @@ describe('member update', () => {
 
     expect(await readPatchRequests()[0]?.json()).toEqual({ role: 'billing' });
     expect(harness.readLines()).toEqual([
-      `Updated member bob@example.com (${ADMIN_MEMBER.id}) to role billing.`,
+      'Updated member bob@example.com.',
+      `ID    ${ADMIN_MEMBER.id}`,
+      'Role  billing',
     ]);
   });
 

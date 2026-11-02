@@ -1,3 +1,4 @@
+import { S_SUCCESS } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
@@ -48,7 +49,9 @@ describe('member delete', () => {
     });
     expect(readDeleteRequests()).toHaveLength(1);
     expect(harness.readLines()).toEqual([
-      `Removed member bob@example.com (${ADMIN_MEMBER.id}).`,
+      `${S_SUCCESS}  Removed member bob@example.com.`,
+      `   ID  ${ADMIN_MEMBER.id}`,
+      '',
     ]);
   });
 

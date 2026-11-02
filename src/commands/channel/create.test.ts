@@ -70,7 +70,8 @@ describe('channel create', () => {
       name: 'staging',
     });
     expect(harness.readLines()).toEqual([
-      `Created channel staging (${STAGING_CHANNEL.id}).`,
+      'Created channel staging.',
+      `ID  ${STAGING_CHANNEL.id}`,
     ]);
   });
 

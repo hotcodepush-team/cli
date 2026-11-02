@@ -6,7 +6,7 @@ import type { InteractivityOptions } from '../../utils/environment.js';
 import { isInteractive } from '../../utils/environment.js';
 import { MissingParameterError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson } from '../../utils/output.js';
+import { printJson, printResult } from '../../utils/output.js';
 import { promptSelect, promptText } from '../../utils/prompts.js';
 
 export default defineCommand({
@@ -43,9 +43,14 @@ export default defineCommand({
     if (options.json) {
       printJson(acceptedMember);
     } else {
-      console.log(
-        `Joined organization ${acceptedMember.organizationId} with role ${acceptedMember.role}.`,
-      );
+      printResult({
+        rows: [
+          ['ID', acceptedMember.id],
+          ['Organization ID', acceptedMember.organizationId],
+          ['Role', acceptedMember.role],
+        ],
+        sentence: 'Joined the organization.',
+      });
     }
   },
 });

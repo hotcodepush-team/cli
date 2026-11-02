@@ -1,3 +1,4 @@
+import { S_SUCCESS } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
@@ -64,7 +65,9 @@ describe('release pause', () => {
     });
     expect(readPauseRequests()).toHaveLength(1);
     expect(harness.readLines()).toEqual([
-      `Paused release #43 of staging (${LIVE_RELEASE.id}).`,
+      `${S_SUCCESS}  Paused release #43 of staging.`,
+      `   ID  ${LIVE_RELEASE.id}`,
+      '',
     ]);
   });
 

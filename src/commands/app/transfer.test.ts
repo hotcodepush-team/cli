@@ -1,3 +1,4 @@
+import { S_SUCCESS } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   respondWithApiError,
@@ -60,7 +61,10 @@ describe('app transfer', () => {
       organizationId: GLOBEX_ORGANIZATION.id,
     });
     expect(harness.readLines()).toEqual([
-      `Transferred app Demo (${DEMO_APP.id}) to organization Globex.`,
+      `${S_SUCCESS}  Transferred app Demo.`,
+      `   ID            ${DEMO_APP.id}`,
+      '   Organization  Globex',
+      '',
     ]);
   });
 

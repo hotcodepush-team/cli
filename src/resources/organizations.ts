@@ -1,7 +1,7 @@
 import type { HotCodePush, Organization } from '@hotcodepush/node';
 import { z } from 'zod';
 import type { InteractivityOptions } from '../utils/environment.js';
-import { printDetails } from '../utils/output.js';
+import type { Detail } from '../utils/output.js';
 import { fetchAllPages } from '../utils/pagination.js';
 import { fetchResourceId, promptResourceId } from '../utils/resources.js';
 
@@ -50,8 +50,17 @@ export function fetchOrganizations(
   return fetchAllPages(page => hotCodePush.organizations.list(page));
 }
 
-export function printOrganizationDetails(organization: Organization): void {
-  printDetails([
+export function resolveCents(dollars: number): number {
+  return dollars * CENTS_PER_DOLLAR;
+}
+
+export function resolveDollarText(cents: number): string {
+  return `$${(cents / CENTS_PER_DOLLAR).toLocaleString('en-US')}`;
+}
+export function resolveOrganizationDetails(
+  organization: Organization,
+): Detail[] {
+  return [
     ['ID', organization.id],
     ['Name', organization.name],
     ['Plan', organization.plan],
@@ -61,13 +70,5 @@ export function printOrganizationDetails(organization: Organization): void {
     ],
     ['Region', organization.region],
     ['Created', organization.createdAt],
-  ]);
-}
-
-export function resolveCents(dollars: number): number {
-  return dollars * CENTS_PER_DOLLAR;
-}
-
-export function resolveDollarText(cents: number): string {
-  return `$${(cents / CENTS_PER_DOLLAR).toLocaleString('en-US')}`;
+  ];
 }

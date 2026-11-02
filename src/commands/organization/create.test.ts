@@ -42,7 +42,8 @@ describe('organization create', () => {
       `hotcodepush-cli/${PACKAGE_JSON.version}`,
     );
     expect(harness.readLines()).toEqual([
-      `Created organization Acme (${ACME_ORGANIZATION.id}).`,
+      'Created organization Acme.',
+      `ID  ${ACME_ORGANIZATION.id}`,
     ]);
   });
 

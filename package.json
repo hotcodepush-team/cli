@@ -1,7 +1,7 @@
 {
   "name": "hotcodepush",
   "description": "The HotCodePush CLI: set up, release and manage over-the-air (OTA) updates from the terminal and CI",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": false,
   "license": "MIT",
   "homepage": "https://hotcodepush.com",
@@ -28,6 +28,24 @@
   },
   "bin": {
     "hotcodepush": "dist/index.js"
+  },
+  "exports": {
+    "./frameworks/capacitor": {
+      "types": "./dist/frameworks/capacitor.d.ts",
+      "default": "./dist/frameworks/capacitor.js"
+    },
+    "./frameworks/cordova": {
+      "types": "./dist/frameworks/cordova.d.ts",
+      "default": "./dist/frameworks/cordova.js"
+    },
+    "./frameworks/expo": {
+      "types": "./dist/frameworks/expo.d.ts",
+      "default": "./dist/frameworks/expo.js"
+    },
+    "./frameworks/react-native": {
+      "types": "./dist/frameworks/react-native.d.ts",
+      "default": "./dist/frameworks/react-native.js"
+    }
   },
   "files": [
     "dist"

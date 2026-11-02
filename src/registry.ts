@@ -66,6 +66,7 @@ export const commandRegistry: CommandRegistry = {
   'signing-key add': () => import('./commands/signing-key/add.js'),
   'signing-key create': () => import('./commands/signing-key/create.js'),
   'signing-key delete': () => import('./commands/signing-key/delete.js'),
+  'signing-key get': () => import('./commands/signing-key/get.js'),
   'signing-key list': () => import('./commands/signing-key/list.js'),
   'sso-provider delete': () => import('./commands/sso-provider/delete.js'),
   'sso-provider get': () => import('./commands/sso-provider/get.js'),

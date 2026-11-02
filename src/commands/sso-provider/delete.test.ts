@@ -1,3 +1,4 @@
+import { S_SUCCESS } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
@@ -49,7 +50,9 @@ describe('sso-provider delete', () => {
     });
     expect(readDeleteRequests()).toHaveLength(1);
     expect(harness.readLines()).toEqual([
-      `Deleted the SSO provider for example.com (${SSO_PROVIDER.id}).`,
+      `${S_SUCCESS}  Deleted the SSO provider for example.com.`,
+      `   ID  ${SSO_PROVIDER.id}`,
+      '',
     ]);
   });
 

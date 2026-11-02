@@ -1,3 +1,4 @@
+import { S_SUCCESS } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   respondWithApiError,
@@ -41,7 +42,9 @@ describe('bundle delete', () => {
         'This deletes bundle #17 · 1.4.2 and its files now, not by retention. Continue?',
     });
     expect(harness.readLines()).toEqual([
-      `Deleted bundle #17 · 1.4.2 (${READY_BUNDLE.id}).`,
+      `${S_SUCCESS}  Deleted bundle #17 · 1.4.2.`,
+      `   ID  ${READY_BUNDLE.id}`,
+      '',
     ]);
   });
 

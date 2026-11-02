@@ -7,7 +7,7 @@ import {
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson } from '../../utils/output.js';
+import { printJson, printResult } from '../../utils/output.js';
 import { readProjectConfig } from '../../utils/project-config.js';
 import { confirmConsequence } from '../../utils/prompts.js';
 
@@ -40,9 +40,10 @@ export default defineCommand({
     if (options.json) {
       printJson({ id: fetchedBundle.id, name: fetchedBundle.version });
     } else {
-      console.log(
-        `Deleted bundle ${resolveBundleLabel(fetchedBundle)} (${fetchedBundle.id}).`,
-      );
+      printResult({
+        rows: [['ID', fetchedBundle.id]],
+        sentence: `Deleted bundle ${resolveBundleLabel(fetchedBundle)}.`,
+      });
     }
   },
 });

@@ -6,7 +6,7 @@ import {
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson } from '../../utils/output.js';
+import { printJson, printResult } from '../../utils/output.js';
 import { confirmConsequence } from '../../utils/prompts.js';
 
 export default defineCommand({
@@ -40,9 +40,10 @@ export default defineCommand({
     if (options.json) {
       printJson(resumedRelease);
     } else {
-      console.log(
-        `Resumed release #${resumedRelease.number} of ${channel.name} (${resumedRelease.id}).`,
-      );
+      printResult({
+        rows: [['ID', resumedRelease.id]],
+        sentence: `Resumed release #${resumedRelease.number} of ${channel.name}.`,
+      });
     }
   },
 });

@@ -1,11 +1,16 @@
 import type { AuthClient } from '../utils/auth-client.js';
 import { createApiAuthClient } from '../utils/auth-client.js';
 import { defineCommand } from '../utils/command.js';
+import { printNotice } from '../utils/diagnostics.js';
 import { resolveApiError } from '../utils/error-mapping.js';
 import { NotLoggedInError } from '../utils/errors.js';
 import { defineCommandOptions } from '../utils/global-options.js';
-import { printJson } from '../utils/output.js';
-import { deleteToken, readStoredToken } from '../utils/token-store.js';
+import { printJson, printResult } from '../utils/output.js';
+import {
+  deleteToken,
+  isEnvironmentToken,
+  readStoredToken,
+} from '../utils/token-store.js';
 import { readUserConfig, writeUserConfig } from '../utils/user-config.js';
 
 interface EndedSession {
@@ -22,32 +27,12 @@ export default defineCommand({
   examples: ['hotcodepush logout', 'hotcodepush logout --json'],
   options: defineCommandOptions({}),
   action: async options => {
-    const storedToken = readStoredToken();
-    if (storedToken === undefined) {
-      if (!process.env.HOTCODEPUSH_TOKEN) {
-        throw new NotLoggedInError();
-      }
-      printEnded({ id: null, name: null }, options.json);
+    const endedSession = await endStoredSession();
+    if (options.json) {
+      printJson(endedSession);
       return;
     }
-    const authClient = createApiAuthClient(storedToken);
-    const knownSession = await fetchKnownSession(authClient);
-    const { error } = await authClient.revokeSession({
-      token: resolveUnsignedToken(storedToken),
-    });
-    // A 401 means the session already ended, so only the stored copies are left to clear.
-    if (error !== null && error.status !== UNAUTHORIZED_STATUS) {
-      throw resolveApiError(error);
-    }
-    deleteToken();
-    const storedSessionId = deleteStoredSession();
-    printEnded(
-      {
-        id: knownSession?.session.id ?? storedSessionId ?? null,
-        name: knownSession?.user.name ?? null,
-      },
-      options.json,
-    );
+    printEnded(endedSession);
   },
 });
 
@@ -63,6 +48,32 @@ function deleteStoredSession(): string | undefined {
   return sessionId;
 }
 
+// Without a stored session there is nothing to end, and the variable alone is no session.
+async function endStoredSession(): Promise<EndedSession> {
+  const storedToken = readStoredToken();
+  if (storedToken === undefined) {
+    if (!isEnvironmentToken()) {
+      throw new NotLoggedInError();
+    }
+    return { id: null, name: null };
+  }
+  const authClient = createApiAuthClient(storedToken);
+  const knownSession = await fetchKnownSession(authClient);
+  const { error } = await authClient.revokeSession({
+    token: resolveUnsignedToken(storedToken),
+  });
+  // A 401 means the session already ended, so only the stored copies are left to clear.
+  if (error !== null && error.status !== UNAUTHORIZED_STATUS) {
+    throw resolveApiError(error);
+  }
+  deleteToken();
+  const storedSessionId = deleteStoredSession();
+  return {
+    id: knownSession?.session.id ?? storedSessionId ?? null,
+    name: knownSession?.user.name ?? null,
+  };
+}
+
 async function fetchKnownSession(authClient: AuthClient) {
   const { data, error } = await authClient.getSession();
   if (error !== null) {
@@ -74,23 +85,19 @@ async function fetchKnownSession(authClient: AuthClient) {
   return data;
 }
 
-function printEnded(
-  endedSession: EndedSession,
-  isJson: boolean | undefined,
-): void {
-  if (isJson) {
-    printJson(endedSession);
-    return;
-  }
-  const variableText = process.env.HOTCODEPUSH_TOKEN
-    ? ' HOTCODEPUSH_TOKEN still authenticates.'
-    : '';
+// Without a session nothing ended, so the line carries no success symbol.
+function printEnded(endedSession: EndedSession): void {
   if (endedSession.id === null && endedSession.name === null) {
-    console.log(`No stored session to end.${variableText}`);
-    return;
+    console.log('No stored session to end.');
+  } else {
+    printResult({
+      rows: endedSession.id === null ? [] : [['ID', endedSession.id]],
+      sentence: `Logged out${endedSession.name === null ? '' : ` ${endedSession.name}`}.`,
+    });
   }
-  const nameText = endedSession.name === null ? '' : ` ${endedSession.name}`;
-  console.log(`Logged out${nameText}.${variableText}`);
+  if (isEnvironmentToken()) {
+    printNotice('HOTCODEPUSH_TOKEN still authenticates.');
+  }
 }
 
 // A bearer can be signed, `<token>.<signature>`, but revoke-session looks up the token alone.
