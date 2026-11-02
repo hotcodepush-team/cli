@@ -91,13 +91,13 @@ export default defineCommand({
       printJson({ devices: listedDevices, nextOffset });
       return;
     }
-    printDeviceTable(listedDevices, nextOffset);
+    printDeviceTable(listedDevices, { nextOffset });
   },
 });
 
 function printDeviceTable(
   listedDevices: Device[],
-  nextOffset: number | null,
+  { nextOffset }: { nextOffset: number | null },
 ): void {
   printTable({
     emptyText: 'No devices match. A device appears with its first check.',

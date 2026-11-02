@@ -39,7 +39,9 @@ export function checkBinaryCreateStep(
   const xcodeProjectFilePath = resolveXcodeProjectFilePath(
     nativeProjectPaths.ios,
   );
-  const gradleEdit = resolveGradleEdit(nativeProjectPaths.android, packageName);
+  const gradleEdit = resolveGradleEdit(nativeProjectPaths.android, {
+    packageName,
+  });
   return checkEdits(gradleEdit === undefined ? [] : [gradleEdit], {
     check: 'hook',
     isPhaseMissing: isBinaryCreatePhaseMissing(xcodeProjectFilePath),

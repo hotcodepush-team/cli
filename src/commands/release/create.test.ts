@@ -134,10 +134,10 @@ describe('release create', () => {
       Response.json([DEMO_APP]);
   }
 
-  function respondWithCreatedRelease(
-    release: Release = LIVE_RELEASE,
-    channel: Channel = STAGING_CHANNEL,
-  ): void {
+  function respondWithCreatedRelease({
+    channel = STAGING_CHANNEL,
+    release = LIVE_RELEASE,
+  }: { channel?: Channel; release?: Release } = {}): void {
     harness.routes[
       `POST /v1/apps/${DEMO_APP.id}/channels/${channel.id}/releases`
     ] = () => Response.json(release, { status: 201 });
@@ -440,7 +440,7 @@ describe('release create', () => {
       respondWithStagingChannel();
       harness.routes[`GET ${BUNDLES_PATH}/${READY_BUNDLE.id}`] = () =>
         Response.json(READY_BUNDLE);
-      respondWithCreatedRelease(PROGRESSING_RELEASE);
+      respondWithCreatedRelease({ release: PROGRESSING_RELEASE });
     });
 
     it("should start at the default schedule's first percentage once confirmed, stating the schedule", async () => {
@@ -709,7 +709,10 @@ describe('release create', () => {
       harness.routes[`GET ${BUNDLES_PATH}/${READY_BUNDLE.id}`] = () =>
         Response.json(READY_BUNDLE);
       respondWithCreatedRelease();
-      respondWithCreatedRelease(PRODUCTION_RELEASE, PRODUCTION_CHANNEL);
+      respondWithCreatedRelease({
+        channel: PRODUCTION_CHANNEL,
+        release: PRODUCTION_RELEASE,
+      });
     });
 
     it('should release to every channel named, one release each', async () => {

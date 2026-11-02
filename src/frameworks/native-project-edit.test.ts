@@ -37,7 +37,9 @@ describe('native-project-edit', () => {
         join(androidProjectPath, 'app', 'build.gradle'),
         "apply plugin: 'com.android.application'\n",
       );
-      const edit = resolveGradleEdit(androidProjectPath, PACKAGE_NAME);
+      const edit = resolveGradleEdit(androidProjectPath, {
+        packageName: PACKAGE_NAME,
+      });
       expect(edit?.isApplied()).toBe(false);
 
       edit?.apply();
@@ -54,7 +56,9 @@ describe('native-project-edit', () => {
         'plugins { id("com.android.application") }',
       );
 
-      resolveGradleEdit(androidProjectPath, PACKAGE_NAME)?.apply();
+      resolveGradleEdit(androidProjectPath, {
+        packageName: PACKAGE_NAME,
+      })?.apply();
 
       expect(readLastLine('build.gradle.kts')).toBe(
         `apply(from = File(providers.exec { workingDir(rootDir); commandLine("node", "--print", "require.resolve('${PACKAGE_NAME}/package.json')") }.standardOutput.asText.get().trim()).resolveSibling("android/hotcodepush.gradle"))`,
@@ -62,7 +66,9 @@ describe('native-project-edit', () => {
     });
 
     it('should stop with the manual step, refused, when the Android project has no app Gradle file', () => {
-      const edit = resolveGradleEdit(androidProjectPath, PACKAGE_NAME);
+      const edit = resolveGradleEdit(androidProjectPath, {
+        packageName: PACKAGE_NAME,
+      });
       expect(edit?.filePath).toBe(
         join(androidProjectPath, 'app', 'build.gradle'),
       );
@@ -72,7 +78,9 @@ describe('native-project-edit', () => {
       expect(() => edit?.apply()).toThrow(
         new NativeProjectError(
           `The Android project ${androidProjectPath} has no build.gradle or build.gradle.kts in its app folder.`,
-          `Apply node_modules/${PACKAGE_NAME}/android/hotcodepush.gradle from the app module's Gradle file.`,
+          {
+            fix: `Apply node_modules/${PACKAGE_NAME}/android/hotcodepush.gradle from the app module's Gradle file.`,
+          },
         ),
       );
     });
@@ -81,7 +89,7 @@ describe('native-project-edit', () => {
       rmSync(androidProjectPath, { recursive: true });
 
       expect(
-        resolveGradleEdit(androidProjectPath, PACKAGE_NAME),
+        resolveGradleEdit(androidProjectPath, { packageName: PACKAGE_NAME }),
       ).toBeUndefined();
     });
   });

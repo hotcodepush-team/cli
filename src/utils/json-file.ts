@@ -6,7 +6,7 @@ import { InvalidJsonError } from './errors.js';
 const QUOTED_TEXT_PATTERN = /^(Unexpected token '.+?'), .*$/s;
 
 export function readJsonFile(filePath: string): unknown {
-  return parseJsonFileText(filePath, readFileSync(filePath, 'utf8'));
+  return parseJsonFileText(readFileSync(filePath, 'utf8'), { filePath });
 }
 
 // Keeps the indentation and final newline of the file, so the diff is only the edited line.
@@ -19,14 +19,19 @@ export function stringifyLikeSource(
   return `${JSON.stringify(value, null, indent)}${newline}`;
 }
 
-function parseJsonFileText(filePath: string, text: string): unknown {
+function parseJsonFileText(
+  text: string,
+  { filePath }: { filePath: string },
+): unknown {
   try {
     return JSON.parse(text);
   } catch (error) {
     if (!(error instanceof SyntaxError)) {
       throw error;
     }
-    throw new InvalidJsonError(filePath, resolveJsonSyntaxProblem(error));
+    throw new InvalidJsonError(filePath, {
+      problem: resolveJsonSyntaxProblem(error),
+    });
   }
 }
 

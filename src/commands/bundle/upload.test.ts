@@ -140,10 +140,13 @@ describe('bundle upload', () => {
       );
   }
 
-  function respondWithBinaryCounts(
-    binaryCount: number,
-    fingerprintBinaryCount: number,
-  ): void {
+  function respondWithBinaryCounts({
+    binaryCount,
+    fingerprintBinaryCount,
+  }: {
+    binaryCount: number;
+    fingerprintBinaryCount: number;
+  }): void {
     harness.routes[`GET ${BINARY_COUNT_PATH}`] = () =>
       Response.json({ count: binaryCount });
     harness.routes[
@@ -155,7 +158,7 @@ describe('bundle upload', () => {
     harness.routes[`POST ${BUNDLES_PATH}`] = () =>
       Response.json({ ...READY_BUNDLE, status: 'uploading' }, { status: 201 });
     respondWithMissingFiles();
-    respondWithBinaryCounts(1, 1);
+    respondWithBinaryCounts({ binaryCount: 1, fingerprintBinaryCount: 1 });
     harness.routes[`PUT /v1/apps/${DEMO_APP.id}/files/${APP_JS_SHA256}`] =
       request => {
         // The upload removes its temporary files when it ends, so the bytes are read as each request arrives.
@@ -178,10 +181,13 @@ describe('bundle upload', () => {
       Response.json(READY_BUNDLE);
   }
 
-  function readRequest(
-    method: string,
-    pathSuffix: string,
-  ): Request | undefined {
+  function readRequest({
+    method,
+    pathSuffix,
+  }: {
+    method: string;
+    pathSuffix: string;
+  }): Request | undefined {
     return harness.requests.find(
       request =>
         request.method === method &&
@@ -201,11 +207,14 @@ describe('bundle upload', () => {
       undefined,
     );
 
-    const createRequest = readRequest('POST', '/bundles');
-    const filesRequest = readRequest(
-      'GET',
-      `/bundles/${READY_BUNDLE.id}/files`,
-    );
+    const createRequest = readRequest({
+      method: 'POST',
+      pathSuffix: '/bundles',
+    });
+    const filesRequest = readRequest({
+      method: 'GET',
+      pathSuffix: `/bundles/${READY_BUNDLE.id}/files`,
+    });
     expect(
       Object.fromEntries(new URL(filesRequest?.url ?? API_URL).searchParams),
     ).toEqual({ isStored: 'false', limit: '1000', offset: '0' });
@@ -224,7 +233,10 @@ describe('bundle upload', () => {
       platforms: ['ios'],
       signature: null,
     });
-    const fileRequest = readRequest('PUT', `/files/${APP_JS_SHA256}`);
+    const fileRequest = readRequest({
+      method: 'PUT',
+      pathSuffix: `/files/${APP_JS_SHA256}`,
+    });
     expect(fileRequest).toBeDefined();
     expect(fileRequest?.headers.get('content-type')).toBe('application/gzip');
     expect(Number(fileRequest?.headers.get('content-length'))).toBeGreaterThan(
@@ -235,12 +247,16 @@ describe('bundle upload', () => {
         Buffer.from((await uploadedFileBytes) ?? new ArrayBuffer(0)),
       ).toString(),
     ).toBe(APP_JS);
-    expect(readRequest('PUT', `/files/${INDEX_SHA256}`)).toBeUndefined();
+    expect(
+      readRequest({ method: 'PUT', pathSuffix: `/files/${INDEX_SHA256}` }),
+    ).toBeUndefined();
     const packEntries = await readPackEntries(
       (await uploadedPackBytes) ?? new ArrayBuffer(0),
     );
     expect([...packEntries.keys()]).toEqual([APP_JS_SHA256, INDEX_SHA256]);
-    expect(readRequest('POST', '/complete')).toBeDefined();
+    expect(
+      readRequest({ method: 'POST', pathSuffix: '/complete' }),
+    ).toBeDefined();
     expect(harness.readLines()).toEqual([
       'Uploaded bundle #17 · 1.4.2.',
       `ID         ${READY_BUNDLE.id}`,
@@ -262,7 +278,9 @@ describe('bundle upload', () => {
       undefined,
     );
 
-    expect(await readRequest('POST', '/bundles')?.json()).toMatchObject({
+    expect(
+      await readRequest({ method: 'POST', pathSuffix: '/bundles' })?.json(),
+    ).toMatchObject({
       files: [
         { path: 'assets/app.js', sha256: APP_JS_SHA256, sizeBytes: 14 },
         { path: 'index.html', sha256: INDEX_SHA256, sizeBytes: 11 },
@@ -310,7 +328,7 @@ describe('bundle upload', () => {
     }
 
     it("should warn on stderr when the app has binaries and none carries the bundle's fingerprint", async () => {
-      respondWithBinaryCounts(2, 0);
+      respondWithBinaryCounts({ binaryCount: 2, fingerprintBinaryCount: 0 });
 
       await runBundleUpload();
 
@@ -318,7 +336,7 @@ describe('bundle upload', () => {
     });
 
     it('should stay silent when the app has no binary yet', async () => {
-      respondWithBinaryCounts(0, 0);
+      respondWithBinaryCounts({ binaryCount: 0, fingerprintBinaryCount: 0 });
 
       await runBundleUpload();
 
@@ -326,7 +344,7 @@ describe('bundle upload', () => {
     });
 
     it("should stay silent and count no other binary when a binary carries the bundle's fingerprint", async () => {
-      respondWithBinaryCounts(2, 1);
+      respondWithBinaryCounts({ binaryCount: 2, fingerprintBinaryCount: 1 });
 
       await runBundleUpload();
 
@@ -396,7 +414,10 @@ describe('bundle upload', () => {
     );
 
     const { files, fingerprint, platforms, signature, version } =
-      (await readRequest('POST', '/bundles')?.json()) as {
+      (await readRequest({
+        method: 'POST',
+        pathSuffix: '/bundles',
+      })?.json()) as {
         files: object[];
         fingerprint: string;
         platforms: string[];
@@ -426,14 +447,19 @@ describe('bundle upload', () => {
   it('should sign the manifest with the private key file --private-key-path names', async () => {
     respondWithUploadRoutes();
     const privateKeyPath = join(projectDirectoryPath, 'private-key.pem');
-    writeSigningPrivateKeyFile(privateKeyPath, SIGNING_PRIVATE_KEY);
+    writeSigningPrivateKeyFile(privateKeyPath, {
+      privateKey: SIGNING_PRIVATE_KEY,
+    });
 
     await bundleUploadCommand.action(
       { config: listPublicKey(), json: true, noGit: true, privateKeyPath },
       undefined,
     );
 
-    const { signature } = (await readRequest('POST', '/bundles')?.json()) as {
+    const { signature } = (await readRequest({
+      method: 'POST',
+      pathSuffix: '/bundles',
+    })?.json()) as {
       signature: { keyId: string };
     };
     expect(signature.keyId).toBe(SIGNING_KEY.keyId);
@@ -515,7 +541,9 @@ describe('bundle upload', () => {
         message: 'Which version label does the bundle carry?',
       }),
     );
-    expect(await readRequest('POST', '/bundles')?.json()).toMatchObject({
+    expect(
+      await readRequest({ method: 'POST', pathSuffix: '/bundles' })?.json(),
+    ).toMatchObject({
       version: '2.0.0',
     });
   });
@@ -579,7 +607,7 @@ describe('bundle upload', () => {
           { status: 201 },
         );
       respondWithMissingFiles([]);
-      respondWithBinaryCounts(1, 1);
+      respondWithBinaryCounts({ binaryCount: 1, fingerprintBinaryCount: 1 });
       harness.routes[`PUT ${BUNDLES_PATH}/${READY_BUNDLE.id}/pack`] = () =>
         Response.json({ sizeBytes: 1536 });
       harness.routes[`POST ${BUNDLES_PATH}/${READY_BUNDLE.id}/complete`] = () =>
@@ -668,7 +696,9 @@ describe('bundle upload', () => {
       );
 
       expect(runCommandLineVisibly).not.toHaveBeenCalled();
-      expect(await readRequest('POST', '/bundles')?.json()).toMatchObject({
+      expect(
+        await readRequest({ method: 'POST', pathSuffix: '/bundles' })?.json(),
+      ).toMatchObject({
         files: [expect.objectContaining({ path: 'main.jsbundle' })],
         platforms: ['ios'],
       });

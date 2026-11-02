@@ -64,7 +64,7 @@ export default defineCommand({
     if (changeTexts.length === 0) {
       throw new MissingParameterError(
         '--mandatory, --notes, a --failure-* flag or a --clear-* flag',
-        'Pass at least one of them.',
+        { fix: 'Pass at least one of them.' },
       );
     }
     const { channel, release } = await fetchReleaseInChannel(

@@ -57,13 +57,16 @@ export default defineCommand({
       ['Rollout', `${release.rolloutPercent}%`],
       ...resolveProgressionDetails(release),
       ...resolveFailurePolicyDetails(
-        resolveEffectiveFailurePolicy(release, channel),
+        resolveEffectiveFailurePolicy(release, { channelFields: channel }),
       ),
       ['Mandatory', resolveYesNoText(release.isMandatory)],
       ['Notes', release.notes ?? 'none'],
       ['Rolled back from', release.rolledBackFromReleaseId ?? 'nothing'],
       ['Live', release.liveAt ?? 'not yet'],
-      ['Devices', String(resolveReleaseDeviceCount(fleet, release.id))],
+      [
+        'Devices',
+        String(resolveReleaseDeviceCount(fleet, { releaseId: release.id })),
+      ],
       ...resolveCounterDetails(release),
       ['Created', release.createdAt],
     ]);

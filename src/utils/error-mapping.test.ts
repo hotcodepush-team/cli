@@ -180,7 +180,9 @@ describe('error mapping', () => {
 
     it('should never start a line with the code', () => {
       const sentences = resolveErrorSentences(
-        new UnknownCommandError('relese create', 'release create'),
+        new UnknownCommandError('relese create', {
+          closestCommandName: 'release create',
+        }),
       );
 
       expect(sentences).toEqual([

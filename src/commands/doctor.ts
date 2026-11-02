@@ -94,7 +94,7 @@ export default defineCommand({
       ...sessionAndAppChecks,
       ...checkFramework(project),
       await checkHosts(),
-      await checkSigningKey(project, app),
+      await checkSigningKey(project, { app }),
       checkVersions(project),
     ];
     const status = checks.some(({ status }) => status === 'failed')
@@ -305,7 +305,7 @@ function resolveFailedAppCheck(error: unknown): DoctorCheck {
 
 async function checkSigningKey(
   { projectConfig }: Project,
-  app: App | undefined,
+  { app }: { app: App | undefined },
 ): Promise<DoctorCheck> {
   const publicKeys =
     projectConfig?.appId === undefined ? [] : (projectConfig.publicKeys ?? []);
@@ -355,7 +355,7 @@ async function checkSigningPrivateKey(
   publicKeys: string[],
 ): Promise<DoctorCheck> {
   try {
-    const signingKeyPair = await readSigningKeyPair(publicKeys, undefined);
+    const signingKeyPair = await readSigningKeyPair(publicKeys);
     return signingKeyPair === null
       ? {
           check: 'signing_key',
@@ -454,7 +454,7 @@ function checkVersions({
     versions.push(
       ...framework.versionedPackageNames.map(
         packageName =>
-          `${packageName} ${readInstalledPackageVersion(directoryPath, packageName) ?? packageJson?.dependencies?.[packageName] ?? 'missing'}`,
+          `${packageName} ${readInstalledPackageVersion(directoryPath, { packageName }) ?? packageJson?.dependencies?.[packageName] ?? 'missing'}`,
       ),
       ...(framework.versionedSdkDependencyNames ?? []).map(
         packageName =>

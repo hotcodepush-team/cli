@@ -150,7 +150,9 @@ function resolveEdits(
   nativeProjectPaths: NativeProjectPaths,
 ): NativeProjectEdit[] {
   return [
-    resolveGradleEdit(nativeProjectPaths.android, REACT_NATIVE_PACKAGE_NAME),
+    resolveGradleEdit(nativeProjectPaths.android, {
+      packageName: REACT_NATIVE_PACKAGE_NAME,
+    }),
     ...resolveBundleWiringEdits(nativeProjectPaths),
   ].filter(edit => edit !== undefined);
 }

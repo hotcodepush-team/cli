@@ -33,17 +33,16 @@ const HERMESC_DIRECTORY_NAME = {
 describe('react-native-build', () => {
   let directoryPath = '';
 
-  function writeFile(filePath: string, content: string): void {
+  function writeFile(filePath: string, { content }: { content: string }): void {
     mkdirSync(dirname(filePath), { recursive: true });
     writeFileSync(filePath, content);
   }
 
   function writeHermesc(): string {
     const packagePath = join(directoryPath, 'node_modules', 'react-native');
-    writeFile(
-      join(packagePath, 'package.json'),
-      JSON.stringify({ name: 'react-native', version: '0.82.1' }),
-    );
+    writeFile(join(packagePath, 'package.json'), {
+      content: JSON.stringify({ name: 'react-native', version: '0.82.1' }),
+    });
     const hermescFilePath = join(
       packagePath,
       'sdks',
@@ -51,7 +50,7 @@ describe('react-native-build', () => {
       HERMESC_DIRECTORY_NAME,
       process.platform === 'win32' ? 'hermesc.exe' : 'hermesc',
     );
-    writeFile(hermescFilePath, '');
+    writeFile(hermescFilePath, { content: '' });
     // Node resolves the package to its real path.
     return realpathSync(hermescFilePath);
   }
@@ -71,10 +70,12 @@ describe('react-native-build', () => {
 
   describe('collectEmbeddedFiles', () => {
     it('should take main.jsbundle and assets/ out of the iOS app and leave the rest of it', async () => {
-      writeFile(join(directoryPath, 'main.jsbundle'), 'bytecode');
-      writeFile(join(directoryPath, 'assets', 'src', 'logo.png'), 'png');
-      writeFile(join(directoryPath, 'Info.plist'), '<plist />');
-      writeFile(join(directoryPath, 'Demo'), 'executable');
+      writeFile(join(directoryPath, 'main.jsbundle'), { content: 'bytecode' });
+      writeFile(join(directoryPath, 'assets', 'src', 'logo.png'), {
+        content: 'png',
+      });
+      writeFile(join(directoryPath, 'Info.plist'), { content: '<plist />' });
+      writeFile(join(directoryPath, 'Demo'), { content: 'executable' });
 
       const files = await collectEmbeddedFiles('ios', directoryPath);
 
@@ -99,8 +100,12 @@ describe('react-native-build', () => {
     });
 
     it('should take every file of the staged Android bundle directory', async () => {
-      writeFile(join(directoryPath, 'index.android.bundle'), 'bytecode');
-      writeFile(join(directoryPath, 'drawable-mdpi', 'logo.png'), 'png');
+      writeFile(join(directoryPath, 'index.android.bundle'), {
+        content: 'bytecode',
+      });
+      writeFile(join(directoryPath, 'drawable-mdpi', 'logo.png'), {
+        content: 'png',
+      });
 
       const files = await collectEmbeddedFiles('android', directoryPath);
 
@@ -111,7 +116,7 @@ describe('react-native-build', () => {
     });
 
     it('should answer nothing when the build bundled no JavaScript', async () => {
-      writeFile(join(directoryPath, 'Info.plist'), '<plist />');
+      writeFile(join(directoryPath, 'Info.plist'), { content: '<plist />' });
 
       expect(await collectEmbeddedFiles('ios', directoryPath)).toBeUndefined();
     });
@@ -125,9 +130,9 @@ describe('react-native-build', () => {
       vi.mocked(runCommandLineVisibly).mockImplementation(({ args }) => {
         const outFilePath = args[args.indexOf('-out') + 1];
         if (args.includes('-out') && outFilePath !== undefined) {
-          writeFile(outFilePath, 'bytecode');
+          writeFile(outFilePath, { content: 'bytecode' });
           if (args.includes('-output-source-map')) {
-            writeFile(`${outFilePath}.map`, '{}');
+            writeFile(`${outFilePath}.map`, { content: '{}' });
           }
         }
       });
@@ -251,10 +256,9 @@ describe('react-native-build', () => {
     });
 
     it("should bundle the JavaScript as it is with Gradle's source map when Android switched Hermes off", async () => {
-      writeFile(
-        join(directoryPath, 'android', 'gradle.properties'),
-        'newArchEnabled=true\nhermesEnabled=false\n',
-      );
+      writeFile(join(directoryPath, 'android', 'gradle.properties'), {
+        content: 'newArchEnabled=true\nhermesEnabled=false\n',
+      });
       const packagingDirectoryPath = join(directoryPath, 'packaging');
 
       await packageReactNativeBundles(
@@ -312,7 +316,9 @@ describe('react-native-build', () => {
     });
 
     it('should take --path as the prepared bundle of the one platform named, and bundle nothing', async () => {
-      writeFile(join(directoryPath, 'export', 'main.jsbundle'), 'bytecode');
+      writeFile(join(directoryPath, 'export', 'main.jsbundle'), {
+        content: 'bytecode',
+      });
 
       expect(
         await packageReactNativeBundles(
@@ -331,10 +337,9 @@ describe('react-native-build', () => {
     });
 
     it('should refuse --path when the directory holds no bundle under the name the app loads', async () => {
-      writeFile(
-        join(directoryPath, 'export', 'index-0123abcd.hbc'),
-        'bytecode',
-      );
+      writeFile(join(directoryPath, 'export', 'index-0123abcd.hbc'), {
+        content: 'bytecode',
+      });
 
       await expect(
         (async () =>

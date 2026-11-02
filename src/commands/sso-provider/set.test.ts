@@ -65,7 +65,10 @@ describe('sso-provider set', () => {
     harness.routes[`PUT ${SSO_PROVIDER_PATH}`] = () => Response.json(provider);
   }
 
-  function writeDocumentFile(fileName: string, content: string): string {
+  function writeDocumentFile(
+    fileName: string,
+    { content }: { content: string },
+  ): string {
     const filePath = join(directoryPath, fileName);
     writeFileSync(filePath, content);
     return filePath;
@@ -119,7 +122,9 @@ describe('sso-provider set', () => {
         domain: 'example.com',
         json: true,
         organization: ACME_ORGANIZATION.id,
-        samlMetadataPath: writeDocumentFile('idp-metadata.xml', METADATA_XML),
+        samlMetadataPath: writeDocumentFile('idp-metadata.xml', {
+          content: METADATA_XML,
+        }),
       },
       undefined,
     );
@@ -143,7 +148,9 @@ describe('sso-provider set', () => {
         ...SAML_FLAGS,
         domain: 'example.com',
         organization: ACME_ORGANIZATION.id,
-        samlCertPath: writeDocumentFile('idp-certificate.pem', CERTIFICATE_PEM),
+        samlCertPath: writeDocumentFile('idp-certificate.pem', {
+          content: CERTIFICATE_PEM,
+        }),
         samlEntityId: 'https://idp.example.com',
       },
       undefined,
@@ -236,7 +243,7 @@ describe('sso-provider set', () => {
   it('should ask for the SAML metadata file when interactive and neither a certificate nor an entity id is passed', async () => {
     stubInteractiveTerminal();
     vi.mocked(text).mockResolvedValue(
-      writeDocumentFile('idp-metadata.xml', METADATA_XML),
+      writeDocumentFile('idp-metadata.xml', { content: METADATA_XML }),
     );
     respondWithProvider(VERIFIED_SAML_SSO_PROVIDER);
 

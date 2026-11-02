@@ -43,7 +43,7 @@ const APP_JSON5 = `{
 describe('expoFramework', () => {
   const directoryPaths: string[] = [];
 
-  function writeFile(filePath: string, content: string): void {
+  function writeFile(filePath: string, { content }: { content: string }): void {
     mkdirSync(dirname(filePath), { recursive: true });
     writeFileSync(filePath, content);
   }
@@ -55,30 +55,30 @@ describe('expoFramework', () => {
   ): string {
     const directoryPath = mkdtempSync(join(tmpdir(), 'hotcodepush-expo-'));
     directoryPaths.push(directoryPath);
-    writeFile(
-      join(directoryPath, 'package.json'),
-      JSON.stringify({
+    writeFile(join(directoryPath, 'package.json'), {
+      content: JSON.stringify({
         dependencies: { 'expo': '~55.0.31', 'react-native': '0.83.10' },
         name: 'demo',
       }),
-    );
+    });
     if (appConfig.appJson !== undefined) {
-      writeFile(join(directoryPath, 'app.json'), appConfig.appJson);
+      writeFile(join(directoryPath, 'app.json'), {
+        content: appConfig.appJson,
+      });
     }
     if (appConfig.codeFileName !== undefined) {
-      writeFile(
-        join(directoryPath, appConfig.codeFileName),
-        'export default ({ config }) => ({ ...config, plugins: [] });\n',
-      );
+      writeFile(join(directoryPath, appConfig.codeFileName), {
+        content:
+          'export default ({ config }) => ({ ...config, plugins: [] });\n',
+      });
     }
     return directoryPath;
   }
 
   function disableAndroidHermes(directoryPath: string): void {
-    writeFile(
-      join(directoryPath, 'android', 'gradle.properties'),
-      'hermesEnabled=false\n',
-    );
+    writeFile(join(directoryPath, 'android', 'gradle.properties'), {
+      content: 'hermesEnabled=false\n',
+    });
   }
 
   function readProject(directoryPath: string) {
@@ -220,7 +220,9 @@ describe('expoFramework', () => {
 
       it('should add the config plugin to app.config.json, which Expo reads before app.json', async () => {
         const directoryPath = writeProject({});
-        writeFile(join(directoryPath, 'app.config.json'), APP_JSON);
+        writeFile(join(directoryPath, 'app.config.json'), {
+          content: APP_JSON,
+        });
         const wiring = await expoFramework.resolveWiring(
           readProject(directoryPath),
           { yes: true },
@@ -243,10 +245,9 @@ describe('expoFramework', () => {
 
       it('should change no file when the edit is not confirmed', async () => {
         const directoryPath = writeProject();
-        const editBlocker = new ConfirmationRequiredError(
-          'changes app.json',
-          'Run init --yes to change app.json.',
-        );
+        const editBlocker = new ConfirmationRequiredError('changes app.json', {
+          fix: 'Run init --yes to change app.json.',
+        });
         const wiring = await expoFramework.resolveWiring(
           readProject(directoryPath),
           {},
@@ -270,7 +271,9 @@ describe('expoFramework', () => {
         await expect(wiring.wireBinaryCreateStep(undefined)).rejects.toThrow(
           new NativeProjectError(
             'The app config app.json is not JSON the CLI can parse.',
-            'Add "@hotcodepush/expo-ota-updates" to the plugins in app.json.',
+            {
+              fix: 'Add "@hotcodepush/expo-ota-updates" to the plugins in app.json.',
+            },
           ),
         );
         expect(wiring.packageFilePaths).toEqual(['package.json']);
@@ -292,7 +295,9 @@ describe('expoFramework', () => {
         await expect(wiring.wireBinaryCreateStep(undefined)).rejects.toThrow(
           new NativeProjectError(
             'The app config app.config.ts is code, which the CLI does not edit.',
-            'Add "@hotcodepush/expo-ota-updates" to the plugins in app.config.ts.',
+            {
+              fix: 'Add "@hotcodepush/expo-ota-updates" to the plugins in app.config.ts.',
+            },
           ),
         );
         expect(wiring.packageFilePaths).toEqual(['package.json']);
@@ -377,10 +382,10 @@ describe('expoFramework', () => {
 
     it('should report the hook of an app config that is code and names the config plugin', () => {
       const directoryPath = writeProject({ codeFileName: 'app.config.ts' });
-      writeFile(
-        join(directoryPath, 'app.config.ts'),
-        "export default { plugins: ['@hotcodepush/expo-ota-updates'] };\n",
-      );
+      writeFile(join(directoryPath, 'app.config.ts'), {
+        content:
+          "export default { plugins: ['@hotcodepush/expo-ota-updates'] };\n",
+      });
 
       expect(
         expoFramework.checkWiring(readProject(directoryPath)).slice(1),

@@ -102,7 +102,7 @@ export function resolveCliError(error: unknown): CliError {
   }
   if (error instanceof HotCodePushError) {
     return error.code === UNEXPECTED_RESPONSE_CODE
-      ? new UnexpectedResponseError(error.status, error)
+      ? new UnexpectedResponseError(error.status, { cause: error })
       : new ApiError({
           code: error.code,
           message: error.message,

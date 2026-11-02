@@ -256,7 +256,9 @@ function resolveDeviceMoves(
 ): DeviceMove[] {
   const moves = new Map<string, DeviceMove>();
   for (const revokedRelease of revocation.revokedReleases) {
-    const deviceCount = resolveReleaseDeviceCount(fleet, revokedRelease.id);
+    const deviceCount = resolveReleaseDeviceCount(fleet, {
+      releaseId: revokedRelease.id,
+    });
     if (deviceCount === 0) {
       continue;
     }
@@ -320,7 +322,8 @@ function resolvePausedLandingTexts(
     for (const revokedRelease of revocation.revokedReleases) {
       const [landingRelease] = resolveOlderReleases(revocation, revokedRelease);
       if (
-        resolveReleaseDeviceCount(fleet, revokedRelease.id) > 0 &&
+        resolveReleaseDeviceCount(fleet, { releaseId: revokedRelease.id }) >
+          0 &&
         landingRelease?.status === 'paused'
       ) {
         texts.add(

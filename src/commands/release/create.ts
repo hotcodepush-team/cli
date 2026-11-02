@@ -182,7 +182,7 @@ function buildReleaseBody(
     ...('sourceChannel' in bundleSource
       ? { fromChannelId: bundleSource.sourceChannel.id }
       : { bundleId: bundle.id }),
-    conditions: buildReleaseConditions(options, fingerprint),
+    conditions: buildReleaseConditions(options, { fingerprint }),
     ...resolveFailurePolicy(options),
     isMandatory: rollout.isMandatory,
     notes: options.notes ?? null,
@@ -358,7 +358,7 @@ async function fetchReleasePlan(
     packagingDirectoryPath,
   });
   const fingerprint = resolveSourceFingerprint(bundleSource);
-  const rollout = resolveRollout(options, progression);
+  const rollout = resolveRollout(options, { progression });
   const channelAudiences = await fetchChannelAudiences(hotCodePush, {
     appId: resolveSourceAppId(bundleSource),
     fingerprint,
@@ -499,7 +499,7 @@ function resolveReleaseText(bundleSource: BundleSource): string {
 
 function resolveRollout(
   options: ReleaseCreateOptions,
-  progression: Progression | null,
+  { progression }: { progression: Progression | null },
 ): ReleaseRollout {
   return {
     isMandatory: options.mandatory ?? false,

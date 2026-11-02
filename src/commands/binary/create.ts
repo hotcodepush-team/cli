@@ -203,7 +203,7 @@ async function createBuildBinary(
   const channelIdByShape = resolveChannelIdByShape(buildStep.channelReference);
   const offlineCause = resolveOfflineCause();
   if (offlineCause !== undefined) {
-    return resolveOfflineCreation(offlineCause, channelIdByShape);
+    return resolveOfflineCreation(offlineCause, { channelIdByShape });
   }
   const hotCodePush = createApiClient();
   let channelId: string;
@@ -338,7 +338,7 @@ function resolveFailedCreation(
 
 function resolveOfflineCreation(
   offlineCause: OfflineCause,
-  channelIdByShape: string | null,
+  { channelIdByShape }: { channelIdByShape: string | null },
 ): BinaryCreation {
   if (offlineCause === 'no-token' && isCi()) {
     return resolveFailedCreation(
@@ -349,14 +349,16 @@ function resolveOfflineCreation(
   return {
     binary: null,
     channelId: channelIdByShape,
-    skippedReason: resolveOfflineText(offlineCause, channelIdByShape),
+    skippedReason: resolveOfflineText(offlineCause, {
+      channelId: channelIdByShape,
+    }),
     upload: NO_UPLOAD,
   };
 }
 
 function resolveOfflineText(
   offlineCause: OfflineCause,
-  channelId: string | null,
+  { channelId }: { channelId: string | null },
 ): string {
   const causeText =
     offlineCause === 'offline-switch'

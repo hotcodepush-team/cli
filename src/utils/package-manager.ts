@@ -71,6 +71,6 @@ export function runCommandLineVisibly(
     stdio: ['ignore', process.stderr, process.stderr],
   });
   if (result.status !== 0) {
-    throw new CommandFailedError(commandLineText, result.status);
+    throw new CommandFailedError(commandLineText, { exitCode: result.status });
   }
 }

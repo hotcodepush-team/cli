@@ -77,7 +77,10 @@ describe('sdk-package', () => {
   });
 
   describe('readSdkDependencyVersion', () => {
-    function writePackage(packagePath: string, version: string): void {
+    function writePackage(
+      packagePath: string,
+      { version }: { version: string },
+    ): void {
       mkdirSync(packagePath, { recursive: true });
       writeFileSync(
         join(packagePath, 'package.json'),
@@ -94,8 +97,10 @@ describe('sdk-package', () => {
         'example-sdk@0.1.0',
         'node_modules',
       );
-      writePackage(join(storePath, SDK_PACKAGE_NAME), '0.1.0');
-      writePackage(join(storePath, DEPENDENCY_PACKAGE_NAME), '0.2.0');
+      writePackage(join(storePath, SDK_PACKAGE_NAME), { version: '0.1.0' });
+      writePackage(join(storePath, DEPENDENCY_PACKAGE_NAME), {
+        version: '0.2.0',
+      });
       mkdirSync(join(directoryPath, 'node_modules', '@hotcodepush'));
       symlinkSync(
         join(storePath, SDK_PACKAGE_NAME),

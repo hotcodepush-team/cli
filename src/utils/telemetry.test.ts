@@ -148,7 +148,9 @@ describe('telemetry', () => {
 
     it('should name the step init stopped at', async () => {
       await reportFinishedCommand({
-        cliError: new ReportedFailureError('not_logged_in', 'sign_in'),
+        cliError: new ReportedFailureError('not_logged_in', {
+          stoppedStep: 'sign_in',
+        }),
         commandName: 'init',
         durationMs: 10,
       });
@@ -207,7 +209,7 @@ describe('telemetry', () => {
       );
 
       await reportFinishedCommand({
-        cliError: new UnexpectedResponseError(502, cause),
+        cliError: new UnexpectedResponseError(502, { cause }),
         commandName: 'release list',
         durationMs: 10,
       });

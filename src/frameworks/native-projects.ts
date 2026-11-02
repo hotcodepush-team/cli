@@ -48,10 +48,9 @@ function buildMissingProjectsError(
     projectDirectoryPath,
   }: { missingProjectsStep: string; projectDirectoryPath: string },
 ): MissingParameterError {
-  return new MissingParameterError(
-    '--ios-path',
-    `Neither ${relative(projectDirectoryPath, ios)} nor ${relative(projectDirectoryPath, android)} exists. ${missingProjectsStep}`,
-  );
+  return new MissingParameterError('--ios-path', {
+    fix: `Neither ${relative(projectDirectoryPath, ios)} nor ${relative(projectDirectoryPath, android)} exists. ${missingProjectsStep}`,
+  });
 }
 
 async function promptNativeProjectPaths(

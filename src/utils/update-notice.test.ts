@@ -145,7 +145,9 @@ describe('update notice', () => {
       'should answer whether %s is newer than %s: %s',
       // eslint-disable-next-line max-params -- it.each passes each row's cells as separate arguments.
       (candidate, current, isNewer) => {
-        expect(isNewerVersion(candidate, current)).toBe(isNewer);
+        expect(isNewerVersion(candidate, { currentVersion: current })).toBe(
+          isNewer,
+        );
       },
     );
   });

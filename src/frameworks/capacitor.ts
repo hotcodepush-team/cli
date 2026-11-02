@@ -188,7 +188,7 @@ function readWebDir(projectDirectoryPath: string): BuildDirectory {
 // The phase runs last, once the web build is copied into the app. The script finds Node itself.
 function resolveBinaryCreatePhase(
   projectDirectoryPath: string,
-  xcodeProjectFilePath: string,
+  { xcodeProjectFilePath }: { xcodeProjectFilePath: string },
 ): BinaryCreatePhase {
   const projectRootPath = relative(
     dirname(dirname(xcodeProjectFilePath)),
@@ -220,7 +220,7 @@ function resolveNativeFilePaths({
     ...(isBinaryCreatePhaseMissing(xcodeProjectFilePath)
       ? [xcodeProjectFilePath]
       : []),
-    ...resolvePendingEdits(nativeProjects, xcodeProjectFilePath)
+    ...resolvePendingEdits(nativeProjects, { xcodeProjectFilePath })
       .filter(edit => !edit.isRefused)
       .map(({ filePath }) => filePath),
   ]);
@@ -253,13 +253,15 @@ function resolveNativeProjectPaths(
 
 function resolvePendingEdits(
   nativeProjectPaths: NativeProjectPaths,
-  xcodeProjectFilePath: string | undefined,
+  { xcodeProjectFilePath }: { xcodeProjectFilePath: string | undefined },
 ): NativeProjectEdit[] {
   return [
     xcodeProjectFilePath === undefined
       ? undefined
       : resolveResourceReferenceEdit(xcodeProjectFilePath),
-    resolveGradleEdit(nativeProjectPaths.android, CAPACITOR_PACKAGE_NAME),
+    resolveGradleEdit(nativeProjectPaths.android, {
+      packageName: CAPACITOR_PACKAGE_NAME,
+    }),
   ]
     .filter(edit => edit !== undefined)
     .filter(edit => !edit.isApplied());
@@ -272,10 +274,9 @@ function resolvePhaseEdit({
   return xcodeProjectFilePath === undefined
     ? undefined
     : {
-        phase: resolveBinaryCreatePhase(
-          projectDirectoryPath,
+        phase: resolveBinaryCreatePhase(projectDirectoryPath, {
           xcodeProjectFilePath,
-        ),
+        }),
         projectFilePath: xcodeProjectFilePath,
       };
 }
@@ -341,10 +342,9 @@ async function wireBinaryCreateStep(
   if (nativeProjects.missingError !== undefined) {
     throw nativeProjects.missingError;
   }
-  const pendingEdits = resolvePendingEdits(
-    nativeProjects,
+  const pendingEdits = resolvePendingEdits(nativeProjects, {
     xcodeProjectFilePath,
-  );
+  });
   if (
     !isBinaryCreatePhaseMissing(xcodeProjectFilePath) &&
     pendingEdits.length === 0

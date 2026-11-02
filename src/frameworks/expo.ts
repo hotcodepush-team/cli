@@ -96,13 +96,13 @@ function assertPluginEntryEditable(
   if (codeFileName !== undefined) {
     throw new NativeProjectError(
       `The app config ${codeFileName} is code, which the CLI does not edit.`,
-      resolvePluginEntryStep(codeFileName),
+      { fix: resolvePluginEntryStep(codeFileName) },
     );
   }
   if (!isPluginEntryEditable(projectDirectoryPath, appConfigFileNames)) {
     throw new NativeProjectError(
       `The app config ${jsonFileName} is not JSON the CLI can parse.`,
-      resolvePluginEntryStep(jsonFileName),
+      { fix: resolvePluginEntryStep(jsonFileName) },
     );
   }
 }
@@ -152,7 +152,8 @@ function findPluginEntryFileName(
 ): string | undefined {
   return [codeFileName, jsonFileName].find(
     fileName =>
-      fileName !== undefined && hasPluginEntry(projectDirectoryPath, fileName),
+      fileName !== undefined &&
+      hasPluginEntry(projectDirectoryPath, { appConfigFileName: fileName }),
   );
 }
 
@@ -172,7 +173,7 @@ function hasExpoAppJson(projectDirectoryPath: string): boolean {
 // A code or JSON5 config is never evaluated, so the package name is matched in its text.
 function hasPluginEntry(
   projectDirectoryPath: string,
-  appConfigFileName: string,
+  { appConfigFileName }: { appConfigFileName: string },
 ): boolean {
   const filePath = join(projectDirectoryPath, appConfigFileName);
   if (!existsSync(filePath)) {
