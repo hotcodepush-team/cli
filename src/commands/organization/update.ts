@@ -2,9 +2,9 @@ import type { Organization } from '@hotcodepush/node';
 import { z } from 'zod';
 import {
   fetchOrganizationId,
-  resolveOrganizationDetails,
   resolveCents,
   resolveDollarText,
+  resolveOrganizationDetails,
   spendingCapShape,
 } from '../../resources/organizations.js';
 import { createApiClient } from '../../utils/api-client.js';
@@ -65,13 +65,6 @@ export default defineCommand({
   },
 });
 
-function printUpdatedOrganization(organization: Organization): void {
-  printResult({
-    rows: resolveOrganizationDetails(organization),
-    sentence: `Updated organization ${organization.name}.`,
-  });
-}
-
 // An unchanged cap needs no confirmation, since the API answers it with `no_change`.
 async function confirmSpendingCapChange(
   organization: Organization,
@@ -87,6 +80,13 @@ async function confirmSpendingCapChange(
       options,
     )
   );
+}
+
+function printUpdatedOrganization(organization: Organization): void {
+  printResult({
+    rows: resolveOrganizationDetails(organization),
+    sentence: `Updated organization ${organization.name}.`,
+  });
 }
 
 function resolveSpendingCapConsequence(

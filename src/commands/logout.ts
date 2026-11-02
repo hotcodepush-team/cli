@@ -6,7 +6,11 @@ import { resolveApiError } from '../utils/error-mapping.js';
 import { NotLoggedInError } from '../utils/errors.js';
 import { defineCommandOptions } from '../utils/global-options.js';
 import { printJson, printResult } from '../utils/output.js';
-import { deleteToken, readStoredToken } from '../utils/token-store.js';
+import {
+  deleteToken,
+  isEnvironmentToken,
+  readStoredToken,
+} from '../utils/token-store.js';
 import { readUserConfig, writeUserConfig } from '../utils/user-config.js';
 
 interface EndedSession {
@@ -32,11 +36,23 @@ export default defineCommand({
   },
 });
 
+function deleteStoredSession(): string | undefined {
+  const userConfig = readUserConfig();
+  const { sessionId } = userConfig;
+  if (sessionId === undefined && userConfig.sessionExpiresAt === undefined) {
+    return undefined;
+  }
+  delete userConfig.sessionExpiresAt;
+  delete userConfig.sessionId;
+  writeUserConfig(userConfig);
+  return sessionId;
+}
+
 // Without a stored session there is nothing to end, and the variable alone is no session.
 async function endStoredSession(): Promise<EndedSession> {
   const storedToken = readStoredToken();
   if (storedToken === undefined) {
-    if (!process.env.HOTCODEPUSH_TOKEN) {
+    if (!isEnvironmentToken()) {
       throw new NotLoggedInError();
     }
     return { id: null, name: null };
@@ -58,18 +74,6 @@ async function endStoredSession(): Promise<EndedSession> {
   };
 }
 
-function deleteStoredSession(): string | undefined {
-  const userConfig = readUserConfig();
-  const { sessionId } = userConfig;
-  if (sessionId === undefined && userConfig.sessionExpiresAt === undefined) {
-    return undefined;
-  }
-  delete userConfig.sessionExpiresAt;
-  delete userConfig.sessionId;
-  writeUserConfig(userConfig);
-  return sessionId;
-}
-
 async function fetchKnownSession(authClient: AuthClient) {
   const { data, error } = await authClient.getSession();
   if (error !== null) {
@@ -81,22 +85,19 @@ async function fetchKnownSession(authClient: AuthClient) {
   return data;
 }
 
+// Without a session nothing ended, so the line carries no success symbol.
 function printEnded(endedSession: EndedSession): void {
-  printResult({
-    rows: endedSession.id === null ? [] : [['ID', endedSession.id]],
-    sentence: resolveEndedText(endedSession),
-  });
-  if (process.env.HOTCODEPUSH_TOKEN) {
+  if (endedSession.id === null && endedSession.name === null) {
+    console.log('No stored session to end.');
+  } else {
+    printResult({
+      rows: endedSession.id === null ? [] : [['ID', endedSession.id]],
+      sentence: `Logged out${endedSession.name === null ? '' : ` ${endedSession.name}`}.`,
+    });
+  }
+  if (isEnvironmentToken()) {
     printNotice('HOTCODEPUSH_TOKEN still authenticates.');
   }
-}
-
-function resolveEndedText(endedSession: EndedSession): string {
-  if (endedSession.id === null && endedSession.name === null) {
-    return 'No stored session to end.';
-  }
-  const nameText = endedSession.name === null ? '' : ` ${endedSession.name}`;
-  return `Logged out${nameText}.`;
 }
 
 // A bearer can be signed, `<token>.<signature>`, but revoke-session looks up the token alone.

@@ -62,26 +62,38 @@ describe('channel delete', () => {
     ]);
   });
 
-  it.each([3, 0])(
-    'should add a devices row when %i devices were on the channel',
-    async count => {
-      respondWithChannels([STAGING_CHANNEL]);
-      harness.routes[
-        `GET /v1/apps/${DEMO_APP.id}/devices/count?channelId=${STAGING_CHANNEL.id}`
-      ] = () => Response.json({ count });
+  it('should add a devices row when the count request answers', async () => {
+    respondWithChannels([STAGING_CHANNEL]);
+    harness.routes[
+      `GET /v1/apps/${DEMO_APP.id}/devices/count?channelId=${STAGING_CHANNEL.id}`
+    ] = () => Response.json({ count: 3 });
 
-      await channelDeleteCommand.action(
-        { app: DEMO_APP.id, channel: 'staging', yes: true },
-        undefined,
-      );
+    await channelDeleteCommand.action(
+      { app: DEMO_APP.id, channel: 'staging', yes: true },
+      undefined,
+    );
 
-      expect(harness.readLines()).toEqual([
-        'Deleted channel staging.',
-        `ID       ${STAGING_CHANNEL.id}`,
-        `Devices  ${count}`,
-      ]);
-    },
-  );
+    expect(harness.readLines()).toEqual([
+      'Deleted channel staging.',
+      `ID       ${STAGING_CHANNEL.id}`,
+      'Devices  3',
+    ]);
+  });
+
+  it('should delete the channel without a devices row when the count request fails', async () => {
+    respondWithChannels([STAGING_CHANNEL]);
+
+    await channelDeleteCommand.action(
+      { app: DEMO_APP.id, channel: 'staging', yes: true },
+      undefined,
+    );
+
+    expect(readDeleteRequests()).toHaveLength(1);
+    expect(harness.readLines()).toEqual([
+      'Deleted channel staging.',
+      `ID  ${STAGING_CHANNEL.id}`,
+    ]);
+  });
 
   it('should throw `confirmation_required` and delete nothing when nobody can be asked', async () => {
     respondWithChannels([STAGING_CHANNEL]);

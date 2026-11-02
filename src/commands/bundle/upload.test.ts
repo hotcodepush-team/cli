@@ -246,7 +246,7 @@ describe('bundle upload', () => {
       'Uploaded bundle #17 · 1.4.2.',
       `ID         ${READY_BUNDLE.id}`,
       'Platforms  android, ios',
-      'Uploaded   1 files moved, 34 B',
+      'Uploaded   1 file, 34 B',
     ]);
   });
 

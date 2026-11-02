@@ -23,6 +23,7 @@ import {
 } from '../../upload/compressed-files.js';
 import type { Platform, UploadedFiles } from '../../upload/upload.js';
 import {
+  resolveUploadedFilesText,
   assertWithinBundleBytesLimit,
   resolveMissingSha256s,
   uploadMissingFiles,
@@ -33,7 +34,7 @@ import { printNotice, printWarning } from '../../utils/diagnostics.js';
 import { isCi } from '../../utils/environment.js';
 import { CliError, PipelineNotLoggedInError } from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson, printResult, resolveByteText } from '../../utils/output.js';
+import { printJson, printResult } from '../../utils/output.js';
 import type { Reporter } from '../../utils/progress.js';
 import { createReporter } from '../../utils/progress.js';
 
@@ -271,12 +272,9 @@ function printCreatedBinary(
       ['ID', binary.id],
       ['Version', identity.binaryVersion],
       ['Build', identity.binaryBuild],
-      ['Bundle', binary.bundleId],
+      ['Bundle ID', binary.bundleId],
       ['Resource file', resourceFilePath],
-      [
-        'Uploaded',
-        `${upload.fileCount} files, ${resolveByteText(upload.sizeBytes)}`,
-      ],
+      ['Uploaded', resolveUploadedFilesText(upload)],
     ],
     sentence: `Created the ${binary.platform} binary.`,
   });

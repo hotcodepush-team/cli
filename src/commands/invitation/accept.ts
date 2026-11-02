@@ -46,7 +46,7 @@ export default defineCommand({
       printResult({
         rows: [
           ['ID', acceptedMember.id],
-          ['Organization', acceptedMember.organizationId],
+          ['Organization ID', acceptedMember.organizationId],
           ['Role', acceptedMember.role],
         ],
         sentence: 'Joined the organization.',

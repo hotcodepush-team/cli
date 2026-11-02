@@ -9,12 +9,12 @@ import type {
   UploadBundleOptions,
   UploadedBundle,
 } from '../../upload/upload.js';
-import { uploadBundle } from '../../upload/upload.js';
+import { resolveUploadedFilesText, uploadBundle } from '../../upload/upload.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { printWarning } from '../../utils/diagnostics.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson, printResult, resolveByteText } from '../../utils/output.js';
+import { printJson, printResult, printResultGap } from '../../utils/output.js';
 
 const FINGERPRINT_UNKNOWN_TEXT =
   'No binary of the app carries this fingerprint.';
@@ -55,7 +55,12 @@ export default defineCommand({
       printJson(uploadedBundles.map(resolveUploadedBundleJson));
       return;
     }
-    uploadedBundles.forEach(printUploadedBundle);
+    uploadedBundles.forEach((uploadedBundle, index) => {
+      if (index > 0) {
+        printResultGap();
+      }
+      printUploadedBundle(uploadedBundle);
+    });
   },
 });
 
@@ -84,10 +89,7 @@ function printUploadedBundle({ bundle, upload }: UploadedBundle): void {
     rows: [
       ['ID', bundle.id],
       ['Platforms', bundle.platforms.join(', ')],
-      [
-        'Uploaded',
-        `${upload.fileCount} files moved, ${resolveByteText(upload.sizeBytes)}`,
-      ],
+      ['Uploaded', resolveUploadedFilesText(upload)],
     ],
     sentence: `Uploaded bundle ${resolveBundleLabel(bundle)}.`,
   });

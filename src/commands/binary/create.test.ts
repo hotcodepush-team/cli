@@ -190,9 +190,9 @@ describe('binary create', () => {
       `ID             ${BINARY.id}`,
       'Version        1.0',
       'Build          1',
-      `Bundle         ${BINARY.bundleId}`,
+      `Bundle ID      ${BINARY.bundleId}`,
       `Resource file  ${join(projectDirectoryPath, 'build', 'ios', 'hotcodepush.json')}`,
-      `Uploaded       1 files, ${uploadedByteCount} B`,
+      `Uploaded       1 file, ${uploadedByteCount} B`,
     ]);
   });
 

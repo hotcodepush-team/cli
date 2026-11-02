@@ -50,7 +50,7 @@ export default defineCommand({
         flag: '--name',
         message: 'What is the channel called?',
       }));
-    const { channel, isExisting } = await createChannel(hotCodePush, {
+    const { channel, isExisting } = await createOrFindChannel(hotCodePush, {
       appId,
       name,
       options,
@@ -67,7 +67,7 @@ export default defineCommand({
 });
 
 // With `--if-not-exists`, a taken name answers the channel that holds it.
-async function createChannel(
+async function createOrFindChannel(
   hotCodePush: HotCodePush,
   {
     appId,

@@ -26,6 +26,7 @@ import { defineCommandOptions } from '../../utils/global-options.js';
 import {
   printJson,
   printResult,
+  printResultGap,
   resolveQuantityText,
 } from '../../utils/output.js';
 import { fetchAllPages } from '../../utils/pagination.js';
@@ -234,14 +235,18 @@ async function fetchRevocations(
 }
 
 function printRevokedReleases(revokedChannels: RevokedChannel[]): void {
-  for (const { channel, releases } of revokedChannels) {
-    for (const release of releases) {
-      printResult({
-        rows: [['ID', release.id]],
-        sentence: `Revoked release #${release.number} of ${channel.name}.`,
-      });
+  const revokedReleases = revokedChannels.flatMap(({ channel, releases }) =>
+    releases.map(release => ({ channel, release })),
+  );
+  revokedReleases.forEach(({ channel, release }, index) => {
+    if (index > 0) {
+      printResultGap();
     }
-  }
+    printResult({
+      rows: [['ID', release.id]],
+      sentence: `Revoked release #${release.number} of ${channel.name}.`,
+    });
+  });
 }
 
 // Mirrors the API: devices move to the newest active older release not revoked with it, or to the embedded bundle.

@@ -50,6 +50,13 @@ export function fetchOrganizations(
   return fetchAllPages(page => hotCodePush.organizations.list(page));
 }
 
+export function resolveCents(dollars: number): number {
+  return dollars * CENTS_PER_DOLLAR;
+}
+
+export function resolveDollarText(cents: number): string {
+  return `$${(cents / CENTS_PER_DOLLAR).toLocaleString('en-US')}`;
+}
 export function resolveOrganizationDetails(
   organization: Organization,
 ): Detail[] {
@@ -64,12 +71,4 @@ export function resolveOrganizationDetails(
     ['Region', organization.region],
     ['Created', organization.createdAt],
   ];
-}
-
-export function resolveCents(dollars: number): number {
-  return dollars * CENTS_PER_DOLLAR;
-}
-
-export function resolveDollarText(cents: number): string {
-  return `$${(cents / CENTS_PER_DOLLAR).toLocaleString('en-US')}`;
 }

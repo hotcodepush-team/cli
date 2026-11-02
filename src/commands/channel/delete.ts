@@ -43,7 +43,7 @@ export default defineCommand({
       if (options.json) {
         printJson(resolveAbsentChannel(options.channel));
       } else {
-        printResult({ rows: [], sentence: 'The channel does not exist.' });
+        console.log('The channel does not exist.');
         printNotice('There is nothing to delete.');
       }
     }
@@ -91,7 +91,7 @@ async function fetchChannelDeviceCount(
     });
     return count;
   } catch {
-    // The count only informs the result line, so it never stops the delete.
+    // The count only informs the reader, so it never stops the delete.
     return null;
   }
 }

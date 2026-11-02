@@ -254,6 +254,23 @@ describe('release revoke', () => {
     ]);
   });
 
+  it('should separate the revoked releases with a blank line when stdout is no terminal', async () => {
+    respondWithBulkRevocation(CHANNEL_PATH);
+
+    await releaseRevokeCommand.action(
+      { all: true, app: DEMO_APP.id, channel: STAGING_CHANNEL.id, yes: true },
+      undefined,
+    );
+
+    expect(harness.readLines()).toEqual([
+      'Revoked release #43 of staging.',
+      `ID  ${LIVE_RELEASE.id}`,
+      '',
+      'Revoked release #42 of staging.',
+      `ID  ${PREVIOUS_RELEASE.id}`,
+    ]);
+  });
+
   it('should send the ids to the bulk route in pages of 100, the oldest page first, when more than 100 releases are revoked', async () => {
     const releaseLog = Array.from({ length: 101 }, (_, index) => ({
       ...LIVE_RELEASE,
