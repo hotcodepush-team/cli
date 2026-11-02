@@ -65,7 +65,7 @@ export function buildAudienceQuery(
 
 export function buildReleaseConditions(
   options: ConditionOptions,
-  fingerprint: string | null,
+  { fingerprint }: { fingerprint: string | null },
 ): ReleaseCondition[] {
   const deviceIds = options.device ?? [];
   return [

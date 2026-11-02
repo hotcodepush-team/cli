@@ -62,10 +62,9 @@ export async function readInputDirectoryPath(
     return join(projectDirectoryPath, buildDirectory.path);
   }
   if (!isInteractive(options)) {
-    throw new MissingParameterError(
-      pathFlag,
-      `Pass ${pathFlag}, since ${buildDirectory.missingReason}.`,
-    );
+    throw new MissingParameterError(pathFlag, {
+      fix: `Pass ${pathFlag}, since ${buildDirectory.missingReason}.`,
+    });
   }
   return resolve(
     await promptText(options, {

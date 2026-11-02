@@ -52,7 +52,10 @@ export default defineCommand({
       ),
       ['Active devices', String(fleet.deviceCount)],
       ['Current devices', String(fleet.currentDeviceCount)],
-      ['Embedded devices', String(resolveReleaseDeviceCount(fleet, null))],
+      [
+        'Embedded devices',
+        String(resolveReleaseDeviceCount(fleet, { releaseId: null })),
+      ],
       ['Created', fetchedChannel.createdAt],
     ]);
   },

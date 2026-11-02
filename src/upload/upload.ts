@@ -257,7 +257,7 @@ async function fetchMissingSha256s(
         isStored: false,
         ...page,
       }),
-    BUNDLE_FILE_PAGE_LIMIT,
+    { limit: BUNDLE_FILE_PAGE_LIMIT },
   );
   return [...new Set(missingFiles.map(({ sha256 }) => sha256))];
 }

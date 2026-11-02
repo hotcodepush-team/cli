@@ -32,7 +32,7 @@ const WHITESPACE_PATTERN = /\s/g;
 // A private key without a listed public key stops the upload, rather than being ignored.
 export async function readSigningKeyPair(
   publicKeys: readonly string[],
-  privateKeyPath: string | undefined,
+  { privateKeyPath }: { privateKeyPath?: string } = {},
 ): Promise<SigningKeyPair | null> {
   const givenPrivateKey = readGivenPrivateKey(privateKeyPath);
   if (givenPrivateKey === undefined) {
@@ -73,7 +73,7 @@ export function readSigningKeyPairFile(
 
 export function writeSigningPrivateKeyFile(
   filePath: string,
-  privateKey: string,
+  { privateKey }: { privateKey: string },
 ): void {
   const pem = createPrivateKey({
     format: 'der',

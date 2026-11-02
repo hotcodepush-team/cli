@@ -36,7 +36,7 @@ export async function loadCommands(
 
 export function resolveClosestCommandName(
   commandNames: string[],
-  words: string[],
+  { words }: { words: string[] },
 ): string | undefined {
   let closestCommandName: string | undefined;
   let closestDistance = MAX_SUGGESTION_DISTANCE + 1;
@@ -55,7 +55,7 @@ export function resolveClosestCommandName(
 
 export function resolveCommandName(
   commandNames: string[],
-  words: string[],
+  { words }: { words: string[] },
 ): string | undefined {
   for (let wordCount = words.length; wordCount > 0; wordCount--) {
     const candidate = words.slice(0, wordCount).join(' ');
@@ -69,7 +69,7 @@ export function resolveCommandName(
 // A line without a command, or with a noun alone, shows the help instead of failing.
 export function resolveInvocation(
   commandNames: string[],
-  argv: string[],
+  { argv }: { argv: string[] },
 ): Invocation {
   const expandedArgv = argv.map(arg => SHORT_FLAG_EXPANSIONS[arg] ?? arg);
   if (expandedArgv.includes('--version')) {
@@ -79,7 +79,7 @@ export function resolveInvocation(
   if (words.length === 0) {
     return { argv: withHelpFlag(expandedArgv), commandNames };
   }
-  const commandName = resolveCommandName(commandNames, words);
+  const commandName = resolveCommandName(commandNames, { words });
   if (commandName) {
     return { argv: expandedArgv, commandNames: [commandName] };
   }
@@ -89,10 +89,9 @@ export function resolveInvocation(
   if (words.length === 1 && nounCommandNames.length > 0) {
     return { argv: withHelpFlag(expandedArgv), commandNames: nounCommandNames };
   }
-  throw new UnknownCommandError(
-    words.join(' '),
-    resolveClosestCommandName(commandNames, words),
-  );
+  throw new UnknownCommandError(words.join(' '), {
+    closestCommandName: resolveClosestCommandName(commandNames, { words }),
+  });
 }
 
 function resolveCommandWords(argv: string[]): string[] {

@@ -139,7 +139,7 @@ export function resolveChannelFields(
 // Each field falls back from its own value to the channel, then to the default.
 export function resolveEffectiveFailurePolicy(
   ownFields: FailurePolicyFields,
-  channelFields?: FailurePolicyFields,
+  { channelFields }: { channelFields?: FailurePolicyFields } = {},
 ): EffectiveFailurePolicy {
   return {
     failureAction: resolveEffectiveFailurePolicyValue({

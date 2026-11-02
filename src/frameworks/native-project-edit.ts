@@ -20,7 +20,7 @@ const GRADLE_FILE_NAMES = ['build.gradle', 'build.gradle.kts'];
 // The line resolves the SDK package through Node, so it finds the package wherever `node_modules` lies.
 export function resolveGradleEdit(
   androidProjectPath: string,
-  packageName: string,
+  { packageName }: { packageName: string },
 ): NativeProjectEdit | undefined {
   if (!existsSync(androidProjectPath)) {
     return undefined;
@@ -29,16 +29,7 @@ export function resolveGradleEdit(
     join(androidProjectPath, 'app', fileName),
   ).find(candidatePath => existsSync(candidatePath));
   if (filePath === undefined) {
-    return resolveRefusedEdit(
-      new NativeProjectError(
-        `The Android project ${androidProjectPath} has no build.gradle or build.gradle.kts in its app folder.`,
-        `Apply node_modules/${packageName}/android/${GRADLE_FILE_MARKER} from the app module's Gradle file.`,
-      ),
-      {
-        description: GRADLE_EDIT_DESCRIPTION,
-        filePath: join(androidProjectPath, 'app', 'build.gradle'),
-      },
-    );
+    return resolveMissingGradleFileEdit(androidProjectPath, { packageName });
   }
   const resolvePackageScript = `require.resolve('${packageName}/package.json')`;
   return {
@@ -78,4 +69,22 @@ export function resolveRefusedEdit(
       throw error;
     },
   };
+}
+
+function resolveMissingGradleFileEdit(
+  androidProjectPath: string,
+  { packageName }: { packageName: string },
+): NativeProjectEdit {
+  return resolveRefusedEdit(
+    new NativeProjectError(
+      `The Android project ${androidProjectPath} has no build.gradle or build.gradle.kts in its app folder.`,
+      {
+        fix: `Apply node_modules/${packageName}/android/${GRADLE_FILE_MARKER} from the app module's Gradle file.`,
+      },
+    ),
+    {
+      description: GRADLE_EDIT_DESCRIPTION,
+      filePath: join(androidProjectPath, 'app', 'build.gradle'),
+    },
+  );
 }

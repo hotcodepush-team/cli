@@ -26,7 +26,10 @@ describe('cordova', () => {
     return directoryPath;
   }
 
-  function writeProjectWithWidget(attributes: string, content = ''): string {
+  function writeProjectWithWidget(
+    attributes: string,
+    { content = '' }: { content?: string } = {},
+  ): string {
     return writeProject({
       configXml: `<widget ${attributes}>${content}</widget>`,
     });
@@ -39,10 +42,9 @@ describe('cordova', () => {
   });
 
   it('should take www as the build directory when config.xml names a start page in a directory of it', () => {
-    const directoryPath = writeProjectWithWidget(
-      'version="1.0.0"',
-      '<content src="app/index.html" />',
-    );
+    const directoryPath = writeProjectWithWidget('version="1.0.0"', {
+      content: '<content src="app/index.html" />',
+    });
 
     expect(cordovaFramework.readBuildDirectory(directoryPath)).toEqual({
       path: 'www',
@@ -83,10 +85,10 @@ describe('cordova', () => {
   });
 
   it("should fail the Android file mode when config.xml's Android section sets AndroidInsecureFileModeEnabled", () => {
-    const directoryPath = writeProjectWithWidget(
-      'version="2.4.1"',
-      '<platform name="android"><preference name="AndroidInsecureFileModeEnabled" value="true" /></platform>',
-    );
+    const directoryPath = writeProjectWithWidget('version="2.4.1"', {
+      content:
+        '<platform name="android"><preference name="AndroidInsecureFileModeEnabled" value="true" /></platform>',
+    });
 
     expect(
       cordovaFramework.checkWiring({
@@ -105,10 +107,10 @@ describe('cordova', () => {
   });
 
   it("should leave the Android file mode ok when config.xml's Android section turns off what the widget turns on", () => {
-    const directoryPath = writeProjectWithWidget(
-      'version="2.4.1"',
-      '<preference name="AndroidInsecureFileModeEnabled" value="true" /><platform name="android"><preference name="androidinsecurefilemodeenabled" value="false" /></platform>',
-    );
+    const directoryPath = writeProjectWithWidget('version="2.4.1"', {
+      content:
+        '<preference name="AndroidInsecureFileModeEnabled" value="true" /><platform name="android"><preference name="androidinsecurefilemodeenabled" value="false" /></platform>',
+    });
 
     expect(
       cordovaFramework.checkWiring({

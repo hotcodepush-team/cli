@@ -18,7 +18,7 @@ const VERSION_CORE_PATTERN = /^\d+\.\d+\.\d+/;
 
 export function isNewerVersion(
   candidateVersion: string,
-  currentVersion: string,
+  { currentVersion }: { currentVersion: string },
 ): boolean {
   const candidateCore = VERSION_CORE_PATTERN.exec(candidateVersion)?.[0];
   const currentCore = VERSION_CORE_PATTERN.exec(currentVersion)?.[0];
@@ -36,7 +36,9 @@ export function printUpdateNotice(): void {
     const { latestKnownVersion } = readUserConfig();
     if (
       latestKnownVersion !== undefined &&
-      isNewerVersion(latestKnownVersion, PACKAGE_JSON.version)
+      isNewerVersion(latestKnownVersion, {
+        currentVersion: PACKAGE_JSON.version,
+      })
     ) {
       printNotice(
         `HotCodePush CLI ${latestKnownVersion} is available. You run ${PACKAGE_JSON.version}.`,

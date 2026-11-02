@@ -33,7 +33,10 @@ export async function fetchAppId(
               hotCodePush,
               await fetchOrganizationId(hotCodePush, options),
             )
-        : () => fetchAppsInScope(hotCodePush, options.organization),
+        : () =>
+            fetchAppsInScope(hotCodePush, {
+              organization: options.organization,
+            }),
     noun: 'app',
     options,
     reference: options.app,
@@ -51,7 +54,7 @@ export function fetchApps(
 
 async function fetchAppsInScope(
   hotCodePush: HotCodePush,
-  organization: string | undefined,
+  { organization }: { organization: string | undefined },
 ): Promise<App[]> {
   const organizationIds =
     organization === undefined

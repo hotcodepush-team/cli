@@ -26,7 +26,7 @@ export const paginationShape = {
 
 export async function fetchAllPages<TItem>(
   fetchPage: (page: Required<Page>) => Promise<TItem[]>,
-  limit = MAX_LIMIT,
+  { limit = MAX_LIMIT }: { limit?: number } = {},
 ): Promise<TItem[]> {
   const fetchedItems: TItem[] = [];
   for (let offset = 0; ; offset += limit) {

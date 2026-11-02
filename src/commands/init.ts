@@ -191,7 +191,9 @@ export default defineCommand({
       privateKeyPath,
     });
     if (run.stoppedCode !== undefined) {
-      throw new ReportedFailureError(run.stoppedCode, run.stoppedStep);
+      throw new ReportedFailureError(run.stoppedCode, {
+        stoppedStep: run.stoppedStep,
+      });
     }
   },
 });
@@ -254,7 +256,7 @@ async function runProjectSteps(
 ): Promise<string | undefined> {
   const editBlocker = await confirmProjectEdits(projectFiles, { app, options });
   await run.run('package', {
-    perform: () => installPackage(projectFiles, editBlocker),
+    perform: () => installPackage(projectFiles, { editBlocker }),
   });
   await run.run('configuration', {
     dependsOn: ['app'],
@@ -514,7 +516,7 @@ async function useOrCreateNamedResource<TResource extends NamedResource>(
   if (named !== undefined) {
     return resolveUsed(noun, named);
   }
-  assertName(`--${noun}`, name);
+  assertName(name, { flag: `--${noun}` });
   await confirmCreation(options, { name, noun });
   return resolveCreated(noun, await create(name));
 }
@@ -542,7 +544,7 @@ async function confirmProjectEdits(
   projectFiles: ProjectFiles,
   { app, options }: { app: App | undefined; options: InitOptions },
 ): Promise<ConfirmationRequiredError | undefined> {
-  const filePaths = resolveFilesToChange(projectFiles, app);
+  const filePaths = resolveFilesToChange(projectFiles, { app });
   if (filePaths.length === 0) {
     return undefined;
   }
@@ -551,10 +553,10 @@ async function confirmProjectEdits(
   try {
     return (await confirmConsequence(consequence, options))
       ? undefined
-      : new ConfirmationRequiredError(consequence, manualStep);
+      : new ConfirmationRequiredError(consequence, { fix: manualStep });
   } catch (error) {
     if (error instanceof ConfirmationRequiredError) {
-      return new ConfirmationRequiredError(consequence, manualStep);
+      return new ConfirmationRequiredError(consequence, { fix: manualStep });
     }
     throw error;
   }
@@ -563,7 +565,7 @@ async function confirmProjectEdits(
 // Without an app the configuration step waits, so `hotcodepush.json` is not among the files.
 function resolveFilesToChange(
   { configFilePath, projectConfig, wiring }: ProjectFiles,
-  app: App | undefined,
+  { app }: { app: App | undefined },
 ): string[] {
   return [
     ...wiring.packageFilePaths,
@@ -576,7 +578,7 @@ function resolveFilesToChange(
 
 function installPackage(
   { framework, wiring }: ProjectFiles,
-  editBlocker: ConfirmationRequiredError | undefined,
+  { editBlocker }: { editBlocker: ConfirmationRequiredError | undefined },
 ): Promise<StepOutcome<undefined>> {
   if (wiring.isPackageInstalled) {
     return Promise.resolve({
@@ -850,7 +852,7 @@ function printFinish(
   );
 }
 
-function assertName(flag: string, reference: string): void {
+function assertName(reference: string, { flag }: { flag: string }): void {
   if (isId(reference)) {
     throw new InvalidParameterError(
       `Nothing has the id ${reference} from ${flag}.`,

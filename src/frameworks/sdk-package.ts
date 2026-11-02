@@ -23,10 +23,9 @@ export function checkSdkPackage(
       status: 'failed',
     };
   }
-  const installedVersion = readInstalledPackageVersion(
-    directoryPath,
+  const installedVersion = readInstalledPackageVersion(directoryPath, {
     packageName,
-  );
+  });
   if (installedVersion === undefined) {
     return {
       check: 'package',
@@ -69,7 +68,7 @@ export function isSdkPackageDeclared(
 
 export function readInstalledPackageVersion(
   projectDirectoryPath: string,
-  packageName: string,
+  { packageName }: { packageName: string },
 ): string | undefined {
   const packageJsonPath = join(
     projectDirectoryPath,

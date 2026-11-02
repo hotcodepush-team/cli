@@ -41,16 +41,15 @@ describe('reactNativeFramework', () => {
     return directoryPath;
   }
 
-  function writeFile(filePath: string, content: string): void {
+  function writeFile(filePath: string, { content }: { content: string }): void {
     mkdirSync(dirname(filePath), { recursive: true });
     writeFileSync(filePath, content);
   }
 
   function disableAndroidHermes(directoryPath: string): void {
-    writeFile(
-      join(directoryPath, 'android', 'gradle.properties'),
-      'hermesEnabled=false\n',
-    );
+    writeFile(join(directoryPath, 'android', 'gradle.properties'), {
+      content: 'hermesEnabled=false\n',
+    });
   }
 
   function readProject(directoryPath: string) {
@@ -90,7 +89,9 @@ describe('reactNativeFramework', () => {
     it('should bundle from index.android.js where the project has one', async () => {
       const directoryPath = writeProject();
       disableAndroidHermes(directoryPath);
-      writeFile(join(directoryPath, 'index.android.js'), '// android entry\n');
+      writeFile(join(directoryPath, 'index.android.js'), {
+        content: '// android entry\n',
+      });
 
       await reactNativeFramework.packageBundles?.({
         packagingDirectoryPath: join(directoryPath, 'packaging'),
@@ -215,10 +216,9 @@ describe('reactNativeFramework', () => {
             options,
           )
         ).wireBinaryCreateStep(undefined);
-        writeFile(
-          join(directoryPath, 'ios', 'Podfile.lock'),
-          'PODS:\n  - HotcodepushReactNativeCodePush (0.1.0)\n',
-        );
+        writeFile(join(directoryPath, 'ios', 'Podfile.lock'), {
+          content: 'PODS:\n  - HotcodepushReactNativeCodePush (0.1.0)\n',
+        });
         vi.mocked(runCommandLineVisibly).mockReset();
 
         const outcome = await (
@@ -254,10 +254,9 @@ describe('reactNativeFramework', () => {
 
       it('should make the edits it can and stop with the manual step of the one it cannot', async () => {
         const directoryPath = writeProject({ isPackageInstalled: true });
-        writeFile(
-          join(directoryPath, MAIN_APPLICATION_FILE_PATH),
-          'package com.example.demo\n\nclass MainApplication\n',
-        );
+        writeFile(join(directoryPath, MAIN_APPLICATION_FILE_PATH), {
+          content: 'package com.example.demo\n\nclass MainApplication\n',
+        });
         const wiring = await reactNativeFramework.resolveWiring(
           readProject(directoryPath),
           { yes: true },
@@ -291,7 +290,9 @@ describe('reactNativeFramework', () => {
         await expect(wiring.wireBinaryCreateStep(undefined)).rejects.toThrow(
           new NativeProjectError(
             `The app delegate ${join(directoryPath, OBJECTIVE_C_APP_DELEGATE_FILE_PATH)} is Objective-C, and init edits only the Swift file that overrides bundleURL().`,
-            `Import <HotcodepushReactNativeCodePush/HotcodepushReactNativeCodePush-Swift.h> in ${join(directoryPath, OBJECTIVE_C_APP_DELEGATE_FILE_PATH)} and return [HotCodePush bundleURL] from bundleURL where it returns the embedded bundle.`,
+            {
+              fix: `Import <HotcodepushReactNativeCodePush/HotcodepushReactNativeCodePush-Swift.h> in ${join(directoryPath, OBJECTIVE_C_APP_DELEGATE_FILE_PATH)} and return [HotCodePush bundleURL] from bundleURL where it returns the embedded bundle.`,
+            },
           ),
         );
 
@@ -360,10 +361,9 @@ describe('reactNativeFramework', () => {
         );
 
         await expect(wiring.wireBinaryCreateStep(undefined)).rejects.toThrow(
-          new MissingParameterError(
-            '--ios-path',
-            'Neither ios nor android exists. Pass --ios-path and --android-path.',
-          ),
+          new MissingParameterError('--ios-path', {
+            fix: 'Neither ios nor android exists. Pass --ios-path and --android-path.',
+          }),
         );
       });
     });

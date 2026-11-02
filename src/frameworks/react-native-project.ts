@@ -42,7 +42,9 @@ export function resolveBundleUrlEdit(
     appDelegateFilePath === undefined ||
     !appDelegateFilePath.endsWith('.swift')
   ) {
-    return resolveRefusedBundleUrlEdit(iosProjectPath, appDelegateFilePath);
+    return resolveRefusedBundleUrlEdit(iosProjectPath, {
+      objectiveCFilePath: appDelegateFilePath,
+    });
   }
   const sceneDelegateFilePath = join(
     dirname(appDelegateFilePath),
@@ -60,7 +62,7 @@ export function resolveBundleUrlEdit(
       if (bundleUrlFilePath === undefined) {
         throw new NativeProjectError(
           `Neither ${sceneDelegateFilePath} nor ${appDelegateFilePath} returns the template's main.jsbundle from bundleURL().`,
-          BUNDLE_URL_FIX,
+          { fix: BUNDLE_URL_FIX },
         );
       }
       writeBundleUrlCall(bundleUrlFilePath);
@@ -83,30 +85,21 @@ export function resolveReactHostEdit(
     'main',
     'java',
   );
-  const filePath = findFilePath(sourceDirectoryPath, 'MainApplication.kt');
+  const filePath = findFilePath(sourceDirectoryPath, {
+    fileName: 'MainApplication.kt',
+  });
   if (filePath === undefined) {
-    return resolveRefusedReactHostEdit(
-      androidProjectPath,
-      findFilePath(sourceDirectoryPath, 'MainApplication.java'),
-    );
+    return resolveRefusedReactHostEdit(androidProjectPath, {
+      javaFilePath: findFilePath(sourceDirectoryPath, {
+        fileName: 'MainApplication.java',
+      }),
+    });
   }
   return {
     description: REACT_HOST_EDIT_DESCRIPTION,
     filePath,
     isApplied: () => readFileSync(filePath, 'utf8').includes(REACT_HOST_IMPORT),
-    apply: () => {
-      const source = readFileSync(filePath, 'utf8');
-      if (!source.includes(REACT_NATIVE_REACT_HOST_IMPORT)) {
-        throw new NativeProjectError(
-          `The file ${filePath} does not import the template's DefaultReactHost.getDefaultReactHost.`,
-          resolveReactHostFix(filePath),
-        );
-      }
-      writeFileSync(
-        filePath,
-        source.replace(REACT_NATIVE_REACT_HOST_IMPORT, REACT_HOST_IMPORT),
-      );
-    },
+    apply: () => writeReactHostImport(filePath),
   };
 }
 
@@ -122,7 +115,7 @@ function findAppDelegateFilePath(iosProjectPath: string): string | undefined {
 
 function findFilePath(
   directoryPath: string,
-  fileName: string,
+  { fileName }: { fileName: string },
 ): string | undefined {
   if (!existsSync(directoryPath)) {
     return undefined;
@@ -133,7 +126,7 @@ function findFilePath(
       return entryPath;
     }
     const foundPath = entry.isDirectory()
-      ? findFilePath(entryPath, fileName)
+      ? findFilePath(entryPath, { fileName })
       : undefined;
     if (foundPath !== undefined) {
       return foundPath;
@@ -155,13 +148,13 @@ function resolveReactHostFix(location: string): string {
 
 function resolveRefusedBundleUrlEdit(
   iosProjectPath: string,
-  objectiveCFilePath: string | undefined,
+  { objectiveCFilePath }: { objectiveCFilePath: string | undefined },
 ): NativeProjectEdit {
   if (objectiveCFilePath === undefined) {
     return resolveRefusedEdit(
       new NativeProjectError(
         `The iOS project ${iosProjectPath} has no AppDelegate.swift in an app folder.`,
-        BUNDLE_URL_FIX,
+        { fix: BUNDLE_URL_FIX },
       ),
       {
         description: `${BUNDLE_URL_CALL} in AppDelegate.swift`,
@@ -172,7 +165,9 @@ function resolveRefusedBundleUrlEdit(
   return resolveRefusedEdit(
     new NativeProjectError(
       `The app delegate ${objectiveCFilePath} is Objective-C, and init edits only the Swift file that overrides bundleURL().`,
-      `Import <HotcodepushReactNativeCodePush/HotcodepushReactNativeCodePush-Swift.h> in ${objectiveCFilePath} and return ${OBJECTIVE_C_BUNDLE_URL_CALL} from bundleURL where it returns the embedded bundle.`,
+      {
+        fix: `Import <HotcodepushReactNativeCodePush/HotcodepushReactNativeCodePush-Swift.h> in ${objectiveCFilePath} and return ${OBJECTIVE_C_BUNDLE_URL_CALL} from bundleURL where it returns the embedded bundle.`,
+      },
     ),
     {
       description: `${BUNDLE_URL_CALL} in ${basename(objectiveCFilePath)}`,
@@ -184,13 +179,13 @@ function resolveRefusedBundleUrlEdit(
 
 function resolveRefusedReactHostEdit(
   androidProjectPath: string,
-  javaFilePath: string | undefined,
+  { javaFilePath }: { javaFilePath: string | undefined },
 ): NativeProjectEdit {
   if (javaFilePath === undefined) {
     return resolveRefusedEdit(
       new NativeProjectError(
         `The Android project ${androidProjectPath} has no MainApplication.kt in its app's sources.`,
-        resolveReactHostFix("the app's Application class"),
+        { fix: resolveReactHostFix("the app's Application class") },
       ),
       {
         description: REACT_HOST_EDIT_DESCRIPTION,
@@ -201,7 +196,7 @@ function resolveRefusedReactHostEdit(
   return resolveRefusedEdit(
     new NativeProjectError(
       `The file ${javaFilePath} is Java, and init edits only the MainApplication.kt of React Native's template.`,
-      resolveReactHostFix(javaFilePath),
+      { fix: resolveReactHostFix(javaFilePath) },
     ),
     {
       description: REACT_HOST_EDIT_DESCRIPTION,
@@ -222,7 +217,9 @@ function writeBundleUrlCall(filePath: string): void {
   ) {
     throw new NativeProjectError(
       `The file ${filePath} does not return the template's main.jsbundle from bundleURL().`,
-      `Import HotcodepushReactNativeCodePush in ${filePath} and return ${BUNDLE_URL_CALL} from bundleURL() where it returns the embedded bundle.`,
+      {
+        fix: `Import HotcodepushReactNativeCodePush in ${filePath} and return ${BUNDLE_URL_CALL} from bundleURL() where it returns the embedded bundle.`,
+      },
     );
   }
   writeFileSync(
@@ -230,5 +227,19 @@ function writeBundleUrlCall(filePath: string): void {
     source
       .replace(lastImportLine, `${lastImportLine}\n${SWIFT_MODULE_IMPORT}`)
       .replace(EMBEDDED_BUNDLE_URL_CALL, BUNDLE_URL_CALL),
+  );
+}
+
+function writeReactHostImport(filePath: string): void {
+  const source = readFileSync(filePath, 'utf8');
+  if (!source.includes(REACT_NATIVE_REACT_HOST_IMPORT)) {
+    throw new NativeProjectError(
+      `The file ${filePath} does not import the template's DefaultReactHost.getDefaultReactHost.`,
+      { fix: resolveReactHostFix(filePath) },
+    );
+  }
+  writeFileSync(
+    filePath,
+    source.replace(REACT_NATIVE_REACT_HOST_IMPORT, REACT_HOST_IMPORT),
   );
 }

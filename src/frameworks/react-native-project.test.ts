@@ -111,7 +111,9 @@ describe('react-native-project', () => {
       ).toThrow(
         new NativeProjectError(
           `Neither ${join(directoryPath, SCENE_DELEGATE_FILE_PATH)} nor ${join(directoryPath, APP_DELEGATE_FILE_PATH)} returns the template's main.jsbundle from bundleURL().`,
-          'Import HotcodepushReactNativeCodePush in the file that overrides bundleURL() and return HotCodePush.bundleURL() from it where it returns the embedded bundle.',
+          {
+            fix: 'Import HotcodepushReactNativeCodePush in the file that overrides bundleURL() and return HotCodePush.bundleURL() from it where it returns the embedded bundle.',
+          },
         ),
       );
     });
@@ -130,7 +132,9 @@ describe('react-native-project', () => {
       expect(() => edit?.apply()).toThrow(
         new NativeProjectError(
           `The app delegate ${filePath} is Objective-C, and init edits only the Swift file that overrides bundleURL().`,
-          `Import <HotcodepushReactNativeCodePush/HotcodepushReactNativeCodePush-Swift.h> in ${filePath} and return [HotCodePush bundleURL] from bundleURL where it returns the embedded bundle.`,
+          {
+            fix: `Import <HotcodepushReactNativeCodePush/HotcodepushReactNativeCodePush-Swift.h> in ${filePath} and return [HotCodePush bundleURL] from bundleURL where it returns the embedded bundle.`,
+          },
         ),
       );
       expect(
@@ -156,7 +160,9 @@ describe('react-native-project', () => {
       expect(() => edit?.apply()).toThrow(
         new NativeProjectError(
           `The iOS project ${iosProjectPath} has no AppDelegate.swift in an app folder.`,
-          'Import HotcodepushReactNativeCodePush in the file that overrides bundleURL() and return HotCodePush.bundleURL() from it where it returns the embedded bundle.',
+          {
+            fix: 'Import HotcodepushReactNativeCodePush in the file that overrides bundleURL() and return HotCodePush.bundleURL() from it where it returns the embedded bundle.',
+          },
         ),
       );
     });
@@ -216,7 +222,9 @@ describe('react-native-project', () => {
       expect(() => edit?.apply()).toThrow(
         new NativeProjectError(
           `The file ${filePath} is Java, and init edits only the MainApplication.kt of React Native's template.`,
-          `Build the React host in ${filePath} with com.hotcodepush.reactnative.HotCodePushReactHost.getDefaultReactHost, which takes DefaultReactHost.getDefaultReactHost's parameters.`,
+          {
+            fix: `Build the React host in ${filePath} with com.hotcodepush.reactnative.HotCodePushReactHost.getDefaultReactHost, which takes DefaultReactHost.getDefaultReactHost's parameters.`,
+          },
         ),
       );
       expect(
@@ -242,7 +250,9 @@ describe('react-native-project', () => {
       expect(() => edit?.apply()).toThrow(
         new NativeProjectError(
           `The Android project ${androidProjectPath} has no MainApplication.kt in its app's sources.`,
-          "Build the React host in the app's Application class with com.hotcodepush.reactnative.HotCodePushReactHost.getDefaultReactHost, which takes DefaultReactHost.getDefaultReactHost's parameters.",
+          {
+            fix: "Build the React host in the app's Application class with com.hotcodepush.reactnative.HotCodePushReactHost.getDefaultReactHost, which takes DefaultReactHost.getDefaultReactHost's parameters.",
+          },
         ),
       );
     });

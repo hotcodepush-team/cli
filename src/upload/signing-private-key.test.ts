@@ -54,15 +54,15 @@ describe('signing private key', () => {
 
   function writeKeyFile(privateKey = SIGNING_PRIVATE_KEY): string {
     const filePath = join(directoryPath, 'private-key.pem');
-    writeSigningPrivateKeyFile(filePath, privateKey);
+    writeSigningPrivateKeyFile(filePath, { privateKey });
     return filePath;
   }
 
   async function readRejection(
     publicKeys: string[],
-    privateKeyPath?: string,
+    { privateKeyPath }: { privateKeyPath?: string } = {},
   ): Promise<unknown> {
-    return readSigningKeyPair(publicKeys, privateKeyPath).catch(
+    return readSigningKeyPair(publicKeys, { privateKeyPath }).catch(
       (reason: unknown) => reason,
     );
   }
@@ -93,14 +93,16 @@ describe('signing private key', () => {
     writeFileSync(filePath, 'kept');
 
     expect(() =>
-      writeSigningPrivateKeyFile(filePath, SIGNING_PRIVATE_KEY),
+      writeSigningPrivateKeyFile(filePath, { privateKey: SIGNING_PRIVATE_KEY }),
     ).toThrow();
     expect(readFileSync(filePath, 'utf8')).toBe('kept');
   });
 
   it('should read the key pair from the file --private-key-path names', async () => {
     await expect(
-      readSigningKeyPair([SIGNING_KEY.publicKey], writeKeyFile()),
+      readSigningKeyPair([SIGNING_KEY.publicKey], {
+        privateKeyPath: writeKeyFile(),
+      }),
     ).resolves.toEqual({
       privateKey: SIGNING_PRIVATE_KEY,
       publicKey: SIGNING_KEY.publicKey,
@@ -110,9 +112,7 @@ describe('signing private key', () => {
   it('should read the key pair from HOTCODEPUSH_SIGNING_KEY holding the file content', async () => {
     vi.stubEnv('HOTCODEPUSH_SIGNING_KEY', readFileSync(writeKeyFile(), 'utf8'));
 
-    await expect(
-      readSigningKeyPair([SIGNING_KEY.publicKey], undefined),
-    ).resolves.toEqual({
+    await expect(readSigningKeyPair([SIGNING_KEY.publicKey])).resolves.toEqual({
       privateKey: SIGNING_PRIVATE_KEY,
       publicKey: SIGNING_KEY.publicKey,
     });
@@ -123,7 +123,7 @@ describe('signing private key', () => {
     writeFileSync(filePath, PKCS1_PEM);
 
     await expect(
-      readSigningKeyPair([SIGNING_KEY.publicKey], filePath),
+      readSigningKeyPair([SIGNING_KEY.publicKey], { privateKeyPath: filePath }),
     ).resolves.toEqual({
       privateKey: SIGNING_PRIVATE_KEY,
       publicKey: SIGNING_KEY.publicKey,
@@ -144,7 +144,7 @@ describe('signing private key', () => {
       vi.stubEnv('HOTCODEPUSH_SIGNING_KEY', readVariableText());
 
       await expect(
-        readSigningKeyPair([SIGNING_KEY.publicKey], undefined),
+        readSigningKeyPair([SIGNING_KEY.publicKey]),
       ).resolves.toEqual({
         privateKey: SIGNING_PRIVATE_KEY,
         publicKey: SIGNING_KEY.publicKey,
@@ -156,7 +156,9 @@ describe('signing private key', () => {
     vi.stubEnv('HOTCODEPUSH_SIGNING_KEY', OTHER_PRIVATE_KEY);
 
     await expect(
-      readSigningKeyPair([SIGNING_KEY.publicKey], writeKeyFile()),
+      readSigningKeyPair([SIGNING_KEY.publicKey], {
+        privateKeyPath: writeKeyFile(),
+      }),
     ).resolves.toEqual({
       privateKey: SIGNING_PRIVATE_KEY,
       publicKey: SIGNING_KEY.publicKey,
@@ -164,7 +166,7 @@ describe('signing private key', () => {
   });
 
   it('should answer no key pair when no public key is listed and no private key is given', async () => {
-    await expect(readSigningKeyPair([], undefined)).resolves.toBeNull();
+    await expect(readSigningKeyPair([])).resolves.toBeNull();
   });
 
   it('should throw `signing_key_unavailable` naming both ways when a public key is listed and no private key is given', async () => {
@@ -181,10 +183,10 @@ describe('signing private key', () => {
     async source => {
       vi.stubEnv('HOTCODEPUSH_SIGNING_KEY', SIGNING_PRIVATE_KEY);
 
-      const error = await readRejection(
-        [],
-        source === '--private-key-path' ? writeKeyFile() : undefined,
-      );
+      const error = await readRejection([], {
+        privateKeyPath:
+          source === '--private-key-path' ? writeKeyFile() : undefined,
+      });
 
       expect(error).toBeInstanceOf(InvalidParameterError);
       expect((error as InvalidParameterError).message).toBe(
@@ -207,7 +209,9 @@ describe('signing private key', () => {
   it('should throw `invalid_parameter` naming the flag when no file is at --private-key-path', async () => {
     const filePath = join(directoryPath, 'missing.pem');
 
-    const error = await readRejection([SIGNING_KEY.publicKey], filePath);
+    const error = await readRejection([SIGNING_KEY.publicKey], {
+      privateKeyPath: filePath,
+    });
 
     expect(error).toBeInstanceOf(InvalidParameterError);
     expect((error as InvalidParameterError).message).toBe(
@@ -232,7 +236,9 @@ describe('signing private key', () => {
         }),
       );
 
-      const error = await readRejection([SIGNING_KEY.publicKey], filePath);
+      const error = await readRejection([SIGNING_KEY.publicKey], {
+        privateKeyPath: filePath,
+      });
 
       expect(error).toBeInstanceOf(InvalidParameterError);
       expect((error as InvalidParameterError).message).toBe(

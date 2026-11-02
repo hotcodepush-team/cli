@@ -117,17 +117,15 @@ export default defineCommand({
   action: async options => {
     const hotCodePush = createApiClient();
     const target = await fetchProbeTarget(hotCodePush, options);
-    const identity = await promptBinaryIdentity(options, target.fetchedDevice);
-    const binary = await fetchBinary(hotCodePush, {
-      appId: target.appId,
-      identity,
-    });
+    const { appId, channel, fetchedDevice } = target;
+    const identity = await promptBinaryIdentity(options, { fetchedDevice });
+    const binary = await fetchBinary(hotCodePush, { appId, identity });
     const servedIndex = await fetchServedIndex({
-      appId: target.appId,
-      channelId: target.channel.id,
+      appId,
+      channelId: channel.id,
       platform: identity.platform,
     });
-    const unknownFacts = resolveUnknownFacts(target.fetchedDevice, binary);
+    const unknownFacts = resolveUnknownFacts({ binary, fetchedDevice });
     const device = await fetchDeviceInfo(hotCodePush, {
       binary,
       identity,
@@ -137,7 +135,7 @@ export default defineCommand({
     });
     const probe: Probe = {
       builtAt: binary?.createdAt ?? null,
-      channel: target.channel,
+      channel,
       device,
       evaluation:
         servedIndex.index === null
@@ -267,14 +265,17 @@ async function fetchDeviceInfo(
   },
 ): Promise<DeviceInfo> {
   return {
-    attributes: resolveDeviceAttributes(fetchedDevice, options.attribute),
+    attributes: resolveDeviceAttributes({
+      attribute: options.attribute,
+      fetchedDevice,
+    }),
     binaryBuild: identity.binaryBuild,
     binaryVersion: identity.binaryVersion,
     builtAt: binary?.createdAt ?? NO_FLOOR,
     ...(fetchedDevice === undefined
       ? { currentRelease: null, failedBundleIds: [] }
       : await fetchDeviceHistory(hotCodePush, { fetchedDevice, servedIndex })),
-    ...resolveReportedFacts(fetchedDevice, binary),
+    ...resolveReportedFacts({ binary, fetchedDevice }),
   };
 }
 
@@ -292,7 +293,7 @@ async function fetchFailedBundleIds(
       ...page,
     }),
   );
-  return resolveFailedBundleIds(events, servedIndex.index);
+  return resolveFailedBundleIds(events, { index: servedIndex.index });
 }
 
 async function fetchProbeTarget(
@@ -409,7 +410,7 @@ function printProbeJson({
 // A flag wins over the probed device, and a missing fact is asked for.
 async function promptBinaryIdentity(
   options: ProbeOptions,
-  fetchedDevice: Device | undefined,
+  { fetchedDevice }: { fetchedDevice: Device | undefined },
 ): Promise<BinaryIdentity> {
   const platform =
     options.platform ??
@@ -454,10 +455,13 @@ function resolveConditionsText(
   return conditionTexts.join(', ') || 'none';
 }
 
-function resolveDeviceAttributes(
-  fetchedDevice: Device | undefined,
-  attribute: string[] | undefined,
-): DeviceInfo['attributes'] {
+function resolveDeviceAttributes({
+  attribute,
+  fetchedDevice,
+}: {
+  attribute: string[] | undefined;
+  fetchedDevice: Device | undefined;
+}): DeviceInfo['attributes'] {
   return {
     ...fetchedDevice?.attributes,
     ...Object.fromEntries(
@@ -468,7 +472,7 @@ function resolveDeviceAttributes(
 
 function resolveFailedBundleIds(
   events: readonly ReleaseDeviceEvent[],
-  index: ChannelIndex | null,
+  { index }: { index: ChannelIndex | null },
 ): string[] {
   const failedReleaseIds = new Set(
     events
@@ -496,10 +500,13 @@ function resolveOutcomeText({ outcome }: ChannelIndexEvaluation): string {
 }
 
 // Without a probed device, the binary's fingerprint stands in for the device's.
-function resolveReportedFacts(
-  fetchedDevice: Device | undefined,
-  binary: Binary | undefined,
-): Pick<DeviceInfo, 'deviceId' | 'fingerprint' | 'osVersion' | 'reportedAt'> {
+function resolveReportedFacts({
+  binary,
+  fetchedDevice,
+}: {
+  binary: Binary | undefined;
+  fetchedDevice: Device | undefined;
+}): Pick<DeviceInfo, 'deviceId' | 'fingerprint' | 'osVersion' | 'reportedAt'> {
   const binaryFingerprint = binary?.fingerprint ?? null;
   if (fetchedDevice === undefined) {
     return {
@@ -524,10 +531,13 @@ function resolveServedIndexText({ index, status, url }: ServedIndex): string {
     : `published ${new Date(index.sequence).toISOString()}`;
 }
 
-function resolveUnknownFacts(
-  fetchedDevice: Device | undefined,
-  binary: Binary | undefined,
-): UnknownFact[] {
+function resolveUnknownFacts({
+  binary,
+  fetchedDevice,
+}: {
+  binary: Binary | undefined;
+  fetchedDevice: Device | undefined;
+}): UnknownFact[] {
   if (fetchedDevice !== undefined) {
     return [];
   }

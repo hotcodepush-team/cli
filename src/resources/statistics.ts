@@ -15,7 +15,7 @@ export function resolveBinaryBucket(
 // A null release id stands for the embedded bundles.
 export function resolveReleaseDeviceCount(
   fleet: FleetStatistics,
-  releaseId: string | null,
+  { releaseId }: { releaseId: string | null },
 ): number {
   return (
     fleet.release.find(({ value }) => value === releaseId)?.deviceCount ?? 0

@@ -56,13 +56,16 @@ describe('fingerprint diff', () => {
     return filePath;
   }
 
-  function writeFixtureFiles(
-    beforeFixture: FingerprintFixture,
-    afterFixture: FingerprintFixture,
-  ): string[] {
+  function writeFixtureFiles({
+    after,
+    before,
+  }: {
+    after: FingerprintFixture;
+    before: FingerprintFixture;
+  }): string[] {
     return [
-      writeFingerprintFile('before.json', beforeFixture.contributors),
-      writeFingerprintFile('after.json', afterFixture.contributors),
+      writeFingerprintFile('before.json', before.contributors),
+      writeFingerprintFile('after.json', after.contributors),
     ];
   }
 
@@ -82,7 +85,7 @@ describe('fingerprint diff', () => {
 
       await fingerprintDiffCommand.action(
         {},
-        writeFixtureFiles(scannerFixture, checkoutFixture),
+        writeFixtureFiles({ after: checkoutFixture, before: scannerFixture }),
       );
 
       expect(readTableRows()).toEqual([
@@ -105,7 +108,7 @@ describe('fingerprint diff', () => {
 
     await fingerprintDiffCommand.action(
       { json: true },
-      writeFixtureFiles(scannerFixture, checkoutFixture),
+      writeFixtureFiles({ after: checkoutFixture, before: scannerFixture }),
     );
 
     expect(harness.readJson()).toEqual({
@@ -141,7 +144,10 @@ describe('fingerprint diff', () => {
 
     await fingerprintDiffCommand.action(
       {},
-      writeFixtureFiles(yarnClassicFixture, yarnBerryFixture),
+      writeFixtureFiles({
+        after: yarnBerryFixture,
+        before: yarnClassicFixture,
+      }),
     );
 
     expect(readTableRows()).toEqual([
@@ -186,14 +192,14 @@ describe('fingerprint diff', () => {
   it('should print a version added beside the one both files install', async () => {
     await fingerprintDiffCommand.action(
       {},
-      writeFixtureFiles(
-        findFixture(
-          'should keep the native packages and the Capacitor runtime of an npm project',
-        ),
-        findFixture(
+      writeFixtureFiles({
+        after: findFixture(
           'should keep every version of a native package the lockfile installs',
         ),
-      ),
+        before: findFixture(
+          'should keep the native packages and the Capacitor runtime of an npm project',
+        ),
+      }),
     );
 
     expect(readTableRows()).toEqual([
@@ -209,12 +215,12 @@ describe('fingerprint diff', () => {
 
     await fingerprintDiffCommand.action(
       {},
-      writeFixtureFiles(
-        findFixture(
+      writeFixtureFiles({
+        after: extraFingerprintPathsFixture,
+        before: findFixture(
           'should keep the native packages and the Capacitor runtime of an npm project',
         ),
-        extraFingerprintPathsFixture,
-      ),
+      }),
     );
 
     expect(readTableRows()).toEqual([
@@ -234,12 +240,12 @@ describe('fingerprint diff', () => {
 
     await fingerprintDiffCommand.action(
       {},
-      writeFixtureFiles(
-        npmFixture,
-        findFixture(
+      writeFixtureFiles({
+        after: findFixture(
           'should yield the same fingerprint from a pnpm project with the same dependencies',
         ),
-      ),
+        before: npmFixture,
+      }),
     );
 
     expect(harness.readLines()).toEqual([

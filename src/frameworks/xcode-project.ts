@@ -91,7 +91,7 @@ export async function addBinaryCreatePhase(
   if (hasBinaryCreatePhase(projectFilePath)) {
     return 'present';
   }
-  const editableProject = parseProject(projectFilePath, phase.fix);
+  const editableProject = parseProject(projectFilePath, { fix: phase.fix });
   const { project } = editableProject;
   const target = await resolveAppTarget(project, options);
   const nativeTarget = project.pbxNativeTargetSection()[target.key];
@@ -235,7 +235,10 @@ function moveLastPhaseAfterAnchor(
 
 // The `xcode` package reads digits as a JavaScript number, so `0920` would come back as `920` and long values lose digits.
 // Such values pass through as text placeholders, and `writeProject` puts them back.
-function parseProject(projectFilePath: string, fix?: string): EditableProject {
+function parseProject(
+  projectFilePath: string,
+  { fix }: { fix?: string } = {},
+): EditableProject {
   try {
     const keptNumbers: string[] = [];
     const text = readFileSync(projectFilePath, 'utf8').replace(

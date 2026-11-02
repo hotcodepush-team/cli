@@ -189,18 +189,21 @@ async function promptSamlBlock(
     cert:
       options.samlCertPath === undefined
         ? undefined
-        : readDocumentFile('--saml-cert-path', options.samlCertPath),
+        : readDocumentFile(options.samlCertPath, { flag: '--saml-cert-path' }),
     entityId: options.samlEntityId,
     entryPoint,
     issuer,
     metadata:
       metadataPath === undefined
         ? undefined
-        : readDocumentFile('--saml-metadata-path', metadataPath),
+        : readDocumentFile(metadataPath, { flag: '--saml-metadata-path' }),
   };
 }
 
-function readDocumentFile(flag: string, filePath: string): string {
+function readDocumentFile(
+  filePath: string,
+  { flag }: { flag: string },
+): string {
   try {
     return readFileSync(filePath, 'utf8');
   } catch (error) {

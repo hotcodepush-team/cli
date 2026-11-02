@@ -58,7 +58,7 @@ describe('signing-key add', () => {
 
   function writeKeyFile(
     privateKey: string,
-    type: 'pkcs1' | 'pkcs8' = 'pkcs8',
+    { type = 'pkcs8' }: { type?: 'pkcs1' | 'pkcs8' } = {},
   ): string {
     const filePath = join(workingDirectoryPath, 'my-app-private-key.pem');
     writeFileSync(
@@ -80,7 +80,7 @@ describe('signing-key add', () => {
     'should register the public key derived from a %s private key file and add it to publicKeys after the keys there, leaving the file where it is',
     async type => {
       respondWithRegistration();
-      const keyFilePath = writeKeyFile(KEY_PAIR.privateKey, type);
+      const keyFilePath = writeKeyFile(KEY_PAIR.privateKey, { type });
       const keyFileText = readFileSync(keyFilePath, 'utf8');
       const configPath = harness.writeProjectConfig({
         appId: DEMO_APP.id,

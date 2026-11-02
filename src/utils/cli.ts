@@ -78,7 +78,9 @@ async function runCommandLine(
 ): Promise<CommandLineRun> {
   let commandName: string | undefined;
   try {
-    const invocation = resolveInvocation(Object.keys(commandRegistry), argv);
+    const invocation = resolveInvocation(Object.keys(commandRegistry), {
+      argv,
+    });
     // A line without a command shows the help or the version, and zodline ends the process there.
     commandName =
       invocation.commandNames.length === 1

@@ -91,7 +91,7 @@ export class BundleTooLargeError extends CliError {
 }
 
 export class CommandFailedError extends CliError {
-  constructor(commandLine: string, exitCode: number | null) {
+  constructor(commandLine: string, { exitCode }: { exitCode: number | null }) {
     super({
       code: 'command_failed',
       exitCode: ExitCode.Error,
@@ -102,7 +102,10 @@ export class CommandFailedError extends CliError {
 }
 
 export class ConfirmationRequiredError extends CliError {
-  constructor(consequence: string, fix = 'Pass --yes to confirm.') {
+  constructor(
+    consequence: string,
+    { fix = 'Pass --yes to confirm.' }: { fix?: string } = {},
+  ) {
     super({
       code: 'confirmation_required',
       exitCode: ExitCode.ConfirmationRequired,
@@ -128,7 +131,7 @@ export class FingerprintUnavailableError extends CliError {
 
 // Never names the file content, since `config.json` can hold the token.
 export class InvalidJsonError extends CliError {
-  constructor(filePath: string, problem: string) {
+  constructor(filePath: string, { problem }: { problem: string }) {
     super({
       code: 'invalid_json',
       exitCode: ExitCode.Error,
@@ -181,7 +184,9 @@ export class LoginExpiredError extends CliError {
 export class MissingParameterError extends CliError {
   constructor(
     flag: string,
-    fix = `Pass ${flag}, or run the command interactively to be asked for it.`,
+    {
+      fix = `Pass ${flag}, or run the command interactively to be asked for it.`,
+    }: { fix?: string } = {},
   ) {
     super({
       code: 'missing_parameter',
@@ -193,7 +198,7 @@ export class MissingParameterError extends CliError {
 }
 
 export class NativeProjectError extends CliError {
-  constructor(message: string, fix: string) {
+  constructor(message: string, { fix }: { fix: string }) {
     super({
       code: 'native_project',
       exitCode: ExitCode.Error,
@@ -235,7 +240,7 @@ export class PipelineNotLoggedInError extends CliError {
 export class ReportedFailureError extends CliError {
   readonly stoppedStep: string | undefined;
 
-  constructor(code: string, stoppedStep?: string) {
+  constructor(code: string, { stoppedStep }: { stoppedStep?: string } = {}) {
     super({
       code,
       exitCode: ExitCode.Error,
@@ -273,7 +278,7 @@ export class UnexpectedError extends CliError {
 // A proxy error page or a body without a catalog code.
 // The typed client keeps its error as the cause; the Better Auth client gives an error without a code.
 export class UnexpectedResponseError extends CliError {
-  constructor(status: number, cause?: unknown) {
+  constructor(status: number, { cause }: { cause?: unknown } = {}) {
     super({
       cause,
       code: 'unexpected_response',
@@ -317,7 +322,10 @@ export class UnknownFrameworkError extends CliError {
 }
 
 export class UnknownCommandError extends CliError {
-  constructor(typedCommand: string, closestCommandName: string | undefined) {
+  constructor(
+    typedCommand: string,
+    { closestCommandName }: { closestCommandName?: string } = {},
+  ) {
     super({
       code: 'unknown_command',
       exitCode: ExitCode.Error,

@@ -80,7 +80,7 @@ function resolveReleaseRow(release: Release, fleet: FleetStatistics): string[] {
     `${release.rolloutPercent}%`,
     resolveProgressionCell(release),
     resolveYesNoText(release.isMandatory),
-    String(resolveReleaseDeviceCount(fleet, release.id)),
+    String(resolveReleaseDeviceCount(fleet, { releaseId: release.id })),
     release.liveAt === null ? 'pending' : resolveDate(release.liveAt),
     resolveDate(release.createdAt),
   ];

@@ -32,7 +32,9 @@ describe('resolveEffectiveFailurePolicy', () => {
 
   it("should resolve the release's own values before its channel's", () => {
     expect(
-      resolveEffectiveFailurePolicy(OVERRIDING_RELEASE, STAGING_CHANNEL),
+      resolveEffectiveFailurePolicy(OVERRIDING_RELEASE, {
+        channelFields: STAGING_CHANNEL,
+      }),
     ).toEqual({
       failureAction: { level: 'own', value: 'none' },
       failureMinimumUpdateCount: { level: 'own', value: 100 },
@@ -42,7 +44,9 @@ describe('resolveEffectiveFailurePolicy', () => {
 
   it("should resolve the channel's values when the release sets no field", () => {
     expect(
-      resolveEffectiveFailurePolicy(LIVE_RELEASE, STAGING_CHANNEL),
+      resolveEffectiveFailurePolicy(LIVE_RELEASE, {
+        channelFields: STAGING_CHANNEL,
+      }),
     ).toEqual({
       failureAction: { level: 'channel', value: 'pause' },
       failureMinimumUpdateCount: { level: 'channel', value: 20 },
@@ -52,7 +56,9 @@ describe('resolveEffectiveFailurePolicy', () => {
 
   it('should resolve the defaults when neither the release nor its channel sets a field', () => {
     expect(
-      resolveEffectiveFailurePolicy(LIVE_RELEASE, PRODUCTION_CHANNEL),
+      resolveEffectiveFailurePolicy(LIVE_RELEASE, {
+        channelFields: PRODUCTION_CHANNEL,
+      }),
     ).toEqual({
       failureAction: { level: 'default', value: 'pause' },
       failureMinimumUpdateCount: { level: 'default', value: 50 },
@@ -64,7 +70,9 @@ describe('resolveEffectiveFailurePolicy', () => {
     expect(
       resolveEffectiveFailurePolicy(
         { ...LIVE_RELEASE, failureAction: 'none' },
-        { ...PRODUCTION_CHANNEL, failureThresholdPercent: 10 },
+        {
+          channelFields: { ...PRODUCTION_CHANNEL, failureThresholdPercent: 10 },
+        },
       ),
     ).toEqual({
       failureAction: { level: 'own', value: 'none' },

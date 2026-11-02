@@ -48,7 +48,7 @@ export default defineCommand({
     });
     const { privateKey, publicKey } = await generateSigningKeyPair();
     // Written before the public key is registered, since a registered key without its private key could sign nothing.
-    writeSigningPrivateKeyFile(privateKeyPath, privateKey);
+    writeSigningPrivateKeyFile(privateKeyPath, { privateKey });
     const createdSigningKey = await hotCodePush.apps.signingKeys
       .create({ appId, publicKey })
       .catch((error: unknown) => {

@@ -200,7 +200,8 @@ async function readSigningPrivateKey(
     projectConfig?.appId === appId ? (projectConfig.publicKeys ?? []) : [];
   try {
     return (
-      (await readSigningKeyPair(publicKeys, privateKeyPath))?.privateKey ?? null
+      (await readSigningKeyPair(publicKeys, { privateKeyPath }))?.privateKey ??
+      null
     );
   } catch (error) {
     if (isDryRun && error instanceof SigningKeyUnavailableError) {

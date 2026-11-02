@@ -100,8 +100,8 @@ function printFingerprintDiff(diff: FingerprintDiff): void {
     nextOffset: null,
     rows: diff.packages.map(({ after, before, name }) => [
       name,
-      resolveInstalledVersionText(before, after),
-      resolveInstalledVersionText(after, before),
+      resolveInstalledVersionText(before, { otherInstalledVersion: after }),
+      resolveInstalledVersionText(after, { otherInstalledVersion: before }),
     ]),
   });
   if (diff.extraFingerprintPaths.length > 0) {
@@ -202,7 +202,7 @@ function resolveFingerprintDiff(
 // Shows the integrity where the version did not move, so a rebuild under the same version shows.
 function resolveInstalledVersionText(
   installedVersion: InstalledVersion | null,
-  otherInstalledVersion: InstalledVersion | null,
+  { otherInstalledVersion }: { otherInstalledVersion: InstalledVersion | null },
 ): string {
   if (installedVersion === null) {
     return 'none';

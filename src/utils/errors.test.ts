@@ -70,7 +70,9 @@ describe('errors', () => {
     [new SigningKeyUnavailableError(), 'signing_key_unavailable', 1],
     [new UnexpectedError(new Error('boom')), 'unexpected', 1],
     [
-      new UnknownCommandError('relese create', 'release create'),
+      new UnknownCommandError('relese create', {
+        closestCommandName: 'release create',
+      }),
       'unknown_command',
       1,
     ],
@@ -115,14 +117,16 @@ describe('errors', () => {
   });
 
   it('should suggest the closest command when one is known', () => {
-    const error = new UnknownCommandError('relese create', 'release create');
+    const error = new UnknownCommandError('relese create', {
+      closestCommandName: 'release create',
+    });
 
     expect(error.message).toBe('There is no command "relese create".');
     expect(error.fix).toBe('Did you mean "release create"?');
   });
 
   it('should point at the help when no command is close', () => {
-    const error = new UnknownCommandError('deploy', undefined);
+    const error = new UnknownCommandError('deploy');
 
     expect(error.fix).toBe('Run "hotcodepush --help" to list the commands.');
   });
