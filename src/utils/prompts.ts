@@ -1,12 +1,8 @@
-import { confirm, isCancel, password, select, text } from '@clack/prompts';
 import type { InteractivityOptions } from './environment.js';
 import { isInteractive } from './environment.js';
 import { ConfirmationRequiredError, MissingParameterError } from './errors.js';
-
-export interface Choice<TValue extends string> {
-  label: string;
-  value: TValue;
-}
+import type { Choice } from './prompt-renderers.js';
+import { confirm, password, select, text } from './prompt-renderers.js';
 
 interface InputPrompt {
   flag: string;
@@ -52,12 +48,11 @@ export async function promptSelect<TValue extends string>(
   if (choices.length === 0 || !isInteractive(options)) {
     throw new MissingParameterError(flag);
   }
-  // clack types an option through a conditional type that a generic value cannot satisfy.
-  const answer = await select<string>({ message, options: choices });
-  if (isCancel(answer)) {
+  const answer = await select({ message, options: choices });
+  if (typeof answer !== 'string') {
     throw new MissingParameterError(flag);
   }
-  return answer as TValue;
+  return answer;
 }
 
 export function promptSecret(
@@ -85,7 +80,7 @@ async function promptInput(
     message,
     validate: value => (value?.trim() ? undefined : 'Enter a value.'),
   });
-  if (isCancel(answer)) {
+  if (typeof answer !== 'string') {
     throw new MissingParameterError(flag);
   }
   return answer;

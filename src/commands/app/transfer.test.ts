@@ -1,4 +1,4 @@
-import { S_SUCCESS, confirm, select } from '@clack/prompts';
+import { S_SUCCESS } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   respondWithApiError,
@@ -13,12 +13,12 @@ import {
 import { PACKAGE_JSON } from '../../config/consts.js';
 import { runCli } from '../../utils/cli.js';
 import { ConfirmationRequiredError } from '../../utils/errors.js';
+import { confirm, select } from '../../utils/prompt-renderers.js';
 import appTransferCommand from './transfer.js';
 
-// Keeps clack's `log` real, so the diagnostics reach stderr.
-vi.mock('@clack/prompts', () =>
-  import('../../../test/clack-prompts.js').then(
-    ({ clackPromptsMock }) => clackPromptsMock,
+vi.mock('../../utils/prompt-renderers.js', () =>
+  import('../../../test/prompt-renderers.js').then(
+    ({ promptRenderersMock }) => promptRenderersMock,
   ),
 );
 

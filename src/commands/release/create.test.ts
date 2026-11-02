@@ -1,4 +1,4 @@
-import { S_SUCCESS, confirm, select } from '@clack/prompts';
+import { S_SUCCESS } from '@clack/prompts';
 import type { Audience, Channel, Release } from '@hotcodepush/node';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CAPACITOR_FINGERPRINT } from '../../../test/capacitor-project.js';
@@ -34,12 +34,12 @@ import {
   InvalidParameterError,
 } from '../../utils/errors.js';
 import { createReporter } from '../../utils/progress.js';
+import { confirm, select } from '../../utils/prompt-renderers.js';
 import releaseCreateCommand from './create.js';
 
-// Keeps clack's `log` real, so the diagnostics reach stderr.
-vi.mock('@clack/prompts', () =>
-  import('../../../test/clack-prompts.js').then(
-    ({ clackPromptsMock }) => clackPromptsMock,
+vi.mock('../../utils/prompt-renderers.js', () =>
+  import('../../../test/prompt-renderers.js').then(
+    ({ promptRenderersMock }) => promptRenderersMock,
   ),
 );
 vi.mock('../../upload/bundle-upload.js', async importOriginal => ({

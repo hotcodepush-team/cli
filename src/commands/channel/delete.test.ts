@@ -1,4 +1,4 @@
-import { S_SUCCESS, confirm } from '@clack/prompts';
+import { S_SUCCESS } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
@@ -13,11 +13,12 @@ import {
   ConfirmationRequiredError,
   UnknownNameError,
 } from '../../utils/errors.js';
+import { confirm } from '../../utils/prompt-renderers.js';
 import channelDeleteCommand from './delete.js';
 
-vi.mock('@clack/prompts', () =>
-  import('../../../test/clack-prompts.js').then(
-    ({ clackPromptsMock }) => clackPromptsMock,
+vi.mock('../../utils/prompt-renderers.js', () =>
+  import('../../../test/prompt-renderers.js').then(
+    ({ promptRenderersMock }) => promptRenderersMock,
   ),
 );
 

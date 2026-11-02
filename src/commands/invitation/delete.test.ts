@@ -1,4 +1,4 @@
-import { S_SUCCESS, confirm, select } from '@clack/prompts';
+import { S_SUCCESS } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   API_URL,
@@ -14,11 +14,12 @@ import {
   MissingParameterError,
   UnknownNameError,
 } from '../../utils/errors.js';
+import { confirm, select } from '../../utils/prompt-renderers.js';
 import invitationDeleteCommand from './delete.js';
 
-vi.mock('@clack/prompts', () =>
-  import('../../../test/clack-prompts.js').then(
-    ({ clackPromptsMock }) => clackPromptsMock,
+vi.mock('../../utils/prompt-renderers.js', () =>
+  import('../../../test/prompt-renderers.js').then(
+    ({ promptRenderersMock }) => promptRenderersMock,
   ),
 );
 

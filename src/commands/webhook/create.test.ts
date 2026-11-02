@@ -1,4 +1,3 @@
-import { select, text } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
@@ -10,11 +9,12 @@ import {
   WEBHOOK,
 } from '../../../test/fixtures.js';
 import { MissingParameterError } from '../../utils/errors.js';
+import { select, text } from '../../utils/prompt-renderers.js';
 import webhookCreateCommand from './create.js';
 
-vi.mock('@clack/prompts', () =>
-  import('../../../test/clack-prompts.js').then(
-    ({ clackPromptsMock }) => clackPromptsMock,
+vi.mock('../../utils/prompt-renderers.js', () =>
+  import('../../../test/prompt-renderers.js').then(
+    ({ promptRenderersMock }) => promptRenderersMock,
   ),
 );
 

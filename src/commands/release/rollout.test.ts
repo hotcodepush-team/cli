@@ -1,4 +1,4 @@
-import { S_SUCCESS, confirm, text } from '@clack/prompts';
+import { S_SUCCESS } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
@@ -15,11 +15,12 @@ import {
   RELEASES_PATH,
   respondWithStagingReleases,
 } from '../../../test/release-routes.js';
+import { confirm, text } from '../../utils/prompt-renderers.js';
 import releaseRolloutCommand from './rollout.js';
 
-vi.mock('@clack/prompts', () =>
-  import('../../../test/clack-prompts.js').then(
-    ({ clackPromptsMock }) => clackPromptsMock,
+vi.mock('../../utils/prompt-renderers.js', () =>
+  import('../../../test/prompt-renderers.js').then(
+    ({ promptRenderersMock }) => promptRenderersMock,
   ),
 );
 
