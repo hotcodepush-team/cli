@@ -29,6 +29,24 @@
   "bin": {
     "hotcodepush": "dist/index.js"
   },
+  "exports": {
+    "./frameworks/capacitor": {
+      "types": "./dist/frameworks/capacitor.d.ts",
+      "default": "./dist/frameworks/capacitor.js"
+    },
+    "./frameworks/cordova": {
+      "types": "./dist/frameworks/cordova.d.ts",
+      "default": "./dist/frameworks/cordova.js"
+    },
+    "./frameworks/expo": {
+      "types": "./dist/frameworks/expo.d.ts",
+      "default": "./dist/frameworks/expo.js"
+    },
+    "./frameworks/react-native": {
+      "types": "./dist/frameworks/react-native.d.ts",
+      "default": "./dist/frameworks/react-native.js"
+    }
+  },
   "files": [
     "dist"
   ],
