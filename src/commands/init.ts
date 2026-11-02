@@ -183,13 +183,16 @@ export default defineCommand({
       privateKeyPath,
       projectFiles,
     });
-    printRun(run, {
-      app: account.app,
-      appImportStep: projectFiles.wiring.appImportStep,
-      isReleased,
-      options,
-      privateKeyPath,
-    });
+    if (options.json) {
+      printJson({ status: run.status, steps: run.steps });
+    } else {
+      printRun(run, {
+        app: account.app,
+        appImportStep: projectFiles.wiring.appImportStep,
+        isReleased,
+        privateKeyPath,
+      });
+    }
     if (run.stoppedCode !== undefined) {
       throw new ReportedFailureError(run.stoppedCode, {
         stoppedStep: run.stoppedStep,
@@ -312,28 +315,21 @@ function printRun(
     app,
     appImportStep,
     isReleased,
-    options,
     privateKeyPath,
   }: {
     app: App | undefined;
     appImportStep: string | undefined;
     isReleased: boolean;
-    options: InitOptions;
     privateKeyPath: string | undefined;
   },
 ): void {
-  const status = run.stoppedCode === undefined ? 'complete' : 'incomplete';
-  if (options.json) {
-    printJson({ status, steps: run.steps });
-    return;
-  }
   // A blank line separates the rows from the package manager and build output above them.
   console.log('');
   printOutcomeRows(resolveStepRows(run.steps));
   if (appImportStep !== undefined) {
     printNotice(appImportStep);
   }
-  if (app !== undefined && status === 'complete') {
+  if (app !== undefined && run.status === 'complete') {
     printFinish(app, { isReleased, privateKeyPath });
   }
 }
@@ -343,10 +339,9 @@ async function signIn(options: InitOptions): Promise<StepOutcome<HotCodePush>> {
   if (readToken() !== undefined) {
     try {
       return {
-        message: resolveCredentialText(
-          await fetchCurrentUser(),
-          isEnvironmentToken(),
-        ),
+        message: resolveCredentialText(await fetchCurrentUser(), {
+          isEnvironmentToken: isEnvironmentToken(),
+        }),
         status: 'skipped',
         value: createApiClient(),
       };

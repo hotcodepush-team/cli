@@ -219,7 +219,9 @@ async function checkSessionAndApp({
   }
   const sessionCheck: DoctorCheck = {
     check: 'session',
-    message: resolveCredentialText(user, isEnvironmentToken()),
+    message: resolveCredentialText(user, {
+      isEnvironmentToken: isEnvironmentToken(),
+    }),
     status: 'ok',
   };
   const { app, check } = await checkApp(projectConfig);

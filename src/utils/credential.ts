@@ -16,7 +16,7 @@ export function isUnauthenticatedError(error: unknown): boolean {
 
 export function resolveCredentialText(
   user: User,
-  isEnvironmentToken: boolean,
+  { isEnvironmentToken }: { isEnvironmentToken: boolean },
 ): string {
   const who = `${user.name} (${user.email})`;
   return isEnvironmentToken

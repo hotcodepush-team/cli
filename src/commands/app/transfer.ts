@@ -62,7 +62,11 @@ export default defineCommand({
       appId,
       organizationId: targetOrganizationId,
     });
-    printTransferredApp(transferredApp, { options, targetOrganizationName });
+    if (options.json) {
+      printJson(transferredApp);
+      return;
+    }
+    printTransferredApp(transferredApp, { targetOrganizationName });
   },
 });
 
@@ -85,22 +89,15 @@ function pickTargetOrganizationId(
 
 function printTransferredApp(
   transferredApp: App,
-  {
-    options,
-    targetOrganizationName,
-  }: { options: { json?: boolean }; targetOrganizationName: string },
+  { targetOrganizationName }: { targetOrganizationName: string },
 ): void {
-  if (options.json) {
-    printJson(transferredApp);
-  } else {
-    printResult({
-      rows: [
-        ['ID', transferredApp.id],
-        ['Organization', targetOrganizationName],
-      ],
-      sentence: `Transferred app ${transferredApp.name}.`,
-    });
-  }
+  printResult({
+    rows: [
+      ['ID', transferredApp.id],
+      ['Organization', targetOrganizationName],
+    ],
+    sentence: `Transferred app ${transferredApp.name}.`,
+  });
 }
 
 // Falls back to the id when the organizations of the user do not include it.

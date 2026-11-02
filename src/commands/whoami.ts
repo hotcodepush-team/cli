@@ -21,7 +21,11 @@ export default defineCommand({
       printJson({ apiUrl, user });
       return;
     }
-    console.log(resolveCredentialText(user, isEnvironmentToken()));
+    console.log(
+      resolveCredentialText(user, {
+        isEnvironmentToken: isEnvironmentToken(),
+      }),
+    );
     if (apiUrl !== DEFAULT_API_URL) {
       console.log(`API: ${apiUrl}`);
     }
