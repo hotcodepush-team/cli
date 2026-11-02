@@ -1,7 +1,9 @@
 import type { SigningKey } from '@hotcodepush/node';
-import { z } from 'zod';
 import { fetchAppId } from '../../resources/apps.js';
-import { fetchSigningKey } from '../../resources/signing-keys.js';
+import {
+  fetchSigningKey,
+  signingKeyOptionShape,
+} from '../../resources/signing-keys.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
@@ -15,12 +17,7 @@ export default defineCommand({
     'hotcodepush signing-key get --signing-key sha256:9f2c4e1ab07d',
     'hotcodepush signing-key get --signing-key 3b1f8e7a-5c2d-4f6b-9a0e-7d4c1b2a3f5e --json',
   ],
-  options: defineCommandOptions({
-    signingKey: z
-      .string()
-      .optional()
-      .describe('The signing key, by id or key id.'),
-  }),
+  options: defineCommandOptions(signingKeyOptionShape),
   action: async options => {
     const hotCodePush = createApiClient();
     const appId = await fetchAppId(hotCodePush, {
