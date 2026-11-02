@@ -1,4 +1,3 @@
-import { confirm, text } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   respondWithApiError,
@@ -13,11 +12,12 @@ import {
   ConfirmationRequiredError,
   MissingParameterError,
 } from '../../utils/errors.js';
+import { confirm, text } from '../../utils/prompt-renderers.js';
 import organizationUpdateCommand from './update.js';
 
-vi.mock('@clack/prompts', () =>
-  import('../../../test/clack-prompts.js').then(
-    ({ clackPromptsMock }) => clackPromptsMock,
+vi.mock('../../utils/prompt-renderers.js', () =>
+  import('../../../test/prompt-renderers.js').then(
+    ({ promptRenderersMock }) => promptRenderersMock,
   ),
 );
 

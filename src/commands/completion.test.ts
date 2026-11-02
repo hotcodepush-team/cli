@@ -2,7 +2,6 @@ import { spawnSync } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { select } from '@clack/prompts';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
@@ -16,11 +15,12 @@ import {
   InvalidParameterError,
   MissingParameterError,
 } from '../utils/errors.js';
+import { select } from '../utils/prompt-renderers.js';
 import completionCommand from './completion.js';
 
-vi.mock('@clack/prompts', () =>
-  import('../../test/clack-prompts.js').then(
-    ({ clackPromptsMock }) => clackPromptsMock,
+vi.mock('../utils/prompt-renderers.js', () =>
+  import('../../test/prompt-renderers.js').then(
+    ({ promptRenderersMock }) => promptRenderersMock,
   ),
 );
 

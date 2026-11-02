@@ -99,7 +99,7 @@ A project with an app config that is code, or with a JSON one that does not pars
 - **An error is three lines**: what happened, what to do, then the docs URL, the one place the code appears; an API error has no fix, so two; `--json` carries the code.
   The message and the fix each start with a capital letter and end with a full stop, in plain English; a stack trace only with `--verbose`.
   Every text a person reads, descriptions, warnings, notices and empty-list lines included, is whole sentences: no semicolon joins two clauses, and a default reads `Defaults to X.`
-- **Diagnostics go through `utils/diagnostics.ts`** on stderr: `printError`, `printWarning`, `printNotice`, `printSuccess`, each one symbol and its lines with no gutter around them; nothing else writes a symbol or a `Warning:` prefix, and only the prompts draw clack's bars.
+- **Diagnostics go through `utils/diagnostics.ts`** on stderr: `printError`, `printWarning`, `printNotice`, `printSuccess`, each one symbol and its lines with no gutter around them; nothing else writes a symbol or a `Warning:` prefix. The prompts render one line each through `utils/prompt-renderers.ts`, our renderers on clack's core, the answer staying on the question's line.
   Advice, a next step or a hint, is a notice, never a line of the result.
 - **A result is a sentence and rows**, `printResult` in `utils/output.ts`: what the command did, then aligned label and value rows, the `ID` first and every long value, a key, a URL, a path or a secret, in a row of its own, never inside the sentence.
   On a terminal the sentence carries the success symbol, the rows are indented and a blank line follows; piped, the same lines are plain, as colour already is.

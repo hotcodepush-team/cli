@@ -1,4 +1,3 @@
-import { select } from '@clack/prompts';
 import type { Binary, Device } from '@hotcodepush/node';
 import type { ChannelIndex } from '@hotcodepush/protocol';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -22,11 +21,12 @@ import {
 } from '../../../test/release-routes.js';
 import { PACKAGE_JSON } from '../../config/consts.js';
 import { runCli } from '../../utils/cli.js';
+import { select } from '../../utils/prompt-renderers.js';
 import deviceProbeCommand from './probe.js';
 
-vi.mock('@clack/prompts', () =>
-  import('../../../test/clack-prompts.js').then(
-    ({ clackPromptsMock }) => clackPromptsMock,
+vi.mock('../../utils/prompt-renderers.js', () =>
+  import('../../../test/prompt-renderers.js').then(
+    ({ promptRenderersMock }) => promptRenderersMock,
   ),
 );
 

@@ -7,7 +7,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
-import { S_SUCCESS, confirm, select } from '@clack/prompts';
+import { S_SUCCESS } from '@clack/prompts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   CAPACITOR_APP_GRADLE_FILE_PATH,
@@ -53,6 +53,7 @@ import {
 } from '../utils/errors.js';
 import type * as packageManagerModule from '../utils/package-manager.js';
 import { runCommandLineVisibly } from '../utils/package-manager.js';
+import { confirm, select } from '../utils/prompt-renderers.js';
 import { readUserConfig, writeUserConfig } from '../utils/user-config.js';
 import initCommand from './init.js';
 import releaseCreateCommand from './release/create.js';
@@ -76,9 +77,9 @@ vi.mock('@napi-rs/keyring', () => ({
     return keyring;
   }),
 }));
-vi.mock('@clack/prompts', () =>
-  import('../../test/clack-prompts.js').then(
-    ({ clackPromptsMock }) => clackPromptsMock,
+vi.mock('../utils/prompt-renderers.js', () =>
+  import('../../test/prompt-renderers.js').then(
+    ({ promptRenderersMock }) => promptRenderersMock,
   ),
 );
 vi.mock('../utils/package-manager.js', async importOriginal => ({

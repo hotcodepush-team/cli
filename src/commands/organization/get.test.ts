@@ -1,4 +1,3 @@
-import { select } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
@@ -9,11 +8,12 @@ import {
   GLOBEX_ORGANIZATION,
 } from '../../../test/fixtures.js';
 import { MissingParameterError, UnknownNameError } from '../../utils/errors.js';
+import { select } from '../../utils/prompt-renderers.js';
 import organizationGetCommand from './get.js';
 
-vi.mock('@clack/prompts', () =>
-  import('../../../test/clack-prompts.js').then(
-    ({ clackPromptsMock }) => clackPromptsMock,
+vi.mock('../../utils/prompt-renderers.js', () =>
+  import('../../../test/prompt-renderers.js').then(
+    ({ promptRenderersMock }) => promptRenderersMock,
   ),
 );
 
