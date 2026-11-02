@@ -41,7 +41,7 @@ export async function fetchHasSigningKey(
   return count > 0;
 }
 
-// A signing key is named by its key id, and the key comes back as the API served it.
+// A signing key is named by its key id. The name serves the lookup alone and never reaches `--json`.
 export async function fetchSigningKey(
   hotCodePush: HotCodePush,
   { appId, options }: { appId: string; options: SigningKeyOptions },
