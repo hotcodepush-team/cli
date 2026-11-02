@@ -979,8 +979,9 @@ describe('init', () => {
       },
       undefined,
     );
-    // The signing key's result, six lines on a terminal, precedes the rows.
-    expect(harness.readLines().slice(6)).toEqual([
+    // The signing key's result ends with the first blank line; init's own blank line opens the rows.
+    const lines = harness.readLines();
+    expect(lines.slice(lines.indexOf('') + 1)).toEqual([
       '',
       '– Sign in        Logged in as Anna Example (anna@example.com).',
       '✓ Organization   Used organization Acme.',

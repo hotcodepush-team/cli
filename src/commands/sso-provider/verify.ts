@@ -3,9 +3,9 @@ import { fetchOrganizationId } from '../../resources/organizations.js';
 import { resolveProviderDetails } from '../../resources/sso-providers.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
-import { printNotice } from '../../utils/diagnostics.js';
+import { printNotice, printWarning } from '../../utils/diagnostics.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson, printResult } from '../../utils/output.js';
+import { printDetails, printJson, printResult } from '../../utils/output.js';
 
 export default defineCommand({
   description:
@@ -25,21 +25,17 @@ export default defineCommand({
       printJson(checkedProvider);
       return;
     }
-    printResult({
-      rows: resolveProviderDetails(checkedProvider),
-      sentence: resolveVerificationText(checkedProvider),
-    });
-    if (!checkedProvider.domainVerified) {
-      printNotice('A new record can take a while to appear.');
-    }
+    printVerification(checkedProvider);
   },
 });
 
-function resolveVerificationText({
-  domain,
-  domainVerified,
-}: SsoProvider): string {
-  return domainVerified
-    ? `Verified ${domain}.`
-    : `No TXT record verifies ${domain} yet.`;
+function printVerification(provider: SsoProvider): void {
+  const rows = resolveProviderDetails(provider);
+  if (provider.domainVerified) {
+    printResult({ rows, sentence: `Verified ${provider.domain}.` });
+    return;
+  }
+  printDetails(rows);
+  printWarning(`No TXT record verifies ${provider.domain} yet.`);
+  printNotice('A new record can take a while to appear.');
 }

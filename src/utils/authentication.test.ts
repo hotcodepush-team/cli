@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   API_URL,
   respondWithApiError,
@@ -28,6 +28,8 @@ vi.mock('./login.js', () => ({ logIn: vi.fn() }));
 vi.mock('./prompts.js', () => ({ promptYesNo: vi.fn() }));
 
 const FUTURE_EXPIRY = '2099-01-01T00:00:00.000Z';
+
+const originalStderrIsTty = process.stderr.isTTY;
 
 const PAST_EXPIRY = '2000-01-01T00:00:00.000Z';
 
@@ -102,6 +104,10 @@ describe('readSessionState', () => {
 describe('ensureAuthentication', () => {
   const harness = useCommandHarness();
 
+  afterEach(() => {
+    process.stderr.isTTY = originalStderrIsTty;
+  });
+
   it('should throw `not_logged_in` and ask nothing when not interactive and no token exists', async () => {
     vi.stubEnv('HOTCODEPUSH_TOKEN', '');
 
@@ -137,8 +143,9 @@ describe('ensureAuthentication', () => {
     expect(logIn).not.toHaveBeenCalled();
   });
 
-  it('should log in and name the user when interactive and the login is accepted', async () => {
+  it('should log in, name the user and end the block with a blank line when interactive and the login is accepted', async () => {
     stubInteractiveTerminal();
+    process.stderr.isTTY = true;
     vi.stubEnv('HOTCODEPUSH_TOKEN', '');
     vi.mocked(promptYesNo).mockResolvedValue(true);
     vi.mocked(logIn).mockResolvedValue(USER);
@@ -147,7 +154,7 @@ describe('ensureAuthentication', () => {
 
     expect(logIn).toHaveBeenCalledWith({});
     expect(harness.readDiagnostics()).toBe(
-      'You are not logged in.\nLogged in as Anna Example (anna@example.com).\n',
+      'You are not logged in.\nLogged in as Anna Example (anna@example.com).\n\n',
     );
   });
 

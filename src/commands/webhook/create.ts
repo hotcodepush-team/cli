@@ -12,7 +12,6 @@ import { defineCommand } from '../../utils/command.js';
 import { printWarning } from '../../utils/diagnostics.js';
 import type { InteractivityOptions } from '../../utils/environment.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import type { Detail } from '../../utils/output.js';
 import { printJson, printResult } from '../../utils/output.js';
 import { promptSelect, promptText } from '../../utils/prompts.js';
 
@@ -87,18 +86,18 @@ export default defineCommand({
 });
 
 function printCreatedWebhook(webhook: CreatedWebhook): void {
+  const sentence = `Created webhook ${webhook.name}.`;
+  if (webhook.secret === null) {
+    printResult({ rows: [['ID', webhook.id]], sentence });
+    return;
+  }
   printResult({
     rows: [
       ['ID', webhook.id],
-      ...(webhook.secret === null
-        ? []
-        : [['Secret', webhook.secret] as Detail]),
+      ['Secret', webhook.secret],
     ],
-    sentence: `Created webhook ${webhook.name}.`,
+    sentence,
   });
-  if (webhook.secret === null) {
-    return;
-  }
   printWarning(
     'Store the secret now to verify the signature of every delivery. It is never shown again.',
   );

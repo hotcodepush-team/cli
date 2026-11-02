@@ -37,8 +37,7 @@ export function printWarnings(warnings: Warning[]): void {
   }
 }
 
-// What a command did: the sentence, then its rows, the id first.
-// Decorated with the success symbol and an indent where a person reads it, plain where a program does, the gate the colour already follows.
+// Decorated where a person reads it, plain where a program does.
 export function printResult({ rows, sentence }: Result): void {
   if (!process.stdout.isTTY) {
     console.log(sentence);
@@ -53,6 +52,13 @@ export function printResult({ rows, sentence }: Result): void {
     console.log(`   ${line}`);
   }
   console.log('');
+}
+
+// Between two results: a terminal already has the first result's blank line, a pipe gets one here.
+export function printResultGap(): void {
+  if (!process.stdout.isTTY) {
+    console.log('');
+  }
 }
 
 export function printTable({

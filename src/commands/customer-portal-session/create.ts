@@ -1,6 +1,7 @@
 import { fetchOrganizationId } from '../../resources/organizations.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
+import { printNotice } from '../../utils/diagnostics.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson, printResult } from '../../utils/output.js';
 
@@ -24,8 +25,8 @@ export default defineCommand({
     }
     printResult({
       rows: [['URL', createdSession.url]],
-      sentence:
-        'Created a customer portal session. Open it for the invoices and the payment method.',
+      sentence: 'Created a customer portal session.',
     });
+    printNotice('Open the URL for the invoices and the payment method.');
   },
 });

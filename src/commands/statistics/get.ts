@@ -183,6 +183,11 @@ function printFleetStatistics(
     ['Active devices', String(statistics.deviceCount)],
     ['Current devices', String(statistics.currentDeviceCount)],
   ]);
+  printFleetTables(statistics);
+}
+
+function printFleetTables(statistics: FleetStatistics): void {
+  console.log('');
   printFleetTable(
     ['RELEASE', 'DEVICES'],
     statistics.release.map(({ deviceCount, number }) => [
@@ -190,6 +195,7 @@ function printFleetStatistics(
       String(deviceCount),
     ]),
   );
+  console.log('');
   printFleetTable(
     ['BINARY', 'VERSION', 'PLATFORM', 'DEVICES'],
     statistics.binary.map(({ deviceCount, platform, value, version }) => [
@@ -200,6 +206,7 @@ function printFleetStatistics(
     ]),
   );
   for (const [header, dimension] of FLEET_DIMENSIONS) {
+    console.log('');
     printFleetTable(
       [header, 'DEVICES'],
       statistics[dimension].map(({ deviceCount, value }) => [
@@ -214,7 +221,6 @@ function printFleetTable(
   headers: [dimensionHeader: string, ...columnHeaders: string[]],
   rows: string[][],
 ): void {
-  console.log('');
   printTable({
     emptyText: `${headers[0]}: no device seen in the last 30 days.`,
     headers,
