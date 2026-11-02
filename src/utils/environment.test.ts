@@ -37,11 +37,18 @@ describe('environment', () => {
       expect(isInteractive({})).toBe(false);
     });
 
-    it('should not be interactive when --json is passed', () => {
+    it('should stay interactive when --json is passed', () => {
       stubIsTty(true);
       vi.stubEnv('CI', undefined);
 
-      expect(isInteractive({ json: true })).toBe(false);
+      expect(isInteractive({ json: true })).toBe(true);
+    });
+
+    it('should not be interactive when --no-input is passed', () => {
+      stubIsTty(true);
+      vi.stubEnv('CI', undefined);
+
+      expect(isInteractive({ noInput: true })).toBe(false);
     });
 
     it('should not be interactive when --yes is passed', () => {

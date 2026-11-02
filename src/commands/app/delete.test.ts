@@ -67,6 +67,19 @@ describe('app delete', () => {
     expect(harness.readJson()).toEqual({ id: DEMO_APP.id, name: 'Demo' });
   });
 
+  it('should throw `confirmation_required` at a terminal when --no-input is passed', async () => {
+    stubInteractiveTerminal();
+    respondWithAppAndChannels();
+
+    await expect(
+      appDeleteCommand.action({ app: DEMO_APP.id, noInput: true }, undefined),
+    ).rejects.toThrow(
+      new ConfirmationRequiredError('deletes app Demo and its 2 channels'),
+    );
+    expect(confirm).not.toHaveBeenCalled();
+    expect(readDeleteRequests()).toEqual([]);
+  });
+
   it('should throw `confirmation_required` and delete nothing when nobody can be asked', async () => {
     respondWithAppAndChannels();
 

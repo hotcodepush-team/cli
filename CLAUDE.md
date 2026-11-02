@@ -115,10 +115,11 @@ A project with an app config that is code, or with a JSON one that does not pars
 - **Options are optional in the schema.**
   A missing required parameter is a prompt when interactive and a `MissingParameterError` naming the flag otherwise, never a zod error.
 - **A nullable field a command updates has a `--clear-<field>` flag that sends null**; `--<field>` and `--clear-<field>` together are refused, and a flag left out is a field left out.
-- **Interactive** means a TTY, no `CI`, and neither `--json` nor `--yes`, which `isInteractive(options)` decides; nothing prompts without it.
+- **Interactive** means a TTY on stdin and stdout, no `CI`, and neither `--yes` nor `--no-input`, which `isInteractive(options)` decides; nothing prompts without it.
+  `--json` only formats: at a terminal a command under `--json` still asks, on stderr, and a program reading stdout gets `missing_parameter` naming the flag.
 - **A command confirms once** when it changes what devices receive, sends something to a person or cannot be undone, stating the consequence.
   `--yes` skips the question; non-interactive without `--yes` throws `ConfirmationRequiredError`; creates and reads never confirm.
-- **`--json` is data only**: the human output's content on stdout and nothing else, no prompt, no progress line, no notice.
+- **`--json` is data only on stdout**: the human output's content and nothing else; prompts, progress lines and notices go to stderr.
   An error under `--json` is `{ "error": { "code", "message", "fix" } }` with its exit code; without `--json`, output goes to stdout and diagnostics to stderr.
   `--json` prints the rows as the API serves them; what the CLI joins or computes for a reader, the fleet's counts per release, channel and binary, the progression step and gate, the caller's roles, the SSO URLs and TXT record name, is human output only.
 - **Colour** only where `isColorEnabled(stream)` holds: a TTY, no `NO_COLOR`, no `TERM=dumb`.

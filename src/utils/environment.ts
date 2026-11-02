@@ -1,5 +1,6 @@
 export interface InteractivityOptions {
   json?: boolean;
+  noInput?: boolean;
   yes?: boolean;
 }
 
@@ -23,12 +24,13 @@ export function isOfflineBuild(): boolean {
 }
 
 // A prompt in a pipeline would hang the job, even where a TTY exists.
-export function isInteractive({ json, yes }: InteractivityOptions): boolean {
+// `--json` only formats: a program reading stdout is no terminal and gets the error naming the flag, as gh does.
+export function isInteractive({ noInput, yes }: InteractivityOptions): boolean {
   return (
     Boolean(process.stdin.isTTY) &&
     Boolean(process.stdout.isTTY) &&
     !isCi() &&
-    !json &&
+    !noInput &&
     !yes
   );
 }

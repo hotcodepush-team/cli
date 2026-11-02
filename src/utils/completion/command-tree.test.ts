@@ -62,6 +62,7 @@ const GLOBAL_FLAG_NAMES = [
   'config',
   'help',
   'json',
+  'no-input',
   'organization',
   'verbose',
   'version',
