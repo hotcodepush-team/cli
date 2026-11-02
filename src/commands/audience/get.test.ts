@@ -64,9 +64,11 @@ describe('audience get', () => {
     });
     expect(harness.readLines()).toEqual([
       'Reaches 100 of 120 active devices in staging, about 10 at a 10 percent rollout.',
+      '',
       'PLATFORM  DEVICES',
       'ios       60',
       'android   40',
+      '',
       'BINARY VERSION  DEVICES',
       '2.4.1           70',
       '2.3.0           30',

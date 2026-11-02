@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resolveDiagnosticText } from '../../test/diagnostics.js';
-import { printError } from './diagnostics.js';
+import { printBlockEnd, printError, printNotice } from './diagnostics.js';
 
 const DOCS_URL = 'https://hotcodepush.com/docs/cli/errors#invalid_parameter';
 
@@ -51,5 +51,42 @@ describe('printError', () => {
     printError({ docsUrl: DOCS_URL, sentences: ['The value is invalid.'] });
 
     expect(output.readStderr()).toContain(`\x1b[2m${DOCS_URL}`);
+  });
+});
+
+describe('printNotice', () => {
+  afterEach(() => {
+    process.stderr.isTTY = originalStderrIsTty;
+  });
+
+  it('should put the symbol before the first line and indent the lines under it, with no gutter line around them', () => {
+    process.stderr.isTTY = false;
+    const output = captureOutput();
+
+    printNotice(
+      'Open the page and approve the code.\nWaiting for the approval…',
+    );
+
+    expect(output.readStderr()).toMatch(
+      /^\S+ {2}Open the page and approve the code\.\n {3}Waiting for the approval…\n$/,
+    );
+  });
+});
+
+describe('printBlockEnd', () => {
+  afterEach(() => {
+    process.stderr.isTTY = originalStderrIsTty;
+  });
+
+  it('should write one blank line when stderr is a terminal and nothing when it is not', () => {
+    const output = captureOutput();
+
+    process.stderr.isTTY = false;
+    printBlockEnd();
+    expect(output.readStderr()).toBe('');
+
+    process.stderr.isTTY = true;
+    printBlockEnd();
+    expect(output.readStderr()).toBe('\n');
   });
 });

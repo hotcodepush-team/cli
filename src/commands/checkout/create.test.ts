@@ -24,7 +24,8 @@ describe('checkout create', () => {
     );
 
     expect(harness.readLines()).toEqual([
-      `Open the checkout to enable billing: ${CHECKOUT.url}`,
+      'Created the checkout. Open it to enable billing.',
+      `URL  ${CHECKOUT.url}`,
     ]);
   });
 

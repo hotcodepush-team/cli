@@ -35,7 +35,10 @@ describe('open', () => {
     const url = `http://localhost:4300/apps/${DEMO_APP.id}`;
     expect(openBrowser).toHaveBeenCalledWith(url);
     expect(harness.requests).toEqual([]);
-    expect(harness.readLines()).toEqual([`Opening ${url}`]);
+    expect(harness.readLines()).toEqual([
+      'Opening the console page in the browser.',
+      `URL  ${url}`,
+    ]);
   });
 
   it('should refuse a hotcodepush.json appId that is no id before opening anything', async () => {

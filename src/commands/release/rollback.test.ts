@@ -1,4 +1,4 @@
-import { confirm } from '@clack/prompts';
+import { S_SUCCESS, confirm } from '@clack/prompts';
 import { describe, expect, it, vi } from 'vitest';
 import {
   stubInteractiveTerminal,
@@ -82,7 +82,12 @@ describe('release rollback', () => {
       toReleaseId: PREVIOUS_RELEASE.id,
     });
     expect(harness.readLines()).toEqual([
-      `Released bundle #16 · 1.4.1 to staging as release #44 at 100 percent, live since ${ROLLBACK_RELEASE.liveAt}.`,
+      `${S_SUCCESS}  Created release #44 of staging.`,
+      `   ID       ${ROLLBACK_RELEASE.id}`,
+      '   Bundle   #16 · 1.4.1',
+      '   Rollout  100 percent',
+      `   Live     ${ROLLBACK_RELEASE.liveAt}`,
+      '',
     ]);
   });
 

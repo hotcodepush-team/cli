@@ -73,6 +73,7 @@ describe('device get', () => {
       'Country      DE',
       `Last seen    ${DEVICE.lastSeenAt}`,
       `First seen   ${DEVICE.createdAt}`,
+      '',
       'RELEASE                               OUTCOME    REASON               DATE',
       `${LIVE_RELEASE.id}  failed     readiness_timed_out  2026-09-08`,
       `${PREVIOUS_RELEASE.id}  confirmed                       2026-09-06`,

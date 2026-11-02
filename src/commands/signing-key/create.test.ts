@@ -101,12 +101,15 @@ describe('signing-key create', () => {
       publicKeys: [SIGNING_KEY.publicKey, publicKey],
     });
     expect(harness.readLines()).toEqual([
-      `Created signing key ${resolveSigningKeyId(publicKey)} (${SIGNING_KEY_ID}).`,
-      'Added to publicKeys in hotcodepush.json.',
-      `Wrote the private key to ${keyFilePath}.`,
-      "Keep the file out of version control: whoever holds it can sign the app's bundles.",
-      "Uploads sign with it through --private-key-path. In CI, set HOTCODEPUSH_SIGNING_KEY to the file's content.",
+      'Created a signing key.',
+      `ID           ${SIGNING_KEY_ID}`,
+      `Key ID       ${resolveSigningKeyId(publicKey)}`,
+      `Private key  ${keyFilePath}`,
+      'Public key   added to publicKeys in hotcodepush.json',
     ]);
+    expect(harness.readDiagnostics()).toBe(
+      "Keep the private key file out of version control. Whoever holds it can sign the app's bundles.\nUploads sign with the private key through --private-key-path. In CI, set HOTCODEPUSH_SIGNING_KEY to the file's content.\n",
+    );
     expect(harness.readLines().join('\n')).not.toContain(pemBody);
   });
 
@@ -124,9 +127,7 @@ describe('signing-key create', () => {
 
     const { publicKey } = await readKeyFile(keyFilePath);
     expect(await harness.requests.at(-1)?.json()).toEqual({ publicKey });
-    expect(harness.readLines()).toContain(
-      `Wrote the private key to ${keyFilePath}.`,
-    );
+    expect(harness.readLines()).toContain(`Private key  ${keyFilePath}`);
   });
 
   it("should print the registered key with the private key file's path as JSON, never the key", async () => {
@@ -224,11 +225,15 @@ describe('signing-key create', () => {
     expect(readProjectConfig(configPath)).toEqual({
       appId: PRODUCTION_CHANNEL.id,
     });
-    expect(harness.readLines().slice(0, 2)).toEqual([
-      expect.stringMatching(/^Created signing key sha256:/),
-      expect.stringMatching(
-        /^Add it to publicKeys in the app's hotcodepush\.json: rsa-v1_5-sha256:/,
-      ),
+    expect(harness.readLines()).toEqual([
+      'Created a signing key.',
+      `ID           ${SIGNING_KEY_ID}`,
+      expect.stringMatching(/^Key ID {7}sha256:/),
+      expect.stringMatching(/^Private key {2}/),
+      expect.stringMatching(/^Public key {3}rsa-v1_5-sha256:/),
     ]);
+    expect(harness.readDiagnostics()).toContain(
+      "Add the public key to publicKeys in the app's hotcodepush.json.\n",
+    );
   });
 });

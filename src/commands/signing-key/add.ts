@@ -2,15 +2,15 @@ import { resolve } from 'node:path';
 import { z } from 'zod';
 import { fetchAppId } from '../../resources/apps.js';
 import {
-  UPLOAD_SIGNING_TEXT,
   addPublicKeyToProjectConfig,
-  resolvePublicKeyListingText,
+  printSigningKeyAdvice,
+  resolvePublicKeyRow,
 } from '../../resources/signing-keys.js';
 import { readSigningKeyPairFile } from '../../upload/signing-private-key.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson } from '../../utils/output.js';
+import { printJson, printResult } from '../../utils/output.js';
 import { locateProjectConfig } from '../../utils/project-config.js';
 import { promptText } from '../../utils/prompts.js';
 
@@ -57,10 +57,14 @@ export default defineCommand({
       printJson(createdSigningKey);
       return;
     }
-    console.log(
-      `Added signing key ${createdSigningKey.keyId} (${createdSigningKey.id}).`,
-    );
-    console.log(resolvePublicKeyListingText({ isConfigured, publicKey }));
-    console.log(UPLOAD_SIGNING_TEXT);
+    printResult({
+      rows: [
+        ['ID', createdSigningKey.id],
+        ['Key ID', createdSigningKey.keyId],
+        resolvePublicKeyRow({ isConfigured, publicKey }),
+      ],
+      sentence: 'Added a signing key.',
+    });
+    printSigningKeyAdvice({ isConfigured });
   },
 });

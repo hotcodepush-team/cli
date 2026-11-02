@@ -1,15 +1,14 @@
 import type { SsoProvider } from '@hotcodepush/node';
 import { resolveConsoleBaseUrl } from '../utils/hosts.js';
-import { printDetails, resolveYesNoText } from '../utils/output.js';
+import type { Detail } from '../utils/output.js';
+import { resolveYesNoText } from '../utils/output.js';
 import { readApiUrl } from '../utils/user-config.js';
-
-type Detail = [label: string, value: string];
 
 export type SsoProviderType = SsoProvider['type'];
 
-export function printProviderDetails(provider: SsoProvider): void {
+export function resolveProviderDetails(provider: SsoProvider): Detail[] {
   const apiUrl = readApiUrl();
-  printDetails([
+  return [
     ['ID', provider.id],
     ['Type', provider.type],
     ['Domain', provider.domain],
@@ -20,7 +19,7 @@ export function printProviderDetails(provider: SsoProvider): void {
     ],
     ...resolveServiceProviderDetails(provider, apiUrl),
     ...resolveVerificationDetails(provider),
-  ]);
+  ];
 }
 
 // The identity provider calls these URLs on the API origin.

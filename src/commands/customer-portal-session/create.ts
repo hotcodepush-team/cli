@@ -2,7 +2,7 @@ import { fetchOrganizationId } from '../../resources/organizations.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson } from '../../utils/output.js';
+import { printJson, printResult } from '../../utils/output.js';
 
 export default defineCommand({
   description:
@@ -20,10 +20,12 @@ export default defineCommand({
       });
     if (options.json) {
       printJson(createdSession);
-    } else {
-      console.log(
-        `Open the customer portal for the invoices and the payment method: ${createdSession.url}`,
-      );
+      return;
     }
+    printResult({
+      rows: [['URL', createdSession.url]],
+      sentence:
+        'Created a customer portal session. Open it for the invoices and the payment method.',
+    });
   },
 });

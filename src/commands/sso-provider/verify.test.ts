@@ -49,8 +49,9 @@ describe('sso-provider verify', () => {
     );
 
     const printedLines = harness.readLines();
-    expect(printedLines[0]).toBe(
-      'No TXT record verifies example.com yet. A new record can take a while to appear.',
+    expect(printedLines[0]).toBe('No TXT record verifies example.com yet.');
+    expect(harness.readDiagnostics()).toBe(
+      'A new record can take a while to appear.\n',
     );
     expect(printedLines.slice(-2)).toEqual([
       `TXT name      _hotcodepush-sso-${ACME_ORGANIZATION.id}.example.com`,

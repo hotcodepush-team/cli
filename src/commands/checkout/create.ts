@@ -2,7 +2,7 @@ import { fetchOrganizationId } from '../../resources/organizations.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson } from '../../utils/output.js';
+import { printJson, printResult } from '../../utils/output.js';
 
 export default defineCommand({
   description:
@@ -19,10 +19,11 @@ export default defineCommand({
     });
     if (options.json) {
       printJson(createdCheckout);
-    } else {
-      console.log(
-        `Open the checkout to enable billing: ${createdCheckout.url}`,
-      );
+      return;
     }
+    printResult({
+      rows: [['URL', createdCheckout.url]],
+      sentence: 'Created the checkout. Open it to enable billing.',
+    });
   },
 });

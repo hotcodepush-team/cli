@@ -30,7 +30,8 @@ describe('customer-portal-session create', () => {
     await customerPortalSessionCreateCommand.action({}, undefined);
 
     expect(harness.readLines()).toEqual([
-      `Open the customer portal for the invoices and the payment method: ${CUSTOMER_PORTAL_SESSION.url}`,
+      'Created a customer portal session. Open it for the invoices and the payment method.',
+      `URL  ${CUSTOMER_PORTAL_SESSION.url}`,
     ]);
   });
 

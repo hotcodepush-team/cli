@@ -69,7 +69,10 @@ describe('fingerprint', () => {
     await fingerprintCommand.action({ config: configPath }, undefined);
 
     const lines = harness.readLines();
-    expect(lines[0]).toBe(`Fingerprint ${fixture.fingerprint}`);
+    expect(lines.slice(0, 2)).toEqual([
+      `Fingerprint  ${fixture.fingerprint}`,
+      '',
+    ]);
     expect(lines).toEqual(
       expect.arrayContaining([
         expect.stringMatching(/^PACKAGE +VERSION$/),
@@ -98,7 +101,8 @@ describe('fingerprint', () => {
     await fingerprintCommand.action({ config: configPath }, undefined);
 
     expect(harness.readLines()).toEqual([
-      `Fingerprint ${fixture.fingerprint}`,
+      `Fingerprint  ${fixture.fingerprint}`,
+      '',
       'No installed package ships native code.',
     ]);
   });

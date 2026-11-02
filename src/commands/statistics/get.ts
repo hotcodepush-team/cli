@@ -158,6 +158,7 @@ function printEventReasons(statistics: UpdateStatistics): void {
     ['FAILURE REASON', statistics.failureReasons],
     ['SKIP REASON', statistics.skippedReasons],
   ] as const) {
+    console.log('');
     printTable({
       emptyText: `${header}: none in the period.`,
       headers: [header, 'EVENTS'],
@@ -213,6 +214,7 @@ function printFleetTable(
   headers: [dimensionHeader: string, ...columnHeaders: string[]],
   rows: string[][],
 ): void {
+  console.log('');
   printTable({
     emptyText: `${headers[0]}: no device seen in the last 30 days.`,
     headers,
@@ -268,6 +270,7 @@ function printUpdateStatistics(
     return;
   }
   printUpdateDays(statistics);
+  console.log('');
   printReleaseAdoption(statistics);
   printEventReasons(statistics);
 }
@@ -292,6 +295,7 @@ function printUsageStatistics(
       ],
     ),
   });
+  console.log('');
   printTable({
     emptyText: 'No days in the period.',
     headers: ['DAY', 'CHECKS', 'DATA TRANSFER', 'DEVICE DOWNLOADS'],

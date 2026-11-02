@@ -26,6 +26,7 @@ import {
   isUnauthenticatedError,
   resolveCredentialText,
 } from '../utils/credential.js';
+import { printNotice } from '../utils/diagnostics.js';
 import type { InteractivityOptions } from '../utils/environment.js';
 import { isInteractive } from '../utils/environment.js';
 import {
@@ -41,7 +42,7 @@ import { resolveConsoleBaseUrl } from '../utils/hosts.js';
 import { stringifyLikeSource } from '../utils/json-file.js';
 import { logIn } from '../utils/login.js';
 import { printOutcomeRows } from '../utils/outcome.js';
-import { printJson } from '../utils/output.js';
+import { printJson, printResult } from '../utils/output.js';
 import type { PackageJson } from '../utils/package-json.js';
 import { readPackageJson } from '../utils/package-json.js';
 import type { CommandLine } from '../utils/package-manager.js';
@@ -816,13 +817,18 @@ function printFinish(
   }: { isReleased: boolean; privateKeyPath: string | undefined },
 ): void {
   console.log('');
-  console.log(
+  printResult({
+    rows: [
+      ['Console', `${resolveConsoleBaseUrl(readApiUrl())}/apps/${app.id}`],
+      ['Docs', DOCS_URL],
+    ],
+    sentence: `Set up ${app.name}.`,
+  });
+  printNotice(
     isReleased
       ? `Build the app natively once and run it. Change a line, run the build and "${resolveReleaseCommandText(privateKeyPath)}", then reopen the app.`
       : 'Build the app natively once and run it, then publish the first release as shown above.',
   );
-  console.log(`Console: ${resolveConsoleBaseUrl(readApiUrl())}/apps/${app.id}`);
-  console.log(`Docs: ${DOCS_URL}`);
 }
 
 function assertName(flag: string, reference: string): void {

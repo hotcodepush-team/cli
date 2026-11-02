@@ -102,10 +102,14 @@ describe('signing-key add', () => {
         publicKeys: [SIGNING_KEY.publicKey, KEY_PAIR.publicKey],
       });
       expect(harness.readLines()).toEqual([
-        `Added signing key ${KEY_PAIR.keyId} (${SIGNING_KEY_ID}).`,
-        'Added to publicKeys in hotcodepush.json.',
-        "Uploads sign with it through --private-key-path. In CI, set HOTCODEPUSH_SIGNING_KEY to the file's content.",
+        'Added a signing key.',
+        `ID          ${SIGNING_KEY_ID}`,
+        `Key ID      ${KEY_PAIR.keyId}`,
+        'Public key  added to publicKeys in hotcodepush.json',
       ]);
+      expect(harness.readDiagnostics()).toBe(
+        "Uploads sign with the private key through --private-key-path. In CI, set HOTCODEPUSH_SIGNING_KEY to the file's content.\n",
+      );
       expect(readFileSync(keyFilePath, 'utf8')).toBe(keyFileText);
       expect(readdirSync(workingDirectoryPath)).toEqual([
         'my-app-private-key.pem',

@@ -122,20 +122,27 @@ describe('statistics get', () => {
     expect(harness.readLines()).toEqual([
       'Active devices   70',
       'Current devices  50',
+      '',
       'RELEASE   DEVICES',
       '#43       50',
       'embedded  20',
+      '',
       'BINARY                                VERSION  PLATFORM  DEVICES',
       `${BINARY.id}  1.0      ios       60`,
       'none                                  none     none      10',
+      '',
       'BINARY VERSION  DEVICES',
       '2.4.1           70',
+      '',
       'SDK VERSION  DEVICES',
       '0.1.0        70',
+      '',
       'PLATFORM  DEVICES',
       'ios       70',
+      '',
       'OS VERSION  DEVICES',
       '17.4        70',
+      '',
       'COUNTRY  DEVICES',
       'DE       70',
     ]);
@@ -163,10 +170,13 @@ describe('statistics get', () => {
     expect(harness.readLines()).toEqual([
       'DAY         CONFIRMED  FAILED  ROLLED BACK',
       '2026-09-01  9          1       0',
+      '',
       'RELEASE  LIVE                      CONFIRMED  50% AT                    90% AT',
       '#43      2026-09-01T07:00:00.000Z  9          2026-09-01T08:00:00.000Z  not yet',
+      '',
       'FAILURE REASON       EVENTS',
       'readiness_timed_out  1',
+      '',
       'SKIP REASON: none in the period.',
     ]);
   });
@@ -195,6 +205,7 @@ describe('statistics get', () => {
     expect(harness.readLines()).toEqual([
       'MONTH    MAU  DATA TRANSFER',
       '2026-09  12   2.0 kB',
+      '',
       'DAY         CHECKS  DATA TRANSFER  DEVICE DOWNLOADS',
       '2026-09-01  40      2.0 kB         1.0 kB',
     ]);

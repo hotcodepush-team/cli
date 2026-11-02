@@ -32,7 +32,7 @@ import {
   fetchReleaseLog,
   waitUntilLive,
 } from '../../resources/releases/fetch.js';
-import { printReleasedLine } from '../../resources/releases/output.js';
+import { printCreatedRelease } from '../../resources/releases/output.js';
 import type {
   Progression,
   ProgressionOptions,
@@ -212,7 +212,7 @@ async function createLiveRelease(
     releaseId: createdRelease.id,
   });
   if (!options.json) {
-    printReleasedLine(liveRelease, {
+    printCreatedRelease(liveRelease, {
       bundleLabel: resolveBundleLabel(bundle),
       channelName: channel.name,
     });

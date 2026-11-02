@@ -9,9 +9,11 @@ import {
 } from '../../resources/webhooks.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
+import { printWarning } from '../../utils/diagnostics.js';
 import type { InteractivityOptions } from '../../utils/environment.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson } from '../../utils/output.js';
+import type { Detail } from '../../utils/output.js';
+import { printJson, printResult } from '../../utils/output.js';
 import { promptSelect, promptText } from '../../utils/prompts.js';
 
 type WebhookFormat = CreateWebhookOptions['format'];
@@ -85,12 +87,19 @@ export default defineCommand({
 });
 
 function printCreatedWebhook(webhook: CreatedWebhook): void {
-  console.log(`Created webhook ${webhook.name} (${webhook.id}).`);
+  printResult({
+    rows: [
+      ['ID', webhook.id],
+      ...(webhook.secret === null
+        ? []
+        : [['Secret', webhook.secret] as Detail]),
+    ],
+    sentence: `Created webhook ${webhook.name}.`,
+  });
   if (webhook.secret === null) {
     return;
   }
-  console.log(`Secret: ${webhook.secret}`);
-  console.log(
+  printWarning(
     'Store the secret now to verify the signature of every delivery. It is never shown again.',
   );
 }

@@ -1,10 +1,11 @@
 import type { SsoProvider } from '@hotcodepush/node';
 import { fetchOrganizationId } from '../../resources/organizations.js';
-import { printProviderDetails } from '../../resources/sso-providers.js';
+import { resolveProviderDetails } from '../../resources/sso-providers.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
+import { printNotice } from '../../utils/diagnostics.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import { printJson } from '../../utils/output.js';
+import { printJson, printResult } from '../../utils/output.js';
 
 export default defineCommand({
   description:
@@ -24,8 +25,13 @@ export default defineCommand({
       printJson(checkedProvider);
       return;
     }
-    console.log(resolveVerificationText(checkedProvider));
-    printProviderDetails(checkedProvider);
+    printResult({
+      rows: resolveProviderDetails(checkedProvider),
+      sentence: resolveVerificationText(checkedProvider),
+    });
+    if (!checkedProvider.domainVerified) {
+      printNotice('A new record can take a while to appear.');
+    }
   },
 });
 
@@ -35,5 +41,5 @@ function resolveVerificationText({
 }: SsoProvider): string {
   return domainVerified
     ? `Verified ${domain}.`
-    : `No TXT record verifies ${domain} yet. A new record can take a while to appear.`;
+    : `No TXT record verifies ${domain} yet.`;
 }
