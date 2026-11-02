@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.2](https://github.com/hotcodepush-team/cli/compare/v0.2.1...v0.2.2) (2026-11-02)
+
+
+### Features
+
+* --json only formats, --no-input asks nothing ([4692b57](https://github.com/hotcodepush-team/cli/commit/4692b57dda9f60f86a1e427b6a437b266cdd2372))
+* a prompt is one line, without the bars ([#117](https://github.com/hotcodepush-team/cli/issues/117)) ([89c80ee](https://github.com/hotcodepush-team/cli/commit/89c80eed039f34f6d5d02f44b6b053032580cedf))
+* a result is a sentence and rows, decorated on a terminal ([#114](https://github.com/hotcodepush-team/cli/issues/114)) ([51490c3](https://github.com/hotcodepush-team/cli/commit/51490c37cc0878d052a1b680c98e2e46afab1550))
+* **doctor:** report a Capacitor app that never imports the SDK ([#120](https://github.com/hotcodepush-team/cli/issues/120)) ([e087ff8](https://github.com/hotcodepush-team/cli/commit/e087ff8dcdaa49394bf717b62ff474768da6a119))
+* every write prints a sentence and rows ([#115](https://github.com/hotcodepush-team/cli/issues/115)) ([fca54b5](https://github.com/hotcodepush-team/cli/commit/fca54b549e5ee4d7fb2d4c40b3887457e6699d54))
+* export the framework modules ([#118](https://github.com/hotcodepush-team/cli/issues/118)) ([85306f1](https://github.com/hotcodepush-team/cli/commit/85306f1712fdd1dd1fa24b2a475c8b15e6475fce))
+* **signing-key:** get shows a key with its public key ([#113](https://github.com/hotcodepush-team/cli/issues/113)) ([4326eae](https://github.com/hotcodepush-team/cli/commit/4326eaef0aaea998249a2af5915daf540d8cbd18))
+
 ## [0.2.1](https://github.com/hotcodepush-team/cli/compare/v0.2.0...v0.2.1) (2026-11-02)
 
 
