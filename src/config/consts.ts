@@ -13,11 +13,11 @@ interface CliPackageJson extends CliMeta {
 // Each SDK is installed from the pkg.pr.new build of one commit until its package is published.
 export const CAPACITOR_PACKAGE_NAME = '@hotcodepush/capacitor-live-updates';
 export const CAPACITOR_PACKAGE_SPEC =
-  'https://pkg.pr.new/hotcodepush-team/capacitor-live-updates/@hotcodepush/capacitor-live-updates@792587b';
+  'https://pkg.pr.new/hotcodepush-team/capacitor-live-updates/@hotcodepush/capacitor-live-updates@a9ff000';
 export const CLI_CLIENT_ID = 'hotcodepush-cli';
 export const CORDOVA_PACKAGE_NAME = '@hotcodepush/cordova-code-push';
 export const CORDOVA_PACKAGE_SPEC =
-  'https://pkg.pr.new/hotcodepush-team/cordova-code-push/@hotcodepush/cordova-code-push@2530368';
+  'https://pkg.pr.new/hotcodepush-team/cordova-code-push/@hotcodepush/cordova-code-push@bdebe85';
 export const CLIENT_HEADER_NAME = 'X-HotCodePush-Client';
 // The build writes the completion scripts to dist/completion, beside dist/config.
 export const COMPLETION_DIRECTORY_PATH = fileURLToPath(
@@ -30,7 +30,7 @@ export const DOCS_URL = 'https://hotcodepush.com/docs';
 export const ERRORS_DOCS_URL = 'https://hotcodepush.com/docs/cli/errors';
 export const EXPO_PACKAGE_NAME = '@hotcodepush/expo-ota-updates';
 export const EXPO_PACKAGE_SPEC =
-  'https://pkg.pr.new/hotcodepush-team/expo-ota-updates/@hotcodepush/expo-ota-updates@e58d4ac';
+  'https://pkg.pr.new/hotcodepush-team/expo-ota-updates/@hotcodepush/expo-ota-updates@22e4f7f';
 export const INIT_MANUAL_STEP = 'Run "hotcodepush init".';
 export const ISSUES_URL = 'https://github.com/hotcodepush-team/cli/issues';
 export const KEYRING_ACCOUNT_NAME = 'token';
@@ -45,7 +45,7 @@ export const POSTHOG_PROJECT_KEY =
 export const PROJECT_CONFIG_FILE_NAME = 'hotcodepush.json';
 export const REACT_NATIVE_PACKAGE_NAME = '@hotcodepush/react-native-code-push';
 export const REACT_NATIVE_PACKAGE_SPEC =
-  'https://pkg.pr.new/hotcodepush-team/react-native-code-push/@hotcodepush/react-native-code-push@50553ed';
+  'https://pkg.pr.new/hotcodepush-team/react-native-code-push/@hotcodepush/react-native-code-push@2a098b1';
 export const SENTRY_DSN = PACKAGE_JSON.telemetry?.sentryDsn ?? '';
 export const SIGNING_PRIVATE_KEY_FILE_NAME = 'hotcodepush-private-key.pem';
 export const USER_AGENT = `hotcodepush-cli/${PACKAGE_JSON.version}`;
