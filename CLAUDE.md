@@ -124,7 +124,9 @@ A project with an app config that is code, or with a JSON one that does not pars
   `--json` prints the rows as the API serves them; what the CLI joins or computes for a reader, the fleet's counts per release, channel and binary, the progression step and gate, the caller's roles, the SSO URLs and TXT record name, is human output only.
 - **Colour** only where `isColorEnabled(stream)` holds: a TTY, no `NO_COLOR`, no `TERM=dumb`.
   zodline colours its help regardless, so `runCli` strips the codes from its output where colour is off.
-- **Commands call commands**: a command that needs what another does runs that command's action in place, never a copy of its logic.
+- **Commands call commands, and stdout is one document**: a command that needs what another does runs that command's action in place, never a copy of its logic.
+  Under `--json` stdout carries exactly one JSON document, the outer command's, so a nested action never runs under `--json`: the step is `skipped` and its row names the command to run, as `init`'s signing key and first release are, or the outer command calls the shared resource function and folds the result into its own document.
+  Without `--json` the nested command prints as it would alone.
 - **A command that reports several outcomes** — `init`'s steps, `doctor`'s checks — prints them itself and ends with `ReportedFailureError` when one failed,
   so the exit code is set without a second message; nothing else throws it.
   Under `--json` a stopped step and a failed check carry a `code`: the error's code, or the reason a check built itself, such as `wiring_missing`.
