@@ -1,10 +1,7 @@
 import { createAuthClient } from 'better-auth/client';
 import { deviceAuthorizationClient } from 'better-auth/client/plugins';
-import {
-  CLIENT_HEADER_NAME,
-  PACKAGE_JSON,
-  USER_AGENT,
-} from '../config/consts.js';
+import { CLIENT_HEADER_NAME, USER_AGENT } from '../config/consts.js';
+import { resolveClientHeader } from './environment.js';
 import type { ApiErrorResponse } from './error-mapping.js';
 import { resolveApiError } from './error-mapping.js';
 import { NotLoggedInError } from './errors.js';
@@ -33,7 +30,7 @@ export function createApiAuthClient(token?: string) {
       auth: token === undefined ? undefined : { token, type: 'Bearer' },
       headers: {
         'User-Agent': USER_AGENT,
-        [CLIENT_HEADER_NAME]: `cli/${PACKAGE_JSON.version}`,
+        [CLIENT_HEADER_NAME]: resolveClientHeader(),
       },
     },
     plugins: [deviceAuthorizationClient()],

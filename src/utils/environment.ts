@@ -1,3 +1,6 @@
+import * as ciInfo from 'ci-info';
+import { PACKAGE_JSON } from '../config/consts.js';
+
 export interface InteractivityOptions {
   json?: boolean;
   noInput?: boolean;
@@ -13,9 +16,15 @@ export function isColorEnabled(stream: NodeJS.WriteStream): boolean {
   );
 }
 
-// GitHub Actions and the other CI runners set `CI`.
+// `ci-info` also knows the CI providers that set no `CI`, such as Jenkins and Azure Pipelines.
 export function isCi(): boolean {
-  return Boolean(process.env.CI);
+  return ciInfo.isCI;
+}
+
+// A product-token list, as npm's User-Agent is: the CLI's token, then ` ci/<provider>` in CI.
+export function resolveClientHeader(): string {
+  const clientToken = `cli/${PACKAGE_JSON.version}`;
+  return isCi() ? `${clientToken} ci/${resolveCiProvider()}` : clientToken;
 }
 
 // For a build that is never shipped.
@@ -33,4 +42,9 @@ export function isInteractive({ noInput, yes }: InteractivityOptions): boolean {
     !noInput &&
     !yes
   );
+}
+
+// The API takes the provider as lowercase letters, digits and dashes: `GitHub Actions` is `github-actions`.
+function resolveCiProvider(): string {
+  return ciInfo.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-') ?? 'unknown';
 }
