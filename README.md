@@ -1,14 +1,16 @@
 # hotcodepush
 
+[![npm](https://img.shields.io/npm/v/hotcodepush)](https://www.npmjs.com/package/hotcodepush)
+
 The HotCodePush CLI: set up, release and manage over-the-air (OTA) updates for React Native, Expo, Capacitor and Cordova apps from the terminal and CI.
 
 ## Installation
 
-The CLI is not on npm yet. Install the preview build of a commit on `main` as a dev dependency, `<sha>` being the commit's short hash:
-
 ```sh
-npm install --save-dev https://pkg.pr.new/hotcodepush-team/cli/hotcodepush@<sha>
+npm install --save-dev hotcodepush
 ```
+
+It requires Node.js 22 or later.
 
 ## Usage
 
@@ -18,7 +20,7 @@ npx hotcodepush init                                  # wires the SDK and the bu
 npx hotcodepush release create --path dist            # uploads the build and releases it to the project's channel
 npx hotcodepush release create --channel staging --rollout-percent 10
 npx hotcodepush doctor                                # checks the setup
-npx hotcodepush --help                                # every command; <command> --help for its flags
+npx hotcodepush --help                                # every command, and <command> --help for its flags
 ```
 
 Every command takes `--json` for machine-readable output and `--yes` to skip confirmations.
@@ -39,7 +41,7 @@ See [hotcodepush.com/docs/cli](https://hotcodepush.com/docs/cli).
 ```sh
 nvm use
 npm ci
-npm run build        # compiles src/ into dist/; node dist/index.js --help runs it
+npm run build        # compiles src/ into dist/, then node dist/index.js --help runs it
 npm test
 npm run lint && npm run typecheck
 npm run fmt          # ESLint's fixes and Prettier, run before every commit
