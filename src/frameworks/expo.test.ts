@@ -130,14 +130,14 @@ describe('expoFramework', () => {
       expect(wiring.nativeFilePaths).toEqual([]);
     });
 
-    it('should install the package from its pinned build', async () => {
+    it('should install the package at its pinned release', async () => {
       const wiring = await expoFramework.resolveWiring(
         readProject(writeProject()),
         { yes: true },
       );
 
       expect(wiring.installPackage()).toMatch(
-        /^Installed @hotcodepush\/expo-ota-updates from https:\/\/pkg\.pr\.new\/hotcodepush-team\/expo-ota-updates\/@hotcodepush\/expo-ota-updates@[0-9a-f]{7}\.$/,
+        /^Installed @hotcodepush\/expo-ota-updates from @hotcodepush\/expo-ota-updates@\d+\.\d+\.\d+\.$/,
       );
     });
 

@@ -125,14 +125,14 @@ describe('reactNativeFramework', () => {
       ]);
     });
 
-    it('should install the SDK from its pinned build', async () => {
+    it('should install the SDK at its pinned release', async () => {
       const wiring = await reactNativeFramework.resolveWiring(
         readProject(writeProject()),
         { yes: true },
       );
 
       expect(wiring.installPackage()).toMatch(
-        /^Installed @hotcodepush\/react-native-code-push from https:\/\/pkg\.pr\.new\/hotcodepush-team\/react-native-code-push\/@hotcodepush\/react-native-code-push@[0-9a-f]{7}\.$/,
+        /^Installed @hotcodepush\/react-native-code-push from @hotcodepush\/react-native-code-push@\d+\.\d+\.\d+\.$/,
       );
     });
 
