@@ -5,6 +5,7 @@ export default defineConfig({
     clearMocks: true,
     include: ['src/**/*.test.ts'],
     restoreMocks: true,
+    setupFiles: ['test/ci-info.ts'],
     unstubEnvs: true,
   },
 });

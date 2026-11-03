@@ -1,5 +1,12 @@
+import * as ciInfo from 'ci-info';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { isColorEnabled, isInteractive } from './environment.js';
+import { PACKAGE_JSON } from '../config/consts.js';
+import {
+  isCi,
+  isColorEnabled,
+  isInteractive,
+  resolveClientHeader,
+} from './environment.js';
 
 const originalStdinIsTty = process.stdin.isTTY;
 const originalStdoutIsTty = process.stdout.isTTY;
@@ -56,6 +63,34 @@ describe('environment', () => {
       vi.stubEnv('CI', undefined);
 
       expect(isInteractive({ yes: true })).toBe(false);
+    });
+  });
+
+  describe('isCi', () => {
+    it('should follow ci-info when CI is not set', () => {
+      vi.stubEnv('CI', undefined);
+      vi.spyOn(ciInfo, 'isCI', 'get').mockReturnValue(true);
+
+      expect(isCi()).toBe(true);
+    });
+  });
+
+  describe('resolveClientHeader', () => {
+    it("should append the provider's name as a lowercase slug when it runs in CI", () => {
+      vi.stubEnv('CI', 'true');
+      vi.spyOn(ciInfo, 'name', 'get').mockReturnValue('GitHub Actions');
+
+      expect(resolveClientHeader()).toBe(
+        `cli/${PACKAGE_JSON.version} ci/github-actions`,
+      );
+    });
+
+    it('should append ci/unknown when ci-info names no provider', () => {
+      vi.stubEnv('CI', 'true');
+
+      expect(resolveClientHeader()).toBe(
+        `cli/${PACKAGE_JSON.version} ci/unknown`,
+      );
     });
   });
 
