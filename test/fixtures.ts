@@ -15,6 +15,8 @@ import type {
   Release,
   SigningKey,
   SsoProvider,
+  TelemetryExport,
+  TelemetryExportDelivery,
   User,
   Webhook,
   WebhookDelivery,
@@ -445,6 +447,34 @@ export const VERIFIED_SAML_SSO_PROVIDER: SsoProvider = {
   type: 'saml',
 };
 
+export const TELEMETRY_EXPORT: TelemetryExport = {
+  consecutiveFailureCount: 0,
+  createdAt: '2026-09-12T08:00:00.000Z',
+  disabledAt: null,
+  headerNames: ['Authorization'],
+  id: '6b2d8f40-1c7e-4a93-9e5b-3f0a7c2d4e18',
+  organizationId: ACME_ORGANIZATION.id,
+  signals: ['logs', 'metrics'],
+  updatedAt: '2026-09-12T08:00:00.000Z',
+  url: 'https://otlp.example.com',
+};
+
+// The backend answered 503 to every attempt.
+export const FAILED_TELEMETRY_EXPORT_DELIVERY: TelemetryExportDelivery = {
+  attemptCount: 3,
+  auditRowId: '7e1b4d93-2a6c-4f08-b5d1-8c3e9f2a6b70',
+  createdAt: '2026-09-12T09:00:00.000Z',
+  id: '4c8e1a62-9f3b-4d07-a2e5-6b1d0c7f3a95',
+  nextAttemptAt: null,
+  responseBody: 'Service Unavailable',
+  responseCode: 503,
+  status: 'failed',
+  telemetryExportId: TELEMETRY_EXPORT.id,
+  type: 'release.created',
+  updatedAt: '2026-09-12T09:30:00.000Z',
+  webhookId: null,
+};
+
 export const WEBHOOK: Webhook = {
   appId: null,
   consecutiveFailureCount: 0,
@@ -452,7 +482,7 @@ export const WEBHOOK: Webhook = {
   events: ['release.created', 'release.paused'],
   format: 'raw',
   id: '3c9e7a52-8d14-4b6f-a0e2-5f71c3d8b946',
-  isEnabled: true,
+  disabledAt: null,
   name: 'releases',
   organizationId: ACME_ORGANIZATION.id,
   updatedAt: '2026-09-12T08:00:00.000Z',
@@ -469,6 +499,7 @@ export const FAILED_WEBHOOK_DELIVERY: WebhookDelivery = {
   responseBody: 'Internal Server Error',
   responseCode: 500,
   status: 'failed',
+  telemetryExportId: null,
   type: 'release.created',
   updatedAt: '2026-09-12T09:30:00.000Z',
   webhookId: WEBHOOK.id,

@@ -73,6 +73,17 @@ export const commandRegistry: CommandRegistry = {
   'sso-provider set': () => import('./commands/sso-provider/set.js'),
   'sso-provider verify': () => import('./commands/sso-provider/verify.js'),
   'statistics get': () => import('./commands/statistics/get.js'),
+  'telemetry-export delete': () =>
+    import('./commands/telemetry-export/delete.js'),
+  'telemetry-export get': () => import('./commands/telemetry-export/get.js'),
+  'telemetry-export set': () => import('./commands/telemetry-export/set.js'),
+  'telemetry-export test': () => import('./commands/telemetry-export/test.js'),
+  'telemetry-export update': () =>
+    import('./commands/telemetry-export/update.js'),
+  'telemetry-export-delivery list': () =>
+    import('./commands/telemetry-export-delivery/list.js'),
+  'telemetry-export-delivery redeliver': () =>
+    import('./commands/telemetry-export-delivery/redeliver.js'),
   'usage get': () => import('./commands/usage/get.js'),
   'usage list': () => import('./commands/usage/list.js'),
   'webhook create': () => import('./commands/webhook/create.js'),

@@ -30,7 +30,7 @@ describe('webhook get', () => {
       'Format                raw',
       'Events                release.created, release.paused',
       'App                   every app',
-      'Enabled               yes',
+      'Disabled at           none',
       'Consecutive failures  0',
       `Created               ${WEBHOOK.createdAt}`,
     ]);
