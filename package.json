@@ -69,7 +69,7 @@
     "@hotcodepush/node": "https://pkg.pr.new/hotcodepush-team/hotcodepush-node/@hotcodepush/node@3c537fe",
     "@hotcodepush/protocol": "https://pkg.pr.new/hotcodepush-team/protocol/@hotcodepush/protocol@8600e36",
     "@napi-rs/keyring": "2.1.0",
-    "better-auth": "1.7.12",
+    "better-auth": "1.7.16",
     "ci-info": "4.4.0",
     "fast-xml-parser": "5.11.2",
     "open": "11.0.4",
