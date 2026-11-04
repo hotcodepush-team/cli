@@ -76,7 +76,7 @@ describe('cordova', () => {
       check: 'hook',
       code: 'wiring_missing',
       manualStep: expect.stringMatching(
-        /^Run "npx cordova plugin add https:\/\/pkg\.pr\.new\//,
+        /^Run "npx cordova plugin add @hotcodepush\/cordova-code-push@\d+\.\d+\.\d+"/,
       ) as string,
       message:
         "The plugin @hotcodepush/cordova-code-push is not among package.json's cordova plugins.",

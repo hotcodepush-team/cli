@@ -1283,7 +1283,7 @@ describe('init', () => {
       expect(result.status).toBe('complete');
       expect(result.steps.slice(3).map(({ message }) => message)).toEqual([
         expect.stringMatching(
-          /^Installed @hotcodepush\/react-native-code-push from https:\/\/pkg\.pr\.new\//,
+          /^Installed @hotcodepush\/react-native-code-push from @hotcodepush\/react-native-code-push@\d+\.\d+\.\d+\.$/,
         ),
         'Wrote hotcodepush.json.',
         'Wired the Create HotCodePush binary phase in Xcode, the Gradle task that runs the build step, HotCodePush.bundleURL() in AppDelegate.swift, HotCodePushReactHost in MainApplication.kt, the pods through "pod install".',
