@@ -8,6 +8,7 @@ import {
 } from '@hotcodepush/protocol';
 import { z } from 'zod';
 import { InvalidParameterError } from '../../utils/errors.js';
+import { resolveNameValuePairs } from '../../utils/name-value-pairs.js';
 
 export interface ConditionOptions {
   attribute?: string[];
@@ -105,24 +106,19 @@ export function buildReleaseConditions(
 export function resolveAttributePairs(
   attributes: string[] | undefined,
 ): { key: string; value: string }[] {
-  return (attributes ?? []).map(pair => {
-    const separatorIndex = pair.indexOf('=');
-    const key = pair.slice(0, separatorIndex);
-    const value = pair.slice(separatorIndex + 1);
-    if (
-      separatorIndex === -1 ||
-      !isValidAttributeKey(key) ||
-      !isValidAttributeValue(value)
-    ) {
-      throw new InvalidParameterError(
-        `The value "${pair}" of --attribute is not a key=value pair.`,
-        {
-          fix: 'Pass key=value. The key takes letters, digits, _, - and . up to 64 characters, the value printable characters up to 256.',
-        },
-      );
-    }
-    return { key, value };
-  });
+  return resolveNameValuePairs(attributes, { flag: '--attribute' }).map(
+    ({ name: key, value }) => {
+      if (!isValidAttributeKey(key) || !isValidAttributeValue(value)) {
+        throw new InvalidParameterError(
+          `The value "${key}=${value}" of --attribute is not a key=value pair.`,
+          {
+            fix: 'Pass key=value. The key takes letters, digits, _, - and . up to 64 characters, the value printable characters up to 256.',
+          },
+        );
+      }
+      return { key, value };
+    },
+  );
 }
 
 function resolveList(value: string | undefined): string[] {

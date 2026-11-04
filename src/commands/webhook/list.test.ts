@@ -12,7 +12,12 @@ describe('webhook list', () => {
     harness.routes[`GET ${WEBHOOKS_PATH}`] = () =>
       Response.json([
         WEBHOOK,
-        { ...WEBHOOK, format: 'slack', isEnabled: false, name: 'team-chat' },
+        {
+          ...WEBHOOK,
+          format: 'slack',
+          disabledAt: '2026-09-14T10:00:00.000Z',
+          name: 'team-chat',
+        },
       ]);
 
     await webhookListCommand.action(
@@ -21,9 +26,9 @@ describe('webhook list', () => {
     );
 
     expect(harness.readLines()).toEqual([
-      'ID                                    NAME       FORMAT  URL                                    ENABLED  CREATED',
-      `${WEBHOOK.id}  releases   raw     ${WEBHOOK.url}  yes      2026-09-12`,
-      `${WEBHOOK.id}  team-chat  slack   ${WEBHOOK.url}  no       2026-09-12`,
+      'ID                                    NAME       FORMAT  URL                                    DISABLED AT  CREATED',
+      `${WEBHOOK.id}  releases   raw     ${WEBHOOK.url}  none         2026-09-12`,
+      `${WEBHOOK.id}  team-chat  slack   ${WEBHOOK.url}  2026-09-14   2026-09-12`,
     ]);
   });
 

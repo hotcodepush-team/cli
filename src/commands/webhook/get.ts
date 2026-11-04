@@ -3,11 +3,7 @@ import { fetchWebhook, webhookOptionShape } from '../../resources/webhooks.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import {
-  printDetails,
-  printJson,
-  resolveYesNoText,
-} from '../../utils/output.js';
+import { printDetails, printJson } from '../../utils/output.js';
 
 export default defineCommand({
   description:
@@ -35,7 +31,7 @@ function printWebhookDetails(webhook: Webhook): void {
     ['Format', webhook.format],
     ['Events', webhook.events.join(', ')],
     ['App', webhook.appId ?? 'every app'],
-    ['Enabled', resolveYesNoText(webhook.isEnabled)],
+    ['Disabled at', webhook.disabledAt ?? 'none'],
     ['Consecutive failures', String(webhook.consecutiveFailureCount)],
     ['Created', webhook.createdAt],
   ]);

@@ -2,12 +2,7 @@ import { fetchOrganizationId } from '../../resources/organizations.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
-import {
-  printJson,
-  printTable,
-  resolveDate,
-  resolveYesNoText,
-} from '../../utils/output.js';
+import { printJson, printTable, resolveDate } from '../../utils/output.js';
 import { paginationShape, resolveNextOffset } from '../../utils/pagination.js';
 
 export default defineCommand({
@@ -31,15 +26,15 @@ export default defineCommand({
     }
     printTable({
       emptyText: 'No webhooks.',
-      headers: ['ID', 'NAME', 'FORMAT', 'URL', 'ENABLED', 'CREATED'],
+      headers: ['ID', 'NAME', 'FORMAT', 'URL', 'DISABLED AT', 'CREATED'],
       nextOffset,
       rows: listedWebhooks.map(
-        ({ createdAt, format, id, isEnabled, name, url }) => [
+        ({ createdAt, disabledAt, format, id, name, url }) => [
           id,
           name,
           format,
           url,
-          resolveYesNoText(isEnabled),
+          disabledAt === null ? 'none' : resolveDate(disabledAt),
           resolveDate(createdAt),
         ],
       ),

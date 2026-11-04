@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { printSettledDelivery } from '../../resources/webhook-deliveries.js';
 import { fetchWebhook, webhookOptionShape } from '../../resources/webhooks.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
+import { printSettledDelivery } from '../../utils/deliveries.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
 import { confirmConsequence, promptText } from '../../utils/prompts.js';
@@ -50,6 +50,8 @@ export default defineCommand({
       printJson(settledDelivery);
       return;
     }
-    printSettledDelivery(settledDelivery, fetchedWebhook.name);
+    printSettledDelivery(settledDelivery, {
+      targetLabel: `webhook ${fetchedWebhook.name}`,
+    });
   },
 });

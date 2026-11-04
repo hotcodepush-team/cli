@@ -18,7 +18,7 @@ src/
                init/steps.ts beside init.ts: init's step runner
   resources/   a file per command noun in the plural of the API paths, mass nouns as they are, holding what the noun's commands share: its option shape (--channel),
                the fetch functions that turn the flag into the resource, the pure resolvers and the formatters: apps, audience, bundles, devices, invitations, members,
-               organizations, resource-files, signing-keys, sso-providers, statistics, usage, webhooks, webhook-deliveries; a noun past about 200 lines is a folder split by job,
+               organizations, resource-files, signing-keys, sso-providers, statistics, telemetry-exports, usage, webhooks; a noun past about 200 lines is a folder split by job,
                channels/ (fetch, fields) and releases/ (fetch, conditions, progression, output); a noun with no shared code has no file
   frameworks/  framework detection and the build's directory, one module per framework behind one interface and the registry line in index.ts that makes the CLI package it,
                React Native's release build, which Expo's module runs too, the SDK package's install and check, the native projects as named or asked for,
@@ -29,9 +29,9 @@ src/
   utils/       what belongs to no noun: the runner, command resolution and did-you-mean, the CLI's `defineCommand` and the authentication gate, the error catalog and its one mapping,
                the diagnostics on stderr, the global options, environment detection, config.json, the token store, the auth client, the login flow, the signed-in user and its credential line,
                the API client, hotcodepush.json and its directory, the JSON files a person edits, package.json reading, a reference told apart as an id or a number,
-               a resource by id or name, the device hosts derived from the API URL, the prompts and the confirmation, the pages of a list, the boolean flag,
+               a resource by id or name, the name=value pairs of a flag, the device hosts derived from the API URL, the prompts and the confirmation, the pages of a list, the boolean flag,
                a nullable field from its flag and its clear flag, a duration as a time bound, the package manager and its visible runs, the outcome rows init and doctor print,
-               the progress lines, the browser opener, the JSON, tables and details output, the telemetry, the update notice,
+               the progress lines, the browser opener, the JSON, tables and details output, the settled delivery of a webhook or the telemetry export, the telemetry, the update notice,
                the shell completion: the command tree, a script builder per shell and the script files the build writes and `completion` reads
   config/      consts: the API URL, the client id and header, the config file, the completion scripts' folder, the docs and issues URLs,
                the keyring entry, package.json, the project file, the SDK packages' names and pinned specs,
