@@ -67,7 +67,7 @@
     "@clack/core": "1.5.1",
     "@clack/prompts": "1.8.1",
     "@hotcodepush/node": "0.1.0",
-    "@hotcodepush/protocol": "https://pkg.pr.new/hotcodepush-team/protocol/@hotcodepush/protocol@8600e36",
+    "@hotcodepush/protocol": "0.1.0",
     "@napi-rs/keyring": "2.1.0",
     "better-auth": "1.7.16",
     "ci-info": "4.4.0",
