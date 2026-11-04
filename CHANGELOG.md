@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.4](https://github.com/hotcodepush-team/cli/compare/v0.2.3...v0.2.4) (2026-11-04)
+
+
+### Features
+
+* the telemetry-export and telemetry-export-delivery nouns ([#127](https://github.com/hotcodepush-team/cli/issues/127)) ([1031a34](https://github.com/hotcodepush-team/cli/commit/1031a34b3655c2d1cebbed0f52b7d4630f1c6ece))
+
 ## [0.2.3](https://github.com/hotcodepush-team/cli/compare/v0.2.2...v0.2.3) (2026-11-04)
 
 
