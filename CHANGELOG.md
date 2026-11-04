@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.3](https://github.com/hotcodepush-team/cli/compare/v0.2.2...v0.2.3) (2026-11-04)
+
+
+### Features
+
+* the client header names the CI provider ([7113f80](https://github.com/hotcodepush-team/cli/commit/7113f802c67455ffb88cae32f224b14cbc6d3a64))
+
+
+### Bug Fixes
+
+* **deps:** bump better-auth to 1.7.16 ([#130](https://github.com/hotcodepush-team/cli/issues/130)) ([bf30437](https://github.com/hotcodepush-team/cli/commit/bf30437355af42641ea54a7c2e0df877b66431ed))
+
 ## [0.2.2](https://github.com/hotcodepush-team/cli/compare/v0.2.1...v0.2.2) (2026-11-02)
 
 
