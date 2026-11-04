@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.5](https://github.com/hotcodepush-team/cli/compare/v0.2.4...v0.2.5) (2026-11-04)
+
+
+### Features
+
+* init installs the published SDKs at 0.1.0 ([#126](https://github.com/hotcodepush-team/cli/issues/126)) ([b2285e2](https://github.com/hotcodepush-team/cli/commit/b2285e2a5bf8c3f439409dd4605cab182644fa9c))
+
+
+### Bug Fixes
+
+* **deps:** install @hotcodepush/protocol from npm ([#132](https://github.com/hotcodepush-team/cli/issues/132)) ([9b02c8a](https://github.com/hotcodepush-team/cli/commit/9b02c8a06de607eb70f48ba2aefa67259bd20f95))
+
 ## [0.2.4](https://github.com/hotcodepush-team/cli/compare/v0.2.3...v0.2.4) (2026-11-04)
 
 
