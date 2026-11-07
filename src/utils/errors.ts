@@ -115,6 +115,18 @@ export class ConfirmationRequiredError extends CliError {
   }
 }
 
+export class EntryFileError extends CliError {
+  constructor({ fix }: { fix: string }) {
+    super({
+      code: 'entry_file_unknown',
+      exitCode: ExitCode.Error,
+      fix,
+      message:
+        "Neither index.html nor angular.json names an entry file under src/ for the app's code.",
+    });
+  }
+}
+
 // A build without a fingerprint would match binaries it does not describe.
 // The fix is the message of the protocol package as it stands.
 export class FingerprintUnavailableError extends CliError {

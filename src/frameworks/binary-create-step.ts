@@ -2,9 +2,9 @@ import { relative } from 'node:path';
 import { INIT_MANUAL_STEP } from '../config/consts.js';
 import type { CliError } from '../utils/errors.js';
 import { NativeProjectError, XcodeProjectError } from '../utils/errors.js';
-import type { NativeProjectEdit } from './native-project-edit.js';
-import { resolveGradleEdit } from './native-project-edit.js';
 import type { NativeProjects } from './native-projects.js';
+import type { ProjectEdit } from './project-edit.js';
+import { resolveGradleEdit } from './project-edit.js';
 import type { BinaryCreatePhase } from './xcode-project.js';
 import {
   addBinaryCreatePhase,
@@ -51,7 +51,7 @@ export function checkBinaryCreateStep(
 }
 
 export function checkEdits(
-  edits: NativeProjectEdit[],
+  edits: ProjectEdit[],
   {
     check,
     isPhaseMissing = false,
@@ -87,8 +87,8 @@ export function checkEdits(
 }
 
 // A failed edit does not hold the others back. Once all were tried, the first failure stops the step.
-export async function applyNativeProjectEdits(
-  edits: NativeProjectEdit[],
+export async function applyProjectEdits(
+  edits: ProjectEdit[],
   {
     options,
     phaseEdit,

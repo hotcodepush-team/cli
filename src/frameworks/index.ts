@@ -60,12 +60,16 @@ export interface FrameworkProject {
 }
 
 export interface FrameworkWiring {
-  // The import the app's code lacks, which `init` names last, since it never edits the person's source files.
-  appImportStep?: string;
+  // The files of the app's own code that `init` changes.
+  appFilePaths: string[];
   isPackageInstalled: boolean;
   nativeFilePaths: string[];
   packageFilePaths: string[];
   installPackage: () => string;
+  // Writes the import that tells the SDK the app rendered, on a framework whose SDK cannot tell by itself.
+  wireAppImport?: (
+    editBlocker: ConfirmationRequiredError | undefined,
+  ) => Promise<StepOutcome<undefined>>;
   // Throws the blocker only where a file would change.
   wireBinaryCreateStep: (
     editBlocker: ConfirmationRequiredError | undefined,

@@ -9,15 +9,15 @@ import type { ConfirmationRequiredError } from '../utils/errors.js';
 import { runCommandLineVisibly } from '../utils/package-manager.js';
 import type { LocatedNativeProjects } from './binary-create-step.js';
 import {
-  applyNativeProjectEdits,
+  applyProjectEdits,
   checkBinaryCreateStep,
   checkEdits,
   isBinaryCreatePhaseMissing,
   resolveWiredOutcome,
 } from './binary-create-step.js';
-import type { NativeProjectEdit } from './native-project-edit.js';
-import { resolveGradleEdit } from './native-project-edit.js';
 import { locateNativeProjects } from './native-projects.js';
+import type { ProjectEdit } from './project-edit.js';
+import { resolveGradleEdit } from './project-edit.js';
 import {
   collectEmbeddedFiles,
   packageReactNativeBundles,
@@ -123,7 +123,7 @@ function isPodInstalled(iosProjectPath: string): boolean {
 
 function resolveBundleWiringEdits(
   nativeProjectPaths: NativeProjectPaths,
-): NativeProjectEdit[] {
+): ProjectEdit[] {
   return [
     resolveBundleUrlEdit(nativeProjectPaths.ios),
     resolveReactHostEdit(nativeProjectPaths.android),
@@ -146,9 +146,7 @@ function resolveBundlerArgs(
   ];
 }
 
-function resolveEdits(
-  nativeProjectPaths: NativeProjectPaths,
-): NativeProjectEdit[] {
+function resolveEdits(nativeProjectPaths: NativeProjectPaths): ProjectEdit[] {
   return [
     resolveGradleEdit(nativeProjectPaths.android, {
       packageName: REACT_NATIVE_PACKAGE_NAME,
@@ -189,6 +187,7 @@ async function resolveWiring(
     REACT_NATIVE_PACKAGE_NAME,
   );
   return {
+    appFilePaths: [],
     isPackageInstalled,
     nativeFilePaths: resolveNativeFilePaths(located).map(filePath =>
       relative(directoryPath, filePath),
@@ -229,7 +228,7 @@ async function wireBinaryCreateStep(
   if (editBlocker !== undefined && hasEdits) {
     throw editBlocker;
   }
-  const wired = await applyNativeProjectEdits(pendingEdits, {
+  const wired = await applyProjectEdits(pendingEdits, {
     options,
     phaseEdit:
       xcodeProjectFilePath === undefined

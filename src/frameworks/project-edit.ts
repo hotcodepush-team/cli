@@ -2,7 +2,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { NativeProjectError } from '../utils/errors.js';
 
-export interface NativeProjectEdit {
+export interface ProjectEdit {
   description: string;
   filePath: string;
   isApplied: () => boolean;
@@ -21,7 +21,7 @@ const GRADLE_FILE_NAMES = ['build.gradle', 'build.gradle.kts'];
 export function resolveGradleEdit(
   androidProjectPath: string,
   { packageName }: { packageName: string },
-): NativeProjectEdit | undefined {
+): ProjectEdit | undefined {
   if (!existsSync(androidProjectPath)) {
     return undefined;
   }
@@ -58,7 +58,7 @@ export function resolveRefusedEdit(
     filePath,
     marker,
   }: { description: string; filePath: string; marker?: string },
-): NativeProjectEdit {
+): ProjectEdit {
   return {
     description,
     filePath,
@@ -74,7 +74,7 @@ export function resolveRefusedEdit(
 function resolveMissingGradleFileEdit(
   androidProjectPath: string,
   { packageName }: { packageName: string },
-): NativeProjectEdit {
+): ProjectEdit {
   return resolveRefusedEdit(
     new NativeProjectError(
       `The Android project ${androidProjectPath} has no build.gradle or build.gradle.kts in its app folder.`,

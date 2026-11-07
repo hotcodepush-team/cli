@@ -1,8 +1,8 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { NativeProjectError } from '../utils/errors.js';
-import type { NativeProjectEdit } from './native-project-edit.js';
-import { resolveRefusedEdit } from './native-project-edit.js';
+import type { ProjectEdit } from './project-edit.js';
+import { resolveRefusedEdit } from './project-edit.js';
 
 const APP_DELEGATE_FILE_NAMES = ['AppDelegate.swift', 'AppDelegate.mm'];
 
@@ -33,7 +33,7 @@ const SWIFT_MODULE_IMPORT = 'import HotcodepushReactNativeCodePush';
 // The debug build's Metro line stays as it is.
 export function resolveBundleUrlEdit(
   iosProjectPath: string,
-): NativeProjectEdit | undefined {
+): ProjectEdit | undefined {
   if (!existsSync(iosProjectPath)) {
     return undefined;
   }
@@ -74,7 +74,7 @@ export function resolveBundleUrlEdit(
 // Only the import changes, so the call and its parameters stay.
 export function resolveReactHostEdit(
   androidProjectPath: string,
-): NativeProjectEdit | undefined {
+): ProjectEdit | undefined {
   if (!existsSync(androidProjectPath)) {
     return undefined;
   }
@@ -149,7 +149,7 @@ function resolveReactHostFix(location: string): string {
 function resolveRefusedBundleUrlEdit(
   iosProjectPath: string,
   { objectiveCFilePath }: { objectiveCFilePath: string | undefined },
-): NativeProjectEdit {
+): ProjectEdit {
   if (objectiveCFilePath === undefined) {
     return resolveRefusedEdit(
       new NativeProjectError(
@@ -180,7 +180,7 @@ function resolveRefusedBundleUrlEdit(
 function resolveRefusedReactHostEdit(
   androidProjectPath: string,
   { javaFilePath }: { javaFilePath: string | undefined },
-): NativeProjectEdit {
+): ProjectEdit {
   if (javaFilePath === undefined) {
     return resolveRefusedEdit(
       new NativeProjectError(
