@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.6](https://github.com/hotcodepush-team/cli/compare/v0.2.5...v0.2.6) (2026-11-07)
+
+
+### Features
+
+* **init:** write the Capacitor SDK import into the web entry file ([#134](https://github.com/hotcodepush-team/cli/issues/134)) ([7b2d0ac](https://github.com/hotcodepush-team/cli/commit/7b2d0ac7743d364ddb3b42e3a6ce4dc282dbe1c3))
+
 ## [0.2.5](https://github.com/hotcodepush-team/cli/compare/v0.2.4...v0.2.5) (2026-11-04)
 
 
