@@ -52,6 +52,22 @@ describe('capacitor-entry-file', () => {
       );
     });
 
+    it('should read the entry file from the targets key an Nx workspace writes in angular.json', () => {
+      const directoryPath = writeProject();
+      writeFileSync(
+        join(directoryPath, 'angular.json'),
+        JSON.stringify({
+          projects: {
+            demo: { targets: { build: { options: { main: 'src/main.ts' } } } },
+          },
+        }),
+      );
+
+      expect(resolveEntryFilePath(directoryPath)).toBe(
+        join(directoryPath, CAPACITOR_ENTRY_FILE_PATH),
+      );
+    });
+
     it('should resolve no entry file when neither index.html nor angular.json exists', () => {
       const directoryPath = writeProject();
 

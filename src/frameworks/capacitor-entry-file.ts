@@ -8,10 +8,15 @@ interface AngularBuildOptions {
   main?: string;
 }
 
+interface AngularBuildTarget {
+  build?: { options?: AngularBuildOptions };
+}
+
+// Angular's schema accepts `targets` beside `architect`, and Nx workspaces write it.
 interface AngularWorkspace {
   projects?: Record<
     string,
-    { architect?: { build?: { options?: AngularBuildOptions } } } | null
+    { architect?: AngularBuildTarget; targets?: AngularBuildTarget } | null
   >;
 }
 
@@ -154,7 +159,7 @@ function readAngularEntryPath(
     readFileSync(workspaceFilePath, 'utf8'),
   );
   return Object.values(workspace?.projects ?? {})
-    .map(project => project?.architect?.build?.options)
+    .map(project => (project?.architect ?? project?.targets)?.build?.options)
     .map(options => options?.browser ?? options?.main)
     .find(entryPath => entryPath !== undefined);
 }
