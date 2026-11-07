@@ -11,7 +11,7 @@ import type {
   LocatedNativeProjects,
 } from './binary-create-step.js';
 import {
-  applyProjectEdits,
+  applyNativeProjectEdits,
   checkBinaryCreateStep,
   isBinaryCreatePhaseMissing,
   resolveWiredOutcome,
@@ -19,13 +19,13 @@ import {
 import {
   isSdkImported,
   resolveEntryFilePath,
-  resolveSdkImportEdit,
   WEB_SOURCE_DIRECTORY_NAME,
+  writeSdkImport,
 } from './capacitor-entry-file.js';
 import { NATIVE_GLUE_PATHS } from './native-glue.js';
+import type { NativeProjectEdit } from './native-project-edit.js';
+import { resolveGradleEdit } from './native-project-edit.js';
 import { locateNativeProjects } from './native-projects.js';
-import type { ProjectEdit } from './project-edit.js';
-import { resolveGradleEdit } from './project-edit.js';
 import {
   checkSdkPackage,
   installSdkPackage,
@@ -102,18 +102,18 @@ export const capacitorFramework: FrameworkModule = {
 };
 
 function checkSdkImport(projectDirectoryPath: string): FrameworkCheck {
-  const sourceDirectoryPath = join(
-    projectDirectoryPath,
-    WEB_SOURCE_DIRECTORY_NAME,
-  );
-  if (!existsSync(sourceDirectoryPath)) {
+  const entryFilePath = resolveEntryFilePath(projectDirectoryPath);
+  if (
+    entryFilePath === undefined &&
+    !existsSync(join(projectDirectoryPath, WEB_SOURCE_DIRECTORY_NAME))
+  ) {
     return {
       check: 'import',
-      message: `There is no ${WEB_SOURCE_DIRECTORY_NAME}/ directory to look for the import in.`,
+      message: `There is no ${WEB_SOURCE_DIRECTORY_NAME}/ directory and no entry file to look for the import in.`,
       status: 'skipped',
     };
   }
-  return isSdkImported(projectDirectoryPath)
+  return isSdkImported(projectDirectoryPath, { entryFilePath })
     ? {
         check: 'import',
         message: `The app's code imports ${CAPACITOR_PACKAGE_NAME}.`,
@@ -123,7 +123,7 @@ function checkSdkImport(projectDirectoryPath: string): FrameworkCheck {
         check: 'import',
         code: 'import_missing',
         manualStep: SDK_IMPORT_STEP,
-        message: `No file under ${WEB_SOURCE_DIRECTORY_NAME}/ imports ${CAPACITOR_PACKAGE_NAME}, so the app confirms no update.`,
+        message: `The app's code does not import ${CAPACITOR_PACKAGE_NAME}, so it confirms no update.`,
         status: 'failed',
       };
 }
@@ -169,11 +169,14 @@ function readWebDir(projectDirectoryPath: string): BuildDirectory {
 
 function resolveAppFilePaths(
   projectDirectoryPath: string,
-  { sdkImportEdit }: { sdkImportEdit: ProjectEdit | undefined },
+  {
+    entryFilePath,
+    isImported,
+  }: { entryFilePath: string | undefined; isImported: boolean },
 ): string[] {
-  return sdkImportEdit === undefined || sdkImportEdit.isApplied()
+  return entryFilePath === undefined || isImported
     ? []
-    : [relative(projectDirectoryPath, sdkImportEdit.filePath)];
+    : [relative(projectDirectoryPath, entryFilePath)];
 }
 
 // The phase runs last, once the web build is copied into the app. The script finds Node itself.
@@ -245,7 +248,7 @@ function resolveNativeProjectPaths(
 function resolvePendingEdits(
   nativeProjectPaths: NativeProjectPaths,
   { xcodeProjectFilePath }: { xcodeProjectFilePath: string | undefined },
-): ProjectEdit[] {
+): NativeProjectEdit[] {
   return [
     xcodeProjectFilePath === undefined
       ? undefined
@@ -274,7 +277,7 @@ function resolvePhaseEdit({
 
 function resolveResourceReferenceEdit(
   xcodeProjectFilePath: string,
-): ProjectEdit {
+): NativeProjectEdit {
   return {
     description: 'the Xcode project without its hotcodepush.json reference',
     filePath: xcodeProjectFilePath,
@@ -305,12 +308,12 @@ async function resolveWiring(
     CAPACITOR_PACKAGE_NAME,
   );
   const entryFilePath = resolveEntryFilePath(directoryPath);
-  const sdkImportEdit =
-    entryFilePath === undefined
-      ? undefined
-      : resolveSdkImportEdit(directoryPath, { entryFilePath });
+  const isImported = isSdkImported(directoryPath, { entryFilePath });
   return {
-    appFilePaths: resolveAppFilePaths(directoryPath, { sdkImportEdit }),
+    appFilePaths: resolveAppFilePaths(directoryPath, {
+      entryFilePath,
+      isImported,
+    }),
     isPackageInstalled,
     nativeFilePaths: resolveNativeFilePaths(located),
     packageFilePaths: isPackageInstalled ? [] : ['package.json'],
@@ -320,7 +323,7 @@ async function resolveWiring(
         packageSpec: CAPACITOR_PACKAGE_SPEC,
       }),
     wireAppImport: editBlocker =>
-      wireAppImport(directoryPath, { editBlocker, sdkImportEdit }),
+      wireAppImport(directoryPath, { editBlocker, entryFilePath, isImported }),
     wireBinaryCreateStep: editBlocker =>
       wireBinaryCreateStep(located, { editBlocker, options }),
   };
@@ -330,24 +333,26 @@ async function wireAppImport(
   projectDirectoryPath: string,
   {
     editBlocker,
-    sdkImportEdit,
+    entryFilePath,
+    isImported,
   }: {
     editBlocker: ConfirmationRequiredError | undefined;
-    sdkImportEdit: ProjectEdit | undefined;
+    entryFilePath: string | undefined;
+    isImported: boolean;
   },
 ): Promise<StepOutcome<undefined>> {
-  if (isSdkImported(projectDirectoryPath)) {
+  if (isImported) {
     return ALREADY_IMPORTED_OUTCOME;
   }
-  if (sdkImportEdit === undefined) {
+  if (entryFilePath === undefined) {
     throw new EntryFileError({ fix: SDK_IMPORT_STEP });
   }
   if (editBlocker !== undefined) {
     throw editBlocker;
   }
-  sdkImportEdit.apply();
+  writeSdkImport(entryFilePath);
   return {
-    message: `Wired the import in ${relative(projectDirectoryPath, sdkImportEdit.filePath)}.`,
+    message: `Wired the import in ${relative(projectDirectoryPath, entryFilePath)}.`,
     status: 'done',
     value: undefined,
   };
@@ -380,7 +385,7 @@ async function wireBinaryCreateStep(
     throw editBlocker;
   }
   return resolveWiredOutcome(
-    await applyProjectEdits(pendingEdits, {
+    await applyNativeProjectEdits(pendingEdits, {
       options,
       phaseEdit: resolvePhaseEdit(located),
     }),

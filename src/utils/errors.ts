@@ -122,7 +122,7 @@ export class EntryFileError extends CliError {
       exitCode: ExitCode.Error,
       fix,
       message:
-        "Neither index.html nor angular.json names an entry file under src/ for the app's code.",
+        "Neither index.html nor angular.json names a script file as the app's entry.",
     });
   }
 }

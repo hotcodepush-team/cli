@@ -1,7 +1,6 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { extname, join, relative, sep } from 'node:path';
+import { extname, join } from 'node:path';
 import { CAPACITOR_PACKAGE_NAME } from '../config/consts.js';
-import type { ProjectEdit } from './project-edit.js';
 
 interface AngularBuildOptions {
   browser?: string;
@@ -54,27 +53,16 @@ const WEB_SOURCE_FILE_EXTENSIONS = new Set([
   '.vue',
 ]);
 
-export function isSdkImported(projectDirectoryPath: string): boolean {
-  const sourceDirectoryPath = join(
-    projectDirectoryPath,
-    WEB_SOURCE_DIRECTORY_NAME,
-  );
-  return (
-    existsSync(sourceDirectoryPath) &&
-    readdirSync(sourceDirectoryPath, { recursive: true, withFileTypes: true })
-      .filter(
-        entry =>
-          entry.isFile() && WEB_SOURCE_FILE_EXTENSIONS.has(extname(entry.name)),
-      )
-      .some(entry =>
-        SDK_IMPORT_PATTERN.test(
-          readFileSync(join(entry.parentPath, entry.name), 'utf8'),
-        ),
-      )
-  );
+export function isSdkImported(
+  projectDirectoryPath: string,
+  { entryFilePath }: { entryFilePath: string | undefined },
+): boolean {
+  return [
+    ...(entryFilePath === undefined ? [] : [entryFilePath]),
+    ...readWebSourceFilePaths(projectDirectoryPath),
+  ].some(filePath => SDK_IMPORT_PATTERN.test(readFileSync(filePath, 'utf8')));
 }
 
-// Only a file the import check reads counts as the entry, so `init` recognises its edit afterwards.
 export function resolveEntryFilePath(
   projectDirectoryPath: string,
 ): string | undefined {
@@ -86,31 +74,14 @@ export function resolveEntryFilePath(
   }
   // A leading slash means the project root, as Vite reads it.
   const entryFilePath = join(projectDirectoryPath, entryPath);
-  return isWebSourceFile(projectDirectoryPath, { filePath: entryFilePath })
-    ? entryFilePath
-    : undefined;
-}
-
-export function resolveSdkImportEdit(
-  projectDirectoryPath: string,
-  { entryFilePath }: { entryFilePath: string },
-): ProjectEdit {
-  return {
-    description: 'the import that reports the first render',
-    filePath: entryFilePath,
-    isApplied: () => isSdkImported(projectDirectoryPath),
-    apply: () => {
-      writeFileSync(
-        entryFilePath,
-        insertSdkImport(readFileSync(entryFilePath, 'utf8')),
-      );
-    },
-  };
+  return isWebSourceFile(entryFilePath) ? entryFilePath : undefined;
 }
 
 // Lines above the first import, such as a license header or a triple-slash directive, stay first.
-function insertSdkImport(source: string): string {
-  const lines = source.split('\n');
+export function writeSdkImport(entryFilePath: string): void {
+  const source = readFileSync(entryFilePath, 'utf8');
+  const newline = source.includes('\r\n') ? '\r\n' : '\n';
+  const lines = source.split(newline);
   const firstImportIndex = lines.findIndex(line => line.startsWith('import '));
   const quote =
     IMPORT_QUOTE_PATTERN.exec(lines[firstImportIndex] ?? '')?.[0] ?? "'";
@@ -119,21 +90,12 @@ function insertSdkImport(source: string): string {
     0,
     `import ${quote}${CAPACITOR_PACKAGE_NAME}${quote};`,
   );
-  return lines.join('\n');
+  writeFileSync(entryFilePath, lines.join(newline));
 }
 
-function isWebSourceFile(
-  projectDirectoryPath: string,
-  { filePath }: { filePath: string },
-): boolean {
-  const sourceRelativePath = relative(
-    join(projectDirectoryPath, WEB_SOURCE_DIRECTORY_NAME),
-    filePath,
-  );
+function isWebSourceFile(filePath: string): boolean {
   return (
-    !sourceRelativePath.startsWith(`..${sep}`) &&
-    WEB_SOURCE_FILE_EXTENSIONS.has(extname(filePath)) &&
-    existsSync(filePath)
+    WEB_SOURCE_FILE_EXTENSIONS.has(extname(filePath)) && existsSync(filePath)
   );
 }
 
@@ -180,4 +142,23 @@ function readIndexHtmlEntryPath(
     .find(
       source => source !== undefined && !REMOTE_SOURCE_PATTERN.test(source),
     );
+}
+
+function readWebSourceFilePaths(projectDirectoryPath: string): string[] {
+  const sourceDirectoryPath = join(
+    projectDirectoryPath,
+    WEB_SOURCE_DIRECTORY_NAME,
+  );
+  if (!existsSync(sourceDirectoryPath)) {
+    return [];
+  }
+  return readdirSync(sourceDirectoryPath, {
+    recursive: true,
+    withFileTypes: true,
+  })
+    .filter(
+      entry =>
+        entry.isFile() && WEB_SOURCE_FILE_EXTENSIONS.has(extname(entry.name)),
+    )
+    .map(entry => join(entry.parentPath, entry.name));
 }

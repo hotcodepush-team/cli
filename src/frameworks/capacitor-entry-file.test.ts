@@ -7,9 +7,12 @@ import {
 } from '../../test/capacitor-project.js';
 import type { CapacitorProjectOptions } from '../../test/capacitor-project.js';
 import {
+  isSdkImported,
   resolveEntryFilePath,
-  resolveSdkImportEdit,
+  writeSdkImport,
 } from './capacitor-entry-file.js';
+
+const SDK_IMPORT_LINE = "import '@hotcodepush/capacitor-live-updates';\n";
 
 describe('capacitor-entry-file', () => {
   const directoryPaths: string[] = [];
@@ -18,6 +21,19 @@ describe('capacitor-entry-file', () => {
     const directoryPath = writeCapacitorProject(options);
     directoryPaths.push(directoryPath);
     return directoryPath;
+  }
+
+  function writeRootEntryFile(
+    directoryPath: string,
+    { source }: { source: string },
+  ): string {
+    const entryFilePath = join(directoryPath, 'main.ts');
+    writeFileSync(entryFilePath, source);
+    writeFileSync(
+      join(directoryPath, 'index.html'),
+      '<script type="module" src="/main.ts"></script>',
+    );
+    return entryFilePath;
   }
 
   afterEach(() => {
@@ -31,15 +47,19 @@ describe('capacitor-entry-file', () => {
       const directoryPath = writeProject();
       writeFileSync(
         join(directoryPath, 'index.html'),
-        [
-          '<script src="https://cdn.example.com/widget.js" type="module"></script>',
-          '<script src="/src/main.ts" type="module"></script>',
-        ].join('\n'),
+        '<script src="https://cdn.example.com/analytics.js"></script>\n<script type="module" src="/src/main.ts"></script>',
       );
 
       expect(resolveEntryFilePath(directoryPath)).toBe(
         join(directoryPath, CAPACITOR_ENTRY_FILE_PATH),
       );
+    });
+
+    it('should read the entry file beside index.html, where the Vite vanilla template places it', () => {
+      const directoryPath = writeProject();
+      const entryFilePath = writeRootEntryFile(directoryPath, { source: '' });
+
+      expect(resolveEntryFilePath(directoryPath)).toBe(entryFilePath);
     });
 
     it('should read the entry file from the browser build option of angular.json', () => {
@@ -74,23 +94,48 @@ describe('capacitor-entry-file', () => {
       expect(resolveEntryFilePath(directoryPath)).toBeUndefined();
     });
 
-    it('should resolve no entry file when the named file lies outside src/, since the import check would not find the edit', () => {
+    it('should resolve no entry file when the named file is missing or no script', () => {
       const directoryPath = writeProject();
-      writeFileSync(join(directoryPath, 'main.js'), '');
       writeFileSync(
         join(directoryPath, 'index.html'),
-        '<script type="module" src="/main.js"></script>',
+        '<script type="module" src="/src/missing.ts"></script>',
       );
 
       expect(resolveEntryFilePath(directoryPath)).toBeUndefined();
     });
   });
 
-  describe('resolveSdkImportEdit', () => {
-    function applyEdit(directoryPath: string, source: string): string {
+  describe('isSdkImported', () => {
+    it('should find the import in a file under src/ other than the entry file', () => {
+      const directoryPath = writeProject({ isSdkImported: false });
+      mkdirSync(join(directoryPath, 'src', 'app'));
+      writeFileSync(
+        join(directoryPath, 'src', 'app', 'live-updates.ts'),
+        SDK_IMPORT_LINE,
+      );
+
+      expect(
+        isSdkImported(directoryPath, {
+          entryFilePath: join(directoryPath, CAPACITOR_ENTRY_FILE_PATH),
+        }),
+      ).toBe(true);
+    });
+
+    it('should find the import in an entry file outside src/', () => {
+      const directoryPath = writeProject({ isSdkImported: false });
+      const entryFilePath = writeRootEntryFile(directoryPath, {
+        source: SDK_IMPORT_LINE,
+      });
+
+      expect(isSdkImported(directoryPath, { entryFilePath })).toBe(true);
+    });
+  });
+
+  describe('writeSdkImport', () => {
+    function applyImport(directoryPath: string, source: string): string {
       const entryFilePath = join(directoryPath, CAPACITOR_ENTRY_FILE_PATH);
       writeFileSync(entryFilePath, source);
-      resolveSdkImportEdit(directoryPath, { entryFilePath }).apply();
+      writeSdkImport(entryFilePath);
       return readFileSync(entryFilePath, 'utf8');
     }
 
@@ -98,7 +143,7 @@ describe('capacitor-entry-file', () => {
       const directoryPath = writeProject({ isSdkImported: false });
 
       expect(
-        applyEdit(
+        applyImport(
           directoryPath,
           "/* Demo license */\n/// <reference types=\"vite/client\" />\nimport { createApp } from 'vue';\n\ncreateApp({}).mount('#app');\n",
         ),
@@ -110,7 +155,7 @@ describe('capacitor-entry-file', () => {
     it('should insert the import at the top when the file has no import line', () => {
       const directoryPath = writeProject({ isSdkImported: false });
 
-      expect(applyEdit(directoryPath, "console.log('demo');\n")).toBe(
+      expect(applyImport(directoryPath, "console.log('demo');\n")).toBe(
         "import '@hotcodepush/capacitor-live-updates';\nconsole.log('demo');\n",
       );
     });
@@ -119,25 +164,20 @@ describe('capacitor-entry-file', () => {
       const directoryPath = writeProject({ isSdkImported: false });
 
       expect(
-        applyEdit(directoryPath, 'import { createApp } from "vue";\n'),
+        applyImport(directoryPath, 'import { createApp } from "vue";\n'),
       ).toBe(
         'import "@hotcodepush/capacitor-live-updates";\nimport { createApp } from "vue";\n',
       );
     });
 
-    it('should count the edit as applied when any file under src/ imports the package', () => {
+    it('should keep the line endings of a file written with CRLF', () => {
       const directoryPath = writeProject({ isSdkImported: false });
-      mkdirSync(join(directoryPath, 'src', 'app'));
-      writeFileSync(
-        join(directoryPath, 'src', 'app', 'live-updates.ts'),
-        "import '@hotcodepush/capacitor-live-updates';\n",
-      );
 
       expect(
-        resolveSdkImportEdit(directoryPath, {
-          entryFilePath: join(directoryPath, CAPACITOR_ENTRY_FILE_PATH),
-        }).isApplied(),
-      ).toBe(true);
+        applyImport(directoryPath, "import { createApp } from 'vue';\r\n"),
+      ).toBe(
+        "import '@hotcodepush/capacitor-live-updates';\r\nimport { createApp } from 'vue';\r\n",
+      );
     });
   });
 });

@@ -9,11 +9,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { NativeProjectError } from '../utils/errors.js';
-import { resolveGradleEdit } from './project-edit.js';
+import { resolveGradleEdit } from './native-project-edit.js';
 
 const PACKAGE_NAME = '@hotcodepush/capacitor-live-updates';
 
-describe('project-edit', () => {
+describe('native-project-edit', () => {
   let androidProjectPath = '';
 
   beforeEach(() => {
