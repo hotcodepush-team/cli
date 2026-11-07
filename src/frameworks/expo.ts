@@ -230,6 +230,7 @@ function resolveWiring({
     isPluginEntryEditable(directoryPath, appConfigFileNames) &&
     findPluginEntryFileName(directoryPath, appConfigFileNames) === undefined;
   return {
+    appFilePaths: [],
     isPackageInstalled,
     nativeFilePaths: [],
     packageFilePaths: [

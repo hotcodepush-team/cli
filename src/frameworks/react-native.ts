@@ -189,6 +189,7 @@ async function resolveWiring(
     REACT_NATIVE_PACKAGE_NAME,
   );
   return {
+    appFilePaths: [],
     isPackageInstalled,
     nativeFilePaths: resolveNativeFilePaths(located).map(filePath =>
       relative(directoryPath, filePath),

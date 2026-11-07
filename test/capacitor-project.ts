@@ -12,7 +12,10 @@ import { computeFingerprint } from '@hotcodepush/protocol/fingerprint';
 import { capacitorFramework } from '../src/frameworks/capacitor.js';
 
 export interface CapacitorProjectOptions {
+  // The file that names the entry file. Neither by default.
+  entryFileDeclaration?: 'angular_json' | 'index_html';
   isPackageInstalled?: boolean;
+  isSdkImported?: boolean;
   projectConfig?: object;
   webDir?: string;
 }
@@ -54,7 +57,9 @@ export const PBXPROJ_FIXTURE_PATH = join(
 );
 
 export function writeCapacitorProject({
+  entryFileDeclaration,
   isPackageInstalled = false,
+  isSdkImported = true,
   projectConfig,
   webDir = 'www',
 }: CapacitorProjectOptions = {}): string {
@@ -82,8 +87,11 @@ export function writeCapacitorProject({
   mkdirSync(join(directoryPath, 'src'));
   writeFileSync(
     join(directoryPath, CAPACITOR_ENTRY_FILE_PATH),
-    "import '@hotcodepush/capacitor-live-updates';\n",
+    isSdkImported
+      ? "import '@hotcodepush/capacitor-live-updates';\n"
+      : "console.log('demo');\n",
   );
+  writeEntryFileDeclaration(directoryPath, { entryFileDeclaration });
   const pbxprojPath = join(directoryPath, CAPACITOR_XCODE_PROJECT_FILE_PATH);
   mkdirSync(dirname(pbxprojPath), { recursive: true });
   writeFileSync(pbxprojPath, readFileSync(PBXPROJ_FIXTURE_PATH));
@@ -176,6 +184,27 @@ export function writeFingerprintInputs(directoryPath: string): void {
 
 export function readJsonFile<TValue>(filePath: string): TValue {
   return JSON.parse(readFileSync(filePath, 'utf8')) as TValue;
+}
+
+function writeEntryFileDeclaration(
+  directoryPath: string,
+  {
+    entryFileDeclaration,
+  }: Pick<CapacitorProjectOptions, 'entryFileDeclaration'>,
+): void {
+  if (entryFileDeclaration === 'index_html') {
+    writeFileSync(
+      join(directoryPath, 'index.html'),
+      '<!doctype html>\n<html>\n  <body>\n    <script type="module" src="/src/main.ts"></script>\n  </body>\n</html>\n',
+    );
+  }
+  if (entryFileDeclaration === 'angular_json') {
+    writeJson(join(directoryPath, 'angular.json'), {
+      projects: {
+        demo: { architect: { build: { options: { browser: 'src/main.ts' } } } },
+      },
+    });
+  }
 }
 
 function writeJson(filePath: string, value: object): void {

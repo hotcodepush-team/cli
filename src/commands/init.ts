@@ -188,7 +188,6 @@ export default defineCommand({
     } else {
       printRun(run, {
         app: account.app,
-        appImportStep: projectFiles.wiring.appImportStep,
         isReleased,
         privateKeyPath,
       });
@@ -273,6 +272,10 @@ async function runProjectSteps(
   await run.run('hook', {
     perform: () => projectFiles.wiring.wireBinaryCreateStep(editBlocker),
   });
+  const { wireAppImport } = projectFiles.wiring;
+  if (wireAppImport !== undefined) {
+    await run.run('import', { perform: () => wireAppImport(editBlocker) });
+  }
   return run.run('signing_key', {
     perform: () => createSigningKey(projectFiles, { app, options }),
   });
@@ -313,12 +316,10 @@ function printRun(
   run: InitRun,
   {
     app,
-    appImportStep,
     isReleased,
     privateKeyPath,
   }: {
     app: App | undefined;
-    appImportStep: string | undefined;
     isReleased: boolean;
     privateKeyPath: string | undefined;
   },
@@ -326,9 +327,6 @@ function printRun(
   // A blank line separates the rows from the package manager and build output above them.
   console.log('');
   printOutcomeRows(resolveStepRows(run.steps));
-  if (appImportStep !== undefined) {
-    printNotice(appImportStep);
-  }
   if (app !== undefined && run.status === 'complete') {
     printFinish(app, { isReleased, privateKeyPath });
   }
@@ -568,6 +566,7 @@ function resolveFilesToChange(
       ? []
       : [basename(configFilePath)]),
     ...wiring.nativeFilePaths,
+    ...wiring.appFilePaths,
   ];
 }
 

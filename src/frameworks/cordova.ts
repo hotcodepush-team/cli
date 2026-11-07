@@ -149,6 +149,7 @@ function resolveWiring({
     isSdkPackageDeclared(packageJson, CORDOVA_PACKAGE_NAME) &&
     isPluginListed(packageJson);
   return {
+    appFilePaths: [],
     isPackageInstalled,
     nativeFilePaths: [],
     packageFilePaths: isPackageInstalled ? [] : ['package.json'],

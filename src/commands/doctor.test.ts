@@ -153,12 +153,12 @@ describe('doctor', () => {
       manualStep:
         "Add \"import '@hotcodepush/capacitor-live-updates';\" to the app's entry file, such as src/main.ts.",
       message:
-        'No file under src/ imports @hotcodepush/capacitor-live-updates, so the app confirms no update.',
+        "The app's code does not import @hotcodepush/capacitor-live-updates, so it confirms no update.",
       status: 'failed',
     });
   });
 
-  it('should skip the import when the project has no src/ directory', async () => {
+  it('should skip the import when the project has no src/ directory and no entry file', async () => {
     const directoryPath = await writeSetUpProject();
     rmSync(join(directoryPath, 'src'), { force: true, recursive: true });
     respondWithSessionAndApp();
@@ -171,7 +171,8 @@ describe('doctor', () => {
     const result = harness.readJson() as DoctorResult;
     expect(result.checks.find(({ check }) => check === 'import')).toEqual({
       check: 'import',
-      message: 'There is no src/ directory to look for the import in.',
+      message:
+        'There is no src/ directory and no entry file to look for the import in.',
       status: 'skipped',
     });
   });

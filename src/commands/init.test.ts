@@ -154,8 +154,11 @@ describe('init', () => {
     }
   });
 
-  it('should set a fresh project up with --yes: the only organization, the app --app creates, the package, hotcodepush.json, the Xcode phase and the Gradle line', async () => {
-    const directoryPath = writeProject();
+  it('should set a fresh project up with --yes: the only organization, the app --app creates, the package, hotcodepush.json, the Xcode phase, the Gradle line and the import', async () => {
+    const directoryPath = writeProject({
+      entryFileDeclaration: 'index_html',
+      isSdkImported: false,
+    });
     respondWithSession([ACME_ORGANIZATION]);
     harness.routes[`GET ${APPS_PATH}`] = () => Response.json([]);
     harness.routes[`POST ${APPS_PATH}`] = () =>
@@ -205,6 +208,7 @@ describe('init', () => {
       build: 'skipped',
       configuration: 'done',
       hook: 'done',
+      import: 'done',
       organization: 'done',
       package: 'done',
       release: 'skipped',
@@ -218,6 +222,7 @@ describe('init', () => {
       `Installed @hotcodepush/capacitor-live-updates from ${CAPACITOR_PACKAGE_SPEC}.`,
       'Wrote hotcodepush.json.',
       'Wired the Create HotCodePush binary phase in Xcode, the Gradle task that runs the build step.',
+      `Wired the import in ${CAPACITOR_ENTRY_FILE_PATH}.`,
       'Run "hotcodepush signing-key create" to enable code signing.',
       'No release follows.',
       'Run "npm run build", then "hotcodepush release create" to publish the first release.',
@@ -250,6 +255,7 @@ describe('init', () => {
       '– Package        The package @hotcodepush/capacitor-live-updates is already installed.',
       '– Configuration  The file hotcodepush.json is already present.',
       '– Hook           The Xcode phase and the Gradle task are already wired.',
+      "– Import         The app's code already imports @hotcodepush/capacitor-live-updates.",
       '– Signing key    Run "hotcodepush signing-key create" to enable code signing.',
       '– Build          No release follows.',
       '– Release        Run "npm run build", then "hotcodepush release create" to publish the first release.',
@@ -263,33 +269,41 @@ describe('init', () => {
     );
   });
 
-  it('should name the SDK import as a notice before the build advice when no file under src/ imports it, leaving the file alone', async () => {
+  it('should name the entry file in the one confirmation and leave it alone when nobody can confirm', async () => {
     const directoryPath = writeProject({
+      entryFileDeclaration: 'index_html',
       isPackageInstalled: true,
+      isSdkImported: false,
       projectConfig: {
         appId: DEMO_APP.id,
         channel: PRODUCTION_CHANNEL.name,
       },
     });
     await wireCapacitorProject(directoryPath);
-    const entryFilePath = join(directoryPath, CAPACITOR_ENTRY_FILE_PATH);
-    writeFileSync(entryFilePath, "console.log('demo');\n");
     respondWithSession([ACME_ORGANIZATION]);
     respondWithConfiguredApp();
 
-    await initCommand.action(
-      { config: join(directoryPath, 'hotcodepush.json'), yes: true },
-      undefined,
-    );
+    await expect(
+      initCommand.action(
+        { config: join(directoryPath, 'hotcodepush.json'), json: true },
+        undefined,
+      ),
+    ).rejects.toBeInstanceOf(ReportedFailureError);
 
-    expect(harness.readDiagnostics()).toBe(
-      [
-        "Add \"import '@hotcodepush/capacitor-live-updates';\" to the app's entry file, such as src/main.ts.",
-        'Build the app natively once and run it, then publish the first release as shown above.',
-        '',
-      ].join('\n'),
-    );
-    expect(readFileSync(entryFilePath, 'utf8')).toBe("console.log('demo');\n");
+    expect(
+      (harness.readJson() as InitResult).steps.find(
+        ({ step }) => step === 'import',
+      ),
+    ).toEqual({
+      code: 'confirmation_required',
+      manualStep: `Run "hotcodepush init --yes" to change ${CAPACITOR_ENTRY_FILE_PATH}.`,
+      message: `A confirmation is required. This changes ${CAPACITOR_ENTRY_FILE_PATH}.`,
+      status: 'stopped',
+      step: 'import',
+    });
+    expect(
+      readFileSync(join(directoryPath, CAPACITOR_ENTRY_FILE_PATH), 'utf8'),
+    ).toBe("console.log('demo');\n");
   });
 
   it('should complete a hotcodepush.json that names its channel by id without naming another channel', async () => {
@@ -605,6 +619,7 @@ describe('init', () => {
       build: 'skipped',
       configuration: 'skipped',
       hook: 'done',
+      import: 'skipped',
       organization: 'stopped',
       package: 'done',
       release: 'skipped',
@@ -614,7 +629,7 @@ describe('init', () => {
     expect(result.steps[1]?.code).toBe('missing_parameter');
     expect(result.steps[2]?.message).toBe('Waits on the organization step.');
     expect(result.steps[4]?.message).toBe('Waits on the app step.');
-    expect(result.steps[8]?.message).toBe('Waits on the configuration step.');
+    expect(result.steps[9]?.message).toBe('Waits on the configuration step.');
   });
 
   it.each([
@@ -722,6 +737,7 @@ describe('init', () => {
         build: 'skipped',
         configuration: 'skipped',
         hook: 'done',
+        import: 'skipped',
         organization: 'done',
         package: 'done',
         release: 'skipped',
@@ -1020,6 +1036,7 @@ describe('init', () => {
       '– Package        The package @hotcodepush/capacitor-live-updates is already installed.',
       '✓ Configuration  Wrote hotcodepush.json.',
       '✓ Hook           Wired the Create HotCodePush binary phase in Xcode, the Gradle task that runs the build step.',
+      "– Import         The app's code already imports @hotcodepush/capacitor-live-updates.",
       '✓ Signing key    Generated a signing key pair, its private key in the file named above.',
       '✓ Build          Ran "npm run build".',
       '✓ Release        Released to production.',
