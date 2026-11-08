@@ -282,18 +282,32 @@ export const FLEET: FleetStatistics = {
   platform: [{ deviceCount: 120, value: 'ios' }],
   release: [
     {
+      bundleNumber: 12,
+      bundleVersion: '1.4.2',
       channelId: STAGING_CHANNEL.id,
+      createdAt: LIVE_RELEASE.createdAt,
       deviceCount: 80,
       number: LIVE_RELEASE.number,
       value: LIVE_RELEASE.id,
     },
     {
+      bundleNumber: 11,
+      bundleVersion: '1.4.1',
       channelId: STAGING_CHANNEL.id,
+      createdAt: PREVIOUS_RELEASE.createdAt,
       deviceCount: 20,
       number: PREVIOUS_RELEASE.number,
       value: PREVIOUS_RELEASE.id,
     },
-    { channelId: null, deviceCount: 20, number: null, value: null },
+    {
+      bundleNumber: null,
+      bundleVersion: null,
+      channelId: null,
+      createdAt: null,
+      deviceCount: 20,
+      number: null,
+      value: null,
+    },
   ],
   sdkVersion: [{ deviceCount: 120, value: '0.1.0' }],
 };

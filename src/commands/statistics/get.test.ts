@@ -44,12 +44,23 @@ const FLEET_STATISTICS: FleetStatistics = {
   platform: [{ deviceCount: 70, value: 'ios' }],
   release: [
     {
+      bundleNumber: 12,
+      bundleVersion: '1.4.2',
       channelId: STAGING_CHANNEL.id,
+      createdAt: LIVE_RELEASE.createdAt,
       deviceCount: 50,
       number: 43,
       value: LIVE_RELEASE.id,
     },
-    { channelId: null, deviceCount: 20, number: null, value: null },
+    {
+      bundleNumber: null,
+      bundleVersion: null,
+      channelId: null,
+      createdAt: null,
+      deviceCount: 20,
+      number: null,
+      value: null,
+    },
   ],
   sdkVersion: [{ deviceCount: 70, value: '0.1.0' }],
 };
