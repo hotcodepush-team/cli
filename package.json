@@ -66,7 +66,7 @@
   "dependencies": {
     "@clack/core": "1.5.1",
     "@clack/prompts": "1.8.1",
-    "@hotcodepush/node": "https://pkg.pr.new/hotcodepush-team/hotcodepush-node/@hotcodepush/node@0cebc95",
+    "@hotcodepush/node": "0.2.0",
     "@hotcodepush/protocol": "0.1.0",
     "@napi-rs/keyring": "2.1.0",
     "better-auth": "1.7.16",
