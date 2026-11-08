@@ -11,7 +11,7 @@ import { NativeProjectError } from '../utils/errors.js';
 import { stringifyLikeSource } from '../utils/json-file.js';
 import {
   collectEmbeddedFiles,
-  packageReactNativeBundles,
+  packageReactNativeBundle,
   readBuildDirectory,
 } from './react-native-build.js';
 import {
@@ -71,8 +71,8 @@ export const expoFramework: FrameworkModule = {
   ],
   collectEmbeddedFiles,
   hasConfigFile: hasExpoAppJson,
-  packageBundles: request =>
-    packageReactNativeBundles(request, () => BUNDLER_ARGS),
+  packageBundle: request =>
+    packageReactNativeBundle(request, () => BUNDLER_ARGS),
   readBuildDirectory,
   resolveWiring: project => Promise.resolve(resolveWiring(project)),
 };

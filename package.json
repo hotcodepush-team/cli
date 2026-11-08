@@ -1,7 +1,7 @@
 {
   "name": "hotcodepush",
   "description": "The HotCodePush CLI: set up, release and manage over-the-air (OTA) updates from the terminal and CI",
-  "version": "0.2.6",
+  "version": "0.3.0",
   "private": false,
   "license": "MIT",
   "homepage": "https://hotcodepush.com",
@@ -66,7 +66,7 @@
   "dependencies": {
     "@clack/core": "1.5.1",
     "@clack/prompts": "1.8.1",
-    "@hotcodepush/node": "0.1.0",
+    "@hotcodepush/node": "0.2.0",
     "@hotcodepush/protocol": "0.1.0",
     "@napi-rs/keyring": "2.1.0",
     "better-auth": "1.7.16",

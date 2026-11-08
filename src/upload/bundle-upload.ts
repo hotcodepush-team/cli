@@ -6,10 +6,11 @@ import {
   detectFramework,
   readInputDirectoryPath,
 } from '../frameworks/framework.js';
-import type { FrameworkModule, PackagedBundle } from '../frameworks/index.js';
+import type { FrameworkModule } from '../frameworks/index.js';
 import { resolveFrameworkModule } from '../frameworks/index.js';
+import type { PlatformOptions } from '../frameworks/platform.js';
+import { platformOptionShape, readPlatform } from '../frameworks/platform.js';
 import { fetchAppId } from '../resources/apps.js';
-import type { InteractivityOptions } from '../utils/environment.js';
 import { SigningKeyUnavailableError } from '../utils/errors.js';
 import { readPackageJson } from '../utils/package-json.js';
 import { createReporter } from '../utils/progress.js';
@@ -27,23 +28,17 @@ import type { Platform, UploadBundleOptions } from './upload.js';
 import { PLATFORMS } from './upload.js';
 
 export interface BundleUploadOptions
-  extends GitProvenanceOptions, InteractivityOptions {
+  extends GitProvenanceOptions, PlatformOptions {
   app?: string;
   bundleVersion?: string;
   config?: string;
   organization?: string;
   path?: string;
-  platform?: Platform[];
   privateKeyPath?: string;
 }
 
-// Validated in the schema, so a wrong platform is reported under the flag name.
-const platformListSchema = z
-  .string()
-  .transform(value => value.split(',').map(platform => platform.trim()))
-  .pipe(z.array(z.enum(PLATFORMS)).min(1));
-
 export const bundleUploadOptionShape = {
+  ...platformOptionShape,
   bundleVersion: z
     .string()
     .optional()
@@ -72,9 +67,6 @@ export const bundleUploadOptionShape = {
     .describe(
       "The build to upload, the framework's build output by default: on React Native and Expo one platform's prepared bundle, Capacitor's webDir or Cordova's www.",
     ),
-  platform: platformListSchema
-    .optional()
-    .describe('The platforms the bundle serves, ios,android by default.'),
   privateKeyPath: z
     .string()
     .optional()
@@ -85,7 +77,7 @@ export const bundleUploadOptionShape = {
 
 // Nothing is uploaded yet, so `release create` can resolve before it confirms.
 // Its dry run resolves without the private key.
-export async function buildBundleUploads(
+export async function buildBundleUpload(
   hotCodePush: HotCodePush,
   {
     isDryRun = false,
@@ -96,7 +88,7 @@ export async function buildBundleUploads(
     options: BundleUploadOptions;
     packagingDirectoryPath: string;
   },
-): Promise<{ appId: string; bundleUploads: UploadBundleOptions[] }> {
+): Promise<UploadBundleOptions> {
   const project = locateProjectConfig(options.config);
   const framework = resolveFrameworkModule(
     detectFramework(project.directoryPath),
@@ -105,53 +97,54 @@ export async function buildBundleUploads(
     options,
     projectConfig: project.projectConfig,
   });
+  const platform = await readPlatform(framework, options);
   const sharedUploadOptions = await readSharedUploadOptions(project, {
     appId,
     framework,
     isDryRun,
     options,
   });
-  const packagedBundles = await packageBundles(framework, {
-    options,
-    packagingDirectoryPath,
-    projectDirectoryPath: project.directoryPath,
-  });
   return {
-    appId,
-    bundleUploads: packagedBundles.map(packagedBundle => ({
-      ...sharedUploadOptions,
-      ...packagedBundle,
-    })),
+    ...sharedUploadOptions,
+    directoryPath: await packageBundle(framework, {
+      options,
+      packagingDirectoryPath,
+      platform,
+      projectDirectoryPath: project.directoryPath,
+    }),
+    platforms: platform === null ? PLATFORMS : [platform],
   };
 }
 
 // A framework without its own packaging uploads its build output for every platform at once.
-async function packageBundles(
+// The platform is null only on such a framework, since `readPlatform` asks for it everywhere else.
+async function packageBundle(
   framework: FrameworkModule,
   {
     options,
     packagingDirectoryPath,
+    platform,
     projectDirectoryPath,
   }: {
     options: BundleUploadOptions;
     packagingDirectoryPath: string;
+    platform: Platform | null;
     projectDirectoryPath: string;
   },
-): Promise<PackagedBundle[]> {
-  if (framework.packageBundles !== undefined) {
-    return framework.packageBundles({
+): Promise<string> {
+  if (framework.packageBundle !== undefined && platform !== null) {
+    return framework.packageBundle({
       packagingDirectoryPath,
       path: options.path,
-      platforms: options.platform,
+      platform,
       projectDirectoryPath,
     });
   }
-  const directoryPath = await readInputDirectoryPath(options, {
+  return readInputDirectoryPath(options, {
     framework,
     pathFlag: '--path',
     projectDirectoryPath,
   });
-  return [{ directoryPath, platforms: options.platform ?? PLATFORMS }];
 }
 
 async function readSharedUploadOptions(
@@ -167,7 +160,7 @@ async function readSharedUploadOptions(
     isDryRun: boolean;
     options: BundleUploadOptions;
   },
-): Promise<Omit<UploadBundleOptions, keyof PackagedBundle>> {
+): Promise<Omit<UploadBundleOptions, 'directoryPath' | 'platforms'>> {
   return {
     appId,
     bundleVersion: await resolveBundleVersion(options, directoryPath),

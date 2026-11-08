@@ -13,14 +13,12 @@ import {
 import { paginationShape, resolveNextOffset } from '../../utils/pagination.js';
 import { readProjectConfig } from '../../utils/project-config.js';
 
-const BUNDLE_SOURCES = ['all', 'binary', 'upload'] as const;
-
 export default defineCommand({
   description:
-    "List an app's bundles, newest first: the uploaded ones by default, the ones binaries ship with --source binary, both with --source all.",
+    "List an app's uploaded bundles, newest first. The bundle a binary ships is in binary list and binary get.",
   examples: [
     'hotcodepush bundle list',
-    'hotcodepush bundle list --source all --bundle-version 1.4.2 --json',
+    'hotcodepush bundle list --bundle-version 1.4.2 --json',
   ],
   options: defineCommandOptions({
     ...paginationShape,
@@ -28,16 +26,9 @@ export default defineCommand({
       .string()
       .optional()
       .describe('Only the bundles carrying this version label.'),
-    source: z
-      .enum(BUNDLE_SOURCES)
-      .optional()
-      .describe(
-        'upload is the bundles a release can carry, binary is the ones binaries ship, which have no number, and all is both. Defaults to upload.',
-      ),
   }),
   action: async options => {
     const hotCodePush = createApiClient();
-    const source = options.source ?? 'upload';
     const listedBundles = await hotCodePush.apps.bundles.list({
       appId: await fetchAppId(hotCodePush, {
         options,
@@ -45,7 +36,6 @@ export default defineCommand({
       }),
       limit: options.limit,
       offset: options.offset,
-      source: source === 'all' ? undefined : source,
       version: options.bundleVersion,
     });
     const nextOffset = resolveNextOffset(listedBundles.length, options);
@@ -55,15 +45,7 @@ export default defineCommand({
     }
     printTable({
       emptyText: 'No bundles.',
-      headers: [
-        'NUMBER',
-        'VERSION',
-        'SOURCE',
-        'STATUS',
-        'PLATFORMS',
-        'SIZE',
-        'CREATED',
-      ],
+      headers: ['NUMBER', 'VERSION', 'STATUS', 'PLATFORMS', 'SIZE', 'CREATED'],
       nextOffset,
       rows: listedBundles.map(resolveBundleRow),
     });
@@ -75,14 +57,12 @@ function resolveBundleRow({
   number,
   platforms,
   sizeBytes,
-  source,
   status,
   version,
 }: Bundle): string[] {
   return [
     number === null ? '' : `#${number}`,
     version,
-    source,
     status,
     platforms.join(','),
     resolveByteText(sizeBytes),

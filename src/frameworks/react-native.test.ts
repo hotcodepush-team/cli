@@ -69,15 +69,15 @@ describe('reactNativeFramework', () => {
     }
   });
 
-  describe('packageBundles', () => {
+  describe('packageBundle', () => {
     it('should bundle with react-native bundle from index.js', async () => {
       const directoryPath = writeProject();
       disableAndroidHermes(directoryPath);
 
-      await reactNativeFramework.packageBundles?.({
+      await reactNativeFramework.packageBundle?.({
         packagingDirectoryPath: join(directoryPath, 'packaging'),
         path: undefined,
-        platforms: ['android'],
+        platform: 'android',
         projectDirectoryPath: directoryPath,
       });
 
@@ -93,10 +93,10 @@ describe('reactNativeFramework', () => {
         content: '// android entry\n',
       });
 
-      await reactNativeFramework.packageBundles?.({
+      await reactNativeFramework.packageBundle?.({
         packagingDirectoryPath: join(directoryPath, 'packaging'),
         path: undefined,
-        platforms: ['android'],
+        platform: 'android',
         projectDirectoryPath: directoryPath,
       });
 

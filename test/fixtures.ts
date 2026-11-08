@@ -130,6 +130,7 @@ export const READY_BUNDLE: Bundle = {
   appId: DEMO_APP.id,
   version: '1.4.2',
   createdAt: '2026-09-05T08:00:00.000Z',
+  expiredAt: null,
   expiresAt: null,
   fingerprint: null,
   framework: 'capacitor',
@@ -173,6 +174,17 @@ export const BINARY: Binary = {
   version: '1.0',
 };
 
+// The bundle the binary ships, which carries no number.
+export const EMBEDDED_BUNDLE: Bundle = {
+  ...PREVIOUS_BUNDLE,
+  fingerprint: null,
+  id: BINARY.bundleId,
+  number: null,
+  platforms: [BINARY.platform],
+  source: 'binary',
+  version: BINARY.version,
+};
+
 // One delta is built against the previous bundle, one is requested against the binary.
 export const READY_BUNDLE_DELTAS: BundleDelta[] = [
   {
@@ -187,13 +199,7 @@ export const READY_BUNDLE_DELTAS: BundleDelta[] = [
     updatedAt: '2026-09-07T08:00:04.000Z',
   },
   {
-    baseBundle: {
-      ...PREVIOUS_BUNDLE,
-      fingerprint: null,
-      id: BINARY.bundleId,
-      number: null,
-      source: 'binary',
-    },
+    baseBundle: EMBEDDED_BUNDLE,
     baseBundleId: BINARY.bundleId,
     bundleId: READY_BUNDLE.id,
     createdAt: '2026-09-07T08:00:01.000Z',
@@ -270,22 +276,38 @@ export const FLEET: FleetStatistics = {
   country: [{ deviceCount: 120, value: 'DE' }],
   currentDeviceCount: 100,
   deviceCount: 120,
+  ineligibleDeviceCount: 5,
   osVersion: [{ deviceCount: 120, platform: 'ios', value: '17.4' }],
+  pendingDeviceCount: 15,
   platform: [{ deviceCount: 120, value: 'ios' }],
   release: [
     {
+      bundleNumber: 12,
+      bundleVersion: '1.4.2',
       channelId: STAGING_CHANNEL.id,
+      createdAt: LIVE_RELEASE.createdAt,
       deviceCount: 80,
       number: LIVE_RELEASE.number,
       value: LIVE_RELEASE.id,
     },
     {
+      bundleNumber: 11,
+      bundleVersion: '1.4.1',
       channelId: STAGING_CHANNEL.id,
+      createdAt: PREVIOUS_RELEASE.createdAt,
       deviceCount: 20,
       number: PREVIOUS_RELEASE.number,
       value: PREVIOUS_RELEASE.id,
     },
-    { channelId: null, deviceCount: 20, number: null, value: null },
+    {
+      bundleNumber: null,
+      bundleVersion: null,
+      channelId: null,
+      createdAt: null,
+      deviceCount: 20,
+      number: null,
+      value: null,
+    },
   ],
   sdkVersion: [{ deviceCount: 120, value: '0.1.0' }],
 };

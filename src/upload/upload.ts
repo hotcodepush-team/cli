@@ -239,7 +239,8 @@ async function createSignedBundle(
     files: manifest.files,
     fingerprint,
     platforms: manifest.platforms,
-    signature,
+    signature: signature?.value ?? null,
+    signatureKeyId: signature?.keyId ?? null,
     version: bundleVersion,
     ...gitProvenance,
   });

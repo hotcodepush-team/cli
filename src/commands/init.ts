@@ -10,15 +10,20 @@ import {
 } from '../config/consts.js';
 import type { Framework } from '../frameworks/framework.js';
 import { detectFramework } from '../frameworks/framework.js';
-import { resolveFrameworkModule } from '../frameworks/index.js';
+import {
+  isBundlePerPlatform,
+  resolveFrameworkModule,
+} from '../frameworks/index.js';
 import type {
   FrameworkModule,
   FrameworkWiring,
   StepOutcome,
 } from '../frameworks/index.js';
+import { readPlatform } from '../frameworks/platform.js';
 import { fetchApps } from '../resources/apps.js';
 import { fetchOrganizations } from '../resources/organizations.js';
 import { fetchHasSigningKey } from '../resources/signing-keys.js';
+import type { Platform } from '../upload/upload.js';
 import { createApiClient } from '../utils/api-client.js';
 import { defineCommand } from '../utils/command.js';
 import {
@@ -115,6 +120,11 @@ interface ResourceCreation<TResource extends NamedResource> {
   options: InitOptions;
 }
 
+interface ProjectSetup {
+  channelName: string | undefined;
+  privateKeyPath: string | undefined;
+}
+
 interface Scope {
   app: App | undefined;
   organization: Organization;
@@ -173,15 +183,15 @@ export default defineCommand({
       framework: project.frameworkModule,
       options,
     });
-    const privateKeyPath = await runProjectSteps(run, {
+    const projectSetup = await runProjectSteps(run, {
       account,
       options,
       projectFiles,
     });
     const isReleased = await runReleaseSteps(run, {
       options,
-      privateKeyPath,
       projectFiles,
+      projectSetup,
     });
     if (options.json) {
       printJson({ status: run.status, steps: run.steps });
@@ -189,7 +199,9 @@ export default defineCommand({
       printRun(run, {
         app: account.app,
         isReleased,
-        privateKeyPath,
+        releaseCommandText: resolveReleaseCommandText(projectFiles.framework, {
+          privateKeyPath: projectSetup.privateKeyPath,
+        }),
       });
     }
     if (run.stoppedCode !== undefined) {
@@ -247,7 +259,7 @@ async function runAccountSteps(
   return { app, hotCodePush };
 }
 
-// Returns the private key's path when the signing key step generated one.
+// The private key's path is there when the signing key step generated one.
 async function runProjectSteps(
   run: InitRun,
   {
@@ -255,12 +267,12 @@ async function runProjectSteps(
     options,
     projectFiles,
   }: { account: Account; options: InitOptions; projectFiles: ProjectFiles },
-): Promise<string | undefined> {
+): Promise<ProjectSetup> {
   const editBlocker = await confirmProjectEdits(projectFiles, { app, options });
   await run.run('package', {
     perform: () => installPackage(projectFiles, { editBlocker }),
   });
-  await run.run('configuration', {
+  const channelName = await run.run('configuration', {
     dependsOn: ['app'],
     perform: () =>
       writeConfiguration(requireValue(hotCodePush), {
@@ -276,21 +288,22 @@ async function runProjectSteps(
   if (wireAppImport !== undefined) {
     await run.run('import', { perform: () => wireAppImport(editBlocker) });
   }
-  return run.run('signing_key', {
+  const privateKeyPath = await run.run('signing_key', {
     perform: () => createSigningKey(projectFiles, { app, options }),
   });
+  return { channelName, privateKeyPath };
 }
 
 async function runReleaseSteps(
   run: InitRun,
   {
     options,
-    privateKeyPath,
     projectFiles,
+    projectSetup,
   }: {
     options: InitOptions;
-    privateKeyPath: string | undefined;
     projectFiles: ProjectFiles;
+    projectSetup: ProjectSetup;
   },
 ): Promise<boolean> {
   const isReleaseWanted =
@@ -306,7 +319,7 @@ async function runReleaseSteps(
         isBuilt: isBuilt === true,
         isReleaseWanted,
         options,
-        privateKeyPath,
+        projectSetup,
       }),
   });
   return isReleased === true;
@@ -317,18 +330,18 @@ function printRun(
   {
     app,
     isReleased,
-    privateKeyPath,
+    releaseCommandText,
   }: {
     app: App | undefined;
     isReleased: boolean;
-    privateKeyPath: string | undefined;
+    releaseCommandText: string;
   },
 ): void {
   // A blank line separates the rows from the package manager and build output above them.
   console.log('');
   printOutcomeRows(resolveStepRows(run.steps));
   if (app !== undefined && run.status === 'complete') {
-    printFinish(app, { isReleased, privateKeyPath });
+    printFinish(app, { isReleased, releaseCommandText });
   }
 }
 
@@ -602,23 +615,23 @@ async function writeConfiguration(
     editBlocker: ConfirmationRequiredError | undefined;
     projectFiles: ProjectFiles;
   },
-): Promise<StepOutcome<undefined>> {
+): Promise<StepOutcome<string>> {
   if (isConfigurationComplete(projectConfig, app)) {
     return {
       message: `The file ${basename(configFilePath)} is already present.`,
       status: 'skipped',
-      value: undefined,
+      value: resolveProjectChannel(projectConfig ?? {}),
     };
   }
   if (editBlocker !== undefined) {
     throw editBlocker;
   }
+  const channelName =
+    projectConfig?.channel ?? (await fetchDefaultChannelName(hotCodePush, app));
   writeProjectConfigFile(configFilePath, {
     ...projectConfig,
     appId: app.id,
-    ...(projectConfig?.channel !== undefined
-      ? {}
-      : { channel: await fetchDefaultChannelName(hotCodePush, app) }),
+    channel: channelName,
   });
   return {
     message: resolveConfigurationMessage(projectConfig, {
@@ -626,7 +639,7 @@ async function writeConfiguration(
       fileName: basename(configFilePath),
     }),
     status: 'done',
-    value: undefined,
+    value: channelName,
   };
 }
 
@@ -709,10 +722,10 @@ function runBuildScript(
   { directoryPath, framework, packageJson }: ProjectFiles,
   { isReleaseWanted }: { isReleaseWanted: boolean },
 ): Promise<StepOutcome<boolean>> {
-  if (framework.packageBundles !== undefined) {
+  if (isBundlePerPlatform(framework)) {
     return Promise.resolve({
       message:
-        'The command "hotcodepush release create" packages the bundles itself.',
+        'The command "hotcodepush release create --platform ios" packages the bundle for the platform it names, once per platform.',
       status: 'skipped',
       value: false,
     });
@@ -740,21 +753,24 @@ function runBuildScript(
   });
 }
 
+// The release step waits on the configuration step, so the channel is known here.
 async function releaseFirst(
   projectFiles: ProjectFiles,
   {
     isBuilt,
     isReleaseWanted,
     options,
-    privateKeyPath,
+    projectSetup: { channelName, privateKeyPath },
   }: {
     isBuilt: boolean;
     isReleaseWanted: boolean;
     options: InitOptions;
-    privateKeyPath: string | undefined;
+    projectSetup: ProjectSetup;
   },
 ): Promise<StepOutcome<boolean>> {
-  const releaseCommandText = resolveReleaseCommandText(privateKeyPath);
+  const releaseCommandText = resolveReleaseCommandText(projectFiles.framework, {
+    privateKeyPath,
+  });
   if (!isReleaseWanted) {
     return resolveDeclinedReleaseOutcome(projectFiles, releaseCommandText);
   }
@@ -765,17 +781,29 @@ async function releaseFirst(
   if (missingBuildOutcome !== undefined) {
     return missingBuildOutcome;
   }
+  const platform = await readPlatform(projectFiles.framework, options);
   await releaseCreateCommand.action(
     {
       config: projectFiles.configFilePath,
       json: options.json,
+      platform: platform ?? undefined,
       privateKeyPath,
       yes: true,
     },
     undefined,
   );
+  return resolveReleasedOutcome(requireValue(channelName), { platform });
+}
+
+function resolveReleasedOutcome(
+  channelName: string,
+  { platform }: { platform: Platform | null },
+): StepOutcome<boolean> {
   return {
-    message: 'Released to production.',
+    message:
+      platform === null
+        ? `Released to ${channelName}.`
+        : `Released the ${platform} bundle to ${channelName}.`,
     status: 'done',
     value: true,
   };
@@ -790,7 +818,7 @@ function checkBuildOutput(
 ): StepOutcome<boolean> | undefined {
   const buildDirectory = framework.readBuildDirectory(directoryPath);
   if (
-    framework.packageBundles !== undefined ||
+    isBundlePerPlatform(framework) ||
     isBuilt ||
     !('path' in buildDirectory) ||
     existsSync(join(directoryPath, buildDirectory.path))
@@ -809,10 +837,9 @@ function resolveDeclinedReleaseOutcome(
   { directoryPath, framework, packageJson }: ProjectFiles,
   releaseCommandText: string,
 ): StepOutcome<boolean> {
-  const buildCommandLine =
-    framework.packageBundles === undefined
-      ? resolveBuildCommandLine(directoryPath, packageJson)
-      : undefined;
+  const buildCommandLine = isBundlePerPlatform(framework)
+    ? undefined
+    : resolveBuildCommandLine(directoryPath, packageJson);
   return {
     message:
       buildCommandLine === undefined
@@ -828,8 +855,8 @@ function printFinish(
   app: App,
   {
     isReleased,
-    privateKeyPath,
-  }: { isReleased: boolean; privateKeyPath: string | undefined },
+    releaseCommandText,
+  }: { isReleased: boolean; releaseCommandText: string },
 ): void {
   console.log('');
   printResult({
@@ -841,7 +868,7 @@ function printFinish(
   });
   printNotice(
     isReleased
-      ? `Build the app natively once and run it. Change a line, run the build and "${resolveReleaseCommandText(privateKeyPath)}", then reopen the app.`
+      ? `Build the app natively once and run it. Change a line, run the build and "${releaseCommandText}", then reopen the app.`
       : 'Build the app natively once and run it, then publish the first release as shown above.',
   );
 }
@@ -934,10 +961,18 @@ function resolveBuildCommandLine(
       );
 }
 
-function resolveReleaseCommandText(privateKeyPath: string | undefined): string {
-  return privateKeyPath === undefined
-    ? 'hotcodepush release create'
-    : `hotcodepush release create --private-key-path ${privateKeyPath}`;
+// A framework that packages per platform releases one platform per run, so the example names one.
+function resolveReleaseCommandText(
+  framework: FrameworkModule,
+  { privateKeyPath }: { privateKeyPath: string | undefined },
+): string {
+  return [
+    'hotcodepush release create',
+    ...(isBundlePerPlatform(framework) ? ['--platform ios'] : []),
+    ...(privateKeyPath === undefined
+      ? []
+      : [`--private-key-path ${privateKeyPath}`]),
+  ].join(' ');
 }
 
 function resolveCreated<TResource extends { name: string }>(

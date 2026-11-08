@@ -1,5 +1,7 @@
+import { rmSync } from 'node:fs';
+import { join } from 'node:path';
 import { S_SUCCESS } from '@clack/prompts';
-import type { Audience, Channel, Release } from '@hotcodepush/node';
+import type { App, Audience, Channel, Release } from '@hotcodepush/node';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CAPACITOR_FINGERPRINT } from '../../../test/capacitor-project.js';
 import {
@@ -17,6 +19,7 @@ import {
   READY_BUNDLE,
   STAGING_CHANNEL,
 } from '../../../test/fixtures.js';
+import { writeReactNativeProject } from '../../../test/react-native-project.js';
 import {
   CHANNEL_PATH,
   RELEASES_PATH,
@@ -25,13 +28,14 @@ import {
 } from '../../../test/release-routes.js';
 import { collectBundleFiles } from '../../upload/bundle-files.js';
 import type * as bundleUploadModule from '../../upload/bundle-upload.js';
-import { buildBundleUploads } from '../../upload/bundle-upload.js';
+import { buildBundleUpload } from '../../upload/bundle-upload.js';
 import type * as uploadModule from '../../upload/upload.js';
 import type { UploadBundleOptions } from '../../upload/upload.js';
 import { uploadBundle } from '../../upload/upload.js';
 import {
   ConfirmationRequiredError,
   InvalidParameterError,
+  MissingParameterError,
 } from '../../utils/errors.js';
 import { createReporter } from '../../utils/progress.js';
 import { confirm, select } from '../../utils/prompt-renderers.js';
@@ -44,7 +48,7 @@ vi.mock('../../utils/prompt-renderers.js', () =>
 );
 vi.mock('../../upload/bundle-upload.js', async importOriginal => ({
   ...(await importOriginal<typeof bundleUploadModule>()),
-  buildBundleUploads: vi.fn(),
+  buildBundleUpload: vi.fn(),
 }));
 vi.mock('../../upload/bundle-files.js');
 vi.mock('../../upload/upload.js', async importOriginal => ({
@@ -80,13 +84,6 @@ const UPLOAD_BUNDLE_OPTIONS: UploadBundleOptions = {
   platforms: ['android', 'ios'],
   reporter: createReporter({ json: true }),
   signingPrivateKey: null,
-};
-
-const PRODUCTION_RELEASE = {
-  ...LIVE_RELEASE,
-  channelId: PRODUCTION_CHANNEL.id,
-  id: 'c3d4e5f6-a7b8-4c9d-8e1f-2a3b4c5d6e7f',
-  number: 7,
 };
 
 function buildReleaseWithRelations(
@@ -147,10 +144,7 @@ describe('release create', () => {
   }
 
   function stubWebBuildUpload(): void {
-    vi.mocked(buildBundleUploads).mockResolvedValue({
-      appId: DEMO_APP.id,
-      bundleUploads: [UPLOAD_BUNDLE_OPTIONS],
-    });
+    vi.mocked(buildBundleUpload).mockResolvedValue(UPLOAD_BUNDLE_OPTIONS);
     vi.mocked(uploadBundle).mockResolvedValue({
       bundle: { ...READY_BUNDLE, fingerprint: CAPACITOR_FINGERPRINT },
       upload: { fileCount: 0, sizeBytes: 0 },
@@ -189,6 +183,7 @@ describe('release create', () => {
       conditions: [],
       isMandatory: false,
       notes: null,
+      platform: null,
       rolloutPercent: 100,
     });
     expect(
@@ -218,7 +213,7 @@ describe('release create', () => {
     respondWithCreatedRelease();
 
     await releaseCreateCommand.action(
-      { bundle: '17', channel: [STAGING_CHANNEL.id] },
+      { bundle: '17', channel: STAGING_CHANNEL.id },
       undefined,
     );
 
@@ -235,7 +230,7 @@ describe('release create', () => {
       {
         app: DEMO_APP.name,
         bundle: '17',
-        channel: [STAGING_CHANNEL.id],
+        channel: STAGING_CHANNEL.id,
         json: true,
         yes: true,
       },
@@ -249,7 +244,7 @@ describe('release create', () => {
     ).toHaveLength(1);
   });
 
-  it('should upload the web build first without --bundle, with its fingerprint as a condition, and print the one release as a JSON array with its bundle and its channel when --yes and --json are passed', async () => {
+  it('should upload the web build first without --bundle, with its fingerprint as a condition, and print the one release as a JSON object with its bundle and its channel when --yes and --json are passed', async () => {
     stubWebBuildUpload();
     respondWithStagingChannel();
     respondWithCreatedRelease();
@@ -257,7 +252,7 @@ describe('release create', () => {
     await releaseCreateCommand.action(
       {
         app: DEMO_APP.id,
-        channel: [STAGING_CHANNEL.id],
+        channel: STAGING_CHANNEL.id,
         json: true,
         mandatory: true,
         notes: 'cart fix',
@@ -268,7 +263,7 @@ describe('release create', () => {
       undefined,
     );
 
-    expect(buildBundleUploads).toHaveBeenCalledWith(expect.anything(), {
+    expect(buildBundleUpload).toHaveBeenCalledWith(expect.anything(), {
       isDryRun: undefined,
       options: expect.objectContaining({ path: 'dist' }),
       packagingDirectoryPath: expect.any(String),
@@ -284,11 +279,13 @@ describe('release create', () => {
       conditions: [{ fingerprint: CAPACITOR_FINGERPRINT, type: 'fingerprint' }],
       isMandatory: true,
       notes: 'cart fix',
+      platform: null,
       rolloutPercent: 10,
     });
-    expect(harness.readJson()).toEqual([
+    expect(readCreateRequests()).toHaveLength(1);
+    expect(harness.readJson()).toEqual(
       buildReleaseWithRelations(LIVE_RELEASE, STAGING_CHANNEL),
-    ]);
+    );
   });
 
   it('should send a new Idempotency-Key on every run, so a second run creates a second release', async () => {
@@ -349,7 +346,7 @@ describe('release create', () => {
       attribute: ['tier=beta'],
       binaryVersion: '>=2.3.0 <3.0.0',
       bundle: READY_BUNDLE.id,
-      channel: [STAGING_CHANNEL.id],
+      channel: STAGING_CHANNEL.id,
       device: [DEVICE_ID],
       osVersion: '>=17',
       yes: true,
@@ -418,7 +415,7 @@ describe('release create', () => {
       {
         app: DEMO_APP.id,
         bundle: READY_BUNDLE.id,
-        channel: [STAGING_CHANNEL.id],
+        channel: STAGING_CHANNEL.id,
         failureAction: 'revoke',
         failureMinimumUpdateCount: 50,
         failureThresholdPercent: 5,
@@ -451,7 +448,7 @@ describe('release create', () => {
         {
           app: DEMO_APP.id,
           bundle: READY_BUNDLE.id,
-          channel: [STAGING_CHANNEL.id],
+          channel: STAGING_CHANNEL.id,
           progression: true,
         },
         undefined,
@@ -489,7 +486,7 @@ describe('release create', () => {
         {
           app: DEMO_APP.id,
           bundle: READY_BUNDLE.id,
-          channel: [STAGING_CHANNEL.id],
+          channel: STAGING_CHANNEL.id,
           json: true,
           progression: true,
           progressionMinimumSeconds: 600,
@@ -510,9 +507,9 @@ describe('release create', () => {
         },
         rolloutPercent: 5,
       });
-      expect(harness.readJson()).toEqual([
+      expect(harness.readJson()).toEqual(
         buildReleaseWithRelations(PROGRESSING_RELEASE, STAGING_CHANNEL),
-      ]);
+      );
     });
 
     it("should refuse a schedule's flag without --progression before any request", async () => {
@@ -538,16 +535,21 @@ describe('release create', () => {
   describe('when --from-channel names the channel to release from', () => {
     const OPTIONS = {
       app: DEMO_APP.id,
-      channel: [STAGING_CHANNEL.id],
+      channel: STAGING_CHANNEL.id,
       fromChannel: PRODUCTION_CHANNEL.name,
     };
 
     beforeEach(() => {
       respondWithStagingChannel();
       respondWithCreatedRelease();
+      respondWithApp(DEMO_APP);
       harness.routes[`GET ${PRODUCTION_CHANNEL_PATH}`] = () =>
         Response.json(PRODUCTION_CHANNEL);
     });
+
+    function respondWithApp(app: App): void {
+      harness.routes[`GET /v1/apps/${DEMO_APP.id}`] = () => Response.json(app);
+    }
 
     it("should release what that channel's newest active release serves, naming it in the confirmation", async () => {
       harness.routes[`GET ${RELEASES_PATH}`] = () =>
@@ -571,7 +573,54 @@ describe('release create', () => {
         fromChannelId: PRODUCTION_CHANNEL.id,
         isMandatory: false,
         notes: null,
+        platform: null,
         rolloutPercent: 100,
+      });
+    });
+
+    describe('in a React Native app', () => {
+      const IOS_BUNDLE = { ...PREVIOUS_BUNDLE, platforms: ['ios' as const] };
+
+      beforeEach(() => {
+        respondWithApp({ ...DEMO_APP, framework: 'react_native' });
+        harness.routes[`GET ${RELEASES_PATH}`] = () =>
+          Response.json([
+            {
+              ...LIVE_RELEASE,
+              bundle: { ...READY_BUNDLE, platforms: ['android'] },
+              number: 9,
+            },
+            { ...PREVIOUS_RELEASE, bundle: IOS_BUNDLE, number: 8 },
+          ]);
+      });
+
+      it('should send the platform and name the newest active release serving it in the confirmation', async () => {
+        stubInteractiveTerminal();
+        vi.mocked(confirm).mockResolvedValue(true);
+
+        await releaseCreateCommand.action(
+          { ...OPTIONS, platform: 'ios' },
+          undefined,
+        );
+
+        expect(confirm).toHaveBeenCalledWith({
+          initialValue: false,
+          message:
+            'This releases bundle #16 · 1.4.1, release #8 of production, at 100 percent: reaches 60 ios devices in staging. Continue?',
+        });
+        const [createRequest] = readCreateRequests();
+        expect(await createRequest?.json()).toMatchObject({
+          fromChannelId: PRODUCTION_CHANNEL.id,
+          platform: 'ios',
+        });
+      });
+
+      it('should refuse with `missing_parameter` naming --platform when it is missing and nobody can answer', async () => {
+        await expect(
+          releaseCreateCommand.action({ ...OPTIONS, yes: true }, undefined),
+        ).rejects.toThrow(new MissingParameterError('--platform'));
+
+        expect(readCreateRequests()).toEqual([]);
       });
     });
 
@@ -582,6 +631,7 @@ describe('release create', () => {
         releaseCreateCommand.action({ ...OPTIONS, yes: true }, undefined),
       ).rejects.toMatchObject({
         code: 'invalid_parameter',
+        fix: 'Release a bundle to that channel first with release create.',
         message:
           'The channel production from --from-channel serves no active release.',
       });
@@ -593,7 +643,7 @@ describe('release create', () => {
     const OPTIONS = {
       app: DEMO_APP.id,
       bundle: READY_BUNDLE.id,
-      channel: [STAGING_CHANNEL.id],
+      channel: STAGING_CHANNEL.id,
       dryRun: true,
       rolloutPercent: 5,
     };
@@ -621,17 +671,15 @@ describe('release create', () => {
       expect(readCreateRequests()).toEqual([]);
     });
 
-    it('should print the audience per channel as a JSON array', async () => {
+    it("should print the channel's audience as one JSON object", async () => {
       await releaseCreateCommand.action({ ...OPTIONS, json: true }, undefined);
 
-      expect(harness.readJson()).toEqual([
-        {
-          ...STAGING_AUDIENCE,
-          channelId: STAGING_CHANNEL.id,
-          estimatedDeviceCount: 5,
-          warnings: [UNSUPPORTED_CONDITION_SHARE_WARNING],
-        },
-      ]);
+      expect(harness.readJson()).toEqual({
+        ...STAGING_AUDIENCE,
+        channelId: STAGING_CHANNEL.id,
+        estimatedDeviceCount: 5,
+        warnings: [UNSUPPORTED_CONDITION_SHARE_WARNING],
+      });
     });
 
     it('should resolve the web build as a dry run, needing no private key, hash it and upload nothing when the build is the source', async () => {
@@ -643,7 +691,7 @@ describe('release create', () => {
         undefined,
       );
 
-      expect(buildBundleUploads).toHaveBeenCalledWith(expect.anything(), {
+      expect(buildBundleUpload).toHaveBeenCalledWith(expect.anything(), {
         isDryRun: true,
         options: expect.objectContaining({ path: 'dist' }),
         packagingDirectoryPath: expect.any(String),
@@ -676,7 +724,7 @@ describe('release create', () => {
       {
         app: DEMO_APP.id,
         attribute: ['tier=beta'],
-        channel: [STAGING_CHANNEL.id],
+        channel: STAGING_CHANNEL.id,
         path: 'dist',
         yes: true,
       },
@@ -686,62 +734,6 @@ describe('release create', () => {
     expect(harness.readDiagnostics()).toBe(
       `${fingerprintUnknownWarning.message}\n${UNSUPPORTED_CONDITION_SHARE_WARNING.message}\n`,
     );
-  });
-
-  describe('when several channels are named', () => {
-    const OPTIONS = {
-      app: DEMO_APP.id,
-      bundle: READY_BUNDLE.id,
-      channel: [STAGING_CHANNEL.id, PRODUCTION_CHANNEL.id],
-      yes: true,
-    };
-
-    beforeEach(() => {
-      respondWithStagingChannel();
-      harness.routes[`GET ${PRODUCTION_CHANNEL_PATH}`] = () =>
-        Response.json(PRODUCTION_CHANNEL);
-      harness.routes[`GET ${PRODUCTION_CHANNEL_PATH}/audience`] = () =>
-        Response.json({
-          ...STAGING_AUDIENCE,
-          deviceCount: 1000,
-          reachedDeviceCount: 900,
-        });
-      harness.routes[`GET ${BUNDLES_PATH}/${READY_BUNDLE.id}`] = () =>
-        Response.json(READY_BUNDLE);
-      respondWithCreatedRelease();
-      respondWithCreatedRelease({
-        channel: PRODUCTION_CHANNEL,
-        release: PRODUCTION_RELEASE,
-      });
-    });
-
-    it('should release to every channel named, one release each', async () => {
-      await releaseCreateCommand.action(OPTIONS, undefined);
-
-      expect(readCreateRequests()).toHaveLength(2);
-      expect(harness.readLines()).toEqual([
-        'Created release #43 of staging.',
-        `ID       ${LIVE_RELEASE.id}`,
-        'Bundle   #17 · 1.4.2',
-        'Rollout  100 percent',
-        `Live     ${LIVE_RELEASE.liveAt}`,
-        '',
-        'Created release #7 of production.',
-        `ID       ${PRODUCTION_RELEASE.id}`,
-        'Bundle   #17 · 1.4.2',
-        'Rollout  100 percent',
-        `Live     ${PRODUCTION_RELEASE.liveAt}`,
-      ]);
-    });
-
-    it('should print the releases as a JSON array in the order of the channels, each with its bundle and its channel', async () => {
-      await releaseCreateCommand.action({ ...OPTIONS, json: true }, undefined);
-
-      expect(harness.readJson()).toEqual([
-        buildReleaseWithRelations(LIVE_RELEASE, STAGING_CHANNEL),
-        buildReleaseWithRelations(PRODUCTION_RELEASE, PRODUCTION_CHANNEL),
-      ]);
-    });
   });
 
   it('should stop with `confirmation_required` stating the audience at a partial rollout, with the mandatory flag, when nobody can confirm', async () => {
@@ -754,7 +746,7 @@ describe('release create', () => {
         {
           app: DEMO_APP.id,
           bundle: READY_BUNDLE.id,
-          channel: [STAGING_CHANNEL.id],
+          channel: STAGING_CHANNEL.id,
           mandatory: true,
           rolloutPercent: 5,
         },
@@ -772,7 +764,7 @@ describe('release create', () => {
   describe('when the web build is still to upload', () => {
     const OPTIONS = {
       app: DEMO_APP.id,
-      channel: [STAGING_CHANNEL.id],
+      channel: STAGING_CHANNEL.id,
       path: 'dist',
     };
 
@@ -810,43 +802,34 @@ describe('release create', () => {
     });
   });
 
-  describe('when each platform has a bundle of its own to upload', () => {
-    const OPTIONS = { app: DEMO_APP.id, channel: [STAGING_CHANNEL.id] };
+  describe('when the bundle of one platform is still to upload', () => {
+    const OPTIONS = { app: DEMO_APP.id, channel: STAGING_CHANNEL.id };
 
-    function stubPlatformBundleUploads(): void {
-      vi.mocked(buildBundleUploads).mockResolvedValue({
-        appId: DEMO_APP.id,
-        bundleUploads: [
-          { ...UPLOAD_BUNDLE_OPTIONS, platforms: ['android'] },
-          { ...UPLOAD_BUNDLE_OPTIONS, platforms: ['ios'] },
-        ],
+    beforeEach(() => {
+      vi.mocked(buildBundleUpload).mockResolvedValue({
+        ...UPLOAD_BUNDLE_OPTIONS,
+        platforms: ['ios'],
       });
-      for (const bundle of [READY_BUNDLE, PREVIOUS_BUNDLE]) {
-        vi.mocked(uploadBundle).mockResolvedValueOnce({
-          bundle: { ...bundle, fingerprint: CAPACITOR_FINGERPRINT },
-          upload: { fileCount: 0, sizeBytes: 0 },
-        });
-      }
-    }
-
-    it('should name the bundles by their platforms in the confirmation, before uploading anything', async () => {
-      stubPlatformBundleUploads();
+      vi.mocked(uploadBundle).mockResolvedValue({
+        bundle: { ...READY_BUNDLE, fingerprint: CAPACITOR_FINGERPRINT },
+        upload: { fileCount: 0, sizeBytes: 0 },
+      });
       respondWithStagingChannel();
+    });
 
+    it('should name the bundle by its platform in the confirmation, before uploading anything', async () => {
       await expect(
         releaseCreateCommand.action(OPTIONS, undefined),
       ).rejects.toThrow(
         new ConfirmationRequiredError(
-          'uploads the android and ios bundles as 1.4.2 and releases each at 100 percent: reaches 100 of 120 active devices in staging',
+          'uploads the ios bundle as 1.4.2 and releases it at 100 percent: reaches 100 of 120 active devices in staging',
         ),
       );
 
       expect(uploadBundle).not.toHaveBeenCalled();
     });
 
-    it('should upload each bundle and release each to the channel', async () => {
-      stubPlatformBundleUploads();
-      respondWithStagingChannel();
+    it('should upload the one bundle and make one release of it', async () => {
       respondWithCreatedRelease();
 
       await releaseCreateCommand.action(
@@ -854,37 +837,60 @@ describe('release create', () => {
         undefined,
       );
 
-      expect(uploadBundle).toHaveBeenCalledTimes(2);
-      expect(
-        await Promise.all(
-          readCreateRequests().map(async request => {
-            const { bundleId } = (await request.json()) as {
-              bundleId: string;
-            };
-            return bundleId;
-          }),
+      expect(uploadBundle).toHaveBeenCalledOnce();
+      expect(readCreateRequests()).toHaveLength(1);
+      expect(harness.readJson()).toEqual(
+        buildReleaseWithRelations(LIVE_RELEASE, STAGING_CHANNEL),
+      );
+    });
+  });
+
+  it('should count only the devices of the platform --platform names when it narrows a bundle serving both', async () => {
+    respondWithStagingChannel();
+    respondWithBundleNamedByNumber();
+
+    await expect(
+      releaseCreateCommand.action(
+        {
+          app: DEMO_APP.id,
+          bundle: '17',
+          channel: STAGING_CHANNEL.id,
+          platform: 'android',
+        },
+        undefined,
+      ),
+    ).rejects.toThrow(
+      new ConfirmationRequiredError(
+        'releases bundle #17 · 1.4.2 at 100 percent: reaches 40 android devices in staging',
+      ),
+    );
+  });
+
+  it('should refuse with `missing_parameter` naming --platform before any upload when a React Native build is to upload and nobody can answer', async () => {
+    const { buildBundleUpload: buildActualBundleUpload } =
+      await vi.importActual<typeof bundleUploadModule>(
+        '../../upload/bundle-upload.js',
+      );
+    vi.mocked(buildBundleUpload).mockImplementationOnce(
+      buildActualBundleUpload,
+    );
+    const directoryPath = writeReactNativeProject({
+      projectConfig: { appId: DEMO_APP.id, channel: STAGING_CHANNEL.name },
+    });
+
+    try {
+      await expect(
+        releaseCreateCommand.action(
+          { config: join(directoryPath, 'hotcodepush.json'), yes: true },
+          undefined,
         ),
-      ).toEqual([READY_BUNDLE.id, PREVIOUS_BUNDLE.id]);
-      expect(harness.readJson()).toHaveLength(2);
-    });
+      ).rejects.toThrow(new MissingParameterError('--platform'));
+    } finally {
+      rmSync(directoryPath, { force: true, recursive: true });
+    }
 
-    it("should print the channel's audience warnings once for both bundles", async () => {
-      stubPlatformBundleUploads();
-      respondWithStagingChannel({
-        ...STAGING_AUDIENCE,
-        warnings: [UNSUPPORTED_CONDITION_SHARE_WARNING],
-      });
-      respondWithCreatedRelease();
-
-      await releaseCreateCommand.action(
-        { ...OPTIONS, json: true, yes: true },
-        undefined,
-      );
-
-      expect(harness.readDiagnostics()).toBe(
-        `${UNSUPPORTED_CONDITION_SHARE_WARNING.message}\n`,
-      );
-    });
+    expect(uploadBundle).not.toHaveBeenCalled();
+    expect(readCreateRequests()).toEqual([]);
   });
 
   it('should refuse --bundle together with --path', async () => {

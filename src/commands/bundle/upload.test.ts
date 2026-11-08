@@ -26,18 +26,19 @@ import {
   SIGNING_PRIVATE_KEY,
 } from '../../../test/fixtures.js';
 import { PACKAGE_JSON } from '../../config/consts.js';
-import { buildBundleUploads } from '../../upload/bundle-upload.js';
+import { buildBundleUpload } from '../../upload/bundle-upload.js';
 import { writeSigningPrivateKeyFile } from '../../upload/signing-private-key.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { runCli } from '../../utils/cli.js';
 import {
   InvalidParameterError,
+  MissingParameterError,
   SigningKeyUnavailableError,
   UnknownFrameworkError,
 } from '../../utils/errors.js';
 import type * as packageManagerModule from '../../utils/package-manager.js';
 import { runCommandLineVisibly } from '../../utils/package-manager.js';
-import { text } from '../../utils/prompt-renderers.js';
+import { select, text } from '../../utils/prompt-renderers.js';
 import bundleUploadCommand from './upload.js';
 
 vi.mock('../../utils/prompt-renderers.js', () =>
@@ -202,7 +203,7 @@ describe('bundle upload', () => {
       {
         config: join(projectDirectoryPath, 'hotcodepush.json'),
         noGit: true,
-        platform: ['ios'],
+        platform: 'ios',
       },
       undefined,
     );
@@ -232,6 +233,7 @@ describe('bundle upload', () => {
       isGitDirty: null,
       platforms: ['ios'],
       signature: null,
+      signatureKeyId: null,
     });
     const fileRequest = readRequest({
       method: 'PUT',
@@ -335,12 +337,14 @@ describe('bundle upload', () => {
       expect(harness.readDiagnostics()).toBe(FINGERPRINT_WARNING);
     });
 
-    it('should stay silent when the app has no binary yet', async () => {
+    it('should warn that no store build can receive the bundle when the app has no binary yet', async () => {
       respondWithBinaryCounts({ binaryCount: 0, fingerprintBinaryCount: 0 });
 
       await runBundleUpload();
 
-      expect(harness.readDiagnostics()).not.toContain(FINGERPRINT_WARNING);
+      expect(harness.readDiagnostics()).toBe(
+        'The app has no binary yet, so no store build can take this bundle.\n',
+      );
     });
 
     it("should stay silent and count no other binary when a binary carries the bundle's fingerprint", async () => {
@@ -379,12 +383,10 @@ describe('bundle upload', () => {
       `POST ${BUNDLES_PATH}/${READY_BUNDLE.id}/complete`,
       `GET ${BINARY_COUNT_PATH}`,
     ]);
-    expect(harness.readJson()).toEqual([
-      {
-        ...READY_BUNDLE,
-        upload: { fileCount: 1, sizeBytes: 34 },
-      },
-    ]);
+    expect(harness.readJson()).toEqual({
+      ...READY_BUNDLE,
+      upload: { fileCount: 1, sizeBytes: 34 },
+    });
   });
 
   function listPublicKey(): string {
@@ -399,33 +401,35 @@ describe('bundle upload', () => {
     return configPath;
   }
 
-  it('should sign the manifest the API rebuilds, the platforms sorted, when HOTCODEPUSH_SIGNING_KEY holds the private key of a listed public key', async () => {
+  it('should sign the manifest the API rebuilds for both platforms, sending the signature and its key id flat, when HOTCODEPUSH_SIGNING_KEY holds the private key of a listed public key', async () => {
     respondWithUploadRoutes();
     vi.stubEnv('HOTCODEPUSH_SIGNING_KEY', SIGNING_PRIVATE_KEY);
 
     await bundleUploadCommand.action(
-      {
-        config: listPublicKey(),
-        json: true,
-        noGit: true,
-        platform: ['ios', 'android'],
-      },
+      { config: listPublicKey(), json: true, noGit: true },
       undefined,
     );
 
-    const { files, fingerprint, platforms, signature, version } =
-      (await readRequest({
-        method: 'POST',
-        pathSuffix: '/bundles',
-      })?.json()) as {
-        files: object[];
-        fingerprint: string;
-        platforms: string[];
-        signature: { keyId: string; value: string };
-        version: string;
-      };
+    const {
+      files,
+      fingerprint,
+      platforms,
+      signature,
+      signatureKeyId,
+      version,
+    } = (await readRequest({
+      method: 'POST',
+      pathSuffix: '/bundles',
+    })?.json()) as {
+      files: object[];
+      fingerprint: string;
+      platforms: string[];
+      signature: string;
+      signatureKeyId: string;
+      version: string;
+    };
     expect(platforms).toEqual(['android', 'ios']);
-    expect(signature.keyId).toBe(SIGNING_KEY.keyId);
+    expect(signatureKeyId).toBe(SIGNING_KEY.keyId);
     expect(
       await verifyManifestSignature(
         {
@@ -434,10 +438,10 @@ describe('bundle upload', () => {
             bundleVersion: version,
             files,
             fingerprint,
-            keyId: signature.keyId,
+            keyId: signatureKeyId,
             platforms,
           }),
-          signature,
+          signature: { keyId: signatureKeyId, value: signature },
         },
         [SIGNING_KEY.publicKey],
       ),
@@ -456,13 +460,13 @@ describe('bundle upload', () => {
       undefined,
     );
 
-    const { signature } = (await readRequest({
+    const { signatureKeyId } = (await readRequest({
       method: 'POST',
       pathSuffix: '/bundles',
     })?.json()) as {
-      signature: { keyId: string };
+      signatureKeyId: string;
     };
-    expect(signature.keyId).toBe(SIGNING_KEY.keyId);
+    expect(signatureKeyId).toBe(SIGNING_KEY.keyId);
   });
 
   it('should stop with `signing_key_unavailable` before any request when hotcodepush.json lists a public key and no private key is given', async () => {
@@ -493,19 +497,19 @@ describe('bundle upload', () => {
   });
 
   it('should resolve a dry run without a private key when hotcodepush.json lists a public key', async () => {
-    const { bundleUploads } = await buildBundleUploads(createApiClient(), {
+    const bundleUpload = await buildBundleUpload(createApiClient(), {
       isDryRun: true,
       options: { config: listPublicKey(), noGit: true },
       packagingDirectoryPath: projectDirectoryPath,
     });
 
-    expect(bundleUploads[0]?.signingPrivateKey).toBeNull();
+    expect(bundleUpload.signingPrivateKey).toBeNull();
     expect(harness.requests).toHaveLength(0);
   });
 
   it('should check the private key a dry run is given', async () => {
     await expect(
-      buildBundleUploads(createApiClient(), {
+      buildBundleUpload(createApiClient(), {
         isDryRun: true,
         options: {
           config: listPublicKey(),
@@ -548,7 +552,7 @@ describe('bundle upload', () => {
     });
   });
 
-  it('should name --platform when a platform is not ios or android', async () => {
+  it('should refuse a comma list of platforms under the --platform flag name', async () => {
     const exitCode = await runCli(
       { 'bundle upload': () => import('./upload.js') },
       {
@@ -556,7 +560,7 @@ describe('bundle upload', () => {
           'bundle',
           'upload',
           '--platform',
-          'web',
+          'ios,android',
           '--config',
           join(projectDirectoryPath, 'hotcodepush.json'),
         ],
@@ -618,65 +622,61 @@ describe('bundle upload', () => {
       vi.mocked(runCommandLineVisibly).mockReset();
     });
 
-    it('should bundle each platform and upload one bundle per platform, printing the list as JSON', async () => {
+    it('should bundle the one platform --platform names and print its bundle as JSON', async () => {
       await bundleUploadCommand.action(
         {
           config: join(projectDirectoryPath, 'hotcodepush.json'),
           json: true,
           noGit: true,
+          platform: 'android',
         },
         undefined,
       );
 
-      const createBodies = await Promise.all(
-        harness.requests
-          .filter(
-            ({ method, url }) => method === 'POST' && url.endsWith('/bundles'),
-          )
-          .map(
-            request =>
-              request.json() as Promise<{
-                files: { path: string }[];
-                platforms: string[];
-              }>,
-          ),
-      );
       expect(
-        createBodies.map(({ files, platforms }) => ({
-          paths: files.map(({ path }) => path),
-          platforms,
-        })),
-      ).toEqual([
-        { paths: ['index.android.bundle'], platforms: ['android'] },
-        { paths: ['main.jsbundle'], platforms: ['ios'] },
-      ]);
-      expect(harness.readJson()).toEqual([
-        expect.objectContaining({ id: READY_BUNDLE.id }),
-        expect.objectContaining({ id: READY_BUNDLE.id }),
-      ]);
+        await readRequest({ method: 'POST', pathSuffix: '/bundles' })?.json(),
+      ).toMatchObject({
+        files: [expect.objectContaining({ path: 'index.android.bundle' })],
+        platforms: ['android'],
+      });
+      expect(
+        harness.requests.filter(
+          ({ method, url }) => method === 'POST' && url.endsWith('/bundles'),
+        ),
+      ).toHaveLength(1);
+      expect(harness.readJson()).toMatchObject({ id: READY_BUNDLE.id });
     });
 
-    it('should check the fingerprint once for both platforms, warning once', async () => {
-      harness.routes[`GET ${BINARY_COUNT_PATH}`] = request =>
-        Response.json({
-          count: new URL(request.url).searchParams.has('fingerprint') ? 0 : 2,
-        });
+    it('should ask for the platform when --platform is missing and someone can answer', async () => {
+      stubInteractiveTerminal();
+      vi.mocked(select).mockResolvedValue('ios');
 
       await bundleUploadCommand.action(
-        {
-          config: join(projectDirectoryPath, 'hotcodepush.json'),
-          json: true,
-          noGit: true,
-        },
+        { config: join(projectDirectoryPath, 'hotcodepush.json'), noGit: true },
         undefined,
       );
 
-      expect(harness.readDiagnostics()).toBe(
-        'No binary of the app carries this fingerprint.\n',
+      expect(select).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Which platform?' }),
       );
       expect(
-        harness.requests.filter(({ url }) => url.includes('/binaries/count')),
-      ).toHaveLength(2);
+        await readRequest({ method: 'POST', pathSuffix: '/bundles' })?.json(),
+      ).toMatchObject({ platforms: ['ios'] });
+    });
+
+    it('should refuse with `missing_parameter` naming --platform before any request when --platform is missing and nobody can answer', async () => {
+      await expect(
+        bundleUploadCommand.action(
+          {
+            config: join(projectDirectoryPath, 'hotcodepush.json'),
+            noGit: true,
+          },
+          undefined,
+        ),
+      ).rejects.toThrow(new MissingParameterError('--platform'));
+
+      expect(harness.requests).toHaveLength(0);
+      expect(runCommandLineVisibly).not.toHaveBeenCalled();
     });
 
     it('should upload --path as the prepared bundle of the one platform named, bundling nothing', async () => {
@@ -690,7 +690,7 @@ describe('bundle upload', () => {
           json: true,
           noGit: true,
           path: exportDirectoryPath,
-          platform: ['ios'],
+          platform: 'ios',
         },
         undefined,
       );
@@ -702,7 +702,7 @@ describe('bundle upload', () => {
         files: [expect.objectContaining({ path: 'main.jsbundle' })],
         platforms: ['ios'],
       });
-      expect(harness.readJson()).toMatchObject([{ id: READY_BUNDLE.id }]);
+      expect(harness.readJson()).toMatchObject({ id: READY_BUNDLE.id });
     });
   });
 

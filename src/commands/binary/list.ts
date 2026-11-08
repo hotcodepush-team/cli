@@ -1,5 +1,6 @@
 import type { Binary, FleetStatistics } from '@hotcodepush/node';
 import { fetchAppId } from '../../resources/apps.js';
+import { resolveBinaryBundleLabel } from '../../resources/binaries.js';
 import {
   UNSEEN_IN_FLEET_WINDOW_TEXT,
   resolveBinaryBucket,
@@ -29,6 +30,7 @@ export default defineCommand({
       appId,
       limit: options.limit,
       offset: options.offset,
+      relations: ['bundle'],
     });
     const nextOffset = resolveNextOffset(listedBinaries.length, options);
     if (options.json) {
@@ -53,17 +55,14 @@ export default defineCommand({
   },
 });
 
-function resolveBinaryRow(
-  { build, bundleId, id, platform, version }: Binary,
-  fleet: FleetStatistics,
-): string[] {
-  const binaryBucket = resolveBinaryBucket(fleet, id);
+function resolveBinaryRow(binary: Binary, fleet: FleetStatistics): string[] {
+  const binaryBucket = resolveBinaryBucket(fleet, binary.id);
   return [
-    id,
-    version,
-    build,
-    platform,
-    bundleId,
+    binary.id,
+    binary.version,
+    binary.build,
+    binary.platform,
+    resolveBinaryBundleLabel(binary),
     String(binaryBucket?.deviceCount ?? 0),
     binaryBucket === undefined
       ? UNSEEN_IN_FLEET_WINDOW_TEXT

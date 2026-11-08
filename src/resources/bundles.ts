@@ -35,7 +35,9 @@ async function fetchBundleId(
   { appId, options }: { appId: string; options: BundleOptions },
 ): Promise<string> {
   if (options.bundle === undefined) {
-    const bundles = await fetchUploadedBundles(hotCodePush, appId);
+    const bundles = await fetchAllPages(page =>
+      hotCodePush.apps.bundles.list({ appId, ...page }),
+    );
     return promptSelect(options, {
       choices: bundles.map(bundle => ({
         label: `${resolveBundleLabel(bundle)} (${bundle.status})`,
@@ -76,14 +78,4 @@ async function fetchBundleIdByNumber(
     );
   }
   return numberedBundle.id;
-}
-
-// A bundle that a binary ships is never in this list.
-function fetchUploadedBundles(
-  hotCodePush: HotCodePush,
-  appId: string,
-): Promise<Bundle[]> {
-  return fetchAllPages(page =>
-    hotCodePush.apps.bundles.list({ appId, ...page, source: 'upload' }),
-  );
 }
