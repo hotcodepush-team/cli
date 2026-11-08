@@ -18,6 +18,7 @@ import {
   FLEET_PATH,
   RELEASES_PATH,
   respondWithStagingReleases,
+  STAGING_AUDIENCE,
 } from '../../../test/release-routes.js';
 import {
   ConfirmationRequiredError,
@@ -77,9 +78,18 @@ describe('release rollback', () => {
       Response.json({ ...ROLLBACK_RELEASE, liveAt: null }, { status: 201 });
     harness.routes[`GET ${RELEASES_PATH}/${ROLLBACK_RELEASE.id}`] = () =>
       Response.json(ROLLBACK_RELEASE);
+    respondWithTargetReach(PREVIOUS_RELEASE);
   }
 
-  it('should name the undone and the target release once confirmed, leave the target to the API and wait until the new release is live', async () => {
+  function respondWithTargetReach(
+    targetRelease: Release,
+    audience = STAGING_AUDIENCE,
+  ): void {
+    harness.routes[`GET ${RELEASES_PATH}/${targetRelease.id}/audience`] = () =>
+      Response.json(audience);
+  }
+
+  it('should name the undone and the target release with its reach once confirmed, adding no stranded devices when the reach is not below the undone release count, leave the target to the API and wait until the new release is live', async () => {
     stubInteractiveTerminal();
     vi.mocked(confirm).mockResolvedValue(true);
     respondWithRollback();
@@ -97,7 +107,7 @@ describe('release rollback', () => {
     expect(confirm).toHaveBeenCalledWith({
       initialValue: false,
       message:
-        'This rolls staging back from #43 (android, ios · 1.4.2) to #42 (android, ios · 1.4.1), reaching 120 devices. Continue?',
+        'This rolls staging back from #43 (android, ios · 1.4.2) to #42 (android, ios · 1.4.1), reaching 100 of 120 devices. Continue?',
     });
     const fleetUrl = harness.requests
       .map(({ url }) => new URL(url))
@@ -117,6 +127,25 @@ describe('release rollback', () => {
       `   Live     ${ROLLBACK_RELEASE.liveAt}`,
       '',
     ]);
+  });
+
+  it('should say how many devices on the undone release the target cannot reach when its reach is below their count', async () => {
+    respondWithRollback();
+    respondWithTargetReach(PREVIOUS_RELEASE, {
+      ...STAGING_AUDIENCE,
+      reachedDeviceCount: 0,
+    });
+
+    await expect(
+      releaseRollbackCommand.action(
+        { app: DEMO_APP.id, channel: STAGING_CHANNEL.id },
+        undefined,
+      ),
+    ).rejects.toThrow(
+      new ConfirmationRequiredError(
+        "rolls staging back from #43 (android, ios · 1.4.2) to #42 (android, ios · 1.4.1), reaching 0 of 120 devices. #42 reaches 0 of the 80 devices on #43, whose store build carries another fingerprint. Revoke #43 to send them back to the store build's bundle",
+      ),
+    );
   });
 
   it('should send the release --to-release names and print the new release as JSON when --yes and --json are passed', async () => {
@@ -144,16 +173,18 @@ describe('release rollback', () => {
   });
 
   it('should name the newest earlier active release as the target when a release of the same bundle comes first and a revoked one is skipped', async () => {
+    const sameBundleRelease = buildPlatformRelease(LIVE_RELEASE, {
+      bundle: READY_BUNDLE,
+      number: 41,
+    });
     respondWithRollback();
     harness.routes[`GET ${RELEASES_PATH}`] = () =>
       Response.json([
         { ...LIVE_RELEASE, bundle: READY_BUNDLE },
         { ...PREVIOUS_RELEASE, bundle: PREVIOUS_BUNDLE, status: 'revoked' },
-        buildPlatformRelease(LIVE_RELEASE, {
-          bundle: READY_BUNDLE,
-          number: 41,
-        }),
+        sameBundleRelease,
       ]);
+    respondWithTargetReach(sameBundleRelease);
 
     await expect(
       releaseRollbackCommand.action(
@@ -162,7 +193,7 @@ describe('release rollback', () => {
       ),
     ).rejects.toThrow(
       new ConfirmationRequiredError(
-        'rolls staging back from #43 (android, ios · 1.4.2) to #41 (android, ios · 1.4.2), reaching 120 devices',
+        'rolls staging back from #43 (android, ios · 1.4.2) to #41 (android, ios · 1.4.2), reaching 100 of 120 devices',
       ),
     );
   });
@@ -193,6 +224,10 @@ describe('release rollback', () => {
       ...PREVIOUS_BUNDLE,
       platforms: ['ios'],
     };
+    const OLDER_IOS_RELEASE = buildPlatformRelease(LIVE_RELEASE, {
+      bundle: OLDER_IOS_BUNDLE,
+      number: 42,
+    });
 
     function respondWithPlatformReleases(): void {
       respondWithRollback();
@@ -212,11 +247,9 @@ describe('release rollback', () => {
             bundle: ANDROID_BUNDLE,
             number: 43,
           }),
-          buildPlatformRelease(LIVE_RELEASE, {
-            bundle: OLDER_IOS_BUNDLE,
-            number: 42,
-          }),
+          OLDER_IOS_RELEASE,
         ]);
+      respondWithTargetReach(OLDER_IOS_RELEASE);
     }
 
     it('should roll back the newest release serving --platform to the one before it on that platform, sending the platform', async () => {
@@ -232,7 +265,7 @@ describe('release rollback', () => {
       expect(confirm).toHaveBeenCalledWith({
         initialValue: false,
         message:
-          'This rolls staging back from #44 (ios · 1.4.2) to #42 (ios · 1.4.1), reaching 120 devices. Continue?',
+          'This rolls staging back from #44 (ios · 1.4.2) to #42 (ios · 1.4.1), reaching 100 of 120 devices. Continue?',
       });
       const [rollbackRequest] = readRollbackRequests();
       expect(await rollbackRequest?.json()).toEqual({

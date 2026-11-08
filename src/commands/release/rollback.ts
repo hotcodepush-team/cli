@@ -1,4 +1,10 @@
-import type { Channel, HotCodePush, Release } from '@hotcodepush/node';
+import type {
+  Audience,
+  Channel,
+  FleetStatistics,
+  HotCodePush,
+  Release,
+} from '@hotcodepush/node';
 import { HotCodePushError } from '@hotcodepush/node';
 import { z } from 'zod';
 import {
@@ -18,6 +24,7 @@ import {
   waitUntilLive,
 } from '../../resources/releases/fetch.js';
 import { printCreatedRelease } from '../../resources/releases/output.js';
+import { resolveReleaseDeviceCount } from '../../resources/statistics.js';
 import type { Platform } from '../../upload/upload.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { booleanFlagSchema } from '../../utils/boolean-flag.js';
@@ -34,6 +41,8 @@ interface Rollback {
   targetRelease: Release;
   undoneRelease: Release;
 }
+
+type TargetReach = Pick<Audience, 'deviceCount' | 'reachedDeviceCount'>;
 
 export default defineCommand({
   description:
@@ -70,12 +79,8 @@ export default defineCommand({
       await fetchReleaseLog(hotCodePush, channel),
       { channel, platform, toRelease: options.toRelease },
     );
-    const { deviceCount } = await hotCodePush.apps.statistics.fleet.get({
-      appId: channel.appId,
-      channelId: channel.id,
-    });
     const isConfirmed = await confirmConsequence(
-      `rolls ${channel.name} back from ${resolveReleaseText(rollback.undoneRelease)} to ${resolveReleaseText(rollback.targetRelease)}, reaching ${resolveCountText(deviceCount)} devices`,
+      await fetchRollbackConsequence(hotCodePush, { channel, rollback }),
       options,
     );
     if (!isConfirmed) {
@@ -137,6 +142,39 @@ async function createLiveRollback(
     appId: channel.appId,
     relations: ['bundle'],
     releaseId: createdRelease.id,
+  });
+}
+
+// The fleet counts the devices on the undone release, the target's audience those it reaches.
+async function fetchRollbackConsequence(
+  hotCodePush: HotCodePush,
+  { channel, rollback }: { channel: Channel; rollback: Rollback },
+): Promise<string> {
+  const fleet = await hotCodePush.apps.statistics.fleet.get({
+    appId: channel.appId,
+    channelId: channel.id,
+  });
+  const targetReach = await fetchTargetReach(hotCodePush, {
+    channel,
+    targetRelease: rollback.targetRelease,
+  });
+  return resolveRollbackConsequence(rollback, {
+    channel,
+    strandedDeviceCount: resolveStrandedDeviceCount(rollback.undoneRelease, {
+      fleet,
+      targetReach,
+    }),
+    targetReach,
+  });
+}
+
+function fetchTargetReach(
+  hotCodePush: HotCodePush,
+  { channel, targetRelease }: { channel: Channel; targetRelease: Release },
+): Promise<TargetReach> {
+  return hotCodePush.apps.releases.audience.get({
+    appId: channel.appId,
+    releaseId: targetRelease.id,
   });
 }
 
@@ -206,4 +244,46 @@ function resolveRollback(
     });
   }
   return { targetRelease, undoneRelease };
+}
+
+function resolveRollbackConsequence(
+  rollback: Rollback,
+  {
+    channel,
+    strandedDeviceCount,
+    targetReach,
+  }: {
+    channel: Channel;
+    strandedDeviceCount: number | undefined;
+    targetReach: TargetReach;
+  },
+): string {
+  const rollbackText = `rolls ${channel.name} back from ${resolveReleaseText(rollback.undoneRelease)} to ${resolveReleaseText(rollback.targetRelease)}, reaching ${resolveCountText(targetReach.reachedDeviceCount)} of ${resolveCountText(targetReach.deviceCount)} devices`;
+  return strandedDeviceCount === undefined
+    ? rollbackText
+    : `${rollbackText}. ${resolveStrandedText(rollback, { strandedDeviceCount, targetReach })}`;
+}
+
+// The devices on the undone release that the target cannot reach, such as a store build with another fingerprint.
+function resolveStrandedDeviceCount(
+  undoneRelease: Release,
+  { fleet, targetReach }: { fleet: FleetStatistics; targetReach: TargetReach },
+): number | undefined {
+  const undoneDeviceCount = resolveReleaseDeviceCount(fleet, {
+    releaseId: undoneRelease.id,
+  });
+  return targetReach.reachedDeviceCount < undoneDeviceCount
+    ? undoneDeviceCount
+    : undefined;
+}
+
+// The consequence ends without a full stop, since the confirmation adds it.
+function resolveStrandedText(
+  { targetRelease, undoneRelease }: Rollback,
+  {
+    strandedDeviceCount,
+    targetReach,
+  }: { strandedDeviceCount: number; targetReach: TargetReach },
+): string {
+  return `#${targetRelease.number} reaches ${resolveCountText(targetReach.reachedDeviceCount)} of the ${resolveCountText(strandedDeviceCount)} devices on #${undoneRelease.number}, whose store build carries another fingerprint. Revoke #${undoneRelease.number} to send them back to the store build's bundle`;
 }
