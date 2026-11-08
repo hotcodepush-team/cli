@@ -1,6 +1,7 @@
 import type { HotCodePush } from '@hotcodepush/node';
 import { z } from 'zod';
 import { fetchAppId } from '../../resources/apps.js';
+import { resolveBinaryBundleLabel } from '../../resources/binaries.js';
 import {
   UNSEEN_IN_FLEET_WINDOW_TEXT,
   resolveBinaryBucket,
@@ -37,6 +38,7 @@ export default defineCommand({
       binaryId:
         options.binary ??
         (await promptBinaryId(hotCodePush, { appId, options })),
+      relations: ['bundle'],
     });
     if (options.json) {
       printJson(fetchedBinary);
@@ -52,7 +54,7 @@ export default defineCommand({
       ['Version', fetchedBinary.version],
       ['Build', fetchedBinary.build],
       ['Fingerprint', fetchedBinary.fingerprint ?? 'none'],
-      ['Bundle', fetchedBinary.bundleId],
+      ['Bundle', resolveBinaryBundleLabel(fetchedBinary)],
       ['Devices', String(binaryBucket?.deviceCount ?? 0)],
       ['Last seen', binaryBucket?.lastSeenAt ?? UNSEEN_IN_FLEET_WINDOW_TEXT],
       ['Created', fetchedBinary.createdAt],

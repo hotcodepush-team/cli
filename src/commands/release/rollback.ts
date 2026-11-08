@@ -1,30 +1,46 @@
 import type { Channel, HotCodePush, Release } from '@hotcodepush/node';
+import { HotCodePushError } from '@hotcodepush/node';
 import { z } from 'zod';
+import {
+  fetchPlatform,
+  platformOptionShape,
+} from '../../frameworks/platform.js';
+import { resolveCountText } from '../../resources/audience.js';
 import {
   channelOptionShape,
   fetchChannel,
 } from '../../resources/channels/fetch.js';
 import {
   fetchReleaseLog,
+  isReleaseServing,
   resolveReleaseBundleLabel,
   resolveReleaseInLog,
   waitUntilLive,
 } from '../../resources/releases/fetch.js';
 import { printCreatedRelease } from '../../resources/releases/output.js';
+import type { Platform } from '../../upload/upload.js';
 import { createApiClient } from '../../utils/api-client.js';
 import { booleanFlagSchema } from '../../utils/boolean-flag.js';
 import { defineCommand } from '../../utils/command.js';
-import { InvalidParameterError } from '../../utils/errors.js';
+import {
+  InvalidParameterError,
+  NoEarlierReleaseError,
+} from '../../utils/errors.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson } from '../../utils/output.js';
 import { confirmConsequence } from '../../utils/prompts.js';
 
+interface Rollback {
+  targetRelease: Release;
+  undoneRelease: Release;
+}
+
 export default defineCommand({
   description:
-    "Release the channel's previous bundle again, or the one of --to-release, as a new release.",
+    "Release the release before the channel's newest active one again, or the one of --to-release, as a new release.",
   examples: [
     'hotcodepush release rollback',
-    'hotcodepush release rollback --channel staging --to-release 41 --yes',
+    'hotcodepush release rollback --channel staging --platform ios --to-release 41 --yes',
   ],
   options: defineCommandOptions({
     ...channelOptionShape,
@@ -33,48 +49,53 @@ export default defineCommand({
       .describe(
         'Devices apply the rollback at once and restart, the default for an incident fix. Pass false to let them wait.',
       ),
+    platform: platformOptionShape.platform.describe(
+      'The platform whose newest release is rolled back, ios or android. Required on React Native and Expo, where a bundle serves one platform.',
+    ),
     toRelease: z
       .string()
       .optional()
       .describe(
-        "The release whose bundle comes back, by number or id. Defaults to the channel's previous one.",
+        'The release whose bundle comes back, by number or id. Defaults to the one before the newest active release.',
       ),
   }),
   action: async options => {
     const hotCodePush = createApiClient();
-    const fetchedChannel = await fetchChannel(hotCodePush, options);
-    const releases = await fetchReleaseLog(hotCodePush, fetchedChannel);
-    const targetRelease =
-      options.toRelease === undefined
-        ? resolvePreviousRelease(releases)
-        : resolveReleaseInLog(releases, {
-            flag: '--to-release',
-            reference: options.toRelease,
-          });
-    const bundleLabel = resolveReleaseBundleLabel(targetRelease);
-    const isMandatory = options.mandatory ?? true;
+    const channel = await fetchChannel(hotCodePush, options);
+    const platform = await fetchPlatform(hotCodePush, {
+      appId: channel.appId,
+      options,
+    });
+    const rollback = resolveRollback(
+      await fetchReleaseLog(hotCodePush, channel),
+      { channel, platform, toRelease: options.toRelease },
+    );
     const { deviceCount } = await hotCodePush.apps.statistics.fleet.get({
-      appId: fetchedChannel.appId,
-      channelId: fetchedChannel.id,
+      appId: channel.appId,
+      channelId: channel.id,
     });
     const isConfirmed = await confirmConsequence(
-      `rolls channel ${fetchedChannel.name} back to bundle ${bundleLabel} of release #${targetRelease.number} as a new ${isMandatory ? 'mandatory ' : ''}release, reaching its ${deviceCount} active devices`,
+      `rolls ${channel.name} back from ${resolveReleaseText(rollback.undoneRelease)} to ${resolveReleaseText(rollback.targetRelease)}, reaching ${resolveCountText(deviceCount)} devices`,
       options,
     );
     if (!isConfirmed) {
       return;
     }
     const liveRelease = await createLiveRollback(hotCodePush, {
-      channel: fetchedChannel,
-      isMandatory,
-      targetRelease,
+      channel,
+      isMandatory: options.mandatory ?? true,
+      platform,
+      // Without --to-release the API applies its own rule, which the preview above mirrors.
+      toReleaseId:
+        options.toRelease === undefined ? null : rollback.targetRelease.id,
+      undoneRelease: rollback.undoneRelease,
     });
     if (options.json) {
       printJson(liveRelease);
     } else {
       printCreatedRelease(liveRelease, {
-        bundleLabel,
-        channelName: fetchedChannel.name,
+        bundleLabel: resolveReleaseBundleLabel(liveRelease),
+        channelName: channel.name,
       });
     }
   },
@@ -85,38 +106,104 @@ async function createLiveRollback(
   {
     channel,
     isMandatory,
-    targetRelease,
-  }: { channel: Channel; isMandatory: boolean; targetRelease: Release },
+    platform,
+    toReleaseId,
+    undoneRelease,
+  }: {
+    channel: Channel;
+    isMandatory: boolean;
+    platform: Platform | null;
+    toReleaseId: string | null;
+    undoneRelease: Release;
+  },
 ): Promise<Release> {
-  const createdRelease = await hotCodePush.apps.channels.rollbacks.create({
-    appId: channel.appId,
-    channelId: channel.id,
-    isMandatory,
-    toReleaseId: targetRelease.id,
-  });
+  const createdRelease = await hotCodePush.apps.channels.rollbacks
+    .create({
+      appId: channel.appId,
+      channelId: channel.id,
+      isMandatory,
+      platform,
+      toReleaseId,
+    })
+    .catch((error: unknown) => {
+      throw isNoEarlierReleaseError(error)
+        ? new NoEarlierReleaseError({
+            channelName: channel.name,
+            releaseNumber: undoneRelease.number,
+          })
+        : error;
+    });
   return waitUntilLive(hotCodePush, {
     appId: channel.appId,
+    relations: ['bundle'],
     releaseId: createdRelease.id,
   });
 }
 
-// Mirrors the API rule for a rollback without a target.
-function resolvePreviousRelease(releases: Release[]): Release {
+// A release published between the preview and the request can leave the API without a target.
+function isNoEarlierReleaseError(error: unknown): boolean {
+  if (!(error instanceof HotCodePushError) || error.code !== 'validation') {
+    return false;
+  }
+  const details = error.details as { rule?: unknown } | null;
+  return details?.rule === 'no_earlier_release';
+}
+
+// Mirrors the API: the newest earlier active release whose bundle serves every platform the undone one serves.
+function resolvePreviousRelease(
+  activeReleases: Release[],
+  undoneRelease: Release,
+): Release | undefined {
+  const undonePlatforms = undoneRelease.bundle?.platforms ?? [];
+  return activeReleases.find(
+    release =>
+      release.number < undoneRelease.number &&
+      undonePlatforms.every(platform => isReleaseServing(release, platform)),
+  );
+}
+
+function resolveReleaseText(release: Release): string {
+  return release.bundle === undefined
+    ? `#${release.number}`
+    : `#${release.number} (${release.bundle.platforms.join(', ')} · ${release.bundle.version})`;
+}
+
+// The undone release is the newest active one, serving the platform when one is named.
+function resolveRollback(
+  releases: Release[],
+  {
+    channel,
+    platform,
+    toRelease,
+  }: {
+    channel: Channel;
+    platform: Platform | null;
+    toRelease: string | undefined;
+  },
+): Rollback {
   const activeReleases = releases
     .filter(({ status }) => status === 'active')
     .sort((left, right) => right.number - left.number);
-  const currentRelease = activeReleases[0];
-  const previousRelease = activeReleases.find(
-    release =>
-      currentRelease !== undefined &&
-      release.number < currentRelease.number &&
-      release.bundleId !== currentRelease.bundleId,
+  const undoneRelease = activeReleases.find(
+    release => platform === null || isReleaseServing(release, platform),
   );
-  if (previousRelease === undefined) {
+  if (undoneRelease === undefined) {
     throw new InvalidParameterError(
-      'The channel has no earlier release to roll back to.',
-      { fix: 'Name one with --to-release.' },
+      `The channel ${channel.name} serves no active release${platform === null ? '' : ` on ${platform}`} to roll back.`,
     );
   }
-  return previousRelease;
+  const targetRelease =
+    toRelease === undefined
+      ? resolvePreviousRelease(activeReleases, undoneRelease)
+      : resolveReleaseInLog(releases, {
+          flag: '--to-release',
+          reference: toRelease,
+        });
+  if (targetRelease === undefined) {
+    throw new NoEarlierReleaseError({
+      channelName: channel.name,
+      releaseNumber: undoneRelease.number,
+    });
+  }
+  return { targetRelease, undoneRelease };
 }

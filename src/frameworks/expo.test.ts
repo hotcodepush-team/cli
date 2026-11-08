@@ -100,15 +100,15 @@ describe('expoFramework', () => {
     }
   });
 
-  describe('packageBundles', () => {
+  describe('packageBundle', () => {
     it('should bundle with Expo export:embed, the bundler its release builds run', async () => {
       const directoryPath = writeProject();
       disableAndroidHermes(directoryPath);
 
-      await expoFramework.packageBundles?.({
+      await expoFramework.packageBundle?.({
         packagingDirectoryPath: join(directoryPath, 'packaging'),
         path: undefined,
-        platforms: ['android'],
+        platform: 'android',
         projectDirectoryPath: directoryPath,
       });
 

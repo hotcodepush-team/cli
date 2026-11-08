@@ -5,6 +5,7 @@ import type {
   Release,
 } from '@hotcodepush/node';
 import { z } from 'zod';
+import type { Platform } from '../../upload/upload.js';
 import { InvalidParameterError } from '../../utils/errors.js';
 import { fetchAllPages } from '../../utils/pagination.js';
 import { promptSelect } from '../../utils/prompts.js';
@@ -64,6 +65,14 @@ export function fetchReleaseLog(
       ...page,
     }),
   );
+}
+
+// The log embeds each release's bundle, so a release without one serves nothing known.
+export function isReleaseServing(
+  release: Release,
+  platform: Platform,
+): boolean {
+  return release.bundle?.platforms.includes(platform) ?? false;
 }
 
 export function resolveReleaseBundleLabel(release: Release): string {

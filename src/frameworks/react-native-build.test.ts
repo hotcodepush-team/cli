@@ -16,7 +16,7 @@ import type * as packageManagerModule from '../utils/package-manager.js';
 import { runCommandLineVisibly } from '../utils/package-manager.js';
 import {
   collectEmbeddedFiles,
-  packageReactNativeBundles,
+  packageReactNativeBundle,
 } from './react-native-build.js';
 
 vi.mock('../utils/package-manager.js', async importOriginal => ({
@@ -122,7 +122,7 @@ describe('react-native-build', () => {
     });
   });
 
-  describe('packageReactNativeBundles', () => {
+  describe('packageReactNativeBundle', () => {
     it("should bundle and compile each platform as its release build does, the source maps beside the bundle's directory", async () => {
       const hermescFilePath = writeHermesc();
       const packagingDirectoryPath = join(directoryPath, 'packaging');
@@ -137,25 +137,30 @@ describe('react-native-build', () => {
         }
       });
 
-      const packagedBundles = await packageReactNativeBundles(
-        {
-          packagingDirectoryPath,
-          path: undefined,
-          platforms: undefined,
-          projectDirectoryPath: directoryPath,
-        },
-        resolveBundlerArgs,
-      );
+      const packagedDirectoryPaths = [
+        await packageReactNativeBundle(
+          {
+            packagingDirectoryPath,
+            path: undefined,
+            platform: 'android',
+            projectDirectoryPath: directoryPath,
+          },
+          resolveBundlerArgs,
+        ),
+        await packageReactNativeBundle(
+          {
+            packagingDirectoryPath,
+            path: undefined,
+            platform: 'ios',
+            projectDirectoryPath: directoryPath,
+          },
+          resolveBundlerArgs,
+        ),
+      ];
 
-      expect(packagedBundles).toEqual([
-        {
-          directoryPath: join(packagingDirectoryPath, 'android'),
-          platforms: ['android'],
-        },
-        {
-          directoryPath: join(packagingDirectoryPath, 'ios'),
-          platforms: ['ios'],
-        },
+      expect(packagedDirectoryPaths).toEqual([
+        join(packagingDirectoryPath, 'android'),
+        join(packagingDirectoryPath, 'ios'),
       ]);
       const androidIntermediatePath = join(
         packagingDirectoryPath,
@@ -261,11 +266,11 @@ describe('react-native-build', () => {
       });
       const packagingDirectoryPath = join(directoryPath, 'packaging');
 
-      await packageReactNativeBundles(
+      await packageReactNativeBundle(
         {
           packagingDirectoryPath,
           path: undefined,
-          platforms: ['android'],
+          platform: 'android',
           projectDirectoryPath: directoryPath,
         },
         resolveBundlerArgs,
@@ -302,11 +307,11 @@ describe('react-native-build', () => {
     it("should refuse an app on Hermes whose react-native lacks Hermes' compiler", async () => {
       await expect(
         (async () =>
-          packageReactNativeBundles(
+          packageReactNativeBundle(
             {
               packagingDirectoryPath: join(directoryPath, 'packaging'),
               path: undefined,
-              platforms: ['ios'],
+              platform: 'ios',
               projectDirectoryPath: directoryPath,
             },
             resolveBundlerArgs,
@@ -321,18 +326,16 @@ describe('react-native-build', () => {
       });
 
       expect(
-        await packageReactNativeBundles(
+        await packageReactNativeBundle(
           {
             packagingDirectoryPath: join(directoryPath, 'packaging'),
             path: join(directoryPath, 'export'),
-            platforms: ['ios'],
+            platform: 'ios',
             projectDirectoryPath: directoryPath,
           },
           resolveBundlerArgs,
         ),
-      ).toEqual([
-        { directoryPath: join(directoryPath, 'export'), platforms: ['ios'] },
-      ]);
+      ).toBe(join(directoryPath, 'export'));
       expect(runCommandLineVisibly).not.toHaveBeenCalled();
     });
 
@@ -343,11 +346,11 @@ describe('react-native-build', () => {
 
       await expect(
         (async () =>
-          packageReactNativeBundles(
+          packageReactNativeBundle(
             {
               packagingDirectoryPath: join(directoryPath, 'packaging'),
               path: join(directoryPath, 'export'),
-              platforms: ['android'],
+              platform: 'android',
               projectDirectoryPath: directoryPath,
             },
             resolveBundlerArgs,
@@ -358,26 +361,6 @@ describe('react-native-build', () => {
           {
             fix: "Pass the android bundle's directory, with index.android.bundle in it, or leave out --path to bundle the project.",
           },
-        ),
-      );
-    });
-
-    it('should refuse --path without the one platform it serves', async () => {
-      await expect(
-        (async () =>
-          packageReactNativeBundles(
-            {
-              packagingDirectoryPath: join(directoryPath, 'packaging'),
-              path: join(directoryPath, 'export'),
-              platforms: undefined,
-              projectDirectoryPath: directoryPath,
-            },
-            resolveBundlerArgs,
-          ))(),
-      ).rejects.toThrow(
-        new InvalidParameterError(
-          'A prepared bundle from --path serves one platform.',
-          { fix: 'Name it with --platform ios or --platform android.' },
         ),
       );
     });

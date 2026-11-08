@@ -38,7 +38,9 @@ const FLEET_STATISTICS: FleetStatistics = {
   country: [{ deviceCount: 70, value: 'DE' }],
   currentDeviceCount: 50,
   deviceCount: 70,
+  ineligibleDeviceCount: 5,
   osVersion: [{ deviceCount: 70, platform: 'ios', value: '17.4' }],
+  pendingDeviceCount: 15,
   platform: [{ deviceCount: 70, value: 'ios' }],
   release: [
     {

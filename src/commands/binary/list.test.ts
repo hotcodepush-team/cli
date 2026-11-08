@@ -1,24 +1,29 @@
 import { describe, expect, it } from 'vitest';
 import { useCommandHarness } from '../../../test/command-harness.js';
-import { BINARY, DEMO_APP } from '../../../test/fixtures.js';
+import { BINARY, DEMO_APP, EMBEDDED_BUNDLE } from '../../../test/fixtures.js';
 import { FLEET_PATH, respondWithFleet } from '../../../test/release-routes.js';
 import binaryListCommand from './list.js';
 
 describe('binary list', () => {
   const harness = useCommandHarness();
 
-  it("should list the binaries with their bundle and the devices of the app's fleet, none seen in 30 days without a bucket", async () => {
+  it("should list the binaries with the embedded bundle each ships and the devices of the app's fleet, none seen in 30 days without a bucket", async () => {
     const unseenBinaryId = '1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d';
+    const binary = { ...BINARY, bundle: EMBEDDED_BUNDLE };
     harness.routes[`GET /v1/apps/${DEMO_APP.id}/binaries`] = () =>
-      Response.json([BINARY, { ...BINARY, id: unseenBinaryId }]);
+      Response.json([binary, { ...binary, id: unseenBinaryId }]);
     respondWithFleet(harness);
 
     await binaryListCommand.action({ app: DEMO_APP.id }, undefined);
 
+    const listUrl = harness.requests
+      .map(({ url }) => new URL(url))
+      .find(({ pathname }) => pathname.endsWith('/binaries'));
+    expect(listUrl?.searchParams.get('relations')).toBe('bundle');
     expect(harness.readLines()).toEqual([
-      'ID                                    VERSION  BUILD  PLATFORM  BUNDLE                                DEVICES  LAST SEEN',
-      `${BINARY.id}  1.0      1      ios       ${BINARY.bundleId}  12       2026-09-08`,
-      `${unseenBinaryId}  1.0      1      ios       ${BINARY.bundleId}  0        not in 30 days`,
+      'ID                                    VERSION  BUILD  PLATFORM  BUNDLE          DEVICES  LAST SEEN',
+      `${BINARY.id}  1.0      1      ios       embedded · 1.0  12       2026-09-08`,
+      `${unseenBinaryId}  1.0      1      ios       embedded · 1.0  0        not in 30 days`,
     ]);
     const fleetUrl = harness.requests
       .map(({ url }) => new URL(url))

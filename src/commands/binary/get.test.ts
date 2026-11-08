@@ -3,7 +3,12 @@ import {
   stubInteractiveTerminal,
   useCommandHarness,
 } from '../../../test/command-harness.js';
-import { BINARY, DEMO_APP, FLEET } from '../../../test/fixtures.js';
+import {
+  BINARY,
+  DEMO_APP,
+  EMBEDDED_BUNDLE,
+  FLEET,
+} from '../../../test/fixtures.js';
 import { FLEET_PATH, respondWithFleet } from '../../../test/release-routes.js';
 import { MissingParameterError } from '../../utils/errors.js';
 import { select } from '../../utils/prompt-renderers.js';
@@ -18,9 +23,9 @@ vi.mock('../../utils/prompt-renderers.js', () =>
 describe('binary get', () => {
   const harness = useCommandHarness();
 
-  it("should print the store build with the bundle it ships and the devices of its bucket in the app's fleet", async () => {
+  it("should print the store build with the embedded bundle it ships and the devices of its bucket in the app's fleet", async () => {
     harness.routes[`GET /v1/apps/${DEMO_APP.id}/binaries/${BINARY.id}`] = () =>
-      Response.json(BINARY);
+      Response.json({ ...BINARY, bundle: EMBEDDED_BUNDLE });
     respondWithFleet(harness);
 
     await binaryGetCommand.action(
@@ -34,11 +39,15 @@ describe('binary get', () => {
       'Version      1.0',
       'Build        1',
       'Fingerprint  none',
-      `Bundle       ${BINARY.bundleId}`,
+      'Bundle       embedded · 1.0',
       'Devices      12',
       'Last seen    2026-09-08T08:00:00.000Z',
       `Created      ${BINARY.createdAt}`,
     ]);
+    const binaryUrl = harness.requests
+      .map(({ url }) => new URL(url))
+      .find(({ pathname }) => pathname.endsWith(`/binaries/${BINARY.id}`));
+    expect(binaryUrl?.searchParams.get('relations')).toBe('bundle');
   });
 
   it('should print no devices, none seen in 30 days, when the fleet has no bucket for the binary', async () => {

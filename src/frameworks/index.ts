@@ -44,9 +44,9 @@ export interface FrameworkModule {
   ) => Promise<BundleFile[] | undefined>;
   // Breaks a tie when a project depends on several frameworks' packages.
   hasConfigFile: (projectDirectoryPath: string) => boolean;
-  // Bundles the JavaScript per platform during the upload, so `init` runs no build.
+  // Bundles one platform's JavaScript during the upload and answers its directory, so `init` runs no build.
   // Without this member, the build output is one bundle for every platform.
-  packageBundles?: (request: PackagingRequest) => Promise<PackagedBundle[]>;
+  packageBundle?: (request: PackagingRequest) => Promise<string>;
   readBuildDirectory: (projectDirectoryPath: string) => BuildDirectory;
   resolveWiring: (
     project: FrameworkProject,
@@ -76,16 +76,11 @@ export interface FrameworkWiring {
   ) => Promise<StepOutcome<undefined>>;
 }
 
-export interface PackagedBundle {
-  directoryPath: string;
-  platforms: Platform[];
-}
-
 // The command removes the packaging directory when it ends.
 export interface PackagingRequest {
   packagingDirectoryPath: string;
   path: string | undefined;
-  platforms: Platform[] | undefined;
+  platform: Platform;
   projectDirectoryPath: string;
 }
 
@@ -113,6 +108,11 @@ export const FRAMEWORK_MODULES: Record<Framework, FrameworkModule> = {
   expo: expoFramework,
   react_native: reactNativeFramework,
 };
+
+// A framework that packages per platform makes a bundle serve one platform.
+export function isBundlePerPlatform(framework: FrameworkModule): boolean {
+  return framework.packageBundle !== undefined;
+}
 
 export function resolveFrameworkModule(framework: Framework): FrameworkModule {
   return FRAMEWORK_MODULES[framework];

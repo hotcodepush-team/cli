@@ -221,6 +221,24 @@ export class NativeProjectError extends CliError {
 }
 
 // From a login that cannot wait for the approval, the fix carries the page and the code for an agent to relay.
+// The API answers `validation` with the rule `no_earlier_release`, and the way out is a revocation.
+export class NoEarlierReleaseError extends CliError {
+  constructor({
+    channelName,
+    releaseNumber,
+  }: {
+    channelName: string;
+    releaseNumber: number;
+  }) {
+    super({
+      code: 'validation',
+      exitCode: ExitCode.Error,
+      fix: `Revoke #${releaseNumber} to send its devices back to the store build's bundle: "hotcodepush release revoke --channel ${channelName} --release ${releaseNumber}".`,
+      message: `Nothing came before #${releaseNumber} on this binary.`,
+    });
+  }
+}
+
 export class NotLoggedInError extends CliError {
   constructor(deviceAuthorizationPrompt?: DeviceAuthorizationPrompt) {
     super({

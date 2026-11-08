@@ -32,6 +32,7 @@ import {
   PRODUCTION_CHANNEL,
   RUNNER_USER,
   SIGNING_KEY,
+  STAGING_CHANNEL,
 } from '../../test/fixtures.js';
 import {
   APP_DELEGATE_FILE_PATH,
@@ -989,7 +990,7 @@ describe('init', () => {
     );
   });
 
-  it('should sign the first release with the signing key it generated when a person says yes to both', async () => {
+  it('should sign the first release with the signing key it generated when a person says yes to both, naming the channel it released to', async () => {
     stubInteractiveTerminal();
     vi.mocked(select)
       .mockResolvedValueOnce(ACME_ORGANIZATION.id)
@@ -1002,7 +1003,10 @@ describe('init', () => {
     const releaseCreate = vi
       .spyOn(releaseCreateCommand, 'action')
       .mockResolvedValue(undefined);
-    const directoryPath = writeProject({ isPackageInstalled: true });
+    const directoryPath = writeProject({
+      isPackageInstalled: true,
+      projectConfig: { channel: STAGING_CHANNEL.name },
+    });
     respondWithSession([ACME_ORGANIZATION]);
     harness.routes[`GET ${APPS_PATH}`] = () => Response.json([DEMO_APP]);
     harness.routes[`POST /v1/apps/${DEMO_APP.id}/signing-keys`] =
@@ -1034,12 +1038,12 @@ describe('init', () => {
       '✓ Organization   Used organization Acme.',
       '✓ App            Used app Demo.',
       '– Package        The package @hotcodepush/capacitor-live-updates is already installed.',
-      '✓ Configuration  Wrote hotcodepush.json.',
+      '✓ Configuration  Completed hotcodepush.json.',
       '✓ Hook           Wired the Create HotCodePush binary phase in Xcode, the Gradle task that runs the build step.',
       "– Import         The app's code already imports @hotcodepush/capacitor-live-updates.",
       '✓ Signing key    Generated a signing key pair, its private key in the file named above.',
       '✓ Build          Ran "npm run build".',
-      '✓ Release        Released to production.',
+      '✓ Release        Released to staging.',
       '',
       `${S_SUCCESS}  Set up Demo.`,
       `   Console  http://localhost:4300/apps/${DEMO_APP.id}`,
@@ -1254,7 +1258,7 @@ describe('init', () => {
       vi.mocked(runCommandLineVisibly).mockReset();
     });
 
-    it('should install the SDK, write hotcodepush.json, and wire the phase, the Gradle line and both apps', async () => {
+    it('should install the SDK, write hotcodepush.json, wire the phase, the Gradle line and both apps, and name --platform in the release command', async () => {
       const directoryPath = writeReactNative();
       respondWithSession([ACME_ORGANIZATION]);
       harness.routes[`GET ${APPS_PATH}`] = () => Response.json([]);
@@ -1305,8 +1309,8 @@ describe('init', () => {
         'Wrote hotcodepush.json.',
         'Wired the Create HotCodePush binary phase in Xcode, the Gradle task that runs the build step, HotCodePush.bundleURL() in AppDelegate.swift, HotCodePushReactHost in MainApplication.kt, the pods through "pod install".',
         'Run "hotcodepush signing-key create" to enable code signing.',
-        'The command "hotcodepush release create" packages the bundles itself.',
-        'Run "hotcodepush release create" to publish the first release.',
+        'The command "hotcodepush release create --platform ios" packages the bundle for the platform it names, once per platform.',
+        'Run "hotcodepush release create --platform ios" to publish the first release.',
       ]);
     }, 15_000);
 

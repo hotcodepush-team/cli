@@ -13,13 +13,11 @@ import {
   computeFileSha256,
 } from '../upload/bundle-files.js';
 import type { Platform } from '../upload/upload.js';
-import { PLATFORMS } from '../upload/upload.js';
 import { InvalidParameterError } from '../utils/errors.js';
 import { runCommandLineVisibly } from '../utils/package-manager.js';
 import type {
   BuildDirectory,
   NativeProjectPaths,
-  PackagedBundle,
   PackagingRequest,
 } from './index.js';
 
@@ -83,29 +81,25 @@ export async function collectEmbeddedFiles(
   ];
 }
 
-export function packageReactNativeBundles(
+export function packageReactNativeBundle(
   {
     packagingDirectoryPath,
     path,
-    platforms = PLATFORMS,
+    platform,
     projectDirectoryPath,
   }: PackagingRequest,
   resolveBundlerArgs: BundlerArgsResolver,
-): Promise<PackagedBundle[]> {
+): Promise<string> {
   if (path !== undefined) {
-    return Promise.resolve([readPreparedBundle(path, platforms)]);
+    return Promise.resolve(readPreparedBundle(path, platform));
   }
-  return Promise.resolve(
-    platforms.map(platform => {
-      const directoryPath = join(packagingDirectoryPath, platform);
-      packageBundle(projectDirectoryPath, {
-        bundlerArgs: resolveBundlerArgs(projectDirectoryPath, platform),
-        outputDirectoryPath: directoryPath,
-        platform,
-      });
-      return { directoryPath, platforms: [platform] };
-    }),
-  );
+  const directoryPath = join(packagingDirectoryPath, platform);
+  packageBundle(projectDirectoryPath, {
+    bundlerArgs: resolveBundlerArgs(projectDirectoryPath, platform),
+    outputDirectoryPath: directoryPath,
+    platform,
+  });
+  return Promise.resolve(directoryPath);
 }
 
 export function readBuildDirectory(): BuildDirectory {
@@ -207,17 +201,7 @@ function packageBundle(
 }
 
 // A prepared bundle serves the one platform whose JavaScript it holds.
-function readPreparedBundle(
-  path: string,
-  platforms: Platform[],
-): PackagedBundle {
-  const [platform] = platforms;
-  if (platform === undefined || platforms.length > 1) {
-    throw new InvalidParameterError(
-      'A prepared bundle from --path serves one platform.',
-      { fix: 'Name it with --platform ios or --platform android.' },
-    );
-  }
+function readPreparedBundle(path: string, platform: Platform): string {
   const directoryPath = resolve(path);
   const bundleFileName = BUNDLE_FILE_NAMES[platform];
   if (!existsSync(join(directoryPath, bundleFileName))) {
@@ -228,7 +212,7 @@ function readPreparedBundle(
       },
     );
   }
-  return { directoryPath, platforms };
+  return directoryPath;
 }
 
 // Hermes compiles the JavaScript in the intermediate directory into the bundle file.

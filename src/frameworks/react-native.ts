@@ -20,7 +20,7 @@ import { resolveGradleEdit } from './native-project-edit.js';
 import { locateNativeProjects } from './native-projects.js';
 import {
   collectEmbeddedFiles,
-  packageReactNativeBundles,
+  packageReactNativeBundle,
   readBuildDirectory,
   resolveNativeProjectPaths,
 } from './react-native-build.js';
@@ -87,8 +87,8 @@ export const reactNativeFramework: FrameworkModule = {
   ],
   collectEmbeddedFiles,
   hasConfigFile: () => false,
-  packageBundles: request =>
-    packageReactNativeBundles(request, resolveBundlerArgs),
+  packageBundle: request =>
+    packageReactNativeBundle(request, resolveBundlerArgs),
   readBuildDirectory,
   resolveWiring,
 };
