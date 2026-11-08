@@ -147,6 +147,9 @@ describe('init', () => {
     harness.routes[
       `GET /v1/apps/${DEMO_APP.id}/channels/${PRODUCTION_CHANNEL.id}`
     ] = () => Response.json(PRODUCTION_CHANNEL);
+    // A run that stops early leaves queued answers, which would answer the next test's questions.
+    vi.mocked(confirm).mockReset();
+    vi.mocked(select).mockReset();
   });
 
   afterEach(() => {
@@ -1346,6 +1349,39 @@ describe('init', () => {
         status: 'stopped',
         step: 'hook',
       });
+    });
+
+    it('should ask the platform for the first release, pass it to release create and name it with the channel from the configuration', async () => {
+      stubInteractiveTerminal();
+      vi.mocked(select).mockResolvedValueOnce('android');
+      answerConfirmations({
+        changeFiles: true,
+        createSigningKey: false,
+        publishFirstRelease: true,
+      });
+      const releaseCreate = vi
+        .spyOn(releaseCreateCommand, 'action')
+        .mockResolvedValue(undefined);
+      const directoryPath = writeReactNative({
+        isPackageInstalled: true,
+        projectConfig: { appId: DEMO_APP.id, channel: STAGING_CHANNEL.name },
+      });
+      respondWithSession([ACME_ORGANIZATION]);
+      respondWithConfiguredApp();
+      respondWithSigningKeyCount(0);
+
+      await initCommand.action({ ...withCwd(directoryPath) }, undefined);
+
+      expect(select).toHaveBeenLastCalledWith(
+        expect.objectContaining({ message: 'Which platform?' }),
+      );
+      expect(releaseCreate).toHaveBeenCalledWith(
+        expect.objectContaining({ platform: 'android', yes: true }),
+        undefined,
+      );
+      expect(harness.readLines()).toContain(
+        '✓ Release        Released the android bundle to staging.',
+      );
     });
 
     it('should name the native files it would change and change none when nobody can confirm', async () => {

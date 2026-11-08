@@ -1,3 +1,5 @@
+import { rmSync } from 'node:fs';
+import { join } from 'node:path';
 import { S_SUCCESS } from '@clack/prompts';
 import type { App, Audience, Channel, Release } from '@hotcodepush/node';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -17,6 +19,7 @@ import {
   READY_BUNDLE,
   STAGING_CHANNEL,
 } from '../../../test/fixtures.js';
+import { writeReactNativeProject } from '../../../test/react-native-project.js';
 import {
   CHANNEL_PATH,
   RELEASES_PATH,
@@ -603,7 +606,7 @@ describe('release create', () => {
         expect(confirm).toHaveBeenCalledWith({
           initialValue: false,
           message:
-            'This releases bundle #16 · 1.4.1, release #8 of production, at 100 percent: reaches 100 of 120 active devices in staging. Continue?',
+            'This releases bundle #16 · 1.4.1, release #8 of production, at 100 percent: reaches 60 ios devices in staging. Continue?',
         });
         const [createRequest] = readCreateRequests();
         expect(await createRequest?.json()).toMatchObject({
@@ -628,6 +631,7 @@ describe('release create', () => {
         releaseCreateCommand.action({ ...OPTIONS, yes: true }, undefined),
       ).rejects.toMatchObject({
         code: 'invalid_parameter',
+        fix: 'Release a bundle to that channel first with release create.',
         message:
           'The channel production from --from-channel serves no active release.',
       });
@@ -839,6 +843,54 @@ describe('release create', () => {
         buildReleaseWithRelations(LIVE_RELEASE, STAGING_CHANNEL),
       );
     });
+  });
+
+  it('should count only the devices of the platform --platform names when it narrows a bundle serving both', async () => {
+    respondWithStagingChannel();
+    respondWithBundleNamedByNumber();
+
+    await expect(
+      releaseCreateCommand.action(
+        {
+          app: DEMO_APP.id,
+          bundle: '17',
+          channel: STAGING_CHANNEL.id,
+          platform: 'android',
+        },
+        undefined,
+      ),
+    ).rejects.toThrow(
+      new ConfirmationRequiredError(
+        'releases bundle #17 · 1.4.2 at 100 percent: reaches 40 android devices in staging',
+      ),
+    );
+  });
+
+  it('should refuse with `missing_parameter` naming --platform before any upload when a React Native build is to upload and nobody can answer', async () => {
+    const { buildBundleUpload: buildActualBundleUpload } =
+      await vi.importActual<typeof bundleUploadModule>(
+        '../../upload/bundle-upload.js',
+      );
+    vi.mocked(buildBundleUpload).mockImplementationOnce(
+      buildActualBundleUpload,
+    );
+    const directoryPath = writeReactNativeProject({
+      projectConfig: { appId: DEMO_APP.id, channel: STAGING_CHANNEL.name },
+    });
+
+    try {
+      await expect(
+        releaseCreateCommand.action(
+          { config: join(directoryPath, 'hotcodepush.json'), yes: true },
+          undefined,
+        ),
+      ).rejects.toThrow(new MissingParameterError('--platform'));
+    } finally {
+      rmSync(directoryPath, { force: true, recursive: true });
+    }
+
+    expect(uploadBundle).not.toHaveBeenCalled();
+    expect(readCreateRequests()).toEqual([]);
   });
 
   it('should refuse --bundle together with --path', async () => {

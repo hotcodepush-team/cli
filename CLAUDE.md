@@ -19,7 +19,7 @@ src/
   resources/   a file per command noun in the plural of the API paths, mass nouns as they are, holding what the noun's commands share: its option shape (--channel),
                the fetch functions that turn the flag into the resource, the pure resolvers and the formatters: apps, audience, binaries, bundles, devices, invitations, members,
                organizations, resource-files, signing-keys, sso-providers, statistics, telemetry-exports, usage, webhooks; a noun past about 200 lines is a folder split by job,
-               channels/ (fetch, fields) and releases/ (fetch, conditions, progression, output); a noun with no shared code has no file
+               channels/ (fetch, fields) and releases/ (fetch, conditions, progression, output, serving); a noun with no shared code has no file
   frameworks/  framework detection and the build's directory, one module per framework behind one interface and the registry line in index.ts that makes the CLI package it,
                React Native's release build, which Expo's module runs too, the SDK package's install and check, the native projects as named or asked for,
                the native glue the Capacitor and Cordova modules name, the native-project edits: the binary create phase in the Xcode project, the lines a React Native project is wired with,

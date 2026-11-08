@@ -220,7 +220,6 @@ export class NativeProjectError extends CliError {
   }
 }
 
-// From a login that cannot wait for the approval, the fix carries the page and the code for an agent to relay.
 // The API answers `validation` with the rule `no_earlier_release`, and the way out is a revocation.
 export class NoEarlierReleaseError extends CliError {
   constructor({
@@ -239,6 +238,7 @@ export class NoEarlierReleaseError extends CliError {
   }
 }
 
+// From a login that cannot wait for the approval, the fix carries the page and the code for an agent to relay.
 export class NotLoggedInError extends CliError {
   constructor(deviceAuthorizationPrompt?: DeviceAuthorizationPrompt) {
     super({

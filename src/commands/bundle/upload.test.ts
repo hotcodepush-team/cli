@@ -343,7 +343,7 @@ describe('bundle upload', () => {
       await runBundleUpload();
 
       expect(harness.readDiagnostics()).toBe(
-        'No binary is registered for this app yet, so no store build can receive this bundle until one is built.\n',
+        'The app has no binary yet, so no store build can take this bundle.\n',
       );
     });
 

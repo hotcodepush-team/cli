@@ -27,11 +27,11 @@ export async function fetchPlatform(
   { appId, options }: { appId: string; options: PlatformOptions },
 ): Promise<Platform | null> {
   const app = await hotCodePush.apps.get({ appId });
-  return resolvePlatform(resolveFrameworkModule(app.framework), options);
+  return readPlatform(resolveFrameworkModule(app.framework), options);
 }
 
 // Null means every platform, which only a framework with one bundle for both allows.
-export async function resolvePlatform(
+export async function readPlatform(
   framework: FrameworkModule,
   options: PlatformOptions,
 ): Promise<Platform | null> {

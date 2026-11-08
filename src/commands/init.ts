@@ -19,9 +19,11 @@ import type {
   FrameworkWiring,
   StepOutcome,
 } from '../frameworks/index.js';
+import { readPlatform } from '../frameworks/platform.js';
 import { fetchApps } from '../resources/apps.js';
 import { fetchOrganizations } from '../resources/organizations.js';
 import { fetchHasSigningKey } from '../resources/signing-keys.js';
+import type { Platform } from '../upload/upload.js';
 import { createApiClient } from '../utils/api-client.js';
 import { defineCommand } from '../utils/command.js';
 import {
@@ -61,7 +63,6 @@ import type {
 } from '../utils/project-config.js';
 import {
   locateProjectConfig,
-  readProjectConfigFile,
   resolveProjectChannel,
 } from '../utils/project-config.js';
 import {
@@ -117,6 +118,11 @@ interface ResourceCreation<TResource extends NamedResource> {
   create: (name: string) => Promise<TResource>;
   noun: string;
   options: InitOptions;
+}
+
+interface ProjectSetup {
+  channelName: string | undefined;
+  privateKeyPath: string | undefined;
 }
 
 interface Scope {
@@ -177,15 +183,15 @@ export default defineCommand({
       framework: project.frameworkModule,
       options,
     });
-    const privateKeyPath = await runProjectSteps(run, {
+    const projectSetup = await runProjectSteps(run, {
       account,
       options,
       projectFiles,
     });
     const isReleased = await runReleaseSteps(run, {
       options,
-      privateKeyPath,
       projectFiles,
+      projectSetup,
     });
     if (options.json) {
       printJson({ status: run.status, steps: run.steps });
@@ -194,7 +200,7 @@ export default defineCommand({
         app: account.app,
         isReleased,
         releaseCommandText: resolveReleaseCommandText(projectFiles.framework, {
-          privateKeyPath,
+          privateKeyPath: projectSetup.privateKeyPath,
         }),
       });
     }
@@ -253,7 +259,7 @@ async function runAccountSteps(
   return { app, hotCodePush };
 }
 
-// Returns the private key's path when the signing key step generated one.
+// The private key's path is there when the signing key step generated one.
 async function runProjectSteps(
   run: InitRun,
   {
@@ -261,12 +267,12 @@ async function runProjectSteps(
     options,
     projectFiles,
   }: { account: Account; options: InitOptions; projectFiles: ProjectFiles },
-): Promise<string | undefined> {
+): Promise<ProjectSetup> {
   const editBlocker = await confirmProjectEdits(projectFiles, { app, options });
   await run.run('package', {
     perform: () => installPackage(projectFiles, { editBlocker }),
   });
-  await run.run('configuration', {
+  const channelName = await run.run('configuration', {
     dependsOn: ['app'],
     perform: () =>
       writeConfiguration(requireValue(hotCodePush), {
@@ -282,21 +288,22 @@ async function runProjectSteps(
   if (wireAppImport !== undefined) {
     await run.run('import', { perform: () => wireAppImport(editBlocker) });
   }
-  return run.run('signing_key', {
+  const privateKeyPath = await run.run('signing_key', {
     perform: () => createSigningKey(projectFiles, { app, options }),
   });
+  return { channelName, privateKeyPath };
 }
 
 async function runReleaseSteps(
   run: InitRun,
   {
     options,
-    privateKeyPath,
     projectFiles,
+    projectSetup,
   }: {
     options: InitOptions;
-    privateKeyPath: string | undefined;
     projectFiles: ProjectFiles;
+    projectSetup: ProjectSetup;
   },
 ): Promise<boolean> {
   const isReleaseWanted =
@@ -312,7 +319,7 @@ async function runReleaseSteps(
         isBuilt: isBuilt === true,
         isReleaseWanted,
         options,
-        privateKeyPath,
+        projectSetup,
       }),
   });
   return isReleased === true;
@@ -608,23 +615,23 @@ async function writeConfiguration(
     editBlocker: ConfirmationRequiredError | undefined;
     projectFiles: ProjectFiles;
   },
-): Promise<StepOutcome<undefined>> {
+): Promise<StepOutcome<string>> {
   if (isConfigurationComplete(projectConfig, app)) {
     return {
       message: `The file ${basename(configFilePath)} is already present.`,
       status: 'skipped',
-      value: undefined,
+      value: resolveProjectChannel(projectConfig ?? {}),
     };
   }
   if (editBlocker !== undefined) {
     throw editBlocker;
   }
+  const channelName =
+    projectConfig?.channel ?? (await fetchDefaultChannelName(hotCodePush, app));
   writeProjectConfigFile(configFilePath, {
     ...projectConfig,
     appId: app.id,
-    ...(projectConfig?.channel !== undefined
-      ? {}
-      : { channel: await fetchDefaultChannelName(hotCodePush, app) }),
+    channel: channelName,
   });
   return {
     message: resolveConfigurationMessage(projectConfig, {
@@ -632,7 +639,7 @@ async function writeConfiguration(
       fileName: basename(configFilePath),
     }),
     status: 'done',
-    value: undefined,
+    value: channelName,
   };
 }
 
@@ -746,18 +753,19 @@ function runBuildScript(
   });
 }
 
+// The release step waits on the configuration step, so the channel is known here.
 async function releaseFirst(
   projectFiles: ProjectFiles,
   {
     isBuilt,
     isReleaseWanted,
     options,
-    privateKeyPath,
+    projectSetup: { channelName, privateKeyPath },
   }: {
     isBuilt: boolean;
     isReleaseWanted: boolean;
     options: InitOptions;
-    privateKeyPath: string | undefined;
+    projectSetup: ProjectSetup;
   },
 ): Promise<StepOutcome<boolean>> {
   const releaseCommandText = resolveReleaseCommandText(projectFiles.framework, {
@@ -773,27 +781,29 @@ async function releaseFirst(
   if (missingBuildOutcome !== undefined) {
     return missingBuildOutcome;
   }
+  const platform = await readPlatform(projectFiles.framework, options);
   await releaseCreateCommand.action(
     {
       config: projectFiles.configFilePath,
       json: options.json,
+      platform: platform ?? undefined,
       privateKeyPath,
       yes: true,
     },
     undefined,
   );
-  return resolveReleasedOutcome(projectFiles);
+  return resolveReleasedOutcome(requireValue(channelName), { platform });
 }
 
-// The configuration step may have written the channel, which the release took as its default.
-function resolveReleasedOutcome({
-  configFilePath,
-}: ProjectFiles): StepOutcome<boolean> {
-  const releasedChannel = resolveProjectChannel(
-    readProjectConfigFile(configFilePath),
-  );
+function resolveReleasedOutcome(
+  channelName: string,
+  { platform }: { platform: Platform | null },
+): StepOutcome<boolean> {
   return {
-    message: `Released to ${releasedChannel}.`,
+    message:
+      platform === null
+        ? `Released to ${channelName}.`
+        : `Released the ${platform} bundle to ${channelName}.`,
     status: 'done',
     value: true,
   };

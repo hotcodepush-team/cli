@@ -1,6 +1,7 @@
 import { S_SUCCESS } from '@clack/prompts';
 import type { Bundle, Release } from '@hotcodepush/node';
 import { describe, expect, it, vi } from 'vitest';
+import { CAPACITOR_FINGERPRINT } from '../../../test/capacitor-project.js';
 import {
   stubInteractiveTerminal,
   useCommandHarness,
@@ -89,7 +90,7 @@ describe('release rollback', () => {
       Response.json(audience);
   }
 
-  it('should name the undone and the target release with its reach once confirmed, adding no stranded devices when the reach is not below the undone release count, leave the target to the API and wait until the new release is live', async () => {
+  it('should name the undone and the target release with its reach once confirmed, warn of nothing when both bundles carry one fingerprint, send the target it named and wait until the new release is live', async () => {
     stubInteractiveTerminal();
     vi.mocked(confirm).mockResolvedValue(true);
     respondWithRollback();
@@ -109,15 +110,11 @@ describe('release rollback', () => {
       message:
         'This rolls staging back from #43 (android, ios · 1.4.2) to #42 (android, ios · 1.4.1), reaching 100 of 120 devices. Continue?',
     });
-    const fleetUrl = harness.requests
-      .map(({ url }) => new URL(url))
-      .find(({ pathname }) => pathname === FLEET_PATH);
-    expect(fleetUrl?.searchParams.get('channelId')).toBe(STAGING_CHANNEL.id);
     const [rollbackRequest] = readRollbackRequests();
     expect(await rollbackRequest?.json()).toEqual({
       isMandatory: true,
       platform: null,
-      toReleaseId: null,
+      toReleaseId: PREVIOUS_RELEASE.id,
     });
     expect(harness.readLines()).toEqual([
       `${S_SUCCESS}  Created release #44 of staging.`,
@@ -129,12 +126,16 @@ describe('release rollback', () => {
     ]);
   });
 
-  it('should say how many devices on the undone release the target cannot reach when its reach is below their count', async () => {
+  it("should name every device on the undone release as out of the target's reach when the two bundles carry different fingerprints", async () => {
     respondWithRollback();
-    respondWithTargetReach(PREVIOUS_RELEASE, {
-      ...STAGING_AUDIENCE,
-      reachedDeviceCount: 0,
-    });
+    harness.routes[`GET ${RELEASES_PATH}`] = () =>
+      Response.json([
+        {
+          ...LIVE_RELEASE,
+          bundle: { ...READY_BUNDLE, fingerprint: CAPACITOR_FINGERPRINT },
+        },
+        { ...PREVIOUS_RELEASE, bundle: PREVIOUS_BUNDLE },
+      ]);
 
     await expect(
       releaseRollbackCommand.action(
@@ -143,9 +144,34 @@ describe('release rollback', () => {
       ),
     ).rejects.toThrow(
       new ConfirmationRequiredError(
-        "rolls staging back from #43 (android, ios · 1.4.2) to #42 (android, ios · 1.4.1), reaching 0 of 120 devices. #42 reaches 0 of the 80 devices on #43, whose store build carries another fingerprint. Revoke #43 to send them back to the store build's bundle",
+        "rolls staging back from #43 (android, ios · 1.4.2) to #42 (android, ios · 1.4.1), reaching 100 of 120 devices. #42 reaches none of the 80 devices on #43, whose store build carries another fingerprint. Revoke #43 to send them back to the store build's bundle",
       ),
     );
+    const fleetUrl = harness.requests
+      .map(({ url }) => new URL(url))
+      .find(({ pathname }) => pathname === FLEET_PATH);
+    expect(fleetUrl?.searchParams.get('channelId')).toBe(STAGING_CHANNEL.id);
+  });
+
+  it('should narrow a rollback of a bundle serving both platforms to the one --platform names', async () => {
+    respondWithRollback();
+
+    await releaseRollbackCommand.action(
+      {
+        app: DEMO_APP.id,
+        channel: STAGING_CHANNEL.id,
+        platform: 'android',
+        yes: true,
+      },
+      undefined,
+    );
+
+    const [rollbackRequest] = readRollbackRequests();
+    expect(await rollbackRequest?.json()).toEqual({
+      isMandatory: true,
+      platform: 'android',
+      toReleaseId: PREVIOUS_RELEASE.id,
+    });
   });
 
   it('should send the release --to-release names and print the new release as JSON when --yes and --json are passed', async () => {
@@ -271,8 +297,32 @@ describe('release rollback', () => {
       expect(await rollbackRequest?.json()).toEqual({
         isMandatory: true,
         platform: 'ios',
-        toReleaseId: null,
+        toReleaseId: OLDER_IOS_RELEASE.id,
       });
+    });
+
+    it('should refuse --to-release before any rollback when its bundle does not serve --platform', async () => {
+      respondWithPlatformReleases();
+
+      await expect(
+        releaseRollbackCommand.action(
+          {
+            app: DEMO_APP.id,
+            channel: STAGING_CHANNEL.id,
+            platform: 'ios',
+            toRelease: '43',
+            yes: true,
+          },
+          undefined,
+        ),
+      ).rejects.toMatchObject({
+        code: 'invalid_parameter',
+        fix: 'Name a release whose bundle serves ios with --to-release.',
+        message:
+          'The bundle of release #43 from --to-release does not serve ios.',
+      });
+
+      expect(readRollbackRequests()).toEqual([]);
     });
 
     it('should refuse with `missing_parameter` naming --platform before any rollback when it is missing and nobody can answer', async () => {
@@ -307,30 +357,5 @@ describe('release rollback', () => {
       message: 'Nothing came before #43 on this binary.',
     });
     expect(readRollbackRequests()).toEqual([]);
-  });
-
-  it('should point to release revoke when the API answers `no_earlier_release`', async () => {
-    respondWithRollback();
-    harness.routes[`POST ${CHANNEL_PATH}/rollbacks`] = () =>
-      Response.json(
-        {
-          code: 'validation',
-          details: {
-            field: 'toReleaseId',
-            rule: 'no_earlier_release',
-            target: 'json',
-          },
-          message:
-            'The json field toReleaseId is invalid: the channel has no earlier release to roll back to; name one.',
-        },
-        { status: 400 },
-      );
-
-    await expect(
-      releaseRollbackCommand.action(
-        { app: DEMO_APP.id, channel: STAGING_CHANNEL.id, yes: true },
-        undefined,
-      ),
-    ).rejects.toThrow(NO_EARLIER_RELEASE_ERROR);
   });
 });

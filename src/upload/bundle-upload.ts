@@ -9,10 +9,7 @@ import {
 import type { FrameworkModule } from '../frameworks/index.js';
 import { resolveFrameworkModule } from '../frameworks/index.js';
 import type { PlatformOptions } from '../frameworks/platform.js';
-import {
-  platformOptionShape,
-  resolvePlatform,
-} from '../frameworks/platform.js';
+import { platformOptionShape, readPlatform } from '../frameworks/platform.js';
 import { fetchAppId } from '../resources/apps.js';
 import { SigningKeyUnavailableError } from '../utils/errors.js';
 import { readPackageJson } from '../utils/package-json.js';
@@ -100,7 +97,7 @@ export async function buildBundleUpload(
     options,
     projectConfig: project.projectConfig,
   });
-  const platform = await resolvePlatform(framework, options);
+  const platform = await readPlatform(framework, options);
   const sharedUploadOptions = await readSharedUploadOptions(project, {
     appId,
     framework,
@@ -120,7 +117,7 @@ export async function buildBundleUpload(
 }
 
 // A framework without its own packaging uploads its build output for every platform at once.
-// The platform is null only on such a framework, since `resolvePlatform` asks for it everywhere else.
+// The platform is null only on such a framework, since `readPlatform` asks for it everywhere else.
 async function packageBundle(
   framework: FrameworkModule,
   {

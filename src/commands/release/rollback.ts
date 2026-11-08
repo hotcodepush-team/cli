@@ -1,11 +1,9 @@
 import type {
   Audience,
   Channel,
-  FleetStatistics,
   HotCodePush,
   Release,
 } from '@hotcodepush/node';
-import { HotCodePushError } from '@hotcodepush/node';
 import { z } from 'zod';
 import {
   fetchPlatform,
@@ -18,12 +16,15 @@ import {
 } from '../../resources/channels/fetch.js';
 import {
   fetchReleaseLog,
-  isReleaseServing,
   resolveReleaseBundleLabel,
   resolveReleaseInLog,
   waitUntilLive,
 } from '../../resources/releases/fetch.js';
 import { printCreatedRelease } from '../../resources/releases/output.js';
+import {
+  findNewestActiveRelease,
+  isReleaseServing,
+} from '../../resources/releases/serving.js';
 import { resolveReleaseDeviceCount } from '../../resources/statistics.js';
 import type { Platform } from '../../upload/upload.js';
 import { createApiClient } from '../../utils/api-client.js';
@@ -46,7 +47,7 @@ type TargetReach = Pick<Audience, 'deviceCount' | 'reachedDeviceCount'>;
 
 export default defineCommand({
   description:
-    "Release the release before the channel's newest active one again, or the one of --to-release, as a new release.",
+    'Roll the channel back to the release before its newest active one, or to --to-release, as a new release.',
   examples: [
     'hotcodepush release rollback',
     'hotcodepush release rollback --channel staging --platform ios --to-release 41 --yes',
@@ -90,10 +91,7 @@ export default defineCommand({
       channel,
       isMandatory: options.mandatory ?? true,
       platform,
-      // Without --to-release the API applies its own rule, which the preview above mirrors.
-      toReleaseId:
-        options.toRelease === undefined ? null : rollback.targetRelease.id,
-      undoneRelease: rollback.undoneRelease,
+      targetRelease: rollback.targetRelease,
     });
     if (options.json) {
       printJson(liveRelease);
@@ -112,32 +110,21 @@ async function createLiveRollback(
     channel,
     isMandatory,
     platform,
-    toReleaseId,
-    undoneRelease,
+    targetRelease,
   }: {
     channel: Channel;
     isMandatory: boolean;
     platform: Platform | null;
-    toReleaseId: string | null;
-    undoneRelease: Release;
+    targetRelease: Release;
   },
 ): Promise<Release> {
-  const createdRelease = await hotCodePush.apps.channels.rollbacks
-    .create({
-      appId: channel.appId,
-      channelId: channel.id,
-      isMandatory,
-      platform,
-      toReleaseId,
-    })
-    .catch((error: unknown) => {
-      throw isNoEarlierReleaseError(error)
-        ? new NoEarlierReleaseError({
-            channelName: channel.name,
-            releaseNumber: undoneRelease.number,
-          })
-        : error;
-    });
+  const createdRelease = await hotCodePush.apps.channels.rollbacks.create({
+    appId: channel.appId,
+    channelId: channel.id,
+    isMandatory,
+    platform,
+    toReleaseId: targetRelease.id,
+  });
   return waitUntilLive(hotCodePush, {
     appId: channel.appId,
     relations: ['bundle'],
@@ -145,26 +132,25 @@ async function createLiveRollback(
   });
 }
 
-// The fleet counts the devices on the undone release, the target's audience those it reaches.
+// A store build takes only a bundle of its own fingerprint, so another fingerprint strands every device on the undone release.
 async function fetchRollbackConsequence(
   hotCodePush: HotCodePush,
   { channel, rollback }: { channel: Channel; rollback: Rollback },
 ): Promise<string> {
-  const fleet = await hotCodePush.apps.statistics.fleet.get({
-    appId: channel.appId,
-    channelId: channel.id,
-  });
   const targetReach = await fetchTargetReach(hotCodePush, {
     channel,
     targetRelease: rollback.targetRelease,
   });
+  const undoneDeviceCount = isFingerprintKept(rollback)
+    ? undefined
+    : await fetchUndoneDeviceCount(hotCodePush, {
+        channel,
+        undoneRelease: rollback.undoneRelease,
+      });
   return resolveRollbackConsequence(rollback, {
     channel,
-    strandedDeviceCount: resolveStrandedDeviceCount(rollback.undoneRelease, {
-      fleet,
-      targetReach,
-    }),
     targetReach,
+    undoneDeviceCount,
   });
 }
 
@@ -178,26 +164,38 @@ function fetchTargetReach(
   });
 }
 
-// A release published between the preview and the request can leave the API without a target.
-function isNoEarlierReleaseError(error: unknown): boolean {
-  if (!(error instanceof HotCodePushError) || error.code !== 'validation') {
-    return false;
-  }
-  const details = error.details as { rule?: unknown } | null;
-  return details?.rule === 'no_earlier_release';
+async function fetchUndoneDeviceCount(
+  hotCodePush: HotCodePush,
+  { channel, undoneRelease }: { channel: Channel; undoneRelease: Release },
+): Promise<number> {
+  const fleet = await hotCodePush.apps.statistics.fleet.get({
+    appId: channel.appId,
+    channelId: channel.id,
+  });
+  return resolveReleaseDeviceCount(fleet, { releaseId: undoneRelease.id });
+}
+
+function isFingerprintKept({
+  targetRelease,
+  undoneRelease,
+}: Rollback): boolean {
+  return (
+    targetRelease.bundle?.fingerprint === undoneRelease.bundle?.fingerprint
+  );
 }
 
 // Mirrors the API: the newest earlier active release whose bundle serves every platform the undone one serves.
 function resolvePreviousRelease(
-  activeReleases: Release[],
+  releases: Release[],
   undoneRelease: Release,
 ): Release | undefined {
   const undonePlatforms = undoneRelease.bundle?.platforms ?? [];
-  return activeReleases.find(
+  const earlierReleases = releases.filter(
     release =>
       release.number < undoneRelease.number &&
       undonePlatforms.every(platform => isReleaseServing(release, platform)),
   );
+  return findNewestActiveRelease(earlierReleases, { platform: null });
 }
 
 function resolveReleaseText(release: Release): string {
@@ -206,7 +204,6 @@ function resolveReleaseText(release: Release): string {
     : `#${release.number} (${release.bundle.platforms.join(', ')} · ${release.bundle.version})`;
 }
 
-// The undone release is the newest active one, serving the platform when one is named.
 function resolveRollback(
   releases: Release[],
   {
@@ -219,24 +216,17 @@ function resolveRollback(
     toRelease: string | undefined;
   },
 ): Rollback {
-  const activeReleases = releases
-    .filter(({ status }) => status === 'active')
-    .sort((left, right) => right.number - left.number);
-  const undoneRelease = activeReleases.find(
-    release => platform === null || isReleaseServing(release, platform),
-  );
+  const undoneRelease = findNewestActiveRelease(releases, { platform });
   if (undoneRelease === undefined) {
     throw new InvalidParameterError(
       `The channel ${channel.name} serves no active release${platform === null ? '' : ` on ${platform}`} to roll back.`,
+      { fix: 'Release a bundle to the channel first with release create.' },
     );
   }
   const targetRelease =
     toRelease === undefined
-      ? resolvePreviousRelease(activeReleases, undoneRelease)
-      : resolveReleaseInLog(releases, {
-          flag: '--to-release',
-          reference: toRelease,
-        });
+      ? resolvePreviousRelease(releases, undoneRelease)
+      : resolveTargetRelease(releases, { platform, toRelease });
   if (targetRelease === undefined) {
     throw new NoEarlierReleaseError({
       channelName: channel.name,
@@ -250,40 +240,43 @@ function resolveRollbackConsequence(
   rollback: Rollback,
   {
     channel,
-    strandedDeviceCount,
     targetReach,
+    undoneDeviceCount,
   }: {
     channel: Channel;
-    strandedDeviceCount: number | undefined;
     targetReach: TargetReach;
+    undoneDeviceCount: number | undefined;
   },
 ): string {
   const rollbackText = `rolls ${channel.name} back from ${resolveReleaseText(rollback.undoneRelease)} to ${resolveReleaseText(rollback.targetRelease)}, reaching ${resolveCountText(targetReach.reachedDeviceCount)} of ${resolveCountText(targetReach.deviceCount)} devices`;
-  return strandedDeviceCount === undefined
+  return undoneDeviceCount === undefined
     ? rollbackText
-    : `${rollbackText}. ${resolveStrandedText(rollback, { strandedDeviceCount, targetReach })}`;
-}
-
-// The devices on the undone release that the target cannot reach, such as a store build with another fingerprint.
-function resolveStrandedDeviceCount(
-  undoneRelease: Release,
-  { fleet, targetReach }: { fleet: FleetStatistics; targetReach: TargetReach },
-): number | undefined {
-  const undoneDeviceCount = resolveReleaseDeviceCount(fleet, {
-    releaseId: undoneRelease.id,
-  });
-  return targetReach.reachedDeviceCount < undoneDeviceCount
-    ? undoneDeviceCount
-    : undefined;
+    : `${rollbackText}. ${resolveStrandedText(rollback, { undoneDeviceCount })}`;
 }
 
 // The consequence ends without a full stop, since the confirmation adds it.
 function resolveStrandedText(
   { targetRelease, undoneRelease }: Rollback,
-  {
-    strandedDeviceCount,
-    targetReach,
-  }: { strandedDeviceCount: number; targetReach: TargetReach },
+  { undoneDeviceCount }: { undoneDeviceCount: number },
 ): string {
-  return `#${targetRelease.number} reaches ${resolveCountText(targetReach.reachedDeviceCount)} of the ${resolveCountText(strandedDeviceCount)} devices on #${undoneRelease.number}, whose store build carries another fingerprint. Revoke #${undoneRelease.number} to send them back to the store build's bundle`;
+  return `#${targetRelease.number} reaches none of the ${resolveCountText(undoneDeviceCount)} devices on #${undoneRelease.number}, whose store build carries another fingerprint. Revoke #${undoneRelease.number} to send them back to the store build's bundle`;
+}
+
+function resolveTargetRelease(
+  releases: Release[],
+  { platform, toRelease }: { platform: Platform | null; toRelease: string },
+): Release {
+  const targetRelease = resolveReleaseInLog(releases, {
+    flag: '--to-release',
+    reference: toRelease,
+  });
+  if (platform !== null && !isReleaseServing(targetRelease, platform)) {
+    throw new InvalidParameterError(
+      `The bundle of release #${targetRelease.number} from --to-release does not serve ${platform}.`,
+      {
+        fix: `Name a release whose bundle serves ${platform} with --to-release.`,
+      },
+    );
+  }
+  return targetRelease;
 }

@@ -9,7 +9,10 @@ import type {
 import { z } from 'zod';
 import { fetchPlatform } from '../../frameworks/platform.js';
 import { fetchAppId } from '../../resources/apps.js';
-import { resolveAudienceText } from '../../resources/audience.js';
+import {
+  resolveAudienceText,
+  resolveCountText,
+} from '../../resources/audience.js';
 import { fetchBundle, resolveBundleLabel } from '../../resources/bundles.js';
 import {
   channelOptionShape,
@@ -32,7 +35,6 @@ import {
 } from '../../resources/releases/conditions.js';
 import {
   fetchReleaseLog,
-  isReleaseServing,
   waitUntilLive,
 } from '../../resources/releases/fetch.js';
 import { printCreatedRelease } from '../../resources/releases/output.js';
@@ -45,6 +47,7 @@ import {
   resolveProgression,
   resolveProgressionText,
 } from '../../resources/releases/progression.js';
+import { findNewestActiveRelease } from '../../resources/releases/serving.js';
 import type { BundleUploadOptions } from '../../upload/bundle-upload.js';
 import {
   bundleUploadOptionShape,
@@ -380,6 +383,7 @@ async function fetchReleasePlan(
     channelAudience,
     consequence: resolveReleaseConsequence(bundleSource, {
       channelAudience,
+      platform: options.platform ?? null,
       rollout,
     }),
     fingerprint,
@@ -405,16 +409,14 @@ async function fetchSourceRelease(
       source: '--from-channel',
     }),
   });
-  const sourceRelease = (
-    await fetchReleaseLog(hotCodePush, sourceChannel)
-  ).find(
-    release =>
-      release.status === 'active' &&
-      (platform === null || isReleaseServing(release, platform)),
+  const sourceRelease = findNewestActiveRelease(
+    await fetchReleaseLog(hotCodePush, sourceChannel),
+    { platform },
   );
   if (sourceRelease === undefined) {
     throw new InvalidParameterError(
       `The channel ${sourceChannel.name} from --from-channel serves no active release${platform === null ? '' : ` on ${platform}`}.`,
+      { fix: 'Release a bundle to that channel first with release create.' },
     );
   }
   const bundle =
@@ -426,15 +428,39 @@ async function fetchSourceRelease(
   return { bundle, platform, sourceChannel, sourceRelease };
 }
 
+// The audience preview takes no platform, so the devices of one are its bucket of that platform.
+function resolveReachText(
+  { audience, channel }: ChannelAudience,
+  {
+    platform,
+    rolloutPercent,
+  }: { platform: Platform | null; rolloutPercent: number },
+): string {
+  if (platform === null) {
+    return resolveAudienceText(audience, {
+      channelName: channel.name,
+      rolloutPercent,
+    });
+  }
+  const platformDeviceCount =
+    audience.platform.find(({ value }) => value === platform)?.deviceCount ?? 0;
+  return `reaches ${resolveCountText(platformDeviceCount)} ${platform} devices in ${channel.name}`;
+}
+
 function resolveReleaseConsequence(
   bundleSource: BundleSource,
   {
-    channelAudience: { audience, channel },
+    channelAudience,
+    platform,
     rollout: { isMandatory, progression, rolloutPercent },
-  }: { channelAudience: ChannelAudience; rollout: ReleaseRollout },
+  }: {
+    channelAudience: ChannelAudience;
+    platform: Platform | null;
+    rollout: ReleaseRollout;
+  },
 ): string {
-  const audienceText = resolveAudienceText(audience, {
-    channelName: channel.name,
+  const audienceText = resolveReachText(channelAudience, {
+    platform,
     rolloutPercent,
   });
   const progressionText =

@@ -16,15 +16,6 @@ import { printWarning } from '../../utils/diagnostics.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson, printResult } from '../../utils/output.js';
 
-// Either way no store build can take the bundle.
-type FingerprintGap = 'no_binary' | 'unknown_fingerprint';
-
-const FINGERPRINT_GAP_TEXTS: Record<FingerprintGap, string> = {
-  no_binary:
-    'No binary is registered for this app yet, so no store build can receive this bundle until one is built.',
-  unknown_fingerprint: 'No binary of the app carries this fingerprint.',
-};
-
 export default defineCommand({
   description:
     'Upload a build as a bundle, signed where a key is configured. Only the files the app lacks move, then the full pack. Nothing is released.',
@@ -35,24 +26,26 @@ export default defineCommand({
   options: defineCommandOptions(bundleUploadOptionShape),
   action: async options => {
     const hotCodePush = createApiClient();
-    const { uploadBundleOptions, uploadedBundle } =
-      await withTemporaryDirectory(async packagingDirectoryPath => {
-        const builtOptions = await buildBundleUpload(hotCodePush, {
+    const uploadedBundle = await withTemporaryDirectory(
+      async packagingDirectoryPath => {
+        const uploadBundleOptions = await buildBundleUpload(hotCodePush, {
           options,
           packagingDirectoryPath,
         });
-        return {
-          uploadBundleOptions: builtOptions,
-          uploadedBundle: await uploadBundle(hotCodePush, builtOptions),
-        };
-      });
-    const fingerprintGap = await fetchFingerprintGap(
-      hotCodePush,
-      uploadBundleOptions,
+        const uploadedBundle = await uploadBundle(
+          hotCodePush,
+          uploadBundleOptions,
+        );
+        const fingerprintWarning = await fetchFingerprintWarning(
+          hotCodePush,
+          uploadBundleOptions,
+        );
+        if (fingerprintWarning !== undefined) {
+          printWarning(fingerprintWarning);
+        }
+        return uploadedBundle;
+      },
     );
-    if (fingerprintGap !== undefined) {
-      printWarning(FINGERPRINT_GAP_TEXTS[fingerprintGap]);
-    }
     if (options.json) {
       printJson({ ...uploadedBundle.bundle, upload: uploadedBundle.upload });
       return;
@@ -61,10 +54,10 @@ export default defineCommand({
   },
 });
 
-async function fetchFingerprintGap(
+async function fetchFingerprintWarning(
   hotCodePush: HotCodePush,
   { appId, fingerprint }: Pick<UploadBundleOptions, 'appId' | 'fingerprint'>,
-): Promise<FingerprintGap | undefined> {
+): Promise<string | undefined> {
   const { count: fingerprintBinaryCount } =
     await hotCodePush.apps.binaries.count({ appId, fingerprint });
   if (fingerprintBinaryCount > 0) {
@@ -73,7 +66,9 @@ async function fetchFingerprintGap(
   const { count: binaryCount } = await hotCodePush.apps.binaries.count({
     appId,
   });
-  return binaryCount === 0 ? 'no_binary' : 'unknown_fingerprint';
+  return binaryCount === 0
+    ? 'The app has no binary yet, so no store build can take this bundle.'
+    : 'No binary of the app carries this fingerprint.';
 }
 
 function printUploadedBundle({ bundle, upload }: UploadedBundle): void {
