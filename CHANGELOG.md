@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.3.0](https://github.com/hotcodepush-team/cli/compare/v0.2.6...v0.3.0) (2026-11-08)
+
+
+### ⚠ BREAKING CHANGES
+
+* one release per run, one platform on React Native and Expo, a single channel ([#136](https://github.com/hotcodepush-team/cli/issues/136))
+
+### Features
+
+* one release per run, one platform on React Native and Expo, a single channel ([#136](https://github.com/hotcodepush-team/cli/issues/136)) ([7d7c8d0](https://github.com/hotcodepush-team/cli/commit/7d7c8d0f78cb1e46cff79336b57ef12a082808fa))
+
 ## [0.2.6](https://github.com/hotcodepush-team/cli/compare/v0.2.5...v0.2.6) (2026-11-07)
 
 
