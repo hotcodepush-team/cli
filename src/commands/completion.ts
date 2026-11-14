@@ -8,6 +8,7 @@ import { InvalidParameterError } from '../utils/errors.js';
 import { defineCommandOptions } from '../utils/global-options.js';
 import { printJson } from '../utils/output.js';
 import { promptSelect } from '../utils/prompts.js';
+import { assertNoSurplusArguments } from '../utils/surplus-arguments.js';
 
 // zodline reports an invalid argument as a plain error that would read as `unexpected`.
 // So the action checks the shell itself.
@@ -24,11 +25,10 @@ export default defineCommand({
   args: z.array(z.string()),
   options: defineCommandOptions({}),
   action: async (options, args) => {
-    if (args.length > 1) {
-      throw new InvalidParameterError(
-        `The completion command takes one shell, <shell>. It does not take ${args.slice(1).join(' ')}.`,
-      );
-    }
+    assertNoSurplusArguments(args, {
+      maximum: 1,
+      usage: 'The completion command takes one shell, <shell>.',
+    });
     const shell =
       args[0] ??
       (await promptSelect(options, {

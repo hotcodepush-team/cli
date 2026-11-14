@@ -13,6 +13,7 @@ import { resolveJsonSyntaxProblem } from '../utils/json-file.js';
 import { printJson } from '../utils/output.js';
 import { readProjectConfig } from '../utils/project-config.js';
 import { promptText } from '../utils/prompts.js';
+import { assertNoSurplusArguments } from '../utils/surplus-arguments.js';
 
 interface BodyOptions {
   bodyPath?: string;
@@ -79,7 +80,10 @@ export default defineCommand({
       ),
   }),
   action: async (options, args) => {
-    assertOnePath(args);
+    assertNoSurplusArguments(args, {
+      maximum: 1,
+      usage: 'The api command takes one path, <path>.',
+    });
     assertBodyAllowed(options);
     const path =
       args[0] ??
@@ -123,14 +127,6 @@ function assertKnownPlaceholders(
       {
         fix: 'Write the id in its place. The CLI fills {appId} and {organizationId} alone.',
       },
-    );
-  }
-}
-
-function assertOnePath(args: string[]): void {
-  if (args.length > 1) {
-    throw new InvalidParameterError(
-      `The api command takes one path, <path>. It does not take ${args.slice(1).join(' ')}.`,
     );
   }
 }

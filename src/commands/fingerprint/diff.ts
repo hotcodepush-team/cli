@@ -11,6 +11,7 @@ import { readFlagFile } from '../../utils/flag-file.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printDetails, printJson, printTable } from '../../utils/output.js';
 import { promptText } from '../../utils/prompts.js';
+import { assertNoSurplusArguments } from '../../utils/surplus-arguments.js';
 
 interface ExtraFingerprintPathChange {
   after: string | null;
@@ -61,7 +62,11 @@ export default defineCommand({
   args: z.array(z.string()),
   options: defineCommandOptions({}),
   action: async (options, args) => {
-    assertTwoFiles(args);
+    assertNoSurplusArguments(args, {
+      maximum: 2,
+      usage:
+        'The fingerprint diff command compares two files, <file-a> and <file-b>.',
+    });
     const { afterFile, beforeFile } = await readFingerprintFiles(options, args);
     const diff = resolveFingerprintDiff(beforeFile, afterFile);
     if (options.json) {
@@ -76,14 +81,6 @@ export default defineCommand({
     printFingerprintDiff(diff);
   },
 });
-
-function assertTwoFiles(args: string[]): void {
-  if (args.length > 2) {
-    throw new InvalidParameterError(
-      `The fingerprint diff command compares two files, <file-a> and <file-b>. It does not take ${args.slice(2).join(' ')}.`,
-    );
-  }
-}
 
 function parseJson(text: string): unknown {
   try {
