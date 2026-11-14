@@ -69,6 +69,7 @@ export default defineCommand({
     }
     const { channel, release } = await fetchReleaseInChannel(hotCodePush, {
       options,
+      relations: [],
     });
     const isConfirmed = await confirmConsequence(
       `changes release #${release.number} of ${channel.name}, ${changeTexts.join(' and ')}: devices see the change on their next check`,

@@ -272,9 +272,9 @@ async function createLiveRelease(
     appId: channel.appId,
     channelId: channel.id,
   });
-  // A pipeline reads the bundle number and the channel name from the JSON of this command, as the release action does.
   return waitUntilLive(hotCodePush, {
     appId: channel.appId,
+    // The command reads neither, but its JSON carries both for pipelines, such as the HotCodePush Release Action.
     relations: ['bundle', 'channel'],
     releaseId: createdRelease.id,
   });

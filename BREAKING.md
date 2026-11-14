@@ -11,10 +11,12 @@ This is a comprehensive list of the breaking changes introduced in the minor ver
 
 ### Fewer Embedded Rows In JSON Output
 
-A command asks the API only for the linked rows it reads itself. Two `--json` outputs lose a row they carried and never used:
+A command asks the API only for the linked rows it reads itself. Two `--json` outputs lose an embedded row that the command itself never read:
 
 - `release get --json` no longer carries `channel`. The release still names its channel as `channelId`, and `channel get --json` prints the channel.
 - `member list --json` no longer carries `accounts` on the `user` of each member. `member get --json` still does.
+
+`release create --json` keeps `bundle` and `channel`.
 
 ```diff
 - npx hotcodepush release get --release 43 --json | jq -r '.channel.name'

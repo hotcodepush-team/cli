@@ -39,7 +39,10 @@ export async function fetchReleaseInChannel(
   {
     options,
     relations,
-  }: { options: ReleaseOptions; relations?: GetReleaseOptions['relations'] },
+  }: {
+    options: ReleaseOptions;
+    relations: NonNullable<GetReleaseOptions['relations']>;
+  },
 ): Promise<ReleaseInChannel> {
   const channel = await fetchChannel(hotCodePush, options);
   const releaseId = await fetchReleaseId(hotCodePush, { channel, options });
@@ -61,7 +64,10 @@ export function fetchReleaseLog(
   {
     channel,
     relations,
-  }: { channel: Channel; relations?: ListReleasesOptions['relations'] },
+  }: {
+    channel: Channel;
+    relations: NonNullable<ListReleasesOptions['relations']>;
+  },
 ): Promise<Release[]> {
   return fetchAllPages(page =>
     hotCodePush.apps.releases.list({
@@ -107,7 +113,7 @@ export async function waitUntilLive(
     releaseId,
   }: {
     appId: string;
-    relations?: GetReleaseOptions['relations'];
+    relations: NonNullable<GetReleaseOptions['relations']>;
     releaseId: string;
   },
 ): Promise<Release> {
@@ -129,19 +135,30 @@ async function fetchReleaseId(
   hotCodePush: HotCodePush,
   { channel, options }: { channel: Channel; options: ReleaseOptions },
 ): Promise<string> {
-  if (options.release !== undefined && isId(options.release)) {
+  if (options.release === undefined) {
+    const releases = await fetchReleaseLog(hotCodePush, {
+      channel,
+      relations: ['bundle'],
+    });
+    return promptReleaseId(options, { releases });
+  }
+  if (isId(options.release)) {
     return options.release;
   }
   const releases = await fetchReleaseLog(hotCodePush, {
     channel,
-    relations: ['bundle'],
+    relations: [],
   });
-  if (options.release !== undefined) {
-    return resolveReleaseInLog(releases, {
-      flag: '--release',
-      reference: options.release,
-    }).id;
-  }
+  return resolveReleaseInLog(releases, {
+    flag: '--release',
+    reference: options.release,
+  }).id;
+}
+
+function promptReleaseId(
+  options: ReleaseOptions,
+  { releases }: { releases: Release[] },
+): Promise<string> {
   return promptSelect(options, {
     choices: releases.map(release => ({
       label: `#${release.number} · ${resolveReleaseBundleLabel(release)} (${release.status})`,

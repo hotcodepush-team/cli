@@ -24,6 +24,7 @@ export default defineCommand({
     const hotCodePush = createApiClient();
     const { channel, release } = await fetchReleaseInChannel(hotCodePush, {
       options,
+      relations: [],
     });
     const isConfirmed = await confirmConsequence(
       `resumes release #${release.number} of ${channel.name}: devices get it again and a new auto-pause window starts`,

@@ -21,7 +21,7 @@ export async function fetchMember(
   }: {
     options: MemberOptions;
     organizationId: string;
-    relations: GetMemberOptions['relations'];
+    relations: NonNullable<GetMemberOptions['relations']>;
   },
 ): Promise<Member> {
   return hotCodePush.organizations.members.get({
