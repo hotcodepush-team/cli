@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.4.0](https://github.com/hotcodepush-team/cli/compare/v0.3.0...v0.4.0) (2026-11-14)
+
+
+### ⚠ BREAKING CHANGES
+
+* a word that a command does not take is refused as an invalid parameter with exit code 2, where the command ran and ignored it before.
+* a command asks the API only for the relations it reads ([#138](https://github.com/hotcodepush-team/cli/issues/138))
+
+### Features
+
+* a command asks the API only for the relations it reads ([#138](https://github.com/hotcodepush-team/cli/issues/138)) ([140cf18](https://github.com/hotcodepush-team/cli/commit/140cf18d5c39717c6cab2e7306ad16ea62635716))
+* api sends one request to the API and prints the response body ([#144](https://github.com/hotcodepush-team/cli/issues/144)) ([af57227](https://github.com/hotcodepush-team/cli/commit/af572271c9904338debd3e1372c5c347324178be))
+
+
+### Bug Fixes
+
+* **release:** the hint after release create names --channel and --release ([#139](https://github.com/hotcodepush-team/cli/issues/139)) ([acdadd8](https://github.com/hotcodepush-team/cli/commit/acdadd8b6ef4834280ac8f0db12494b5d500b356))
+
+
+### Performance Improvements
+
+* **release:** find a release named by its number in one request ([#143](https://github.com/hotcodepush-team/cli/issues/143)) ([75bf4e6](https://github.com/hotcodepush-team/cli/commit/75bf4e6dd65c4ac5497d60c5f75f5f3164d5b186))
+
 ## [0.3.0](https://github.com/hotcodepush-team/cli/compare/v0.2.6...v0.3.0) (2026-11-08)
 
 
