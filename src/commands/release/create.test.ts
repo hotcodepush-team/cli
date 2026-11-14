@@ -13,7 +13,6 @@ import {
   DEMO_APP,
   LIVE_RELEASE,
   PREVIOUS_BUNDLE,
-  PREVIOUS_RELEASE,
   PRODUCTION_CHANNEL,
   PROGRESSING_RELEASE,
   READY_BUNDLE,
@@ -22,8 +21,12 @@ import {
 import { writeReactNativeProject } from '../../../test/react-native-project.js';
 import {
   CHANNEL_PATH,
+  LIVE_RELEASE_WITH_RELATIONS,
+  PREVIOUS_RELEASE_WITH_RELATIONS,
   RELEASES_PATH,
   respondWithChannels,
+  respondWithRelease,
+  respondWithReleases,
   STAGING_AUDIENCE,
 } from '../../../test/release-routes.js';
 import { collectBundleFiles } from '../../upload/bundle-files.js';
@@ -138,9 +141,7 @@ describe('release create', () => {
     harness.routes[
       `POST /v1/apps/${DEMO_APP.id}/channels/${channel.id}/releases`
     ] = () => Response.json(release, { status: 201 });
-    harness.routes[
-      `GET ${RELEASES_PATH}/${release.id}?relations=bundle%2Cchannel`
-    ] = () => Response.json(buildReleaseWithRelations(release, channel));
+    respondWithRelease(harness, buildReleaseWithRelations(release, channel));
   }
 
   function stubWebBuildUpload(): void {
@@ -156,10 +157,9 @@ describe('release create', () => {
     vi.mocked(confirm).mockResolvedValue(true);
     respondWithStagingChannel();
     respondWithBundleNamedByNumber();
+    respondWithCreatedRelease();
     harness.routes[`POST ${CHANNEL_PATH}/releases`] = () =>
       Response.json({ ...LIVE_RELEASE, liveAt: null }, { status: 201 });
-    harness.routes[`GET ${RELEASES_PATH}/${LIVE_RELEASE.id}`] = () =>
-      Response.json(LIVE_RELEASE);
 
     await releaseCreateCommand.action(
       {
@@ -539,6 +539,20 @@ describe('release create', () => {
       fromChannel: PRODUCTION_CHANNEL.name,
     };
 
+    const NEWEST_PRODUCTION_RELEASE: Release = {
+      ...LIVE_RELEASE_WITH_RELATIONS,
+      channel: PRODUCTION_CHANNEL,
+      channelId: PRODUCTION_CHANNEL.id,
+      number: 9,
+    };
+
+    const OLDER_PRODUCTION_RELEASE: Release = {
+      ...PREVIOUS_RELEASE_WITH_RELATIONS,
+      channel: PRODUCTION_CHANNEL,
+      channelId: PRODUCTION_CHANNEL.id,
+      number: 8,
+    };
+
     beforeEach(() => {
       respondWithStagingChannel();
       respondWithCreatedRelease();
@@ -552,11 +566,10 @@ describe('release create', () => {
     }
 
     it("should release what that channel's newest active release serves, naming it in the confirmation", async () => {
-      harness.routes[`GET ${RELEASES_PATH}`] = () =>
-        Response.json([
-          { ...LIVE_RELEASE, number: 9, status: 'revoked' },
-          { ...PREVIOUS_RELEASE, bundle: PREVIOUS_BUNDLE, number: 8 },
-        ]);
+      respondWithReleases(harness, [
+        { ...NEWEST_PRODUCTION_RELEASE, status: 'revoked' },
+        OLDER_PRODUCTION_RELEASE,
+      ]);
       stubInteractiveTerminal();
       vi.mocked(confirm).mockResolvedValue(true);
 
@@ -583,15 +596,13 @@ describe('release create', () => {
 
       beforeEach(() => {
         respondWithApp({ ...DEMO_APP, framework: 'react_native' });
-        harness.routes[`GET ${RELEASES_PATH}`] = () =>
-          Response.json([
-            {
-              ...LIVE_RELEASE,
-              bundle: { ...READY_BUNDLE, platforms: ['android'] },
-              number: 9,
-            },
-            { ...PREVIOUS_RELEASE, bundle: IOS_BUNDLE, number: 8 },
-          ]);
+        respondWithReleases(harness, [
+          {
+            ...NEWEST_PRODUCTION_RELEASE,
+            bundle: { ...READY_BUNDLE, platforms: ['android'] },
+          },
+          { ...OLDER_PRODUCTION_RELEASE, bundle: IOS_BUNDLE },
+        ]);
       });
 
       it('should send the platform and name the newest active release serving it in the confirmation', async () => {
@@ -625,7 +636,7 @@ describe('release create', () => {
     });
 
     it('should fail with `invalid_parameter` when that channel serves no active release', async () => {
-      harness.routes[`GET ${RELEASES_PATH}`] = () => Response.json([]);
+      respondWithReleases(harness, []);
 
       await expect(
         releaseCreateCommand.action({ ...OPTIONS, yes: true }, undefined),

@@ -10,6 +10,7 @@ import {
   STAGING_CHANNEL,
 } from '../../../test/fixtures.js';
 import {
+  readReleaseRelations,
   RELEASES_PATH,
   respondWithStagingReleases,
 } from '../../../test/release-routes.js';
@@ -63,6 +64,7 @@ describe('release update', () => {
       message:
         'This changes release #43 of staging, mandatory on and notes "hotfix": devices see the change on their next check. Continue?',
     });
+    expect(readReleaseRelations(harness)).toEqual([[], []]);
     const [updateRequest] = readUpdateRequests();
     expect(await updateRequest?.json()).toEqual({
       isMandatory: true,
