@@ -64,7 +64,7 @@ describe('release pause', () => {
       message:
         'This pauses release #43 of staging: devices on it keep it and no new device gets it. Continue?',
     });
-    expect(readReleaseRelations(harness)).toEqual([[], []]);
+    expect(readReleaseRelations(harness)).toEqual([[]]);
     expect(readPauseRequests()).toHaveLength(1);
     expect(harness.readLines()).toEqual([
       `${S_SUCCESS}  Paused release #43 of staging.`,

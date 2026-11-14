@@ -60,7 +60,7 @@ describe('release resume', () => {
       message:
         'This resumes release #43 of staging: devices get it again and a new auto-pause window starts. Continue?',
     });
-    expect(readReleaseRelations(harness)).toEqual([[], []]);
+    expect(readReleaseRelations(harness)).toEqual([[]]);
     expect(readResumeRequests()).toHaveLength(1);
     expect(harness.readLines()).toEqual([
       `${S_SUCCESS}  Resumed release #43 of staging.`,

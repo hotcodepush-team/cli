@@ -64,7 +64,7 @@ describe('release update', () => {
       message:
         'This changes release #43 of staging, mandatory on and notes "hotfix": devices see the change on their next check. Continue?',
     });
-    expect(readReleaseRelations(harness)).toEqual([[], []]);
+    expect(readReleaseRelations(harness)).toEqual([[]]);
     const [updateRequest] = readUpdateRequests();
     expect(await updateRequest?.json()).toEqual({
       isMandatory: true,
