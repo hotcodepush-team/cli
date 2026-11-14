@@ -97,7 +97,7 @@ describe('release revoke', () => {
       .map(({ url }) => new URL(url))
       .find(({ pathname }) => pathname === FLEET_PATH);
     expect(fleetUrl?.searchParams.has('channelId')).toBe(false);
-    expect(readReleaseRelations(harness)).toEqual([[], ['bundle'], []]);
+    expect(readReleaseRelations(harness)).toEqual([['bundle'], []]);
     expect(
       readRevokeRequests().map(({ url }) => new URL(url).pathname),
     ).toEqual([`${RELEASES_PATH}/${LIVE_RELEASE.id}/revoke`]);

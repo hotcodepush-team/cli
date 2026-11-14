@@ -98,7 +98,7 @@ export function respondWithRelease(
     );
 }
 
-// Serves the release list. Like the API, it filters by bundle and channel, pages, and embeds only the relations the request names.
+// Serves the release list. Like the API, it filters by bundle, channel and number, pages, and embeds only the relations the request names.
 export function respondWithReleases(
   harness: CommandHarness,
   releases: Release[],
@@ -139,13 +139,15 @@ function resolveListedReleases(
 ): Release[] {
   const bundleId = searchParams.get('bundleId');
   const channelId = searchParams.get('channelId');
+  const number = searchParams.get('number');
   const offset = Number(searchParams.get('offset') ?? 0);
   const limit = Number(searchParams.get('limit') ?? releases.length);
   return releases
     .filter(
       release =>
         (bundleId === null || release.bundleId === bundleId) &&
-        (channelId === null || release.channelId === channelId),
+        (channelId === null || release.channelId === channelId) &&
+        (number === null || release.number === Number(number)),
     )
     .slice(offset, offset + limit);
 }

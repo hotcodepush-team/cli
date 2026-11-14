@@ -17,6 +17,7 @@ import {
   CHANNEL_PATH,
   FLEET_PATH,
   LIVE_RELEASE_WITH_RELATIONS,
+  readReleaseRelations,
   RELEASE_COUNTERS,
   respondWithRelease,
   respondWithStagingReleases,
@@ -170,6 +171,30 @@ describe('release get', () => {
         undefined,
       ),
     ).rejects.toBeInstanceOf(InvalidParameterError);
+  });
+
+  it('should refuse a number the channel has no release for, after one read', async () => {
+    respondWithStagingReleases(harness);
+
+    await expect(
+      releaseGetCommand.action(
+        { app: DEMO_APP.id, channel: STAGING_CHANNEL.id, release: '99' },
+        undefined,
+      ),
+    ).rejects.toThrow('The channel has no release "99" from --release.');
+    expect(readReleaseRelations(harness)).toHaveLength(1);
+  });
+
+  it('should refuse a reference that is neither a number nor an id, before any read of a release', async () => {
+    respondWithStagingReleases(harness);
+
+    await expect(
+      releaseGetCommand.action(
+        { app: DEMO_APP.id, channel: STAGING_CHANNEL.id, release: 'latest' },
+        undefined,
+      ),
+    ).rejects.toThrow('The channel has no release "latest" from --release.');
+    expect(readReleaseRelations(harness)).toEqual([]);
   });
 
   it("should print the release's own auto-pause values plain", async () => {

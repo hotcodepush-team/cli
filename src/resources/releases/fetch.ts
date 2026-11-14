@@ -45,15 +45,17 @@ export async function fetchReleaseInChannel(
   },
 ): Promise<ReleaseInChannel> {
   const channel = await fetchChannel(hotCodePush, options);
-  const releaseId = await fetchReleaseId(hotCodePush, { channel, options });
-  const release = await hotCodePush.apps.releases.get({
-    appId: channel.appId,
+  const reference =
+    options.release ??
+    (await fetchPromptedReleaseId(hotCodePush, { channel, options }));
+  const release = await fetchRelease(hotCodePush, {
+    channel,
+    reference,
     relations,
-    releaseId,
   });
   if (release.channelId !== channel.id) {
     throw new InvalidParameterError(
-      `The release ${releaseId} from --release is not in channel ${channel.name}.`,
+      `The release ${release.id} from --release is not in channel ${channel.name}.`,
     );
   }
   return { channel, release };
@@ -131,28 +133,49 @@ export async function waitUntilLive(
   }
 }
 
-async function fetchReleaseId(
+async function fetchPromptedReleaseId(
   hotCodePush: HotCodePush,
   { channel, options }: { channel: Channel; options: ReleaseOptions },
 ): Promise<string> {
-  if (options.release === undefined) {
-    const releases = await fetchReleaseLog(hotCodePush, {
-      channel,
-      relations: ['bundle'],
-    });
-    return promptReleaseId(options, { releases });
-  }
-  if (isId(options.release)) {
-    return options.release;
-  }
   const releases = await fetchReleaseLog(hotCodePush, {
     channel,
-    relations: [],
+    relations: ['bundle'],
   });
-  return resolveReleaseInLog(releases, {
+  return promptReleaseId(options, { releases });
+}
+
+// The API filters the list by a release's number in its channel, so one request finds the release.
+async function fetchRelease(
+  hotCodePush: HotCodePush,
+  {
+    channel,
+    reference,
+    relations,
+  }: {
+    channel: Channel;
+    reference: string;
+    relations: NonNullable<GetReleaseOptions['relations']>;
+  },
+): Promise<Release> {
+  if (isId(reference)) {
+    return hotCodePush.apps.releases.get({
+      appId: channel.appId,
+      relations,
+      releaseId: reference,
+    });
+  }
+  const numberedReleases = isNumber(reference)
+    ? await hotCodePush.apps.releases.list({
+        appId: channel.appId,
+        channelId: channel.id,
+        number: Number(reference),
+        relations,
+      })
+    : [];
+  return resolveReleaseInLog(numberedReleases, {
     flag: '--release',
-    reference: options.release,
-  }).id;
+    reference,
+  });
 }
 
 function promptReleaseId(
