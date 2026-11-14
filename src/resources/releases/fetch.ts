@@ -144,7 +144,7 @@ async function fetchPromptedReleaseId(
   return promptReleaseId(options, { releases });
 }
 
-// The API filters the list by a release's number in its channel, so one request finds the release.
+// The API has no read of a release by its number, so the list filtered by the number answers with it.
 async function fetchRelease(
   hotCodePush: HotCodePush,
   {
@@ -164,15 +164,18 @@ async function fetchRelease(
       releaseId: reference,
     });
   }
-  const numberedReleases = isNumber(reference)
-    ? await hotCodePush.apps.releases.list({
-        appId: channel.appId,
-        channelId: channel.id,
-        number: Number(reference),
-        relations,
-      })
-    : [];
-  return resolveReleaseInLog(numberedReleases, {
+  if (!isNumber(reference)) {
+    throw new InvalidParameterError(
+      `The value "${reference}" of --release is neither a number nor an id.`,
+    );
+  }
+  const listedReleases = await hotCodePush.apps.releases.list({
+    appId: channel.appId,
+    channelId: channel.id,
+    number: Number(reference),
+    relations,
+  });
+  return resolveReleaseInLog(listedReleases, {
     flag: '--release',
     reference,
   });

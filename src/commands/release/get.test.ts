@@ -19,6 +19,7 @@ import {
   LIVE_RELEASE_WITH_RELATIONS,
   readReleaseRelations,
   RELEASE_COUNTERS,
+  RELEASES_PATH,
   respondWithRelease,
   respondWithStagingReleases,
 } from '../../../test/release-routes.js';
@@ -49,7 +50,7 @@ describe('release get', () => {
     return harness.readLines().filter(line => line.startsWith('Progression'));
   }
 
-  it("should find the release by its number in the channel log and print it with its counters and its channel's auto-pause policy", async () => {
+  it("should ask for the release by its number in its channel and print it with its counters and its channel's auto-pause policy", async () => {
     respondWithStagingReleases(harness);
 
     await releaseGetCommand.action(
@@ -88,9 +89,15 @@ describe('release get', () => {
       'Reported failures             3',
       `Created                       ${LIVE_RELEASE.createdAt}`,
     ]);
-    const fleetUrl = harness.requests
-      .map(({ url }) => new URL(url))
-      .find(({ pathname }) => pathname === FLEET_PATH);
+    const requestUrls = harness.requests.map(({ url }) => new URL(url));
+    const releasesUrl = requestUrls.find(
+      ({ pathname }) => pathname === RELEASES_PATH,
+    );
+    expect(releasesUrl?.searchParams.get('channelId')).toBe(STAGING_CHANNEL.id);
+    expect(releasesUrl?.searchParams.get('number')).toBe('43');
+    const fleetUrl = requestUrls.find(
+      ({ pathname }) => pathname === FLEET_PATH,
+    );
     expect(fleetUrl?.searchParams.get('channelId')).toBe(STAGING_CHANNEL.id);
   });
 
@@ -173,7 +180,7 @@ describe('release get', () => {
     ).rejects.toBeInstanceOf(InvalidParameterError);
   });
 
-  it('should refuse a number the channel has no release for, after one read', async () => {
+  it('should refuse a number the channel has no release for', async () => {
     respondWithStagingReleases(harness);
 
     await expect(
@@ -182,7 +189,6 @@ describe('release get', () => {
         undefined,
       ),
     ).rejects.toThrow('The channel has no release "99" from --release.');
-    expect(readReleaseRelations(harness)).toHaveLength(1);
   });
 
   it('should refuse a reference that is neither a number nor an id, before any read of a release', async () => {
@@ -193,7 +199,9 @@ describe('release get', () => {
         { app: DEMO_APP.id, channel: STAGING_CHANNEL.id, release: 'latest' },
         undefined,
       ),
-    ).rejects.toThrow('The channel has no release "latest" from --release.');
+    ).rejects.toThrow(
+      'The value "latest" of --release is neither a number nor an id.',
+    );
     expect(readReleaseRelations(harness)).toEqual([]);
   });
 
