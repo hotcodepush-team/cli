@@ -22,10 +22,10 @@ export default defineCommand({
   }),
   action: async options => {
     const hotCodePush = createApiClient();
-    const { channel, release } = await fetchReleaseInChannel(
-      hotCodePush,
+    const { channel, release } = await fetchReleaseInChannel(hotCodePush, {
       options,
-    );
+      relations: [],
+    });
     const isConfirmed = await confirmConsequence(
       `pauses release #${release.number} of ${channel.name}: devices on it keep it and no new device gets it`,
       options,

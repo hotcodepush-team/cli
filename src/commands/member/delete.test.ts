@@ -26,8 +26,8 @@ describe('member delete', () => {
 
   function respondWithMember(): void {
     harness.routes[`GET ${MEMBERS_PATH}`] = () => Response.json([ADMIN_MEMBER]);
-    harness.routes[`GET ${MEMBERS_PATH}/${ADMIN_MEMBER.id}`] = () =>
-      Response.json(ADMIN_MEMBER);
+    harness.routes[`GET ${MEMBERS_PATH}/${ADMIN_MEMBER.id}?relations=user`] =
+      () => Response.json(ADMIN_MEMBER);
     harness.routes[`DELETE ${MEMBERS_PATH}/${ADMIN_MEMBER.id}`] = () =>
       new Response(null, { status: 204 });
   }

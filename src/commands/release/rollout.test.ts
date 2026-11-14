@@ -11,7 +11,6 @@ import {
   STAGING_CHANNEL,
 } from '../../../test/fixtures.js';
 import {
-  LIVE_RELEASE_WITH_RELATIONS,
   RELEASES_PATH,
   respondWithStagingReleases,
 } from '../../../test/release-routes.js';
@@ -178,7 +177,7 @@ describe('release rollout', () => {
   it('should send the schedule its flags override and leave the percentage as it stands when --rollout-percent is missing', async () => {
     respondWithStagingReleases(harness);
     harness.routes[`GET ${RELEASES_PATH}/${LIVE_RELEASE.id}`] = () =>
-      Response.json({ ...LIVE_RELEASE_WITH_RELATIONS, rolloutPercent: 5 });
+      Response.json({ ...LIVE_RELEASE, rolloutPercent: 5 });
     harness.routes[`PATCH ${RELEASES_PATH}/${LIVE_RELEASE.id}`] = () =>
       Response.json(PROGRESSING_RELEASE);
 
@@ -211,7 +210,7 @@ describe('release rollout', () => {
   it('should state that a percentage set by hand ends the schedule the release has', async () => {
     respondWithStagingReleases(harness);
     harness.routes[`GET ${RELEASES_PATH}/${LIVE_RELEASE.id}`] = () =>
-      Response.json({ ...LIVE_RELEASE_WITH_RELATIONS, ...PROGRESSING_RELEASE });
+      Response.json(PROGRESSING_RELEASE);
 
     await expect(
       releaseRolloutCommand.action(

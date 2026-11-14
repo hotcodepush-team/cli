@@ -67,10 +67,10 @@ export default defineCommand({
         { fix: 'Pass at least one of them.' },
       );
     }
-    const { channel, release } = await fetchReleaseInChannel(
-      hotCodePush,
+    const { channel, release } = await fetchReleaseInChannel(hotCodePush, {
       options,
-    );
+      relations: [],
+    });
     const isConfirmed = await confirmConsequence(
       `changes release #${release.number} of ${channel.name}, ${changeTexts.join(' and ')}: devices see the change on their next check`,
       options,

@@ -36,10 +36,10 @@ export default defineCommand({
   }),
   action: async options => {
     const hotCodePush = createApiClient();
-    const { channel, release } = await fetchReleaseInChannel(
-      hotCodePush,
+    const { channel, release } = await fetchReleaseInChannel(hotCodePush, {
       options,
-    );
+      relations: ['bundle', 'releaseCounters'],
+    });
     if (options.json) {
       printJson(release);
       return;

@@ -154,16 +154,10 @@ async function fetchBundleRevocations(
     projectConfig: readProjectConfig(options.config),
   });
   const bundle = await fetchBundle(hotCodePush, { appId, options });
-  const pendingReleases = (
-    await fetchAllPages(page =>
-      hotCodePush.apps.releases.list({
-        appId,
-        bundleId: bundle.id,
-        relations: ['bundle', 'channel'],
-        ...page,
-      }),
-    )
-  ).filter(({ status }) => status !== 'revoked');
+  const pendingReleases = await fetchPendingBundleReleases(hotCodePush, {
+    appId,
+    bundleId: bundle.id,
+  });
   const channels = new Map<string, Channel>();
   for (const { channel } of pendingReleases) {
     if (channel !== undefined) {
@@ -177,12 +171,30 @@ async function fetchBundleRevocations(
       );
       return {
         channel,
-        releaseLog: await fetchReleaseLog(hotCodePush, channel),
+        releaseLog: await fetchReleaseLog(hotCodePush, {
+          channel,
+          relations: [],
+        }),
         request: { releaseIds: revokedReleases.map(({ id }) => id) },
         revokedReleases,
       };
     }),
   );
+}
+
+async function fetchPendingBundleReleases(
+  hotCodePush: HotCodePush,
+  { appId, bundleId }: { appId: string; bundleId: string },
+): Promise<Release[]> {
+  const releases = await fetchAllPages(page =>
+    hotCodePush.apps.releases.list({
+      appId,
+      bundleId,
+      relations: ['bundle', 'channel'],
+      ...page,
+    }),
+  );
+  return releases.filter(({ status }) => status !== 'revoked');
 }
 
 async function fetchRangeRevocation(
@@ -191,7 +203,10 @@ async function fetchRangeRevocation(
 ): Promise<ChannelRevocation> {
   const fromNumber = options.releaseFrom ?? 1;
   const channel = await fetchChannel(hotCodePush, options);
-  const releaseLog = await fetchReleaseLog(hotCodePush, channel);
+  const releaseLog = await fetchReleaseLog(hotCodePush, {
+    channel,
+    relations: ['bundle'],
+  });
   const revokedReleases = releaseLog.filter(
     ({ number, status }) => number >= fromNumber && status !== 'revoked',
   );
@@ -220,14 +235,17 @@ async function fetchRevocations(
   if (options.all || options.releaseFrom !== undefined) {
     return [await fetchRangeRevocation(hotCodePush, options)];
   }
-  const { channel, release } = await fetchReleaseInChannel(
-    hotCodePush,
+  const { channel, release } = await fetchReleaseInChannel(hotCodePush, {
     options,
-  );
+    relations: ['bundle'],
+  });
   return [
     {
       channel,
-      releaseLog: await fetchReleaseLog(hotCodePush, channel),
+      releaseLog: await fetchReleaseLog(hotCodePush, {
+        channel,
+        relations: [],
+      }),
       request: { releaseId: release.id },
       revokedReleases: [release],
     },

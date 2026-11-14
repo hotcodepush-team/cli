@@ -274,6 +274,7 @@ async function createLiveRelease(
   });
   return waitUntilLive(hotCodePush, {
     appId: channel.appId,
+    // The command reads neither, but its JSON carries both for pipelines, such as the HotCodePush Release Action.
     relations: ['bundle', 'channel'],
     releaseId: createdRelease.id,
   });
@@ -410,7 +411,10 @@ async function fetchSourceRelease(
     }),
   });
   const sourceRelease = findNewestActiveRelease(
-    await fetchReleaseLog(hotCodePush, sourceChannel),
+    await fetchReleaseLog(hotCodePush, {
+      channel: sourceChannel,
+      relations: ['bundle'],
+    }),
     { platform },
   );
   if (sourceRelease === undefined) {

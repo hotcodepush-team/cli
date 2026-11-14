@@ -27,7 +27,8 @@ describe('member update', () => {
   }
 
   function respondWithMember(): void {
-    harness.routes[`GET ${MEMBER_PATH}`] = () => Response.json(ADMIN_MEMBER);
+    harness.routes[`GET ${MEMBER_PATH}?relations=user`] = () =>
+      Response.json(ADMIN_MEMBER);
     harness.routes[`PATCH ${MEMBER_PATH}`] = () =>
       Response.json({ ...ADMIN_MEMBER, role: 'billing', user: undefined });
   }

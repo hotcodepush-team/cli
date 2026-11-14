@@ -24,6 +24,7 @@ export default defineCommand({
     const fetchedMember = await fetchMember(hotCodePush, {
       options,
       organizationId,
+      relations: ['user'],
     });
     const email = resolveMemberEmail(fetchedMember);
     const isConfirmed = await confirmConsequence(
