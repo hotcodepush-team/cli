@@ -17,7 +17,7 @@ export function printCreatedRelease(
   });
   if (release.liveAt === null) {
     printNotice(
-      `Run "hotcodepush release get ${release.number}" to see when it is live.`,
+      `Run "hotcodepush release get --channel ${channelName} --release ${release.number}" to see when it is live.`,
     );
   }
 }
