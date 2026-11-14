@@ -128,7 +128,7 @@ function readFingerprintFile({
 }): FingerprintFile {
   const text = readFlagFile(filePath, {
     fix: FINGERPRINT_FILE_FIX,
-    flag: argumentName,
+    parameter: argumentName,
   });
   const parsedFile = FingerprintFileSchema.safeParse(parseJson(text));
   if (!parsedFile.success) {

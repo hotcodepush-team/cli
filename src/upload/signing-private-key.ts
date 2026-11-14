@@ -119,7 +119,7 @@ function readGivenPrivateKey(
 function readPrivateKeyFile(filePath: string): string {
   return readFlagFile(filePath, {
     fix: 'Pass the path of the private key file, a PEM of PKCS #8 or PKCS #1.',
-    flag: '--private-key-path',
+    parameter: '--private-key-path',
   });
 }
 

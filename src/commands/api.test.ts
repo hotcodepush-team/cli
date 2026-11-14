@@ -76,6 +76,18 @@ describe('api', () => {
     expect(harness.readJson()).toEqual([DEMO_APP]);
   });
 
+  it('should fill every occurrence of a placeholder', async () => {
+    harness.routes[`GET ${CHANNELS_PATH}?appId=${DEMO_APP.id}`] = () =>
+      Response.json([STAGING_CHANNEL]);
+
+    await apiCommand.action(
+      { config: harness.writeProjectConfig({ appId: DEMO_APP.id }) },
+      ['/v1/apps/{appId}/channels?appId={appId}'],
+    );
+
+    expect(harness.readJson()).toEqual([STAGING_CHANNEL]);
+  });
+
   it('should refuse a placeholder the CLI cannot fill, before it fills another one and before any request', async () => {
     await expect(
       apiCommand.action({ app: DEMO_APP.name }, [
@@ -146,6 +158,28 @@ describe('api', () => {
     );
   });
 
+  it('should print the bytes as received when the answer names no content type', async () => {
+    const bytes = new Uint8Array([0xff, 0xd8, 0x00]);
+    harness.routes['GET /v1/organizations'] = () => new Response(bytes);
+
+    await apiCommand.action({}, ['/v1/organizations']);
+
+    expect(vi.mocked(process.stdout.write).mock.lastCall?.[0]).toEqual(bytes);
+  });
+
+  it('should print the body as received when it names JSON and holds none', async () => {
+    harness.routes['GET /v1/organizations'] = () =>
+      new Response('<html></html>', {
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+    await apiCommand.action({}, ['/v1/organizations']);
+
+    expect(vi.mocked(process.stdout.write).mock.lastCall?.[0]).toEqual(
+      new TextEncoder().encode('<html></html>'),
+    );
+  });
+
   it('should refuse --body-path with --method GET, before any request', async () => {
     await expect(
       apiCommand.action({ bodyPath: writeBodyFile('{}'), method: 'GET' }, [
@@ -155,7 +189,7 @@ describe('api', () => {
     expect(harness.requests).toEqual([]);
   });
 
-  it('should refuse a body that is not JSON, before any request', async () => {
+  it('should refuse a body that is not JSON and never send its request', async () => {
     await expect(
       apiCommand.action({ bodyPath: writeBodyFile('{"name":') }, [
         CHANNELS_PATH,

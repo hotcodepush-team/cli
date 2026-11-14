@@ -206,7 +206,7 @@ function readDocumentFile(
 ): string {
   return readFlagFile(filePath, {
     fix: 'Pass the path of a file you can read.',
-    flag,
+    parameter: flag,
   });
 }
 

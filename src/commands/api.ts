@@ -92,11 +92,9 @@ export default defineCommand({
       options,
       path: resolvePathWithLeadingSlash(path),
     });
+    const body = await readBody(options);
     const response = await hotCodePush.request({
-      body:
-        options.bodyPath === undefined
-          ? undefined
-          : await readBody(options.bodyPath),
+      body,
       method: resolveMethod(options),
       path: requestPath,
     });
@@ -177,23 +175,36 @@ function parseBody(bodyText: string): unknown {
   }
 }
 
+// An answer that names JSON and holds none, a proxy's error page for example, is no JSON to print.
+function parseResponseJson(bytes: Uint8Array): unknown {
+  try {
+    return JSON.parse(new TextDecoder().decode(bytes));
+  } catch {
+    return undefined;
+  }
+}
+
 async function printResponse(response: Response): Promise<void> {
   const bytes = new Uint8Array(await response.arrayBuffer());
   if (bytes.length === 0) {
     return;
   }
-  if (isJsonResponse(response)) {
-    printJson(JSON.parse(new TextDecoder().decode(bytes)));
+  const json = isJsonResponse(response) ? parseResponseJson(bytes) : undefined;
+  if (json === undefined) {
+    process.stdout.write(bytes);
     return;
   }
-  process.stdout.write(bytes);
+  printJson(json);
 }
 
-async function readBody(bodyPath: string): Promise<unknown> {
+async function readBody({ bodyPath }: BodyOptions): Promise<unknown> {
+  if (bodyPath === undefined) {
+    return undefined;
+  }
   const bodyText =
     bodyPath === STDIN_BODY_PATH
       ? await text(process.stdin)
-      : readFlagFile(bodyPath, { fix: BODY_FIX, flag: '--body-path' });
+      : readFlagFile(bodyPath, { fix: BODY_FIX, parameter: '--body-path' });
   return parseBody(bodyText);
 }
 
