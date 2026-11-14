@@ -17,7 +17,11 @@ import {
 import {
   CHANNEL_PATH,
   FLEET_PATH,
+  LIVE_RELEASE_WITH_RELATIONS,
+  PREVIOUS_RELEASE_WITH_RELATIONS,
   RELEASES_PATH,
+  respondWithRelease,
+  respondWithReleases,
   respondWithStagingReleases,
   STAGING_AUDIENCE,
 } from '../../../test/release-routes.js';
@@ -77,8 +81,7 @@ describe('release rollback', () => {
       Response.json(DEMO_APP);
     harness.routes[`POST ${CHANNEL_PATH}/rollbacks`] = () =>
       Response.json({ ...ROLLBACK_RELEASE, liveAt: null }, { status: 201 });
-    harness.routes[`GET ${RELEASES_PATH}/${ROLLBACK_RELEASE.id}`] = () =>
-      Response.json(ROLLBACK_RELEASE);
+    respondWithRelease(harness, ROLLBACK_RELEASE);
     respondWithTargetReach(PREVIOUS_RELEASE);
   }
 
@@ -128,14 +131,13 @@ describe('release rollback', () => {
 
   it("should name every device on the undone release as out of the target's reach when the two bundles carry different fingerprints", async () => {
     respondWithRollback();
-    harness.routes[`GET ${RELEASES_PATH}`] = () =>
-      Response.json([
-        {
-          ...LIVE_RELEASE,
-          bundle: { ...READY_BUNDLE, fingerprint: CAPACITOR_FINGERPRINT },
-        },
-        { ...PREVIOUS_RELEASE, bundle: PREVIOUS_BUNDLE },
-      ]);
+    respondWithReleases(harness, [
+      {
+        ...LIVE_RELEASE_WITH_RELATIONS,
+        bundle: { ...READY_BUNDLE, fingerprint: CAPACITOR_FINGERPRINT },
+      },
+      PREVIOUS_RELEASE_WITH_RELATIONS,
+    ]);
 
     await expect(
       releaseRollbackCommand.action(
@@ -204,12 +206,11 @@ describe('release rollback', () => {
       number: 41,
     });
     respondWithRollback();
-    harness.routes[`GET ${RELEASES_PATH}`] = () =>
-      Response.json([
-        { ...LIVE_RELEASE, bundle: READY_BUNDLE },
-        { ...PREVIOUS_RELEASE, bundle: PREVIOUS_BUNDLE, status: 'revoked' },
-        sameBundleRelease,
-      ]);
+    respondWithReleases(harness, [
+      LIVE_RELEASE_WITH_RELATIONS,
+      { ...PREVIOUS_RELEASE_WITH_RELATIONS, status: 'revoked' },
+      sameBundleRelease,
+    ]);
     respondWithTargetReach(sameBundleRelease);
 
     await expect(
@@ -259,22 +260,21 @@ describe('release rollback', () => {
       respondWithRollback();
       harness.routes[`GET /v1/apps/${DEMO_APP.id}`] = () =>
         Response.json({ ...DEMO_APP, framework: 'react_native' });
-      harness.routes[`GET ${RELEASES_PATH}`] = () =>
-        Response.json([
-          buildPlatformRelease(LIVE_RELEASE, {
-            bundle: ANDROID_BUNDLE,
-            number: 45,
-          }),
-          buildPlatformRelease(LIVE_RELEASE, {
-            bundle: IOS_BUNDLE,
-            number: 44,
-          }),
-          buildPlatformRelease(LIVE_RELEASE, {
-            bundle: ANDROID_BUNDLE,
-            number: 43,
-          }),
-          OLDER_IOS_RELEASE,
-        ]);
+      respondWithReleases(harness, [
+        buildPlatformRelease(LIVE_RELEASE, {
+          bundle: ANDROID_BUNDLE,
+          number: 45,
+        }),
+        buildPlatformRelease(LIVE_RELEASE, {
+          bundle: IOS_BUNDLE,
+          number: 44,
+        }),
+        buildPlatformRelease(LIVE_RELEASE, {
+          bundle: ANDROID_BUNDLE,
+          number: 43,
+        }),
+        OLDER_IOS_RELEASE,
+      ]);
       respondWithTargetReach(OLDER_IOS_RELEASE);
     }
 
@@ -341,8 +341,7 @@ describe('release rollback', () => {
 
   it('should point to release revoke before any rollback when nothing came before the newest release', async () => {
     respondWithRollback();
-    harness.routes[`GET ${RELEASES_PATH}`] = () =>
-      Response.json([{ ...LIVE_RELEASE, bundle: READY_BUNDLE }]);
+    respondWithReleases(harness, [LIVE_RELEASE_WITH_RELATIONS]);
 
     await expect(
       releaseRollbackCommand.action(

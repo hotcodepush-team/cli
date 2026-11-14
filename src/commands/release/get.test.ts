@@ -1,9 +1,13 @@
-import { describe, expect, it } from 'vitest';
-import { useCommandHarness } from '../../../test/command-harness.js';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  stubInteractiveTerminal,
+  useCommandHarness,
+} from '../../../test/command-harness.js';
 import {
   DEMO_APP,
   FLEET,
   LIVE_RELEASE,
+  PREVIOUS_RELEASE,
   PRODUCTION_CHANNEL,
   PROGRESSING_RELEASE,
   READY_BUNDLE,
@@ -13,19 +17,26 @@ import {
   CHANNEL_PATH,
   FLEET_PATH,
   LIVE_RELEASE_WITH_RELATIONS,
-  LIVE_RELEASE_WITH_RELATIONS_ROUTE,
+  RELEASE_COUNTERS,
+  respondWithRelease,
   respondWithStagingReleases,
 } from '../../../test/release-routes.js';
 import { InvalidParameterError } from '../../utils/errors.js';
+import { select } from '../../utils/prompt-renderers.js';
 import releaseGetCommand from './get.js';
+
+vi.mock('../../utils/prompt-renderers.js', () =>
+  import('../../../test/prompt-renderers.js').then(
+    ({ promptRenderersMock }) => promptRenderersMock,
+  ),
+);
 
 describe('release get', () => {
   const harness = useCommandHarness();
 
   async function readProgressionLines(release: object): Promise<string[]> {
     respondWithStagingReleases(harness);
-    harness.routes[LIVE_RELEASE_WITH_RELATIONS_ROUTE] = () =>
-      Response.json({ ...LIVE_RELEASE_WITH_RELATIONS, ...release });
+    respondWithRelease(harness, { ...LIVE_RELEASE_WITH_RELATIONS, ...release });
     await releaseGetCommand.action(
       {
         app: DEMO_APP.id,
@@ -115,16 +126,39 @@ describe('release get', () => {
     expect(
       harness.requests.filter(({ url }) => url.includes('/channels/')),
     ).toHaveLength(1);
-    expect(harness.readJson()).toEqual(LIVE_RELEASE_WITH_RELATIONS);
+    expect(harness.readJson()).toEqual({
+      ...LIVE_RELEASE,
+      bundle: READY_BUNDLE,
+      releaseCounters: RELEASE_COUNTERS,
+    });
+  });
+
+  it("should offer a picker over the channel's releases, each named by its bundle, when the release is missing and someone can pick", async () => {
+    stubInteractiveTerminal();
+    vi.mocked(select).mockResolvedValue(LIVE_RELEASE.id);
+    respondWithStagingReleases(harness);
+
+    await releaseGetCommand.action(
+      { app: DEMO_APP.id, channel: STAGING_CHANNEL.id },
+      undefined,
+    );
+
+    expect(select).toHaveBeenCalledWith({
+      message: 'Which release?',
+      options: [
+        { label: '#43 · #17 · 1.4.2 (active)', value: LIVE_RELEASE.id },
+        { label: '#42 · #16 · 1.4.1 (active)', value: PREVIOUS_RELEASE.id },
+      ],
+    });
   });
 
   it('should refuse a release of another channel', async () => {
     respondWithStagingReleases(harness);
-    harness.routes[LIVE_RELEASE_WITH_RELATIONS_ROUTE] = () =>
-      Response.json({
-        ...LIVE_RELEASE_WITH_RELATIONS,
-        channelId: PRODUCTION_CHANNEL.id,
-      });
+    respondWithRelease(harness, {
+      ...LIVE_RELEASE_WITH_RELATIONS,
+      channel: PRODUCTION_CHANNEL,
+      channelId: PRODUCTION_CHANNEL.id,
+    });
 
     await expect(
       releaseGetCommand.action(
@@ -140,13 +174,12 @@ describe('release get', () => {
 
   it("should print the release's own auto-pause values plain", async () => {
     respondWithStagingReleases(harness);
-    harness.routes[LIVE_RELEASE_WITH_RELATIONS_ROUTE] = () =>
-      Response.json({
-        ...LIVE_RELEASE_WITH_RELATIONS,
-        failureAction: 'revoke',
-        failureMinimumUpdateCount: 20,
-        failureThresholdPercent: 10,
-      });
+    respondWithRelease(harness, {
+      ...LIVE_RELEASE_WITH_RELATIONS,
+      failureAction: 'revoke',
+      failureMinimumUpdateCount: 20,
+      failureThresholdPercent: 10,
+    });
 
     await releaseGetCommand.action(
       {

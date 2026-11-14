@@ -3,15 +3,17 @@ import { useCommandHarness } from '../../../test/command-harness.js';
 import {
   DEMO_APP,
   FLEET,
+  LIVE_RELEASE,
   PROGRESSING_RELEASE,
   READY_BUNDLE,
   STAGING_CHANNEL,
 } from '../../../test/fixtures.js';
 import {
   FLEET_PATH,
+  LIVE_RELEASE_WITH_RELATIONS,
   RELEASE_COUNTERS,
-  RELEASE_LOG,
   RELEASES_PATH,
+  respondWithReleases,
   respondWithStagingReleases,
 } from '../../../test/release-routes.js';
 import releaseListCommand from './list.js';
@@ -60,8 +62,6 @@ describe('release list', () => {
 
   it('should print the page as JSON with the next offset when --json and --limit are passed', async () => {
     respondWithStagingReleases(harness);
-    harness.routes[`GET ${RELEASES_PATH}`] = () =>
-      Response.json(RELEASE_LOG.slice(0, 1));
 
     await releaseListCommand.action(
       {
@@ -75,20 +75,21 @@ describe('release list', () => {
 
     expect(harness.readJson()).toEqual({
       nextOffset: 1,
-      releases: RELEASE_LOG.slice(0, 1),
+      releases: [
+        {
+          ...LIVE_RELEASE,
+          bundle: READY_BUNDLE,
+          releaseCounters: RELEASE_COUNTERS,
+        },
+      ],
     });
   });
 
   it('should print the schedule with the step reached and its gate when a release progresses', async () => {
     respondWithStagingReleases(harness);
-    harness.routes[`GET ${RELEASES_PATH}`] = () =>
-      Response.json([
-        {
-          ...PROGRESSING_RELEASE,
-          bundle: READY_BUNDLE,
-          releaseCounters: RELEASE_COUNTERS,
-        },
-      ]);
+    respondWithReleases(harness, [
+      { ...LIVE_RELEASE_WITH_RELATIONS, ...PROGRESSING_RELEASE },
+    ]);
 
     await releaseListCommand.action(
       { app: DEMO_APP.id, channel: STAGING_CHANNEL.id },
