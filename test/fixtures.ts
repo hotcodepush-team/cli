@@ -535,14 +535,6 @@ export const OWNER_MEMBER: Member = {
   role: 'owner',
   updatedAt: '2026-09-01T08:00:00.000Z',
   user: {
-    accounts: [
-      {
-        createdAt: '2026-09-01T08:00:00.000Z',
-        id: '3e9b7c1d-5a2f-4d86-9b0e-6c4a8f2d1e57',
-        providerId: 'credential',
-        userId: '9c4e1b7a-3f2d-4a65-b8e0-7d1a5c3e9f04',
-      },
-    ],
     createdAt: '2026-09-01T08:00:00.000Z',
     email: 'anna@example.com',
     emailVerified: true,
@@ -563,14 +555,6 @@ export const ADMIN_MEMBER: Member = {
   role: 'admin',
   updatedAt: '2026-09-03T08:00:00.000Z',
   user: {
-    accounts: [
-      {
-        createdAt: '2026-09-03T08:00:00.000Z',
-        id: '8d2a6f4c-1e7b-4c93-a5d0-2b9e7f3c6a18',
-        providerId: 'github',
-        userId: '7f3c9a1e-2d5b-4e80-b6a4-0c9e1d3f5a27',
-      },
-    ],
     createdAt: '2026-09-03T08:00:00.000Z',
     email: 'bob@example.com',
     emailVerified: true,

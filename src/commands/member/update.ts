@@ -41,6 +41,7 @@ export default defineCommand({
     const fetchedMember = await fetchMember(hotCodePush, {
       options,
       organizationId,
+      relations: ['user'],
     });
     const role =
       options.role ??

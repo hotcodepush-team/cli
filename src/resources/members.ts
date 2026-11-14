@@ -1,4 +1,4 @@
-import type { HotCodePush, Member } from '@hotcodepush/node';
+import type { GetMemberOptions, HotCodePush, Member } from '@hotcodepush/node';
 import { z } from 'zod';
 import type { InteractivityOptions } from '../utils/environment.js';
 import { fetchAllPages } from '../utils/pagination.js';
@@ -17,12 +17,17 @@ export async function fetchMember(
   {
     options,
     organizationId,
-  }: { options: MemberOptions; organizationId: string },
+    relations,
+  }: {
+    options: MemberOptions;
+    organizationId: string;
+    relations: GetMemberOptions['relations'];
+  },
 ): Promise<Member> {
   return hotCodePush.organizations.members.get({
     memberId: await fetchMemberId(hotCodePush, { options, organizationId }),
     organizationId,
-    relations: ['user', 'user.accounts'],
+    relations,
   });
 }
 

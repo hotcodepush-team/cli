@@ -126,6 +126,9 @@ A project with an app config that is code, or with a JSON one that does not pars
 - **`--json` is data only on stdout**: the human output's content and nothing else; prompts, progress lines and notices go to stderr.
   An error under `--json` is `{ "error": { "code", "message", "fix" } }` with its exit code; without `--json`, output goes to stdout and diagnostics to stderr.
   `--json` prints the rows as the API serves them; what the CLI joins or computes for a reader, the fleet's counts per release, channel and binary, the progression step and gate, the caller's roles, the SSO URLs and TXT record name, is human output only.
+- **A command asks the API only for the relations it reads**: a relation joins a read only when the command's human output, a prompt, a confirmation or its logic reads the embedded row, and `--json` prints the row as that one read returned it.
+  A shared fetch function takes the relations from its caller, as `fetchReleaseInChannel`, `fetchReleaseLog` and `fetchMember` do, so each command names its own.
+  `release create` keeps `bundle` and `channel` on the release it prints, since a pipeline reads the bundle number and the channel name from that JSON, as the release action does. No command takes a `--relations` flag.
 - **Colour** only where `isColorEnabled(stream)` holds: a TTY, no `NO_COLOR`, no `TERM=dumb`.
   zodline colours its help regardless, so `runCli` strips the codes from its output where colour is off.
 - **Commands call commands, and stdout is one document**: a command that needs what another does runs that command's action in place, never a copy of its logic.

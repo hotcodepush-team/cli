@@ -272,6 +272,7 @@ async function createLiveRelease(
     appId: channel.appId,
     channelId: channel.id,
   });
+  // A pipeline reads the bundle number and the channel name from the JSON of this command, as the release action does.
   return waitUntilLive(hotCodePush, {
     appId: channel.appId,
     relations: ['bundle', 'channel'],
@@ -410,7 +411,10 @@ async function fetchSourceRelease(
     }),
   });
   const sourceRelease = findNewestActiveRelease(
-    await fetchReleaseLog(hotCodePush, sourceChannel),
+    await fetchReleaseLog(hotCodePush, {
+      channel: sourceChannel,
+      relations: ['bundle'],
+    }),
     { platform },
   );
   if (sourceRelease === undefined) {

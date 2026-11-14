@@ -27,6 +27,7 @@ export default defineCommand({
     const fetchedMember = await fetchMember(hotCodePush, {
       options,
       organizationId: await fetchOrganizationId(hotCodePush, options),
+      relations: ['user', 'user.accounts'],
     });
     if (options.json) {
       printJson(fetchedMember);

@@ -2,6 +2,7 @@ import type {
   Channel,
   GetReleaseOptions,
   HotCodePush,
+  ListReleasesOptions,
   Release,
 } from '@hotcodepush/node';
 import { z } from 'zod';
@@ -35,13 +36,16 @@ export const releaseOptionShape = {
 
 export async function fetchReleaseInChannel(
   hotCodePush: HotCodePush,
-  options: ReleaseOptions,
+  {
+    options,
+    relations,
+  }: { options: ReleaseOptions; relations?: GetReleaseOptions['relations'] },
 ): Promise<ReleaseInChannel> {
   const channel = await fetchChannel(hotCodePush, options);
   const releaseId = await fetchReleaseId(hotCodePush, { channel, options });
   const release = await hotCodePush.apps.releases.get({
     appId: channel.appId,
-    relations: ['bundle', 'channel', 'releaseCounters'],
+    relations,
     releaseId,
   });
   if (release.channelId !== channel.id) {
@@ -54,13 +58,16 @@ export async function fetchReleaseInChannel(
 
 export function fetchReleaseLog(
   hotCodePush: HotCodePush,
-  channel: Channel,
+  {
+    channel,
+    relations,
+  }: { channel: Channel; relations?: ListReleasesOptions['relations'] },
 ): Promise<Release[]> {
   return fetchAllPages(page =>
     hotCodePush.apps.releases.list({
       appId: channel.appId,
       channelId: channel.id,
-      relations: ['bundle'],
+      relations,
       ...page,
     }),
   );
@@ -125,7 +132,10 @@ async function fetchReleaseId(
   if (options.release !== undefined && isId(options.release)) {
     return options.release;
   }
-  const releases = await fetchReleaseLog(hotCodePush, channel);
+  const releases = await fetchReleaseLog(hotCodePush, {
+    channel,
+    relations: ['bundle'],
+  });
   if (options.release !== undefined) {
     return resolveReleaseInLog(releases, {
       flag: '--release',

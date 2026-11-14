@@ -13,7 +13,7 @@ import {
   CHANNEL_PATH,
   FLEET_PATH,
   LIVE_RELEASE_WITH_RELATIONS,
-  RELEASES_PATH,
+  LIVE_RELEASE_WITH_RELATIONS_ROUTE,
   respondWithStagingReleases,
 } from '../../../test/release-routes.js';
 import { InvalidParameterError } from '../../utils/errors.js';
@@ -24,7 +24,7 @@ describe('release get', () => {
 
   async function readProgressionLines(release: object): Promise<string[]> {
     respondWithStagingReleases(harness);
-    harness.routes[`GET ${RELEASES_PATH}/${LIVE_RELEASE.id}`] = () =>
+    harness.routes[LIVE_RELEASE_WITH_RELATIONS_ROUTE] = () =>
       Response.json({ ...LIVE_RELEASE_WITH_RELATIONS, ...release });
     await releaseGetCommand.action(
       {
@@ -120,7 +120,7 @@ describe('release get', () => {
 
   it('should refuse a release of another channel', async () => {
     respondWithStagingReleases(harness);
-    harness.routes[`GET ${RELEASES_PATH}/${LIVE_RELEASE.id}`] = () =>
+    harness.routes[LIVE_RELEASE_WITH_RELATIONS_ROUTE] = () =>
       Response.json({
         ...LIVE_RELEASE_WITH_RELATIONS,
         channelId: PRODUCTION_CHANNEL.id,
@@ -140,7 +140,7 @@ describe('release get', () => {
 
   it("should print the release's own auto-pause values plain", async () => {
     respondWithStagingReleases(harness);
-    harness.routes[`GET ${RELEASES_PATH}/${LIVE_RELEASE.id}`] = () =>
+    harness.routes[LIVE_RELEASE_WITH_RELATIONS_ROUTE] = () =>
       Response.json({
         ...LIVE_RELEASE_WITH_RELATIONS,
         failureAction: 'revoke',

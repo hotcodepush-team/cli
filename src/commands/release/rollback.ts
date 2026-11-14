@@ -77,7 +77,7 @@ export default defineCommand({
       options,
     });
     const rollback = resolveRollback(
-      await fetchReleaseLog(hotCodePush, channel),
+      await fetchReleaseLog(hotCodePush, { channel, relations: ['bundle'] }),
       { channel, platform, toRelease: options.toRelease },
     );
     const isConfirmed = await confirmConsequence(

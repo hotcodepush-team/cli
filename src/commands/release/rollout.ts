@@ -44,10 +44,9 @@ export default defineCommand({
     const rolloutPercent =
       options.rolloutPercent ??
       (progression === null ? await promptRolloutPercent(options) : undefined);
-    const { channel, release } = await fetchReleaseInChannel(
-      hotCodePush,
+    const { channel, release } = await fetchReleaseInChannel(hotCodePush, {
       options,
-    );
+    });
     const isConfirmed = await confirmConsequence(
       resolveRolloutConsequence(release, {
         channelName: channel.name,

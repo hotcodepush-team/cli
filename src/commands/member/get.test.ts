@@ -19,7 +19,37 @@ vi.mock('../../utils/prompt-renderers.js', () =>
   ),
 );
 
+const ADMIN_MEMBER_WITH_ACCOUNTS = {
+  ...ADMIN_MEMBER,
+  user: {
+    ...ADMIN_MEMBER.user,
+    accounts: [
+      {
+        createdAt: '2026-09-03T08:00:00.000Z',
+        id: '8d2a6f4c-1e7b-4c93-a5d0-2b9e7f3c6a18',
+        providerId: 'github',
+        userId: ADMIN_MEMBER.userId,
+      },
+    ],
+  },
+};
+
 const MEMBERS_PATH = `/v1/organizations/${ACME_ORGANIZATION.id}/members`;
+
+const OWNER_MEMBER_WITH_ACCOUNTS = {
+  ...OWNER_MEMBER,
+  user: {
+    ...OWNER_MEMBER.user,
+    accounts: [
+      {
+        createdAt: '2026-09-01T08:00:00.000Z',
+        id: '3e9b7c1d-5a2f-4d86-9b0e-6c4a8f2d1e57',
+        providerId: 'credential',
+        userId: OWNER_MEMBER.userId,
+      },
+    ],
+  },
+};
 
 describe('member get', () => {
   const harness = useCommandHarness();
@@ -28,7 +58,7 @@ describe('member get', () => {
     harness.routes[`GET ${MEMBERS_PATH}`] = () => Response.json(members);
     harness.routes[
       `GET ${MEMBERS_PATH}/${ADMIN_MEMBER.id}?relations=user%2Cuser.accounts`
-    ] = () => Response.json(ADMIN_MEMBER);
+    ] = () => Response.json(ADMIN_MEMBER_WITH_ACCOUNTS);
   }
 
   it('should print the member --member names, looked up by email case-insensitively', async () => {
@@ -57,7 +87,7 @@ describe('member get', () => {
   it("should print a password sign-in when the user has an account of the provider credential, and two-factor from the user's twoFactorEnabled", async () => {
     harness.routes[
       `GET ${MEMBERS_PATH}/${OWNER_MEMBER.id}?relations=user%2Cuser.accounts`
-    ] = () => Response.json(OWNER_MEMBER);
+    ] = () => Response.json(OWNER_MEMBER_WITH_ACCOUNTS);
 
     await memberGetCommand.action(
       { member: OWNER_MEMBER.id, organization: ACME_ORGANIZATION.id },
@@ -85,7 +115,7 @@ describe('member get', () => {
     expect(harness.requests.map(({ url }) => url)).toEqual([
       `${API_URL}${MEMBERS_PATH}/${ADMIN_MEMBER.id}?relations=user%2Cuser.accounts`,
     ]);
-    expect(harness.readJson()).toEqual(ADMIN_MEMBER);
+    expect(harness.readJson()).toEqual(ADMIN_MEMBER_WITH_ACCOUNTS);
   });
 
   it('should ask which member by email when interactive and --member is missing', async () => {

@@ -51,9 +51,10 @@ export const RELEASE_COUNTERS: NonNullable<Release['releaseCounters']> = {
 export const LIVE_RELEASE_WITH_RELATIONS: Release = {
   ...LIVE_RELEASE,
   bundle: READY_BUNDLE,
-  channel: STAGING_CHANNEL,
   releaseCounters: RELEASE_COUNTERS,
 };
+
+export const LIVE_RELEASE_WITH_RELATIONS_ROUTE = `GET ${RELEASES_PATH}/${LIVE_RELEASE.id}?relations=bundle%2CreleaseCounters`;
 
 export const RELEASE_LOG: Release[] = [
   { ...LIVE_RELEASE, bundle: READY_BUNDLE },
@@ -76,5 +77,9 @@ export function respondWithStagingReleases(harness: CommandHarness): void {
   harness.routes[`GET ${CHANNEL_PATH}`] = () => Response.json(STAGING_CHANNEL);
   harness.routes[`GET ${RELEASES_PATH}`] = () => Response.json(RELEASE_LOG);
   harness.routes[`GET ${RELEASES_PATH}/${LIVE_RELEASE.id}`] = () =>
+    Response.json(LIVE_RELEASE);
+  harness.routes[`GET ${RELEASES_PATH}/${LIVE_RELEASE.id}?relations=bundle`] =
+    () => Response.json({ ...LIVE_RELEASE, bundle: READY_BUNDLE });
+  harness.routes[LIVE_RELEASE_WITH_RELATIONS_ROUTE] = () =>
     Response.json(LIVE_RELEASE_WITH_RELATIONS);
 }
