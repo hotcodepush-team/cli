@@ -1,4 +1,3 @@
-import { readFile } from 'node:fs/promises';
 import type {
   ExtraFingerprintFile,
   FingerprintContributors,
@@ -8,6 +7,7 @@ import { z } from 'zod';
 import { defineCommand } from '../../utils/command.js';
 import type { InteractivityOptions } from '../../utils/environment.js';
 import { InvalidParameterError } from '../../utils/errors.js';
+import { readFlagFile } from '../../utils/flag-file.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printDetails, printJson, printTable } from '../../utils/output.js';
 import { promptText } from '../../utils/prompts.js';
@@ -119,18 +119,16 @@ function printFingerprintDiff(diff: FingerprintDiff): void {
   }
 }
 
-async function readFingerprintFile({
+function readFingerprintFile({
   argumentName,
   filePath,
 }: {
   argumentName: string;
   filePath: string;
-}): Promise<FingerprintFile> {
-  const text = await readFile(filePath, 'utf8').catch((error: unknown) => {
-    throw new InvalidParameterError(
-      `The file ${filePath} from ${argumentName} cannot be read.`,
-      { cause: error, fix: FINGERPRINT_FILE_FIX },
-    );
+}): FingerprintFile {
+  const text = readFlagFile(filePath, {
+    fix: FINGERPRINT_FILE_FIX,
+    flag: argumentName,
   });
   const parsedFile = FingerprintFileSchema.safeParse(parseJson(text));
   if (!parsedFile.success) {
@@ -146,7 +144,7 @@ async function readFingerprintFiles(
   options: InteractivityOptions,
   [beforeFilePath, afterFilePath]: string[],
 ): Promise<{ afterFile: FingerprintFile; beforeFile: FingerprintFile }> {
-  const beforeFile = await readFingerprintFile({
+  const beforeFile = readFingerprintFile({
     argumentName: '<file-a>',
     filePath:
       beforeFilePath ??
@@ -155,7 +153,7 @@ async function readFingerprintFiles(
         message: "Which file holds the earlier fingerprint, the store build's?",
       })),
   });
-  const afterFile = await readFingerprintFile({
+  const afterFile = readFingerprintFile({
     argumentName: '<file-b>',
     filePath:
       afterFilePath ??

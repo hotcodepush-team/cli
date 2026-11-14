@@ -1,6 +1,6 @@
 import { createPrivateKey } from 'node:crypto';
 import type { KeyObject } from 'node:crypto';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
 import {
   resolvePublicKeyOfPrivateKey,
   SIGNING_KEY_BITS_MINIMUM,
@@ -11,6 +11,7 @@ import {
   InvalidParameterError,
   SigningKeyUnavailableError,
 } from '../utils/errors.js';
+import { readFlagFile } from '../utils/flag-file.js';
 
 // Every message about the key names its source, but never the key itself.
 interface GivenPrivateKey {
@@ -116,17 +117,10 @@ function readGivenPrivateKey(
 }
 
 function readPrivateKeyFile(filePath: string): string {
-  try {
-    return readFileSync(filePath, 'utf8');
-  } catch (error) {
-    throw new InvalidParameterError(
-      `The file ${filePath} from --private-key-path cannot be read.`,
-      {
-        cause: error,
-        fix: 'Pass the path of the private key file, a PEM of PKCS #8 or PKCS #1.',
-      },
-    );
-  }
+  return readFlagFile(filePath, {
+    fix: 'Pass the path of the private key file, a PEM of PKCS #8 or PKCS #1.',
+    flag: '--private-key-path',
+  });
 }
 
 function resolvePrivateKeyEncodings(text: string): PrivateKeyEncoding[] {

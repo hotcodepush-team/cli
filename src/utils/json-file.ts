@@ -35,6 +35,6 @@ function parseJsonFileText(
   }
 }
 
-function resolveJsonSyntaxProblem({ message }: SyntaxError): string {
+export function resolveJsonSyntaxProblem({ message }: SyntaxError): string {
   return message.replace(QUOTED_TEXT_PATTERN, '$1');
 }

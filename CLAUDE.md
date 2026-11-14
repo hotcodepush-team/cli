@@ -14,7 +14,7 @@ When code and plan disagree, stop and surface it; never improvise.
 src/
   index.ts     the entry point: runs the command line through the registry
   registry.ts  the registry: space-separated command names, each a lazy import
-  commands/    a folder per noun and a file per verb, channel/create.ts, resource-file/write.ts; the standalone commands flat, login.ts, logout.ts, whoami.ts, doctor.ts, init.ts, open.ts, fingerprint.ts, completion.ts;
+  commands/    a folder per noun and a file per verb, channel/create.ts, resource-file/write.ts; the standalone commands flat, login.ts, logout.ts, whoami.ts, doctor.ts, init.ts, open.ts, fingerprint.ts, completion.ts, api.ts;
                init/steps.ts beside init.ts: init's step runner
   resources/   a file per command noun in the plural of the API paths, mass nouns as they are, holding what the noun's commands share: its option shape (--channel),
                the fetch functions that turn the flag into the resource, the pure resolvers and the formatters: apps, audience, binaries, bundles, devices, invitations, members,
@@ -29,7 +29,7 @@ src/
   utils/       what belongs to no noun: the runner, command resolution and did-you-mean, the CLI's `defineCommand` and the authentication gate, the error catalog and its one mapping,
                the diagnostics on stderr, the global options, environment detection, config.json, the token store, the auth client, the login flow, the signed-in user and its credential line,
                the API client, hotcodepush.json and its directory, the JSON files a person edits, package.json reading, a reference told apart as an id or a number,
-               a resource by id or name, the name=value pairs of a flag, the device hosts derived from the API URL, the prompts and the confirmation, the pages of a list, the boolean flag,
+               a resource by id or name, the name=value pairs of a flag, the file a flag names, the device hosts derived from the API URL, the prompts and the confirmation, the pages of a list, the boolean flag,
                a nullable field from its flag and its clear flag, a duration as a time bound, the package manager and its visible runs, the outcome rows init and doctor print,
                the progress lines, the browser opener, the JSON, tables and details output, the settled delivery of a webhook or the telemetry export, the telemetry, the update notice,
                the shell completion: the command tree, a script builder per shell and the script files the build writes and `completion` reads
@@ -111,6 +111,9 @@ A project with an app config that is code, or with a JSON one that does not pars
   A read prints `printDetails` rows or a `printTable`, and the caller separates stacked blocks with one blank line on every stream, `printResultGap` between two results, since a result's own blank line is terminal-only.
   A non-event, nothing deleted, nothing to revoke, no session, a page only opened, is a plain sentence or plain rows, never a result, so the success symbol claims nothing.
 - **API errors pass through verbatim**, their code and message as received, never re-mapped and with no fix; the CLI's catalog covers only what happens before or without the API.
+- **`api` is the API as typed**: `commands/api.ts` sends one request through the client's `request` and prints the response body, JSON as `printJson` prints it and anything else as the bytes received.
+  It fills `{appId}` and `{organizationId}` through `fetchAppId` and `fetchOrganizationId`, refuses any other placeholder before a request, and adds a missing leading slash, since Git Bash on Windows rewrites an argument that has one.
+  It confirms nothing, and `--json` changes the format of its errors alone. A new option joins it only when a caller asks for it.
 - **Exit codes**: `0` done, `1` an error, `2` a missing or invalid parameter, `3` not logged in, `4` a confirmation required without `--yes`.
 - **Parameters are the API's field names**, `--rollout-percent`, `--channel`: nothing is renamed between the console, the API and the terminal.
   The one exception is a version: `--version` is the CLI's own flag, so a bundle's `version` is `--bundle-version` and a binary's `version` and `build` are `--binary-version` and `--binary-build`, the names a device's `binaryVersion` and `binaryBuild` already carry.
