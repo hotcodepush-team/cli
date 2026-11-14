@@ -29,7 +29,7 @@ src/
   utils/       what belongs to no noun: the runner, command resolution and did-you-mean, the CLI's `defineCommand` and the authentication gate, the error catalog and its one mapping,
                the diagnostics on stderr, the global options, environment detection, config.json, the token store, the auth client, the login flow, the signed-in user and its credential line,
                the API client, hotcodepush.json and its directory, the JSON files a person edits, package.json reading, a reference told apart as an id or a number,
-               a resource by id or name, the name=value pairs of a flag, the file a flag names, the device hosts derived from the API URL, the prompts and the confirmation, the pages of a list, the boolean flag,
+               a resource by id or name, the name=value pairs of a flag, the file a flag names, the arguments a command takes too many of, the device hosts derived from the API URL, the prompts and the confirmation, the pages of a list, the boolean flag,
                a nullable field from its flag and its clear flag, a duration as a time bound, the package manager and its visible runs, the outcome rows init and doctor print,
                the progress lines, the browser opener, the JSON, tables and details output, the settled delivery of a webhook or the telemetry export, the telemetry, the update notice,
                the shell completion: the command tree, a script builder per shell and the script files the build writes and `completion` reads
