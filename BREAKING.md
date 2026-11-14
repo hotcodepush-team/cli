@@ -23,6 +23,15 @@ A command asks the API only for the linked rows it reads itself. Two `--json` ou
 + npx hotcodepush channel get --json | jq -r '.name'
 ```
 
+### Unexpected Arguments Are Refused
+
+A word that a command does not take is now an error, `invalid_parameter` with exit code `2`. Before, the command ran and ignored the word.
+
+```diff
+- npx hotcodepush release get 43
++ npx hotcodepush release get --release 43
+```
+
 ## Version 0.3.x
 
 ### One Release Per Run
