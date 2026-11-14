@@ -55,7 +55,7 @@ const STDIN_BODY_PATH = '-';
 
 export default defineCommand({
   description:
-    'Send one request to the HotCodePush API and print the response body. <path> is a path of the API, such as /v1/apps/{appId}/channels, and may carry a query string. Its leading slash may be left out. The CLI fills {appId} and {organizationId} from hotcodepush.json, --app and --organization.',
+    'Send one request to the HotCodePush API and print the response body. <path> is a path of the API, such as /v1/apps/{appId}/channels, and may carry a query string. Its leading slash may be left out. The CLI fills {appId} from hotcodepush.json or --app, and {organizationId} from --organization or the only organization you belong to.',
   examples: [
     "hotcodepush api '/v1/apps/{appId}/channels?limit=100'",
     "hotcodepush api '/v1/apps/{appId}/channels' --body-path channel.json",
