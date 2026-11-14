@@ -51,7 +51,7 @@ describe('printCreatedRelease', () => {
       'Live     not yet',
     ]);
     expect(output.readDiagnostics()).toBe(
-      'Run "hotcodepush release get 43" to see when it is live.\n',
+      'Run "hotcodepush release get --channel production --release 43" to see when it is live.\n',
     );
   });
 
