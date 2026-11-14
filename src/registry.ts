@@ -2,6 +2,7 @@ import type { CommandRegistry } from './utils/command-registry.js';
 
 // Lazy imports, so a command line loads only the module it runs.
 export const commandRegistry: CommandRegistry = {
+  'api': () => import('./commands/api.js'),
   'app create': () => import('./commands/app/create.js'),
   'app delete': () => import('./commands/app/delete.js'),
   'app get': () => import('./commands/app/get.js'),

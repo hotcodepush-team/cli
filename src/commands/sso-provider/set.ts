@@ -1,4 +1,3 @@
-import { readFileSync } from 'node:fs';
 import type { SetSsoProviderOptions } from '@hotcodepush/node';
 import { z } from 'zod';
 import { fetchOrganizationId } from '../../resources/organizations.js';
@@ -8,6 +7,7 @@ import { createApiClient } from '../../utils/api-client.js';
 import { defineCommand } from '../../utils/command.js';
 import type { InteractivityOptions } from '../../utils/environment.js';
 import { InvalidParameterError } from '../../utils/errors.js';
+import { readFlagFile } from '../../utils/flag-file.js';
 import { defineCommandOptions } from '../../utils/global-options.js';
 import { printJson, printResult } from '../../utils/output.js';
 import { promptSecret, promptSelect, promptText } from '../../utils/prompts.js';
@@ -204,14 +204,10 @@ function readDocumentFile(
   filePath: string,
   { flag }: { flag: string },
 ): string {
-  try {
-    return readFileSync(filePath, 'utf8');
-  } catch (error) {
-    throw new InvalidParameterError(
-      `The file ${filePath} from ${flag} cannot be read.`,
-      { cause: error, fix: 'Pass the path of a file you can read.' },
-    );
-  }
+  return readFlagFile(filePath, {
+    fix: 'Pass the path of a file you can read.',
+    parameter: flag,
+  });
 }
 
 // A provider speaks one protocol, so flags of both are refused.
