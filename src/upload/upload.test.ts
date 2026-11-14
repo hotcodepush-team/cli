@@ -32,6 +32,9 @@ const SHA256 = 'a'.repeat(64);
 
 const BUNDLE_PATH = `/v1/apps/${DEMO_APP.id}/bundles/${READY_BUNDLE.id}`;
 
+// Writing and sending a file at the single-upload limit took twelve seconds on a slow CI runner.
+const LARGE_UPLOAD_TIMEOUT_MS = 30_000;
+
 const PART_COUNT = Math.ceil((SINGLE_UPLOAD_LIMIT_BYTES + 1) / PART_SIZE_BYTES);
 
 // Every kind of upload, each through its one client call, which picks one request or parts by size.
@@ -109,6 +112,7 @@ describe('upload', () => {
         SINGLE_UPLOAD_LIMIT_BYTES,
       );
     },
+    LARGE_UPLOAD_TIMEOUT_MS,
   );
 
   it.each(UPLOADS)(
@@ -152,6 +156,7 @@ describe('upload', () => {
         })),
       });
     },
+    LARGE_UPLOAD_TIMEOUT_MS,
   );
 
   it.each(UPLOADS)(
@@ -180,6 +185,7 @@ describe('upload', () => {
         `DELETE ${path}/uploads/upload-1`,
       ]);
     },
+    LARGE_UPLOAD_TIMEOUT_MS,
   );
 
   it('should build the manifest with the files by path and the platforms sorted by code units, as the API rebuilds it', () => {
