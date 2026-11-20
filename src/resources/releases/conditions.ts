@@ -9,6 +9,7 @@ import {
 import { z } from 'zod';
 import { InvalidParameterError } from '../../utils/errors.js';
 import { resolveNameValuePairs } from '../../utils/name-value-pairs.js';
+import type { Progression } from './progression.js';
 
 export interface ConditionOptions {
   attribute?: string[];
@@ -49,8 +50,13 @@ export function buildAudienceQuery(
   options: ConditionOptions,
   {
     fingerprint,
+    progression,
     rolloutPercent,
-  }: { fingerprint: string | null; rolloutPercent: number },
+  }: {
+    fingerprint: string | null;
+    progression: Progression | null;
+    rolloutPercent: number;
+  },
 ): AudienceQuery {
   return {
     attribute: resolveAttributePairs(options.attribute).map(
@@ -60,6 +66,8 @@ export function buildAudienceQuery(
     device: options.device ?? [],
     fingerprint: resolveList(fingerprint ?? undefined),
     os: resolveList(options.osVersion),
+    progressionRolloutPercent: progression?.rolloutPercents,
+    progressionStepMinimumUpdateCount: progression?.stepMinimumUpdateCount,
     rolloutPercent,
   };
 }
