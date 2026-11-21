@@ -244,6 +244,7 @@ async function createRelease(
     }
     return;
   }
+  printWarnings(audience.warnings);
   if (!(await confirmConsequence(plan.consequence, options))) {
     return;
   }
@@ -252,7 +253,6 @@ async function createRelease(
     channel,
     releaseBody: buildReleaseBody(bundle, { options, plan }),
   });
-  printWarnings(audience.warnings);
   if (options.json) {
     printJson(liveRelease);
   } else {
@@ -325,19 +325,19 @@ async function fetchBundleSource(
       });
 }
 
-// The audience preview checks the conditions before anything is uploaded.
+// The audience preview checks the conditions and the schedule before anything is uploaded.
 async function fetchChannelAudience(
   hotCodePush: HotCodePush,
   {
     appId,
     fingerprint,
     options,
-    rolloutPercent,
+    rollout,
   }: {
     appId: string;
     fingerprint: string | null;
     options: ReleaseCreateOptions;
-    rolloutPercent: number;
+    rollout: ReleaseRollout;
   },
 ): Promise<ChannelAudience> {
   const channel = await hotCodePush.apps.channels.get({
@@ -351,7 +351,8 @@ async function fetchChannelAudience(
   const audience = await fetchAudience(hotCodePush, {
     audienceQuery: buildAudienceQuery(options, {
       fingerprint,
-      rolloutPercent,
+      progression: rollout.progression,
+      rolloutPercent: rollout.rolloutPercent,
     }),
     channel,
   });
@@ -377,7 +378,7 @@ async function fetchReleasePlan(
     appId: resolveSourceAppId(bundleSource),
     fingerprint,
     options,
-    rolloutPercent: rollout.rolloutPercent,
+    rollout,
   });
   return {
     bundleSource,

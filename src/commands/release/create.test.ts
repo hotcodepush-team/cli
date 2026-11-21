@@ -440,7 +440,7 @@ describe('release create', () => {
       respondWithCreatedRelease({ release: PROGRESSING_RELEASE });
     });
 
-    it("should start at the default schedule's first percentage once confirmed, stating the schedule", async () => {
+    it('should preview the default schedule and start at its first percentage once confirmed, stating the schedule', async () => {
       stubInteractiveTerminal();
       vi.mocked(confirm).mockResolvedValue(true);
 
@@ -459,8 +459,15 @@ describe('release create', () => {
         message:
           'This releases bundle #17 · 1.4.2 at 10 percent, progressing through 10, 50, 100 percent, each step at least 3600 seconds and 50 applied updates: reaches 100 of 120 active devices in staging, about 100 at a 10 percent rollout. Continue?',
       });
-      expect(readAudienceUrls()[0]?.searchParams.get('rolloutPercent')).toBe(
+      const audienceParams = readAudienceUrls()[0]?.searchParams;
+      expect(audienceParams?.get('rolloutPercent')).toBe('10');
+      expect(audienceParams?.getAll('progressionRolloutPercent')).toEqual([
         '10',
+        '50',
+        '100',
+      ]);
+      expect(audienceParams?.get('progressionStepMinimumUpdateCount')).toBe(
+        '50',
       );
       const [createRequest] = readCreateRequests();
       expect(await createRequest?.json()).toMatchObject({
@@ -715,12 +722,14 @@ describe('release create', () => {
     });
   });
 
-  it("should print the audience preview's warnings once the release is created", async () => {
+  it("should print the audience preview's warnings before it asks, when the answer is no too", async () => {
     const fingerprintUnknownWarning: Audience['warnings'][number] = {
       code: 'fingerprint_unknown',
       details: { fingerprint: CAPACITOR_FINGERPRINT },
       message: 'No binary of the app carries this fingerprint.',
     };
+    stubInteractiveTerminal();
+    vi.mocked(confirm).mockResolvedValue(false);
     stubWebBuildUpload();
     respondWithStagingChannel({
       ...STAGING_AUDIENCE,
@@ -729,7 +738,6 @@ describe('release create', () => {
         UNSUPPORTED_CONDITION_SHARE_WARNING,
       ],
     });
-    respondWithCreatedRelease();
 
     await releaseCreateCommand.action(
       {
@@ -737,7 +745,6 @@ describe('release create', () => {
         attribute: ['tier=beta'],
         channel: STAGING_CHANNEL.id,
         path: 'dist',
-        yes: true,
       },
       undefined,
     );
@@ -745,6 +752,7 @@ describe('release create', () => {
     expect(harness.readDiagnostics()).toBe(
       `${fingerprintUnknownWarning.message}\n${UNSUPPORTED_CONDITION_SHARE_WARNING.message}\n`,
     );
+    expect(readCreateRequests()).toEqual([]);
   });
 
   it('should stop with `confirmation_required` stating the audience at a partial rollout, with the mandatory flag, when nobody can confirm', async () => {
