@@ -45,7 +45,7 @@ dist/          the build output, never committed
 ```
 
 Tests live beside the code they test, `*.test.ts` next to the file.
-There is no `services/` and no `types/`: `@hotcodepush/node` is the API layer and the type source, pinned to one pkg.pr.new build by its commit hash.
+There is no `services/` and no `types/`: `@hotcodepush/node` is the API layer and the type source, pinned to an exact npm version.
 The one exception is Better Auth's `/v1/auth/*` slice, reached through `better-auth/client` in `utils/auth-client.ts`, as the handbook's architecture.md places it.
 
 ## Commands
@@ -63,7 +63,8 @@ Run `npm run fmt` before every commit; lint, typecheck, test and build must pass
 `.prettierignore` keeps the `CHANGELOG.md` and manifest that release-please writes as it writes them.
 A test of a POSIX file mode is skipped on Windows, which has none: a file there is protected by the access list of its folder, the user profile's for `config.json` and the project's own for a private key file.
 `node dist/index.js --help` runs the build locally.
-`ci.yml`'s `preview` job publishes every push to `main` and every pull request to pkg.pr.new, and consumers pin one build by its short commit hash: `npm install --save-dev https://pkg.pr.new/hotcodepush-team/cli/hotcodepush@<sha>`.
+`ci.yml`'s `preview` job publishes every push to `main` and every pull request to pkg.pr.new, so a build can be tried before its release: `npm install --save-dev https://pkg.pr.new/hotcodepush-team/cli/hotcodepush@<sha>`.
+Consumers pin a released npm version.
 Release-please keeps a release pull request open on `main`, and merging it tags the release.
 `release.yml` then sets the telemetry keys from the repository variables and publishes to npm with provenance over OIDC, `prepublishOnly` building a clean `dist/` first.
 
