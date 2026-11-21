@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.1](https://github.com/hotcodepush-team/cli/compare/v0.4.0...v0.4.1) (2026-11-21)
+
+
+### Features
+
+* **release:** warn about a progression step that is too small before the confirmation ([#148](https://github.com/hotcodepush-team/cli/issues/148)) ([f8feed7](https://github.com/hotcodepush-team/cli/commit/f8feed7083339706875f8cb440915da59e052f2e))
+
+
+### Bug Fixes
+
+* the api help says where each placeholder comes from ([#146](https://github.com/hotcodepush-team/cli/issues/146)) ([acae689](https://github.com/hotcodepush-team/cli/commit/acae6893ea8fa7b0bae5ebabda84eaab2249fedf))
+
 ## [0.4.0](https://github.com/hotcodepush-team/cli/compare/v0.3.0...v0.4.0) (2026-11-14)
 
 
